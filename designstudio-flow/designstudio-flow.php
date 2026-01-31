@@ -64,6 +64,7 @@ final class DesignStudio_Flow {
         require_once DSF_PLUGIN_DIR . 'includes/class-dsf-ajax.php';
         require_once DSF_PLUGIN_DIR . 'includes/class-dsf-frontend.php';
         require_once DSF_PLUGIN_DIR . 'includes/class-dsf-blocks.php';
+        require_once DSF_PLUGIN_DIR . 'includes/class-dsf-update-checker.php';
     }
     
     /**

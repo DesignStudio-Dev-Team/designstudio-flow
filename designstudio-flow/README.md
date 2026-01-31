@@ -214,7 +214,58 @@ designstudio-flow/
 
 ---
 
-## 📝 Changelog
+## � Auto-Updates from GitHub
+
+This plugin supports automatic updates directly from GitHub releases.
+
+### Setup (Required for Private Repos)
+
+Add the following line to your `wp-config.php`:
+
+```php
+define('DSF_GITHUB_TOKEN', 'ghp_your_personal_access_token_here');
+```
+
+### Creating a GitHub Personal Access Token
+
+1. Go to **GitHub** → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens**
+2. Click **Generate new token**
+3. Configure:
+   - **Token name**: `DesignStudio Flow Updates`
+   - **Repository access**: Select `designstudio-flow` repository
+   - **Permissions**: `Contents: Read-only`
+4. Copy the token and add it to `wp-config.php`
+
+### How Updates Work
+
+1. WordPress checks for updates periodically
+2. If a new version is available on GitHub Releases, you'll see an update notification
+3. Click **Update Now** — the plugin updates without deactivating
+4. Your settings and page layouts are preserved
+
+### Deploying a New Version
+
+```bash
+# Build Vue assets and create production ZIP
+npm run release
+```
+
+This creates `designstudio-flow-x.x.x.zip` ready for distribution.
+
+To publish on GitHub:
+
+```bash
+git add .
+git commit -m "Release v1.0.0"
+git tag v1.0.0
+git push origin main --tags
+```
+
+The GitHub Action will automatically create a Release with the ZIP attached.
+
+---
+
+## �📝 Changelog
 
 ### v1.1.0 (Current)
 - Added **Testimonials** block with slider, images, and inline editing
