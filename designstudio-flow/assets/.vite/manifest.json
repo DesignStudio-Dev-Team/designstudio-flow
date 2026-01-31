@@ -1,0 +1,11 @@
+{
+  "src/main.js": {
+    "file": "js/editor.js",
+    "name": "editor",
+    "src": "src/main.js",
+    "isEntry": true,
+    "css": [
+      "css/editor.css"
+    ]
+  }
+}
