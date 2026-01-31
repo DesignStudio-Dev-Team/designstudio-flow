@@ -1,0 +1,36 @@
+# Files/folders to exclude from distribution ZIP
+# These are development-only files
+
+# Build tools
+node_modules/
+src/
+.agent/
+tests/
+
+# Config files
+.github/
+.gitignore
+.distignore
+.phpunit.result.cache
+composer.json
+composer.lock
+package.json
+package-lock.json
+phpunit.xml.dist
+postcss.config.js
+tailwind.config.js
+vite.config.js
+vitest.config.js
+
+# IDE/Editor
+.vscode/
+.idea/
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitattributes

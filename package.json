@@ -1,0 +1,35 @@
+{
+  "name": "designstudio-flow",
+  "version": "1.0.0",
+  "description": "Build your WordPress pages with drag-and-drop pre-coded blocks",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "release": "bash scripts/build-release.sh",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:php": "vendor/bin/phpunit"
+  },
+  "dependencies": {
+    "lucide-vue-next": "^0.312.0",
+    "pinia": "^2.1.7",
+    "sortablejs": "^1.15.2",
+    "vue": "^3.4.15",
+    "vuedraggable": "^4.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.3",
+    "@vue/test-utils": "^2.4.6",
+    "autoprefixer": "^10.4.17",
+    "jsdom": "^27.4.0",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "vite": "^5.0.12",
+    "vitest": "^4.0.18"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

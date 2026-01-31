@@ -1,0 +1,33 @@
+/**
+ * DesignStudio Flow - Main Stylesheet
+ */
+
+/* Google Fonts - must be first */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Import design tokens */
+@import './variables.css';
+@import './components.css';
+@import './blocks.css';
+
+/* Tailwind Directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Scoped Base Reset - Only applies within #dsf-editor-app */
+#dsf-editor-app {
+  font-family: var(--dsf-font-sans);
+  font-size: var(--dsf-text-sm);
+  line-height: var(--dsf-leading-normal);
+  color: var(--dsf-gray-800);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#dsf-editor-app *,
+#dsf-editor-app *::before,
+#dsf-editor-app *::after {
+  box-sizing: border-box;
+}
+

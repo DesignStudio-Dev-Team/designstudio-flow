@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Verify assets are built
+        run: |
+          if [ ! -d "assets/js" ] || [ ! -d "assets/css" ]; then
+            echo "❌ Error: Built assets not found!"
+            echo "Please run 'npm run build' before pushing the tag."
+            exit 1
+          fi
+          echo "✅ Built assets found"
+
+      - name: Create plugin directory
+        run: |
+          mkdir -p build/designstudio-flow
+          
+          # Copy production files only
+          cp -r assets build/designstudio-flow/
+          cp -r includes build/designstudio-flow/
+          cp -r templates build/designstudio-flow/
+          cp designstudio-flow.php build/designstudio-flow/
+          cp README.md build/designstudio-flow/
+
+      - name: Create ZIP archive
+        run: |
+          cd build
+          zip -r ../designstudio-flow-${{ steps.get_version.outputs.VERSION }}.zip designstudio-flow
+
+      - name: Generate changelog from commits
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --abbrev=0 --tags HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREVIOUS_TAG" ]; then
+            CHANGELOG=$(git log $PREVIOUS_TAG..HEAD --pretty=format:"- %s" --no-merges)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s" --no-merges -20)
+          fi
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: designstudio-flow-${{ steps.get_version.outputs.VERSION }}.zip
+          name: DesignStudio Flow v${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## DesignStudio Flow v${{ steps.get_version.outputs.VERSION }}
+            
+            ### Changes
+            ${{ steps.changelog.outputs.CHANGELOG }}
+            
+            ### Installation
+            1. Download `designstudio-flow-${{ steps.get_version.outputs.VERSION }}.zip`
+            2. Go to WordPress Admin → Plugins → Add New → Upload Plugin
+            3. Upload the zip file and activate
+            
+            ### Updating
+            If you have auto-updates configured, WordPress will notify you of the new version.
+            Click "Update Now" to update without deactivating.
+          draft: false
+          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
