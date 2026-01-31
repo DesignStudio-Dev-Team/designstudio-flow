@@ -25,6 +25,11 @@ cp -r templates build/designstudio-flow/
 cp designstudio-flow.php build/designstudio-flow/
 cp README.md build/designstudio-flow/
 
+# Remove system files
+echo "🧹 Cleaning up system files..."
+find build/designstudio-flow -name ".DS_Store" -type f -delete
+find build/designstudio-flow -name "Thumbs.db" -type f -delete
+
 # Create ZIP
 echo "🗜️  Creating ZIP archive..."
 cd build
