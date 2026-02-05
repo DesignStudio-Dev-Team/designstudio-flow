@@ -235,7 +235,11 @@ GitHub releases are used for update delivery.
 
 ## 📝 Changelog
 
-### v1.0.4 (Current)
+### v1.0.5 (Current)
+- Search icons now submit on click for Bento + Duo hero search boxes
+- New frontend build output for updated search button behavior
+
+### v1.0.4
 - Ecommerce Showcase now loads WooCommerce data on the frontend
 - Frontend pricing shows currency and sale styling correctly
 - Ecommerce Showcase typography aligned to 24px defaults

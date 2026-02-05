@@ -1,6 +1,6 @@
 {
   "name": "designstudio-flow",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Build your WordPress Page with Artisanal Content Blocks",
   "type": "module",
   "scripts": {

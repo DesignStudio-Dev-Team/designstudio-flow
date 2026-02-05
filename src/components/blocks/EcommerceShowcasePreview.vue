@@ -336,7 +336,7 @@ watch(() => [
 }
 
 .dsf-ecommerce-showcase__title {
-  font-size: 24px;
+  font-size: 42px;
   font-weight: 700;
   margin: 0;
 }

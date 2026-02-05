@@ -45,6 +45,7 @@
                   @keydown.enter="handleSearch(leftSearchQuery, settings.leftSearchUrl)"
                 >
                 <button 
+                  type="button"
                   class="dsf-duo-hero__search-btn"
                   @click="handleSearch(leftSearchQuery, settings.leftSearchUrl)"
                 >
@@ -107,6 +108,7 @@
                   @keydown.enter="handleSearch(rightSearchQuery, settings.rightSearchUrl)"
                 >
                 <button 
+                  type="button"
                   class="dsf-duo-hero__search-btn"
                   @click="handleSearch(rightSearchQuery, settings.rightSearchUrl)"
                 >

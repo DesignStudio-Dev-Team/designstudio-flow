@@ -33,6 +33,7 @@
               @keydown.enter="handleSearch"
             />
             <button 
+              type="button"
               class="dsf-bento-hero__search-btn-icon" 
               @click="handleSearch"
               style="background:none; border:none; position:absolute; right:10px; top: 50%; transform: translateY(-50%); cursor:pointer; padding: 0;"

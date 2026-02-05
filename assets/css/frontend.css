@@ -62,13 +62,16 @@
 }
 
 /* Ensure ecommerce showcase typography is 24px on frontend */
-.dsf-ecommerce-showcase__title,
 .dsf-ecommerce-showcase__shop-all,
 .dsf-ecommerce-showcase__pagination,
 .dsf-showcase-category__name,
 .dsf-showcase-product__price,
 .dsf-showcase-product__name {
   font-size: 24px !important;
+}
+
+.dsf-ecommerce-showcase__title {
+  font-size:42px !important
 }
 
 .dsf-page-content {
