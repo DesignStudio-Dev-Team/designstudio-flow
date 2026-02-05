@@ -5,10 +5,16 @@ vendor/
 # Environment
 .env
 .env.local
+.env.*.local
 
 # Build
 build/
 dist/
+coverage/
+.cache/
+.turbo/
+.parcel-cache/
+.vite/
 
 # IDE
 .vscode/
@@ -18,3 +24,13 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Release zips (keep the current version tracked)
+designstudio-flow-*.zip
+!designstudio-flow-1.0.2.zip

@@ -134,6 +134,25 @@ Use `src/components/blocks/StarterBlockPreview.vue` as a ready‑to‑clone temp
 npm run build
 ```
 
+---
+
+## 🛠️ Local Development
+
+When developing locally, you should run the Vite dev server **and** enable dev mode in WordPress so the editor + frontend load the hot‑reloaded assets.
+
+### 1) Start Vite
+```bash
+npm run dev
+```
+
+### 2) Enable Dev Mode in WordPress
+Add this to your `wp-config.php`:
+```php
+define('DSF_DEV_MODE', true);
+```
+
+> This tells Flow to load assets from `http://localhost:5173` instead of the production bundles.
+
 ### Release ZIP
 ```bash
 npm run release
