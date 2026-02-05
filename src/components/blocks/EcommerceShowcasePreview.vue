@@ -445,7 +445,7 @@ watch(() => [
 /* Product Cards */
 .dsf-showcase-product {
   flex-shrink: 0;
-  width: 180px;
+  width: 240px;
 }
 
 .dsf-showcase-product__image {
@@ -532,6 +532,6 @@ watch(() => [
   }
 
   .dsf-showcase-category { width: 140px; }
-  .dsf-showcase-product { width: 160px; }
+  .dsf-showcase-product { width: 200px; }
 }
 </style>

@@ -231,11 +231,28 @@ define('DSF_GITHUB_TOKEN', 'ghp_your_personal_access_token_here');
 
 GitHub releases are used for update delivery.
 
+### 🔐 How to Get a GitHub Token (Private Repo)
+1. Go to GitHub → **Settings** → **Developer settings** → **Personal access tokens**.
+1. Create a **Fine‑grained token** (recommended) or **Classic token**.
+1. Minimum access needed:
+   - **Repository access**: Only the repo that hosts DesignStudio Flow
+   - **Permissions**: `Contents: Read` (required to read releases)
+1. Copy the token and add it to `wp-config.php` as shown above.
+
+> Tip: If you rotate the token, just update `DSF_GITHUB_TOKEN` and updates will continue working.
+
 ---
 
 ## 📝 Changelog
 
-### v1.0.5 (Current)
+### v1.0.6 (Current)
+- Bento Hero mobile layout: hero full width, boxes in 2‑column grid
+- Featured Promo Banner hides image layer on mobile for cleaner layout
+- Ecommerce Showcase hover arrow stays perfectly circular
+- Ecommerce Showcase product cards scaled up for a 5‑across feel
+- Auto‑update section expanded with GitHub token instructions
+
+### v1.0.5
 - Search icons now submit on click for Bento + Duo hero search boxes
 - New frontend build output for updated search button behavior
 

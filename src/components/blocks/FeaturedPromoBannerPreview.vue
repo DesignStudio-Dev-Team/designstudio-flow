@@ -406,6 +406,10 @@ function handleButtonClick(event) {
 }
 
 @container (max-width: 768px) {
+  .dsf-featured-promo__image-layer {
+    display: none;
+  }
+
   .dsf-featured-promo__svg-layer,
   .dsf-featured-promo__badge-guide {
     display: none;

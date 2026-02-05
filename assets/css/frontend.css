@@ -70,6 +70,12 @@
   font-size: 24px !important;
 }
 
+.dsf-ecommerce-showcase__nav:hover {
+  border-radius: 50% !important;
+  transform: translateY(-50%) !important;
+  background: #2f6d6a !important;
+}
+
 .dsf-ecommerce-showcase__title {
   font-size:42px !important
 }

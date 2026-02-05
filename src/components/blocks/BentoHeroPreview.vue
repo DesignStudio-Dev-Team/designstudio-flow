@@ -417,13 +417,13 @@ function handleCtaClick(event) {
 /* Mobile Responsive using Container Queries */
 @container (max-width: 768px) {
   .dsf-bento-hero__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     grid-template-rows: auto;
     height: auto;
   }
 
   .dsf-bento-hero__hero {
-    grid-column: 1;
+    grid-column: 1 / -1;
     grid-row: auto;
     min-height: 350px;
   }
@@ -432,5 +432,6 @@ function handleCtaClick(event) {
   .dsf-bento-hero__cta {
     min-height: 200px;
   }
+
 }
 </style>
