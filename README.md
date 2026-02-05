@@ -140,6 +140,14 @@ npm run build
 
 When developing locally, you should run the Vite dev server **and** enable dev mode in WordPress so the editor + frontend load the hot‑reloaded assets.
 
+### 0) Install Dependencies
+```bash
+npm install
+composer install
+```
+
+> Composer is required for PHP tooling and tests. It is not bundled in the repo.
+
 ### 1) Start Vite
 ```bash
 npm run dev
