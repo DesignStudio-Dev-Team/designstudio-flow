@@ -75,10 +75,10 @@
         />
         
         <a 
-          href="#" 
+          :href="buttonHref"
           class="dsf-fpb__btn"
           :style="{ backgroundColor: settings.buttonColor || '#2C5F5D', color: settings.buttonTextColor || '#FFFFFF' }"
-          @click.prevent
+          @click="handleButtonClick"
         >
           <InlineText 
             v-model="settings.buttonText" 
@@ -96,11 +96,42 @@
 import { computed } from 'vue'
 import { Package } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import { useFlowModal } from '../common/useFlowModal'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
 })
+
+const { openModal } = useFlowModal()
+
+const buttonHref = computed(() =>
+  (props.settings?.buttonAction || 'link') === 'link'
+    ? (props.settings?.buttonUrl || '#')
+    : '#'
+)
+
+function getModalContent() {
+  const type = props.settings?.buttonModalContentType || 'wysiwyg'
+  if (type === 'html') return props.settings?.buttonModalHtml || ''
+  if (type === 'shortcode') return props.settings?.buttonModalShortcode || ''
+  return props.settings?.buttonModalContent || ''
+}
+
+function handleButtonClick(event) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+  if ((props.settings?.buttonAction || 'link') === 'modal') {
+    event.preventDefault()
+    openModal({
+      layout: props.settings?.buttonModalLayout || 'center',
+      contentType: props.settings?.buttonModalContentType || 'wysiwyg',
+      content: getModalContent(),
+    })
+  }
+}
 
 const backgroundStyle = computed(() => {
   const height = (props.settings?.bannerHeight || 240) + 'px'
@@ -151,6 +182,7 @@ const backgroundStyle = computed(() => {
   border-radius: var(--dsf-radius-lg);
   overflow: hidden;
   position: relative;
+  container-type: inline-size;
 }
 
 /* Inner Container */
@@ -294,5 +326,54 @@ const backgroundStyle = computed(() => {
 .dsf-fpb__btn:hover {
   opacity: 0.9;
   transform: translateY(-1px);
+}
+
+@container (max-width: 1024px) {
+  .dsf-fpb__product { width: 260px; height: 260px; }
+  .dsf-fpb__content { right: 2rem; }
+  .dsf-fpb__title { font-size: 32px; }
+  .dsf-fpb__promo { font-size: 20px; }
+  .dsf-fpb__btn { font-size: 18px; }
+}
+
+@container (max-width: 768px) {
+  .dsf-fpb {
+    padding: 16px;
+  }
+
+  .dsf-fpb__inner {
+    min-height: auto;
+  }
+
+  .dsf-fpb__ribbon {
+    position: relative;
+    left: auto;
+    top: auto;
+    margin: 0 auto 1rem;
+  }
+
+  .dsf-fpb__product {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 1.25rem;
+  }
+
+  .dsf-fpb__content {
+    position: relative;
+    right: auto;
+    top: auto;
+    transform: none;
+    align-items: center;
+    text-align: center;
+    padding: 0 16px 16px;
+  }
+
+  .dsf-fpb__title { font-size: 28px; }
+  .dsf-fpb__promo { font-size: 18px; }
+  .dsf-fpb__btn { font-size: 18px; }
 }
 </style>

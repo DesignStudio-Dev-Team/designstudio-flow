@@ -44,9 +44,9 @@
           <!-- Hero Button -->
           <a 
             v-else-if="settings.heroType === 'button'"
-            :href="settings.heroButtonUrl || '#'"
+            :href="heroButtonHref"
             class="dsf-bento-hero__btn"
-            @click.prevent
+            @click="handleHeroButtonClick"
           >
             <InlineText 
               v-model="settings.heroButtonText" 
@@ -116,10 +116,10 @@
       
       <!-- CTA Box -->
       <a 
-        href="#"
+        :href="ctaHref"
         class="dsf-bento-hero__cta"
         :style="{ backgroundColor: settings.ctaColor || '#2C5F5D', color: settings.ctaTextColor || '#FFFFFF' }"
-        @click.prevent
+        @click="handleCtaClick"
       >
         <InlineText 
           v-model="settings.ctaText" 
@@ -137,14 +137,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Search, Image, ArrowRight } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import { useFlowModal } from '../common/useFlowModal'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
 })
+
+const { openModal } = useFlowModal()
 
 const searchQuery = ref('')
 
@@ -152,6 +155,62 @@ function handleSearch() {
   if (props.isEditor) return
   if (!searchQuery.value) return
   window.location.href = '/?s=' + encodeURIComponent(searchQuery.value)
+}
+
+const heroButtonHref = computed(() =>
+  (props.settings?.heroButtonAction || 'link') === 'link'
+    ? (props.settings?.heroButtonUrl || '#')
+    : '#'
+)
+
+function getHeroModalContent() {
+  const type = props.settings?.heroButtonModalContentType || 'wysiwyg'
+  if (type === 'html') return props.settings?.heroButtonModalHtml || ''
+  if (type === 'shortcode') return props.settings?.heroButtonModalShortcode || ''
+  return props.settings?.heroButtonModalContent || ''
+}
+
+function handleHeroButtonClick(event) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+  if ((props.settings?.heroButtonAction || 'link') === 'modal') {
+    event.preventDefault()
+    openModal({
+      layout: props.settings?.heroButtonModalLayout || 'center',
+      contentType: props.settings?.heroButtonModalContentType || 'wysiwyg',
+      content: getHeroModalContent(),
+    })
+  }
+}
+
+const ctaHref = computed(() =>
+  (props.settings?.ctaAction || 'link') === 'link'
+    ? (props.settings?.ctaUrl || '#')
+    : '#'
+)
+
+function getCtaModalContent() {
+  const type = props.settings?.ctaModalContentType || 'wysiwyg'
+  if (type === 'html') return props.settings?.ctaModalHtml || ''
+  if (type === 'shortcode') return props.settings?.ctaModalShortcode || ''
+  return props.settings?.ctaModalContent || ''
+}
+
+function handleCtaClick(event) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+  if ((props.settings?.ctaAction || 'link') === 'modal') {
+    event.preventDefault()
+    openModal({
+      layout: props.settings?.ctaModalLayout || 'center',
+      contentType: props.settings?.ctaModalContentType || 'wysiwyg',
+      content: getCtaModalContent(),
+    })
+  }
 }
 </script>
 
@@ -332,6 +391,12 @@ function handleSearch() {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+@container (max-width: 1024px) {
+  .dsf-bento-hero__hero-title { font-size: 34px; }
+  .dsf-bento-hero__box-title,
+  .dsf-bento-hero__cta-text { font-size: 20px; }
 }
 
 /* Mobile Responsive using Container Queries */

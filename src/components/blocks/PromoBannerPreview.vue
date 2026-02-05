@@ -78,10 +78,10 @@
         
         <!-- Button -->
         <a 
-          href="#" 
+          :href="buttonHref"
           class="dsf-promo-banner__btn"
           :style="buttonStyle"
-          @click.prevent
+          @click="handleButtonClick"
         >
           <InlineText 
             v-model="settings.buttonText" 
@@ -99,11 +99,42 @@
 import { computed } from 'vue'
 import { Image } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import { useFlowModal } from '../common/useFlowModal'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
 })
+
+const { openModal } = useFlowModal()
+
+const buttonHref = computed(() =>
+  (props.settings?.buttonAction || 'link') === 'link'
+    ? (props.settings?.buttonUrl || '#')
+    : '#'
+)
+
+function getModalContent() {
+  const type = props.settings?.buttonModalContentType || 'wysiwyg'
+  if (type === 'html') return props.settings?.buttonModalHtml || ''
+  if (type === 'shortcode') return props.settings?.buttonModalShortcode || ''
+  return props.settings?.buttonModalContent || ''
+}
+
+function handleButtonClick(event) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+  if ((props.settings?.buttonAction || 'link') === 'modal') {
+    event.preventDefault()
+    openModal({
+      layout: props.settings?.buttonModalLayout || 'center',
+      contentType: props.settings?.buttonModalContentType || 'wysiwyg',
+      content: getModalContent(),
+    })
+  }
+}
 
 const panelStyle = computed(() => ({
   backgroundColor: props.settings?.panelColor || '#2C5F5D',
@@ -124,6 +155,7 @@ const buttonStyle = computed(() => ({
   border-radius: var(--dsf-radius-lg);
   overflow: hidden;
   background: #F3F4F6;
+  container-type: inline-size;
 }
 
 .dsf-promo-banner--left {
@@ -249,5 +281,21 @@ const buttonStyle = computed(() => ({
 .dsf-promo-banner__btn:hover {
   opacity: 0.9;
   transform: translateY(-1px);
+}
+
+@container (max-width: 1024px) {
+  .dsf-promo-banner__amount { font-size: 110px; }
+  .dsf-promo-banner__percent { font-size: 68px; }
+  .dsf-promo-banner__suffix { font-size: 28px; }
+  .dsf-promo-banner__panel { width: min(420px, 45%) !important; }
+}
+
+@container (max-width: 768px) {
+  .dsf-promo-banner { flex-direction: column; }
+  .dsf-promo-banner__panel { width: 100% !important; padding: 1.5rem; }
+  .dsf-promo-banner__amount { font-size: 96px; }
+  .dsf-promo-banner__percent { font-size: 56px; }
+  .dsf-promo-banner__suffix { font-size: 24px; }
+  .dsf-promo-banner__btn { width: 100%; text-align: center; }
 }
 </style>

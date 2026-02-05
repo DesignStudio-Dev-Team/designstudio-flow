@@ -46,7 +46,7 @@
                 >
                 <button 
                   class="dsf-duo-hero__search-btn"
-                  @click="handleSearch(leftSearchQuery)"
+                  @click="handleSearch(rightSearchQuery)"
                 >
                   <Search :size="20" />
                 </button>
@@ -54,9 +54,9 @@
             </template>
             <template v-else>
               <a 
-                :href="settings.leftButtonUrl" 
+                :href="leftButtonHref"
                 class="dsf-duo-hero__btn"
-                @click.prevent
+                @click="handleLeftButtonClick"
               >
                 <InlineText 
                   tagName="span"
@@ -116,9 +116,9 @@
             </template>
             <template v-else>
               <a 
-                :href="settings.rightButtonUrl" 
+                :href="rightButtonHref"
                 class="dsf-duo-hero__btn"
-                @click.prevent
+                @click="handleRightButtonClick"
               >
                 <InlineText 
                   tagName="span"
@@ -139,6 +139,7 @@
 import { computed, ref } from 'vue'
 import { Search } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import { useFlowModal } from '../common/useFlowModal'
 
 const props = defineProps({
   settings: {
@@ -148,6 +149,8 @@ const props = defineProps({
   isEditor: Boolean
 })
 
+const { openModal } = useFlowModal()
+
 const leftSearchQuery = ref('')
 const rightSearchQuery = ref('')
 
@@ -155,6 +158,62 @@ function handleSearch(query) {
   if (props.isEditor) return
   if (!query) return
   window.location.href = '/?s=' + encodeURIComponent(query)
+}
+
+const leftButtonHref = computed(() =>
+  (props.settings?.leftButtonAction || 'link') === 'link'
+    ? (props.settings?.leftButtonUrl || '#')
+    : '#'
+)
+
+const rightButtonHref = computed(() =>
+  (props.settings?.rightButtonAction || 'link') === 'link'
+    ? (props.settings?.rightButtonUrl || '#')
+    : '#'
+)
+
+function getLeftModalContent() {
+  const type = props.settings?.leftButtonModalContentType || 'wysiwyg'
+  if (type === 'html') return props.settings?.leftButtonModalHtml || ''
+  if (type === 'shortcode') return props.settings?.leftButtonModalShortcode || ''
+  return props.settings?.leftButtonModalContent || ''
+}
+
+function getRightModalContent() {
+  const type = props.settings?.rightButtonModalContentType || 'wysiwyg'
+  if (type === 'html') return props.settings?.rightButtonModalHtml || ''
+  if (type === 'shortcode') return props.settings?.rightButtonModalShortcode || ''
+  return props.settings?.rightButtonModalContent || ''
+}
+
+function handleLeftButtonClick(event) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+  if ((props.settings?.leftButtonAction || 'link') === 'modal') {
+    event.preventDefault()
+    openModal({
+      layout: props.settings?.leftButtonModalLayout || 'center',
+      contentType: props.settings?.leftButtonModalContentType || 'wysiwyg',
+      content: getLeftModalContent(),
+    })
+  }
+}
+
+function handleRightButtonClick(event) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+  if ((props.settings?.rightButtonAction || 'link') === 'modal') {
+    event.preventDefault()
+    openModal({
+      layout: props.settings?.rightButtonModalLayout || 'center',
+      contentType: props.settings?.rightButtonModalContentType || 'wysiwyg',
+      content: getRightModalContent(),
+    })
+  }
 }
 
 const splitRatio = computed(() => {
@@ -171,6 +230,7 @@ const wrapperStyle = computed(() => ({}))
   width: 100%;
   position: relative;
   box-sizing: border-box;
+  container-type: inline-size;
 }
 
 .dsf-duo-hero__container {
@@ -258,25 +318,35 @@ const wrapperStyle = computed(() => ({}))
 
 /* Search Box Styles */
 .dsf-duo-hero__search {
+  position: relative;
   display: flex;
+  align-items: center;
   background: white;
-  padding: 8px;
   border-radius: 4px;
   max-width: 400px;
+  width: 100%;
+  overflow: hidden;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .dsf-duo-hero__search-input {
-  flex: 1;
+  width: 100%;
   border: none;
-  padding: 8px 16px;
+  padding: 10px 44px 10px 16px;
   font-size: 20px; /* Updated font size */
   outline: none;
   color: #374151;
 }
 
 .dsf-duo-hero__search-btn {
-  padding: 8px 16px;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -301,6 +371,22 @@ const wrapperStyle = computed(() => ({}))
     width: 100%;
   }
   
+  .dsf-duo-hero__title {
+    font-size: 2rem;
+  }
+}
+
+@container (max-width: 1024px) {
+  .dsf-duo-hero__container {
+    flex-direction: column;
+  }
+
+  .dsf-duo-hero__panel {
+    flex: 1 1 auto !important;
+    min-height: 320px;
+    width: 100%;
+  }
+
   .dsf-duo-hero__title {
     font-size: 2rem;
   }

@@ -54,13 +54,13 @@
       <div class="dsf-form-group">
         <label class="dsf-label">Container Width</label>
         <div class="dsf-slider-group">
-          <div class="dsf-slider-value">{{ settings.layout?.containerWidth || 1200 }}px</div>
+          <div class="dsf-slider-value">{{ settings.layout?.containerWidth || 1800 }}px</div>
           <input 
             type="range"
             class="dsf-slider"
-            :value="settings.layout?.containerWidth || 1200"
-            min="800"
-            max="1600"
+            :value="settings.layout?.containerWidth || 1800"
+            min="1000"
+            max="1800"
             @input="updateLayout('containerWidth', parseInt($event.target.value))"
           />
         </div>
@@ -79,6 +79,54 @@
             max="64"
             @input="updateLayout('contentPadding', parseInt($event.target.value))"
           />
+        </div>
+      </div>
+
+      <hr style="margin: 1.5rem 0; border-color: var(--dsf-gray-200);">
+
+      <!-- Template Width -->
+      <div class="dsf-form-group">
+        <label class="dsf-label">Template Width</label>
+        <select
+          class="dsf-input"
+          :value="settings.layout?.template || 'default'"
+          @change="updateLayout('template', $event.target.value)"
+        >
+          <option value="default">Default (Theme Container)</option>
+          <option value="fullwidth">Full Width</option>
+        </select>
+      </div>
+
+      <!-- Theme Header/Footer -->
+      <div class="dsf-form-group">
+        <label class="dsf-label">Show Header</label>
+        <div class="dsf-flex dsf-items-center dsf-justify-between">
+          <span class="dsf-text-sm" style="color: var(--dsf-gray-600);">
+            {{ settings.layout?.showHeader === false ? 'Hidden' : 'Visible' }}
+          </span>
+          <button 
+            class="dsf-toggle"
+            :class="{ 'dsf-toggle--active': settings.layout?.showHeader !== false }"
+            @click="updateLayout('showHeader', !(settings.layout?.showHeader !== false))"
+          >
+            <span class="dsf-toggle__thumb"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="dsf-form-group">
+        <label class="dsf-label">Show Footer</label>
+        <div class="dsf-flex dsf-items-center dsf-justify-between">
+          <span class="dsf-text-sm" style="color: var(--dsf-gray-600);">
+            {{ settings.layout?.showFooter === false ? 'Hidden' : 'Visible' }}
+          </span>
+          <button 
+            class="dsf-toggle"
+            :class="{ 'dsf-toggle--active': settings.layout?.showFooter !== false }"
+            @click="updateLayout('showFooter', !(settings.layout?.showFooter !== false))"
+          >
+            <span class="dsf-toggle__thumb"></span>
+          </button>
         </div>
       </div>
     </div>

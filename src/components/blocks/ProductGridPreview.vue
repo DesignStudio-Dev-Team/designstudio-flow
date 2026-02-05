@@ -180,6 +180,10 @@ async function fetchProducts() {
   /* color comes from inline style now */
 }
 
+.dsf-product-grid-preview {
+  container-type: inline-size;
+}
+
 .dsf-product-grid-preview__items {
   display: grid;
   grid-template-columns: repeat(var(--columns, 3), 1fr);
@@ -354,5 +358,17 @@ async function fetchProducts() {
 
 .dsf-product-grid-preview {
   position: relative;
+}
+
+@container (max-width: 1024px) {
+  .dsf-product-grid-preview__items {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@container (max-width: 768px) {
+  .dsf-product-grid-preview__items {
+    grid-template-columns: 1fr !important;
+  }
 }
 </style>

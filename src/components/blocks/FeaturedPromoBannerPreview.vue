@@ -68,10 +68,10 @@
         />
         
         <a 
-          :href="settings.buttonUrl || '#'"
+          :href="buttonHref"
           class="dsf-featured-promo__arrow-btn"
           :style="{ backgroundColor: settings.badgeColor || '#3D736A' }"
-          @click.prevent
+          @click="handleButtonClick"
         >
           <span class="dsf-featured-promo__btn-text" :style="{ color: settings.circleTextColor || '#FFFFFF' }">
             <InlineText 
@@ -127,19 +127,51 @@
 import { computed } from 'vue'
 import { ArrowRight } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import { useFlowModal } from '../common/useFlowModal'
 
-defineProps({
+const props = defineProps({
   settings: {
     type: Object,
     default: () => ({})
   },
   isEditor: Boolean
 })
+
+const { openModal } = useFlowModal()
+
+const buttonHref = computed(() =>
+  (props.settings?.buttonAction || 'link') === 'link'
+    ? (props.settings?.buttonUrl || '#')
+    : '#'
+)
+
+function getModalContent() {
+  const type = props.settings?.buttonModalContentType || 'wysiwyg'
+  if (type === 'html') return props.settings?.buttonModalHtml || ''
+  if (type === 'shortcode') return props.settings?.buttonModalShortcode || ''
+  return props.settings?.buttonModalContent || ''
+}
+
+function handleButtonClick(event) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+  if ((props.settings?.buttonAction || 'link') === 'modal') {
+    event.preventDefault()
+    openModal({
+      layout: props.settings?.buttonModalLayout || 'center',
+      contentType: props.settings?.buttonModalContentType || 'wysiwyg',
+      content: getModalContent(),
+    })
+  }
+}
 </script>
 
 <style scoped>
 .dsf-featured-promo {
   width: 100%;
+  container-type: inline-size;
 }
 
 .dsf-featured-promo__container {
@@ -366,5 +398,30 @@ defineProps({
   .dsf-badge-lg { font-size: 24px; }
   .dsf-badge-md { font-size: 18px; }
   .dsf-badge-sm { font-size: 14px; }
+}
+
+@container (max-width: 1024px) {
+  .dsf-featured-promo__title { font-size: 34px; }
+  .dsf-featured-promo__description { font-size: 18px; }
+}
+
+@container (max-width: 768px) {
+  .dsf-featured-promo__svg-layer,
+  .dsf-featured-promo__badge-guide {
+    display: none;
+  }
+
+  .dsf-featured-promo__container {
+    min-height: auto;
+  }
+
+  .dsf-featured-promo__content {
+    max-width: 100%;
+    min-height: auto;
+    padding: 24px;
+  }
+
+  .dsf-featured-promo__title { font-size: 28px; }
+  .dsf-featured-promo__description { font-size: 16px; }
 }
 </style>

@@ -1,9 +1,32 @@
 {
+  "_FrontendApp-BOyhat5Q.js": {
+    "file": "js/FrontendApp-BOyhat5Q.js",
+    "name": "FrontendApp",
+    "css": [
+      "css/FrontendApp.css"
+    ]
+  },
+  "_FrontendApp.css": {
+    "file": "css/FrontendApp.css",
+    "src": "_FrontendApp.css"
+  },
+  "src/frontend/main.js": {
+    "file": "js/frontend.js",
+    "name": "frontend",
+    "src": "src/frontend/main.js",
+    "isEntry": true,
+    "imports": [
+      "_FrontendApp-BOyhat5Q.js"
+    ]
+  },
   "src/main.js": {
     "file": "js/editor.js",
     "name": "editor",
     "src": "src/main.js",
     "isEntry": true,
+    "imports": [
+      "_FrontendApp-BOyhat5Q.js"
+    ],
     "css": [
       "css/editor.css"
     ]

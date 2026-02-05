@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<ruleset name="DesignStudio Flow">
+	<description>PHPCS ruleset for DesignStudio Flow.</description>
+
+	<!-- Use WordPress-Extra ruleset -->
+	<rule ref="WordPress-Extra">
+		<exclude name="WordPress.DB.DirectDatabaseQuery.NoCaching"/>
+		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+	</rule>
+
+	<!-- Verify that the text_domain is set to the desired value. -->
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array" value="designstudio-flow"/>
+		</properties>
+	</rule>
+
+	<arg name="extensions" value="php"/>
+
+	<!-- Show progress and sniff codes in all reports -->
+	<arg value="ps"/>
+
+	<file>.</file>
+	<exclude-pattern>/node_modules/*</exclude-pattern>
+	<exclude-pattern>/vendor/*</exclude-pattern>
+	<exclude-pattern>/tests/*</exclude-pattern>
+</ruleset>

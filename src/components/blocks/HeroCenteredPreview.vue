@@ -22,14 +22,19 @@
         placeholder="Enter subtitle description..."
         :multiline="true"
       />
-      <button v-if="settings.showButton !== false" class="dsf-hero-centered-preview__btn">
+      <a
+        v-if="settings.showButton !== false"
+        class="dsf-hero-centered-preview__btn"
+        :href="buttonHref"
+        @click="handleButtonClick"
+      >
         <InlineText 
           tagName="span"
           v-model="settings.buttonText"
           :is-editor="isEditor"
           placeholder="Shop Now"
         />
-      </button>
+      </a>
     </div>
   </div>
 </template>
@@ -37,11 +42,41 @@
 <script setup>
 import { computed } from 'vue'
 import InlineText from '../common/InlineText.vue'
+import { useFlowModal } from '../common/useFlowModal'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
 })
+
+const { openModal } = useFlowModal()
+
+const buttonAction = computed(() => props.settings?.buttonAction || 'link')
+const buttonHref = computed(() =>
+  buttonAction.value === 'link' ? (props.settings?.buttonUrl || '#') : '#'
+)
+
+function getModalContent() {
+  const type = props.settings?.buttonModalContentType || 'wysiwyg'
+  if (type === 'html') return props.settings?.buttonModalHtml || ''
+  if (type === 'shortcode') return props.settings?.buttonModalShortcode || ''
+  return props.settings?.buttonModalContent || ''
+}
+
+function handleButtonClick(event) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+  if (buttonAction.value === 'modal') {
+    event.preventDefault()
+    openModal({
+      layout: props.settings?.buttonModalLayout || 'center',
+      contentType: props.settings?.buttonModalContentType || 'wysiwyg',
+      content: getModalContent(),
+    })
+  }
+}
 
 const previewStyle = computed(() => {
   const position = props.settings?.contentPosition || 'center-center'
@@ -103,6 +138,7 @@ const contentStyle = computed(() => {
 .dsf-hero-centered-preview {
   position: relative;
   /* alignment handled by inline styles now */
+  container-type: inline-size;
 }
 
 .dsf-hero-centered-preview__content {
@@ -134,5 +170,21 @@ const contentStyle = computed(() => {
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
+  text-decoration: none;
+}
+
+@container (max-width: 1024px) {
+  .dsf-hero-centered-preview__title { font-size: 2.1rem; }
+  .dsf-hero-centered-preview__subtitle { font-size: 1rem; }
+}
+
+@container (max-width: 768px) {
+  .dsf-hero-centered-preview {
+    padding: 64px 20px !important;
+    min-height: 360px !important;
+  }
+
+  .dsf-hero-centered-preview__title { font-size: 1.75rem; }
+  .dsf-hero-centered-preview__subtitle { font-size: 0.95rem; }
 }
 </style>

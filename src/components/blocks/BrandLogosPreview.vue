@@ -88,6 +88,7 @@ const displayBrands = computed(() => {
 <style scoped>
 .dsf-brand-carousel-preview {
   width: 100%;
+  container-type: inline-size;
 }
 
 .dsf-brand-carousel-preview__inner {
@@ -139,5 +140,21 @@ const displayBrands = computed(() => {
   color: var(--dsf-gray-300);
   border: 2px dashed var(--dsf-gray-200);
   border-radius: var(--dsf-radius-md);
+}
+
+@container (max-width: 1024px) {
+  .dsf-brand-item-preview {
+    width: calc((100% - 32px) / 3) !important;
+  }
+}
+
+@container (max-width: 768px) {
+  .dsf-brand-carousel-preview__grid {
+    gap: 16px;
+  }
+
+  .dsf-brand-item-preview {
+    width: calc((100% - 16px) / 2) !important;
+  }
 }
 </style>

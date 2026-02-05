@@ -107,7 +107,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, createApp, nextTick } from 'vue'
 import draggable from 'vuedraggable'
 import { Plus, LayoutTemplate } from 'lucide-vue-next'
 
@@ -118,23 +118,57 @@ import SidePanel from './components/SidePanel.vue'
 import ThemePanel from './components/ThemePanel.vue'
 import BlockLibrary from './components/BlockLibrary.vue'
 import ConfirmDialog from './components/common/ConfirmDialog.vue'
+import FrontendApp from './frontend/FrontendApp.vue'
+import { applyThemeToBlocks, resolveThemeKeyFromDefault } from './utils/themeSync'
 
 // Get WordPress data
 const wpData = window.dsfEditorData || {}
 
+// Theme defaults & sync helpers
+const DEFAULT_THEME = {
+  primaryColor: '#2C5F5D',
+  secondaryColor: '#1E40AF',
+  textColor: '#1F2937',
+  backgroundColor: '#FFFFFF',
+}
+
+const DEFAULT_LAYOUT = {
+  containerWidth: 1800,
+  contentPadding: 10,
+  showHeader: true,
+  showFooter: true,
+  template: 'default',
+}
+
+
+const themeLinkedSettings = (() => {
+  const linked = {}
+  const registeredBlocks = wpData.blocks || {}
+  Object.values(registeredBlocks).forEach((block) => {
+    if (!block?.id || !block?.settings) return
+    Object.entries(block.settings).forEach(([key, config]) => {
+      const themeKey = resolveThemeKeyFromDefault(config?.default)
+      if (!themeKey) return
+      if (!linked[block.id]) linked[block.id] = {}
+      linked[block.id][key] = themeKey
+    })
+  })
+  return linked
+})()
+
+function syncThemeToBlocks(oldTheme, newTheme) {
+  if (!oldTheme || !newTheme) return
+  if (!blocks.value.length) return
+
+  blocks.value = applyThemeToBlocks(blocks.value, oldTheme, newTheme, themeLinkedSettings)
+}
+
 // State
 const blocks = ref(wpData.pageData?.blocks || [])
-const pageSettings = ref(wpData.pageData?.settings || {
-  theme: {
-    primaryColor: '#3B82F6',
-    secondaryColor: '#1E40AF',
-    textColor: '#1F2937',
-    backgroundColor: '#FFFFFF',
-  },
-  layout: {
-    containerWidth: 1200,
-    contentPadding: 24,
-  },
+const initialSettings = wpData.pageData?.settings || {}
+const pageSettings = ref({
+  theme: { ...DEFAULT_THEME, ...(initialSettings.theme || {}) },
+  layout: { ...DEFAULT_LAYOUT, ...(initialSettings.layout || {}) },
 })
 
 const pageTitle = ref(wpData.postTitle || 'Untitled Page')
@@ -181,8 +215,19 @@ const canvasStyle = computed(() => {
     tablet: '768px',
     mobile: '375px',
   }
+
+  const theme = pageSettings.value?.theme || DEFAULT_THEME
+  const layout = pageSettings.value?.layout || DEFAULT_LAYOUT
+
   return {
     maxWidth: widths[previewMode.value],
+    backgroundColor: theme.backgroundColor,
+    '--dsf-theme-primary': theme.primaryColor,
+    '--dsf-theme-secondary': theme.secondaryColor,
+    '--dsf-theme-text': theme.textColor,
+    '--dsf-theme-background': theme.backgroundColor,
+    '--dsf-theme-container-width': `${layout.containerWidth || DEFAULT_LAYOUT.containerWidth}px`,
+    '--dsf-theme-content-padding': `${layout.contentPadding || DEFAULT_LAYOUT.contentPadding}px`,
   }
 })
 
@@ -236,7 +281,12 @@ function getDefaultSettings(blockDef) {
   
   if (blockDef.settings) {
     Object.entries(blockDef.settings).forEach(([key, config]) => {
-      defaults[key] = config.default
+      const themeKey = resolveThemeKeyFromDefault(config.default)
+      if (themeKey && pageSettings.value?.theme?.[themeKey]) {
+        defaults[key] = pageSettings.value.theme[themeKey]
+      } else {
+        defaults[key] = config.default
+      }
     })
   }
   
@@ -289,44 +339,133 @@ function updateTitle(newTitle) {
 }
 
 function updatePageSettings(newSettings) {
-  pageSettings.value = { ...pageSettings.value, ...newSettings }
+  const oldTheme = { ...(pageSettings.value?.theme || DEFAULT_THEME) }
+  const nextSettings = { ...pageSettings.value, ...newSettings }
+  pageSettings.value = nextSettings
+
+  if (newSettings?.theme) {
+    syncThemeToBlocks(oldTheme, nextSettings.theme || DEFAULT_THEME)
+  }
 }
 
-async function savePage() {
+async function savePage(options = {}) {
+  const { status, silent, skipSnapshot } = options
   isSaving.value = true
-  
+
+  let htmlSnapshot = ''
+  if (!skipSnapshot) {
+    try {
+      htmlSnapshot = await generateHtmlSnapshot()
+    } catch (error) {
+      console.warn('Snapshot generation failed:', error)
+    }
+  }
+
   const formData = new FormData()
   formData.append('action', 'dsf_save_page')
   formData.append('nonce', wpData.nonce)
   formData.append('post_id', wpData.postId)
   formData.append('blocks', JSON.stringify(blocks.value))
   formData.append('settings', JSON.stringify(pageSettings.value))
-  
-  try {
+  if (htmlSnapshot) {
+    formData.append('html_snapshot', htmlSnapshot)
+  }
+  if (status) {
+    formData.append('status', status)
+  }
+
+  async function attemptSave(payload) {
     const response = await fetch(wpData.ajaxUrl, {
       method: 'POST',
-      body: formData,
+      body: payload,
     })
-    
-    const data = await response.json()
-    
-    if (data.success) {
-      // Show success notification
-      console.log('Page saved successfully')
-    } else {
-      alert('Error saving page: ' + (data.data?.message || 'Unknown error'))
+
+    let data
+    try {
+      data = await response.json()
+    } catch (parseError) {
+      const text = await response.text()
+      throw new Error(text || 'Invalid JSON response')
     }
+
+    if (!response.ok || !data?.success) {
+      const message = data?.data?.message || 'Unknown error'
+      throw new Error(message)
+    }
+
+    return true
+  }
+
+  try {
+    await attemptSave(formData)
+    console.log('Page saved successfully')
+    return true
   } catch (error) {
     console.error('Save error:', error)
-    alert('Error saving page')
+    if (htmlSnapshot) {
+      try {
+        const fallbackData = new FormData()
+        fallbackData.append('action', 'dsf_save_page')
+        fallbackData.append('nonce', wpData.nonce)
+        fallbackData.append('post_id', wpData.postId)
+        fallbackData.append('blocks', JSON.stringify(blocks.value))
+        fallbackData.append('settings', JSON.stringify(pageSettings.value))
+        if (status) {
+          fallbackData.append('status', status)
+        }
+        await attemptSave(fallbackData)
+        console.warn('Saved without snapshot due to snapshot error.')
+        if (!silent) {
+          alert('Saved without snapshot due to a snapshot error.')
+        }
+        return true
+      } catch (fallbackError) {
+        console.error('Fallback save error:', fallbackError)
+      }
+    }
+
+    if (!silent) {
+      alert('Error saving page: ' + (error?.message || 'Unknown error'))
+    }
+    return false
   } finally {
     isSaving.value = false
   }
 }
 
-function openPreview() {
-  if (wpData.previewUrl) {
+async function generateHtmlSnapshot() {
+  const mount = document.createElement('div')
+  mount.style.position = 'absolute'
+  mount.style.left = '-99999px'
+  mount.style.top = '0'
+  mount.style.width = '1200px'
+  mount.style.pointerEvents = 'none'
+  document.body.appendChild(mount)
+
+  const snapshotBlocks = JSON.parse(JSON.stringify(blocks.value || []))
+  const app = createApp(FrontendApp, { blocks: snapshotBlocks })
+  app.mount(mount)
+
+  await nextTick()
+  const html = mount.innerHTML
+
+  app.unmount()
+  mount.remove()
+
+  return html
+}
+
+async function openPreview() {
+  if (!wpData.previewUrl) {
+    alert('Preview link is unavailable for this page yet.')
+    return
+  }
+
+  const saved = await savePage({ status: 'draft', silent: false })
+  if (saved) {
     window.open(wpData.previewUrl, '_blank')
+  } else {
+    alert('Could not save the page for preview. Please try again.')
   }
 }
 
@@ -334,5 +473,9 @@ function openPreview() {
 onMounted(() => {
   console.log('DesignStudio Flow Editor loaded')
   console.log('Registered blocks:', wpData.blocks)
+  // Ensure existing blocks reflect stored theme settings on load.
+  if (pageSettings.value?.theme) {
+    syncThemeToBlocks(DEFAULT_THEME, pageSettings.value.theme)
+  }
 })
 </script>

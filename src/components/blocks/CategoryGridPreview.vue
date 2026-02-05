@@ -123,6 +123,10 @@ const displayCategories = computed(() => {
   /* color comes from inline style */
 }
 
+.dsf-category-grid-preview {
+  container-type: inline-size;
+}
+
 .dsf-category-grid-preview__container {
   position: relative;
 }
@@ -243,5 +247,27 @@ const displayCategories = computed(() => {
   font-weight: 600;
   font-size: 1rem;
   color: #1F2937;
+}
+
+@container (max-width: 1024px) {
+  .dsf-category-item-preview {
+    width: 160px;
+  }
+
+  .dsf-category-item-preview__image-wrapper {
+    width: 160px;
+    height: 160px;
+  }
+}
+
+@container (max-width: 768px) {
+  .dsf-category-item-preview {
+    width: 140px;
+  }
+
+  .dsf-category-item-preview__image-wrapper {
+    width: 140px;
+    height: 140px;
+  }
 }
 </style>

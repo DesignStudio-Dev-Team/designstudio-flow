@@ -153,6 +153,10 @@ function prev() {
   margin: 0 auto;
 }
 
+.dsf-testimonials {
+  container-type: inline-size;
+}
+
 .dsf-testimonials__viewport {
   overflow: hidden;
 }
@@ -302,6 +306,27 @@ function prev() {
     order: -1;
   }
   
+  .dsf-testimonials__nav {
+    display: none;
+  }
+}
+
+@container (max-width: 1024px) {
+  .dsf-testimonial-card__title { font-size: 30px; }
+  .dsf-testimonial-card__quote,
+  .dsf-testimonial-card__name,
+  .dsf-testimonial-card__location { font-size: 18px; }
+}
+
+@container (max-width: 768px) {
+  .dsf-testimonial-card {
+    flex-direction: column;
+  }
+
+  .dsf-testimonial-card__content {
+    padding: 24px;
+  }
+
   .dsf-testimonials__nav {
     display: none;
   }

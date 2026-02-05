@@ -14,6 +14,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         editor: resolve(__dirname, 'src/main.js'),
+        frontend: resolve(__dirname, 'src/frontend/main.js'),
       },
       output: {
         entryFileNames: 'js/[name].js',

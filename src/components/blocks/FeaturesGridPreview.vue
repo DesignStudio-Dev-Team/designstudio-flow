@@ -46,8 +46,9 @@
         </p>
         <a 
           v-if="feature.buttonText"
-          :href="feature.buttonUrl || '#'"
+          :href="getFeatureHref(feature)"
           class="dsf-feature-card-preview__btn"
+          @click="handleFeatureClick($event, feature)"
         >
           {{ feature.buttonText }}
         </a>
@@ -59,11 +60,44 @@
 <script setup>
 import { computed } from 'vue'
 import InlineText from '../common/InlineText.vue'
+import { useFlowModal } from '../common/useFlowModal'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
 })
+
+const { openModal } = useFlowModal()
+
+function getFeatureAction(feature) {
+  return feature?.buttonAction || 'link'
+}
+
+function getFeatureHref(feature) {
+  return getFeatureAction(feature) === 'link' ? (feature?.buttonUrl || '#') : '#'
+}
+
+function getFeatureModalContent(feature) {
+  const type = feature?.buttonModalContentType || 'wysiwyg'
+  if (type === 'html') return feature?.buttonModalHtml || ''
+  if (type === 'shortcode') return feature?.buttonModalShortcode || ''
+  return feature?.buttonModalContent || ''
+}
+
+function handleFeatureClick(event, feature) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+  if (getFeatureAction(feature) === 'modal') {
+    event.preventDefault()
+    openModal({
+      layout: feature?.buttonModalLayout || 'center',
+      contentType: feature?.buttonModalContentType || 'wysiwyg',
+      content: getFeatureModalContent(feature),
+    })
+  }
+}
 
 const previewStyle = computed(() => ({
   padding: `${props.settings?.padding || 60}px 24px`,
@@ -76,9 +110,42 @@ const cardStyle = computed(() => ({
 
 const displayFeatures = computed(() => {
   return props.settings?.features || [
-    { title: 'Easy to Use', description: 'Intuitive drag-and-drop interface', buttonText: 'Learn More', buttonUrl: '#' },
-    { title: 'Customizable', description: 'Full control over styling and layout', buttonText: 'Learn More', buttonUrl: '#' },
-    { title: 'Responsive', description: 'Works perfectly on all devices', buttonText: 'Learn More', buttonUrl: '#' },
+    {
+      title: 'Easy to Use',
+      description: 'Intuitive drag-and-drop interface',
+      buttonText: 'Learn More',
+      buttonUrl: '#',
+      buttonAction: 'link',
+      buttonModalLayout: 'center',
+      buttonModalContentType: 'wysiwyg',
+      buttonModalContent: '',
+      buttonModalHtml: '',
+      buttonModalShortcode: '',
+    },
+    {
+      title: 'Customizable',
+      description: 'Full control over styling and layout',
+      buttonText: 'Learn More',
+      buttonUrl: '#',
+      buttonAction: 'link',
+      buttonModalLayout: 'center',
+      buttonModalContentType: 'wysiwyg',
+      buttonModalContent: '',
+      buttonModalHtml: '',
+      buttonModalShortcode: '',
+    },
+    {
+      title: 'Responsive',
+      description: 'Works perfectly on all devices',
+      buttonText: 'Learn More',
+      buttonUrl: '#',
+      buttonAction: 'link',
+      buttonModalLayout: 'center',
+      buttonModalContentType: 'wysiwyg',
+      buttonModalContent: '',
+      buttonModalHtml: '',
+      buttonModalShortcode: '',
+    },
   ]
 })
 </script>
@@ -87,6 +154,10 @@ const displayFeatures = computed(() => {
 .dsf-features-grid-preview__header {
   text-align: center;
   margin-bottom: 2.5rem;
+}
+
+.dsf-features-grid-preview {
+  container-type: inline-size;
 }
 
 .dsf-features-grid-preview__title {
@@ -142,5 +213,17 @@ const displayFeatures = computed(() => {
 
 .dsf-feature-card-preview__btn:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+
+@container (max-width: 1024px) {
+  .dsf-features-grid-preview__items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (max-width: 768px) {
+  .dsf-features-grid-preview__items {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

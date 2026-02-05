@@ -62,7 +62,7 @@
                 @input="updateField(index, 'buttonText', $event.target.value)"
               />
             </div>
-            <div class="dsf-form-group">
+            <div v-if="(element.buttonAction || 'link') === 'link'" class="dsf-form-group">
               <label class="dsf-label">Button URL</label>
               <input 
                 type="text" 
@@ -70,6 +70,67 @@
                 placeholder="https://..."
                 :value="element.buttonUrl"
                 @input="updateField(index, 'buttonUrl', $event.target.value)"
+              />
+            </div>
+            <div class="dsf-form-group">
+              <label class="dsf-label">Button Action</label>
+              <select
+                class="dsf-input"
+                :value="element.buttonAction || 'link'"
+                @change="updateField(index, 'buttonAction', $event.target.value)"
+              >
+                <option value="link">Link</option>
+                <option value="modal">Open Modal</option>
+              </select>
+            </div>
+            <div v-if="element.buttonAction === 'modal'" class="dsf-form-group">
+              <label class="dsf-label">Modal Layout</label>
+              <select
+                class="dsf-input"
+                :value="element.buttonModalLayout || 'center'"
+                @change="updateField(index, 'buttonModalLayout', $event.target.value)"
+              >
+                <option value="center">Center</option>
+                <option value="drawer">Right Drawer</option>
+              </select>
+            </div>
+            <div v-if="element.buttonAction === 'modal'" class="dsf-form-group">
+              <label class="dsf-label">Modal Content Type</label>
+              <select
+                class="dsf-input"
+                :value="element.buttonModalContentType || 'wysiwyg'"
+                @change="updateField(index, 'buttonModalContentType', $event.target.value)"
+              >
+                <option value="wysiwyg">WYSIWYG</option>
+                <option value="html">HTML</option>
+                <option value="shortcode">Shortcode</option>
+              </select>
+            </div>
+            <div v-if="element.buttonAction === 'modal' && (element.buttonModalContentType || 'wysiwyg') === 'wysiwyg'" class="dsf-form-group">
+              <label class="dsf-label">Modal Content</label>
+              <WysiwygField
+                :modelValue="element.buttonModalContent"
+                @update:modelValue="updateField(index, 'buttonModalContent', $event)"
+              />
+            </div>
+            <div v-if="element.buttonAction === 'modal' && element.buttonModalContentType === 'html'" class="dsf-form-group">
+              <label class="dsf-label">Modal HTML</label>
+              <textarea
+                class="dsf-input"
+                rows="3"
+                style="height: auto;"
+                :value="element.buttonModalHtml"
+                @input="updateField(index, 'buttonModalHtml', $event.target.value)"
+              ></textarea>
+            </div>
+            <div v-if="element.buttonAction === 'modal' && element.buttonModalContentType === 'shortcode'" class="dsf-form-group">
+              <label class="dsf-label">Modal Shortcode</label>
+              <input
+                type="text"
+                class="dsf-input"
+                placeholder="[shortcode]"
+                :value="element.buttonModalShortcode"
+                @input="updateField(index, 'buttonModalShortcode', $event.target.value)"
               />
             </div>
           </div>
@@ -89,6 +150,7 @@
 import { ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import { Plus, Trash2, GripVertical, ChevronDown } from 'lucide-vue-next'
+import WysiwygField from './WysiwygField.vue'
 
 const props = defineProps({
   modelValue: {
@@ -136,7 +198,13 @@ function addItem() {
     title: 'New Feature',
     description: 'Description here',
     buttonText: 'Learn More',
-    buttonUrl: '#'
+    buttonUrl: '#',
+    buttonAction: 'link',
+    buttonModalLayout: 'center',
+    buttonModalContentType: 'wysiwyg',
+    buttonModalContent: '',
+    buttonModalHtml: '',
+    buttonModalShortcode: '',
   }
   localItems.value.push(newItem)
   openItems.value.push(localItems.value.length - 1)

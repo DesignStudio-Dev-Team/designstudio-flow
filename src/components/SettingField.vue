@@ -20,6 +20,13 @@
       :value="value"
       @input="$emit('update', $event.target.value)"
     ></textarea>
+
+    <!-- WYSIWYG -->
+    <WysiwygField
+      v-else-if="config.type === 'wysiwyg'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
     
     <!-- Number -->
     <input 
@@ -195,6 +202,7 @@ import ColorPicker from './common/ColorPicker.vue'
 import RepeaterField from './common/RepeaterField.vue'
 import BrandRepeaterField from './common/BrandRepeaterField.vue'
 import TestimonialsRepeaterField from './common/TestimonialsRepeaterField.vue'
+import WysiwygField from './common/WysiwygField.vue'
 
 const props = defineProps({
   config: Object,

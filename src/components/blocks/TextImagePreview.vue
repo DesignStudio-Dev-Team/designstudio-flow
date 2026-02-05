@@ -25,10 +25,12 @@
           placeholder="Share your brand story here."
         />
         
-        <button 
+        <a 
           v-if="settings.showButton" 
           class="dsf-text-image-preview__btn"
+          :href="buttonHref"
           :style="{ backgroundColor: settings.buttonColor, color: settings.buttonTextColor }"
+          @click="handleButtonClick"
         >
           <InlineText 
             v-model="settings.buttonText" 
@@ -36,7 +38,7 @@
             :is-editor="isEditor"
             placeholder="Learn More"
           />
-        </button>
+        </a>
       </div>
       <div class="dsf-text-image-preview__image">
         <img v-if="settings.image" :src="settings.image" alt="" />
@@ -52,11 +54,42 @@
 import { computed } from 'vue'
 import { Image as ImageIcon } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import { useFlowModal } from '../common/useFlowModal'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
 })
+
+const { openModal } = useFlowModal()
+
+const buttonHref = computed(() =>
+  (props.settings?.buttonAction || 'link') === 'link'
+    ? (props.settings?.buttonUrl || '#')
+    : '#'
+)
+
+function getModalContent() {
+  const type = props.settings?.buttonModalContentType || 'wysiwyg'
+  if (type === 'html') return props.settings?.buttonModalHtml || ''
+  if (type === 'shortcode') return props.settings?.buttonModalShortcode || ''
+  return props.settings?.buttonModalContent || ''
+}
+
+function handleButtonClick(event) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+  if ((props.settings?.buttonAction || 'link') === 'modal') {
+    event.preventDefault()
+    openModal({
+      layout: props.settings?.buttonModalLayout || 'center',
+      contentType: props.settings?.buttonModalContentType || 'wysiwyg',
+      content: getModalContent(),
+    })
+  }
+}
 
 const containerStyle = computed(() => ({
   backgroundColor: props.settings?.backgroundColor || '#FFFFFF',
@@ -73,6 +106,7 @@ const containerStyle = computed(() => ({
 <style scoped>
 .dsf-text-image-container {
   width: 100%;
+  container-type: inline-size;
 }
 
 .dsf-text-image-preview {
@@ -117,6 +151,7 @@ const containerStyle = computed(() => ({
   font-size: 24px; /* Updated font size */
   cursor: pointer;
   transition: background 0.2s;
+  text-decoration: none;
 }
 
 .dsf-text-image-preview__btn:hover {
@@ -136,5 +171,32 @@ const containerStyle = computed(() => ({
   align-items: center;
   justify-content: center;
   color: var(--dsf-gray-400);
+}
+
+@container (max-width: 1024px) {
+  .dsf-text-image-preview { gap: 2rem; }
+  .dsf-text-image-preview__title { font-size: 34px; }
+  .dsf-text-image-preview__text { font-size: 18px; }
+  .dsf-text-image-preview__btn { font-size: 18px; }
+}
+
+@container (max-width: 900px) {
+  .dsf-text-image-preview { grid-template-columns: 1fr; }
+}
+
+@container (max-width: 768px) {
+  .dsf-text-image-preview {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .dsf-text-image-preview__image {
+    order: -1;
+  }
+
+  .dsf-text-image-preview__btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

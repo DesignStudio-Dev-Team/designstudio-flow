@@ -22,12 +22,14 @@
           placeholder="Sign up for our newsletter"
         />
       </div>
-      <button 
+      <a 
         class="dsf-cta-banner-preview__btn"
+        :href="buttonHref"
         :style="{ 
           backgroundColor: settings.buttonColor || '#FFFFFF', 
           color: settings.buttonTextColor || '#1E40AF' 
         }"
+        @click="handleButtonClick"
       >
         <InlineText 
           v-model="settings.buttonText" 
@@ -35,7 +37,7 @@
           :is-editor="isEditor"
           placeholder="Shop Now"
         />
-      </button>
+      </a>
     </div>
   </div>
 </template>
@@ -43,11 +45,42 @@
 <script setup>
 import { computed } from 'vue'
 import InlineText from '../common/InlineText.vue'
+import { useFlowModal } from '../common/useFlowModal'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
 })
+
+const { openModal } = useFlowModal()
+
+const buttonHref = computed(() =>
+  (props.settings?.buttonAction || 'link') === 'link'
+    ? (props.settings?.buttonUrl || '#')
+    : '#'
+)
+
+function getModalContent() {
+  const type = props.settings?.buttonModalContentType || 'wysiwyg'
+  if (type === 'html') return props.settings?.buttonModalHtml || ''
+  if (type === 'shortcode') return props.settings?.buttonModalShortcode || ''
+  return props.settings?.buttonModalContent || ''
+}
+
+function handleButtonClick(event) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+  if ((props.settings?.buttonAction || 'link') === 'modal') {
+    event.preventDefault()
+    openModal({
+      layout: props.settings?.buttonModalLayout || 'center',
+      contentType: props.settings?.buttonModalContentType || 'wysiwyg',
+      content: getModalContent(),
+    })
+  }
+}
 
 const previewStyle = computed(() => ({
   padding: `${props.settings?.padding || 60}px 24px`,
@@ -63,6 +96,10 @@ const previewStyle = computed(() => ({
   max-width: 1000px;
   margin: 0 auto;
   gap: 2rem;
+}
+
+.dsf-cta-banner-preview {
+  container-type: inline-size;
 }
 
 .dsf-cta-banner-preview__title {
@@ -87,5 +124,35 @@ const previewStyle = computed(() => ({
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-decoration: none;
+}
+
+@container (max-width: 1024px) {
+  .dsf-cta-banner-preview__title { font-size: 32px; }
+  .dsf-cta-banner-preview__subtitle { font-size: 18px; }
+  .dsf-cta-banner-preview__btn { font-size: 18px; }
+}
+
+@container (max-width: 768px) {
+  .dsf-cta-banner-preview__inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dsf-cta-banner-preview__btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@container (max-width: 520px) {
+  .dsf-cta-banner-preview__inner {
+    align-items: center;
+    text-align: center;
+  }
+
+  .dsf-cta-banner-preview__text {
+    width: 100%;
+  }
 }
 </style>

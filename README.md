@@ -198,6 +198,81 @@ designstudio-flow/
 │   │   │   ├── TestimonialsRepeaterField.vue
 │   │   │   ├── BrandRepeaterField.vue
 │   │   │   └── ...
+
+---
+
+## 🧱 Adding A New Block (Editor + Frontend)
+
+Blocks render from the **same Vue components** in both editor and frontend. A lightweight HTML snapshot is generated on save for SEO, and the frontend Vue app hydrates over it.
+
+### ✅ Quick Process Checklist
+
+1. **Create the Vue block component**
+   - New file in `src/components/blocks/`, for example `MyBlockPreview.vue`.
+   - Use `InlineText` for editable copy and keep CSS scoped in the Vue file.
+
+2. **Wire it into the editor**
+   - Import and map the component in `src/components/BlockWrapper.vue`.
+
+3. **Register the block + settings (PHP)**
+   - Add a new block in `includes/class-dsf-blocks.php` with `id`, `name`, `category`, `description`, and `settings`.
+   - If you want Theme Settings to control colors, set the block default colors to the theme defaults (e.g. `#2C5F5D` for primary).
+
+4. **Frontend rendering (Vue-powered + SEO snapshot)**
+   - The frontend mounts a Vue app that reuses the same block components: `src/frontend/FrontendApp.vue`.
+   - Block data is passed from PHP via `window.dsfFrontendData`.
+   - The mount point is output by `includes/class-dsf-frontend.php` (`#dsf-frontend-app`).
+   - On save, the editor generates a static HTML snapshot and stores it in `_dsf_html_snapshot` for SEO. Vue hydrates over that snapshot.
+
+5. **Add shared block styles (do-it-once)**
+   - Add the block CSS to `src/styles/blocks.css`.
+   - This file is used by **both** the editor and the frontend, so you only write block CSS once.
+   - `assets/css/frontend.css` should only be used for layout wrappers and JS-only styles.
+
+6. **Add optional JS**
+   - If the block needs interactions (slider, etc.), add behavior in `assets/js/frontend.js`.
+
+---
+
+## 🧾 Snapshot Rendering (SEO FAQ)
+
+**Q: How does the frontend render blocks now?**  
+A: The frontend mounts a Vue app that uses the same block components as the editor. PHP outputs a mount point (`#dsf-frontend-app`) and passes data via `window.dsfFrontendData`.
+
+**Q: Where does the HTML snapshot come from?**  
+A: On every save, the editor renders the blocks off‑screen in the browser and stores the HTML in `_dsf_html_snapshot`.
+
+**Q: Will search engines see content without running JavaScript?**  
+A: Yes. The saved snapshot HTML is output by PHP before Vue mounts, so bots still see full content.
+
+**Q: Do users see layout shifting?**  
+A: The snapshot is generated from the same Vue components, so it’s visually consistent. Any shift should be minimal.
+
+---
+
+## ✅ Build Guard (Don’t Forget This)
+
+Any time you add or update blocks, **you must rebuild the frontend bundle** so the live site renders correctly:
+
+```bash
+npm run build
+```
+
+This generates the updated `assets/js/frontend.js` bundle used on the live site.
+
+### 🚀 Starter Block You Can Clone
+
+A simple starter block is included at:
+
+`src/components/blocks/StarterBlockPreview.vue`
+
+It includes:
+- A title
+- A subtitle
+- A CTA button
+- Basic padding + background settings
+
+Clone this file and follow the checklist above to wire it into the editor and frontend.
 │   │   ├── selectors/             # Customizer Selectors
 │   │   │   ├── ProductsSelector.vue
 │   │   │   ├── CategorySelector.vue
@@ -245,23 +320,27 @@ define('DSF_GITHUB_TOKEN', 'ghp_your_personal_access_token_here');
 
 ### Deploying a New Version
 
-```bash
-# Build Vue assets and create production ZIP
-npm run release
-```
+1. **Update Version Numbers**
+   - Update `package.json`: `"version": "x.x.x"`
+   - Update `designstudio-flow.php`: `Version: x.x.x`
 
-This creates `designstudio-flow-x.x.x.zip` ready for distribution.
+2. **Build Release Assets**
+   ```bash
+   npm run release
+   ```
+   *This builds Vue assets and creates a production-ready ZIP.*
 
-To publish on GitHub:
+3. **Commit & Tag**
+   ```bash
+   git add .
+   git commit -m "Release vx.x.x"
+   git tag vx.x.x
+   git push origin main --tags
+   ```
 
-```bash
-git add .
-git commit -m "Release v1.0.0"
-git tag v1.0.0
-git push origin main --tags
-```
-
-The GitHub Action will automatically create a Release with the ZIP attached.
+4. **GitHub Release**
+   - A GitHub Release will be automatically created with the ZIP attached.
+   - Updates will be pushed to WordPress sites.
 
 ---
 

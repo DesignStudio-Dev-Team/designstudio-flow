@@ -6,6 +6,11 @@ node_modules/
 src/
 .agent/
 tests/
+build/
+*.zip
+vendor/
+.husky/
+scripts/
 
 # Config files
 .github/
@@ -16,6 +21,7 @@ composer.json
 composer.lock
 package.json
 package-lock.json
+phpcs.xml.dist
 phpunit.xml.dist
 postcss.config.js
 tailwind.config.js
