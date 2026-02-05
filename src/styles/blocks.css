@@ -1301,7 +1301,7 @@
 }
 
 .dsf-showcase-product__price {
-  font-size: 0.9375rem;
+  font-size: 24px;
   color: var(--price-color, #6B7280);
   margin-bottom: 0.25rem;
 }
@@ -1317,7 +1317,7 @@
 }
 
 .dsf-showcase-product__name {
-  font-size: 0.875rem;
+  font-size: 24px;
   font-weight: 500;
   color: var(--dsf-gray-800);
   margin: 0;

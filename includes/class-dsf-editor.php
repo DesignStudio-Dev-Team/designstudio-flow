@@ -22,6 +22,7 @@ class DSF_Editor {
 		add_action( 'admin_init', array( $this, 'handle_editor_redirect' ) );
 		add_action( 'admin_menu', array( $this, 'add_editor_page' ), 99 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_editor_scripts' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'filter_editor_assets' ), 999 );
 		add_filter( 'admin_body_class', array( $this, 'add_editor_body_class' ) );
 		add_filter( 'script_loader_tag', array( $this, 'add_module_type_to_scripts' ), 10, 3 );
 	}
@@ -86,15 +87,9 @@ class DSF_Editor {
 			return;
 		}
 
-		// Remove all other styles and scripts for clean editor
-		global $wp_styles, $wp_scripts;
-
-		// Keep only essential WordPress scripts
-		$allowed_scripts = array( 'jquery', 'wp-api', 'wp-util', 'media-upload', 'thickbox' );
-		$allowed_styles  = array( 'thickbox', 'media-views', 'imgareaselect' );
-
 		// Enqueue media library
 		wp_enqueue_media();
+		wp_enqueue_script( 'jquery-ui-sortable' );
 
 		// Production or development mode
 		$is_dev = defined( 'DSF_DEV_MODE' ) && DSF_DEV_MODE;
@@ -158,6 +153,43 @@ class DSF_Editor {
 				'isWooActive' => class_exists( 'WooCommerce' ),
 			)
 		);
+	}
+
+	/**
+	 * Filter admin scripts/styles for the editor page only.
+	 */
+	public function filter_editor_assets( $hook ) {
+		if ( 'admin_page_dsf-editor' !== $hook ) {
+			return;
+		}
+
+		global $wp_styles, $wp_scripts;
+
+		if ( $wp_scripts && is_array( $wp_scripts->queue ) ) {
+			foreach ( $wp_scripts->queue as $handle ) {
+				if ( empty( $wp_scripts->registered[ $handle ]->src ) ) {
+					continue;
+				}
+				$src = $wp_scripts->registered[ $handle ]->src;
+				if ( false !== strpos( $src, '/themes/' ) || false !== strpos( $src, 'dsShowcase' ) ) {
+					wp_dequeue_script( $handle );
+					wp_deregister_script( $handle );
+				}
+			}
+		}
+
+		if ( $wp_styles && is_array( $wp_styles->queue ) ) {
+			foreach ( $wp_styles->queue as $handle ) {
+				if ( empty( $wp_styles->registered[ $handle ]->src ) ) {
+					continue;
+				}
+				$src = $wp_styles->registered[ $handle ]->src;
+				if ( false !== strpos( $src, '/themes/' ) || false !== strpos( $src, 'dsShowcase' ) ) {
+					wp_dequeue_style( $handle );
+					wp_deregister_style( $handle );
+				}
+			}
+		}
 	}
 
 	/**

@@ -24,12 +24,14 @@ class DSF_Ajax {
 
 		// Get products
 		add_action( 'wp_ajax_dsf_get_products', array( $this, 'get_products' ) );
+		add_action( 'wp_ajax_nopriv_dsf_get_products', array( $this, 'get_products' ) );
 
 		// Search products
 		add_action( 'wp_ajax_dsf_search_products', array( $this, 'search_products' ) );
 
 		// Get categories
 		add_action( 'wp_ajax_dsf_get_categories', array( $this, 'get_categories' ) );
+		add_action( 'wp_ajax_nopriv_dsf_get_categories', array( $this, 'get_categories' ) );
 
 		// Upload image
 		add_action( 'wp_ajax_dsf_upload_image', array( $this, 'upload_image' ) );
@@ -303,10 +305,16 @@ class DSF_Ajax {
 	 * Get products by category or IDs (Hybrid Logic: Pinned First)
 	 */
 	public function get_products() {
-		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+		$editor_nonce_ok   = check_ajax_referer( 'dsf_editor_nonce', 'nonce', false );
+		$frontend_nonce_ok = check_ajax_referer( 'dsf_frontend_nonce', 'nonce', false );
+
+		if ( ! $editor_nonce_ok && ! $frontend_nonce_ok ) {
 			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
 		}
-		$this->verify_permissions();
+
+		if ( $editor_nonce_ok ) {
+			$this->verify_permissions();
+		}
 
 		if ( ! class_exists( 'WooCommerce' ) ) {
 			wp_send_json_error( array( 'message' => 'WooCommerce not active' ) );
@@ -391,14 +399,23 @@ class DSF_Ajax {
 			// Ensure Image URL
 			$image_id  = $product->get_image_id();
 			$image_url = $image_id ? wp_get_attachment_url( $image_id ) : wc_placeholder_img_src();
+			$price     = $product->get_price();
+			$regular   = $product->get_regular_price();
+			$sale      = $product->get_sale_price();
+
+			$price_display   = '' !== $price ? html_entity_decode( wp_strip_all_tags( wc_price( $price ) ) ) : '';
+			$regular_display = '' !== $regular ? html_entity_decode( wp_strip_all_tags( wc_price( $regular ) ) ) : '';
+			$sale_display    = '' !== $sale ? html_entity_decode( wp_strip_all_tags( wc_price( $sale ) ) ) : '';
 
 			$result[] = array(
 				'id'              => $product->get_id(),
 				'name'            => $product->get_name(),
-				'price'           => $product->get_price(),
+				'price'           => $price_display,
+				'regularPrice'    => $regular_display,
+				'salePrice'       => $sale_display,
 				'price_html'      => $product->get_price_html(),
-				'regular_price'   => $product->get_regular_price(),
-				'sale_price'      => $product->get_sale_price(),
+				'regular_price'   => $regular_display,
+				'sale_price'      => $sale_display,
 				'image'           => $image_url,
 				'permalink'       => $product->get_permalink(),
 				'add_to_cart_url' => $product->add_to_cart_url(),
@@ -466,10 +483,16 @@ class DSF_Ajax {
 	 * Get WooCommerce categories
 	 */
 	public function get_categories() {
-		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+		$editor_nonce_ok   = check_ajax_referer( 'dsf_editor_nonce', 'nonce', false );
+		$frontend_nonce_ok = check_ajax_referer( 'dsf_frontend_nonce', 'nonce', false );
+
+		if ( ! $editor_nonce_ok && ! $frontend_nonce_ok ) {
 			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
 		}
-		$this->verify_permissions();
+
+		if ( $editor_nonce_ok ) {
+			$this->verify_permissions();
+		}
 
 		if ( ! class_exists( 'WooCommerce' ) ) {
 			wp_send_json_error( array( 'message' => 'WooCommerce not active' ) );

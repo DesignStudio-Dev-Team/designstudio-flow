@@ -1,7 +1,7 @@
 {
   "name": "designstudio-flow",
-  "version": "1.0.3",
-  "description": "Build your WordPress pages with drag-and-drop pre-coded blocks",
+  "version": "1.0.4",
+  "description": "Build your WordPress Page with Artisanal Content Blocks",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,7 +11,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:php": "vendor/bin/phpunit",
-    "security-check": "php -d memory_limit=2G vendor/bin/phpcs ./ --standard=WordPress-Extra && npm audit",
+    "security-check": "php -d memory_limit=3G vendor/bin/phpcs ./ --standard=WordPress-Extra && npm audit",
     "prepare": "husky install"
   },
   "dependencies": {

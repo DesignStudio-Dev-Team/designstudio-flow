@@ -46,8 +46,8 @@ class DSF_Frontend {
 		$is_dev = defined( 'DSF_DEV_MODE' ) && DSF_DEV_MODE;
 
 		wp_enqueue_style(
-			'dsf-blocks',
-			DSF_PLUGIN_URL . 'src/styles/blocks.css',
+			'dsf-frontend-app',
+			DSF_PLUGIN_URL . 'assets/css/FrontendApp.css',
 			array(),
 			DSF_VERSION
 		);
@@ -55,7 +55,7 @@ class DSF_Frontend {
 		wp_enqueue_style(
 			'dsf-frontend',
 			DSF_PLUGIN_URL . 'assets/css/frontend.css',
-			array( 'dsf-blocks' ),
+			array( 'dsf-frontend-app' ),
 			DSF_VERSION
 		);
 
@@ -102,7 +102,15 @@ class DSF_Frontend {
 				'blocks'  => $blocks,
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'dsf_frontend_nonce' ),
+				'categories'  => $this->get_wc_categories(),
+				'isWooActive' => class_exists( 'WooCommerce' ),
 			)
+		);
+
+		wp_add_inline_script(
+			'dsf-frontend-app',
+			'window.dsfEditorData = window.dsfEditorData || window.dsfFrontendData || {};',
+			'before'
 		);
 	}
 
@@ -267,6 +275,41 @@ class DSF_Frontend {
 			esc_attr( $primary ),
 			esc_attr( $primary ),
 			esc_attr( $primary )
+		);
+	}
+
+	private function get_wc_categories() {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return array();
+		}
+
+		$categories = get_terms(
+			array(
+				'taxonomy'   => 'product_cat',
+				'hide_empty' => false,
+				'orderby'    => 'name',
+				'order'      => 'ASC',
+			)
+		);
+
+		if ( is_wp_error( $categories ) ) {
+			return array();
+		}
+
+		return array_map(
+			function ( $cat ) {
+				$thumbnail_id = get_term_meta( $cat->term_id, 'thumbnail_id', true );
+
+				return array(
+					'id'    => $cat->term_id,
+					'name'  => $cat->name,
+					'slug'  => $cat->slug,
+					'count' => $cat->count,
+					'url'   => get_term_link( $cat ),
+					'image' => $thumbnail_id ? wp_get_attachment_url( $thumbnail_id ) : '',
+				);
+			},
+			$categories
 		);
 	}
 }

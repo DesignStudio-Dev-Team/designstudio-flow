@@ -39,6 +39,38 @@
   --dsf-font-mono: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace;
 }
 
+.dsf-bento-hero__search-btn-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6B7280;
+}
+
+.dsf-bento-hero__search-btn-icon svg {
+  display: block;
+}
+
+.dsf-bento-hero__search-btn-icon::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  display: block;
+  background: no-repeat center / 20px 20px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+}
+
+/* Ensure ecommerce showcase typography is 24px on frontend */
+.dsf-ecommerce-showcase__title,
+.dsf-ecommerce-showcase__shop-all,
+.dsf-ecommerce-showcase__pagination,
+.dsf-showcase-category__name,
+.dsf-showcase-product__price,
+.dsf-showcase-product__name {
+  font-size: 24px !important;
+}
+
 .dsf-page-content {
   font-family: var(--dsf-font-sans);
   color: var(--dsf-theme-text, var(--dsf-gray-800));

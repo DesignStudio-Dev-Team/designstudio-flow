@@ -33,4 +33,4 @@ pnpm-debug.log*
 
 # Release zips (keep the current version tracked)
 designstudio-flow-*.zip
-!designstudio-flow-1.0.3.zip
+!designstudio-flow-1.0.4.zip

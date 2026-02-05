@@ -145,7 +145,7 @@ class DSF_Update_Checker {
 			'downloaded'     => 0,
 			'last_updated'   => $remote_version->last_updated ?? '',
 			'sections'       => array(
-				'description'  => 'Build your WordPress pages with drag-and-drop pre-coded blocks.',
+				'description'  => 'Build your WordPress Page with Artisanal Content Blocks.',
 				'changelog'    => $remote_version->changelog ?? '',
 				'installation' => 'Upload the plugin zip file via WordPress admin and activate.',
 			),

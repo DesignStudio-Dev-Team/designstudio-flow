@@ -1,6 +1,6 @@
 # DesignStudio Flow 🚀
 
-> Build WordPress pages with curated, pre‑designed blocks — fast, clean, and theme‑friendly.
+> Build your WordPress Page with Artisanal Content Blocks.
 
 ---
 
@@ -235,14 +235,22 @@ GitHub releases are used for update delivery.
 
 ## 📝 Changelog
 
-### v1.0.2 (Current)
+### v1.0.4 (Current)
+- Ecommerce Showcase now loads WooCommerce data on the frontend
+- Frontend pricing shows currency and sale styling correctly
+- Ecommerce Showcase typography aligned to 24px defaults
+- Search icon fallback added for Bento Hero on frontend
+- Improved theme header/footer compatibility for Syndified themes
+- Frontend styles now load in the correct override order
+
+### v1.0.3
 - Frontend uses the same Vue block components as the editor
 - HTML snapshot rendering for SEO + fast initial paint
 - CTA actions with modal support (center + right drawer)
 - Theme Settings propagate primary colors across blocks
 - Release tooling hardened and build output validated
 
-### v1.0.1
+### v1.0.2
 - Full‑width template option for theme‑locked layouts
 - Improved editor UX and Theme Settings panel
 - Visual polish for block previews and button styling

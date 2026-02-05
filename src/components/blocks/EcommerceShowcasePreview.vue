@@ -71,11 +71,11 @@
               <div class="dsf-showcase-product__info">
                 <div class="dsf-showcase-product__price" :style="priceStyle(product)">
                   <template v-if="product.onSale">
-                    <span class="dsf-showcase-product__price--regular">{{ product.regularPrice }}</span>
-                    <span class="dsf-showcase-product__price--sale">{{ product.salePrice }}</span>
+                    <span class="dsf-showcase-product__price--regular">{{ formatPrice(product.regularPrice) }}</span>
+                    <span class="dsf-showcase-product__price--sale">{{ formatPrice(product.salePrice) }}</span>
                   </template>
                   <template v-else>
-                    {{ product.price }}
+                    {{ formatPrice(product.price) }}
                   </template>
                 </div>
                 <h4 class="dsf-showcase-product__name">{{ product.name }}</h4>
@@ -114,7 +114,7 @@ const props = defineProps({
   isEditor: Boolean,
 })
 
-const wpData = window.dsfEditorData || {}
+const wpData = window.dsfEditorData || window.dsfFrontendData || {}
 const itemsContainer = ref(null)
 const products = ref([])
 const isLoading = ref(false)
@@ -203,6 +203,17 @@ function priceStyle(product) {
   }
 }
 
+function formatPrice(value) {
+  if (value === null || value === undefined) {
+    return ''
+  }
+  const text = String(value).trim()
+  if (!text) {
+    return ''
+  }
+  return text.includes('$') ? text : `$${text}`
+}
+
 function scrollNext() {
   if (canScrollNext.value) {
     currentPage.value++
@@ -285,8 +296,10 @@ async function fetchProducts() {
     if (result.success) {
       products.value = result.data.products.map(p => ({
         ...p,
-        onSale: p.salePrice && p.salePrice !== p.price,
-        regularPrice: p.price,
+        onSale: p.sale_price && p.sale_price !== p.price,
+        regularPrice: p.regular_price || p.price,
+        salePrice: p.sale_price || '',
+        price: p.price || '',
       }))
     }
   } catch (error) {
@@ -323,14 +336,14 @@ watch(() => [
 }
 
 .dsf-ecommerce-showcase__title {
-  font-size: 1.75rem;
+  font-size: 24px;
   font-weight: 700;
   margin: 0;
 }
 
 .dsf-ecommerce-showcase__shop-all {
   color: #2C5F5D;
-  font-size: 0.875rem;
+  font-size: 24px;
   font-weight: 600;
   text-decoration: none;
   letter-spacing: 0.05em;
@@ -343,7 +356,7 @@ watch(() => [
 .dsf-ecommerce-showcase__pagination {
   margin-left: auto;
   color: var(--dsf-gray-500);
-  font-size: 0.875rem;
+  font-size: 24px;
 }
 
 .dsf-ecommerce-showcase__container {
@@ -382,8 +395,8 @@ watch(() => [
 }
 
 .dsf-ecommerce-showcase__nav:hover {
-  background: #234c4a;
-  transform: translateY(-50%) scale(1.05);
+  background: #2f6d6a;
+  transform: translateY(-50%);
 }
 
 .dsf-ecommerce-showcase__nav--next {
@@ -425,7 +438,7 @@ watch(() => [
 
 .dsf-showcase-category__name {
   font-weight: 600;
-  font-size: 0.9375rem;
+  font-size: 24px;
   text-align: center;
 }
 
@@ -472,7 +485,7 @@ watch(() => [
 }
 
 .dsf-showcase-product__price {
-  font-size: 0.9375rem;
+  font-size: 24px;
   color: var(--price-color, #6B7280);
   margin-bottom: 0.25rem;
 }
@@ -484,11 +497,12 @@ watch(() => [
 }
 
 .dsf-showcase-product__price--sale {
-  color: var(--sale-color, #DC2626);
+  color: var(--sale-color, #16A34A);
+  font-weight: 600;
 }
 
 .dsf-showcase-product__name {
-  font-size: 0.875rem;
+  font-size: 24px;
   font-weight: 500;
   color: var(--dsf-gray-800);
   margin: 0;

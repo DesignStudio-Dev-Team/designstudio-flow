@@ -16,7 +16,7 @@ show_admin_bar(false);
     <meta charset="<?php bloginfo('charset'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo esc_html($post_id ? get_the_title($post_id) : __('New Page', 'designstudio-flow')); ?> - DesignStudio Flow</title>
-    <?php wp_head(); ?>
+    <?php do_action( 'admin_head' ); ?>
     <style>
         /* Hide WordPress admin elements */
         html, body, #wpcontent, #wpbody, #wpbody-content {
@@ -174,6 +174,6 @@ show_admin_bar(false);
         }
     </style>
     
-    <?php wp_footer(); ?>
+    <?php do_action( 'admin_footer' ); ?>
 </body>
 </html>

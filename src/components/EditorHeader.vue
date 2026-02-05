@@ -116,6 +116,7 @@ const logoUrl = computed(() => {
   width: 44px;
   object-fit: contain;
   display: block;
+  border:none;
 }
 
 .dsf-header__title,
