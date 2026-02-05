@@ -323,6 +323,28 @@ function handleCtaClick(event) {
   outline: none;
 }
 
+.dsf-bento-hero__search-btn-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6B7280;
+}
+
+.dsf-bento-hero__search-btn-icon svg {
+  display: block;
+}
+
+.dsf-bento-hero__search-btn-icon::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  display: block;
+  background: no-repeat center / 20px 20px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+}
+
 
 
 /* Feature Boxes */

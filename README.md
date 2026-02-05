@@ -100,18 +100,22 @@ designstudio-flow/
 
 ---
 
-## 🧱 Creating a New Block (One Workflow)
+## 🧱 Creating a New Block (Full Workflow)
 
-Blocks render using the **same Vue component** for both editor and frontend. A lightweight HTML snapshot is generated on save for SEO, and the frontend Vue app hydrates over it.
+Blocks render using the **same Vue component** for editor + frontend. Keep block CSS inside the Vue file so both views stay in sync.
 
 ### ✅ Steps
-1. Create a new block component in `src/components/blocks/` (example: `MyBlockPreview.vue`).
-1. Keep block CSS scoped in the Vue file and shared rules in `src/styles/blocks.css`.
-1. Register the block in `includes/class-dsf-blocks.php` (id, name, category, settings).
-1. Map the block in the editor renderer (Block Wrapper).
-1. Map the block in `src/frontend/FrontendApp.vue` for frontend rendering.
-1. If the block should follow Theme Settings, use theme default colors as the block defaults.
-1. Run `npm run build` before previewing on the live frontend.
+1. Duplicate `src/components/blocks/StarterBlockPreview.vue` and rename it (example: `MyBlockPreview.vue`).
+1. Update the template + settings usage, and keep block CSS in `<style scoped>` inside the Vue file.
+1. Register the block in `includes/class-dsf-blocks.php` (id, name, category, icon, settings schema + defaults).
+1. Map the block in the editor renderer: `src/components/BlockWrapper.vue`.
+1. Map the block in the frontend renderer: `src/frontend/FrontendApp.vue`.
+1. If the block should follow Theme Settings, use theme defaults for color settings.
+1. If the block needs extra data (Woo categories/products), add AJAX + frontend localize data.
+1. Run tests: `npm run test:run`.
+1. Build for production: `npm run build` (or `npm run release`).
+
+> Tip: Avoid block‑specific overrides in `assets/css/frontend.css` or `assets/css/editor.css`. Keep block styles in the Vue component.
 
 ### 🚀 Starter Block Template
 Use `src/components/blocks/StarterBlockPreview.vue` as a ready‑to‑clone template.

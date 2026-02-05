@@ -463,6 +463,31 @@ watch(() => [
   margin-bottom: 0.75rem;
 }
 
+.dsf-showcase-product__image::after {
+  content: "←";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.dsf-showcase-product:hover .dsf-showcase-product__image::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .dsf-showcase-product__image img {
   width: 100%;
   height: 100%;
