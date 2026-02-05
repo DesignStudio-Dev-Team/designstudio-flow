@@ -146,7 +146,7 @@ npm install
 composer install
 ```
 
-> Composer is required for PHP tooling and tests. It is not bundled in the repo.
+> `npm install` is required for dev/build/test tooling. Composer is required for PHP tooling and tests. Neither is bundled in the repo.
 
 ### 1) Start Vite
 ```bash
