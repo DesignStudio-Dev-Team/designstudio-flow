@@ -245,7 +245,11 @@ GitHub releases are used for update delivery.
 
 ## 📝 Changelog
 
-### v1.0.6 (Current)
+### v1.0.7 (Current)
+- Ecommerce Showcase now locks to exactly 5 items across on wide screens
+- Slider math updated to prevent partial cards at the edge
+
+### v1.0.6
 - Bento Hero mobile layout: hero full width, boxes in 2‑column grid
 - Featured Promo Banner hides image layer on mobile for cleaner layout
 - Ecommerce Showcase hover arrow stays perfectly circular

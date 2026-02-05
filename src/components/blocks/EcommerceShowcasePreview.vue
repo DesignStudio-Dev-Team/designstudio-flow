@@ -123,15 +123,15 @@ const scrollOffset = ref(0)
 const containerWidth = ref(800) // Default width
 
 // Item dimensions
-const ITEM_WIDTH = 180 // product card width
 const ITEM_GAP = 24 // 1.5rem gap
 
 // Calculate visible items based on container width
 const itemsPerPage = computed(() => {
-  const availableWidth = containerWidth.value
-  const itemTotalWidth = ITEM_WIDTH + ITEM_GAP
-  const visibleCount = Math.floor((availableWidth + ITEM_GAP) / itemTotalWidth)
-  return Math.max(1, visibleCount)
+  const width = containerWidth.value
+  if (width >= 1280) return 5
+  if (width >= 1024) return 4
+  if (width >= 768) return 3
+  return 2
 })
 
 const previewStyle = computed(() => ({
@@ -229,8 +229,11 @@ function scrollPrev() {
 }
 
 function updateScrollOffset() {
-  const itemTotalWidth = ITEM_WIDTH + ITEM_GAP
-  scrollOffset.value = (currentPage.value - 1) * itemTotalWidth * itemsPerPage.value
+  const columns = itemsPerPage.value
+  const totalGap = ITEM_GAP * (columns - 1)
+  const itemWidth = (containerWidth.value - totalGap) / columns
+  const itemTotalWidth = itemWidth + ITEM_GAP
+  scrollOffset.value = (currentPage.value - 1) * itemTotalWidth * columns
 }
 
 // Reset page when viewport changes (to avoid being on invalid page)
@@ -445,7 +448,7 @@ watch(() => [
 /* Product Cards */
 .dsf-showcase-product {
   flex-shrink: 0;
-  width: 240px;
+  width: calc((100% - 96px) / 5);
 }
 
 .dsf-showcase-product__image {
@@ -519,6 +522,10 @@ watch(() => [
     flex-wrap: wrap;
     gap: 0.75rem;
   }
+
+  .dsf-showcase-product {
+    width: calc((100% - 72px) / 4);
+  }
 }
 
 @container (max-width: 768px) {
@@ -532,6 +539,10 @@ watch(() => [
   }
 
   .dsf-showcase-category { width: 140px; }
-  .dsf-showcase-product { width: 200px; }
+  .dsf-showcase-product { width: calc((100% - 48px) / 3); }
+}
+
+@container (max-width: 520px) {
+  .dsf-showcase-product { width: calc((100% - 24px) / 2); }
 }
 </style>
