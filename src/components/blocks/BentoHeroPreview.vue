@@ -151,10 +151,24 @@ const { openModal } = useFlowModal()
 
 const searchQuery = ref('')
 
+function buildSearchUrl(template, query) {
+  const normalized = (template || '').trim()
+  const encoded = encodeURIComponent(query)
+  if (!normalized) return `/?s=${encoded}`
+  if (normalized.includes('{query}')) {
+    return normalized.split('{query}').join(encoded)
+  }
+  const joiner = normalized.includes('?')
+    ? (normalized.endsWith('?') || normalized.endsWith('&') ? '' : '&')
+    : '?'
+  return `${normalized}${joiner}s=${encoded}`
+}
+
 function handleSearch() {
   if (props.isEditor) return
   if (!searchQuery.value) return
-  window.location.href = '/?s=' + encodeURIComponent(searchQuery.value)
+  const targetUrl = buildSearchUrl(props.settings?.searchUrl, searchQuery.value)
+  window.location.href = targetUrl
 }
 
 const heroButtonHref = computed(() =>

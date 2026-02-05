@@ -3,8 +3,11 @@
     <!-- Left: Logo & Title -->
     <div class="dsf-header__left">
       <div class="dsf-header__brand">
+        <div class="dsf-header__logo" aria-hidden="true">
+          <img :src="logoUrl" alt="" />
+        </div>
         <h1 class="dsf-header__title">DesignStudio Flow</h1>
-        <p class="dsf-header__subtitle">Build your WordPress page with drag-and-drop blocks</p>
+        <p class="dsf-header__subtitle">Build your WordPress Page with Artisanal Content Blocks</p>
       </div>
     </div>
     
@@ -69,6 +72,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { Monitor, Tablet, Smartphone, Palette, Eye, Save } from 'lucide-vue-next'
 
 defineProps({
@@ -78,6 +82,11 @@ defineProps({
 })
 
 defineEmits(['update:title', 'preview', 'save', 'set-preview-mode', 'open-theme'])
+
+const logoUrl = computed(() => {
+  const baseUrl = window.dsfEditorData?.pluginUrl || ''
+  return `${baseUrl}assets/images/dsflow-logo.png`
+})
 </script>
 
 <style scoped>
@@ -85,6 +94,33 @@ defineEmits(['update:title', 'preview', 'save', 'set-preview-mode', 'open-theme'
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.dsf-header__brand {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 12px;
+  row-gap: 2px;
+  align-items: center;
+}
+
+.dsf-header__logo {
+  grid-row: 1 / span 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dsf-header__logo img {
+  height: 44px;
+  width: 44px;
+  object-fit: contain;
+  display: block;
+}
+
+.dsf-header__title,
+.dsf-header__subtitle {
+  margin: 0;
 }
 
 .dsf-header__center {

@@ -42,11 +42,11 @@
                   :placeholder="settings.leftSearchPlaceholder"
                   class="dsf-duo-hero__search-input"
                   v-model="leftSearchQuery"
-                  @keydown.enter="handleSearch(leftSearchQuery)"
+                  @keydown.enter="handleSearch(leftSearchQuery, settings.leftSearchUrl)"
                 >
                 <button 
                   class="dsf-duo-hero__search-btn"
-                  @click="handleSearch(rightSearchQuery)"
+                  @click="handleSearch(leftSearchQuery, settings.leftSearchUrl)"
                 >
                   <Search :size="20" />
                 </button>
@@ -104,11 +104,11 @@
                   :placeholder="settings.rightSearchPlaceholder"
                   class="dsf-duo-hero__search-input"
                   v-model="rightSearchQuery"
-                  @keydown.enter="handleSearch(rightSearchQuery)"
+                  @keydown.enter="handleSearch(rightSearchQuery, settings.rightSearchUrl)"
                 >
                 <button 
                   class="dsf-duo-hero__search-btn"
-                  @click="handleSearch(leftSearchQuery)"
+                  @click="handleSearch(rightSearchQuery, settings.rightSearchUrl)"
                 >
                   <Search :size="20" />
                 </button>
@@ -154,10 +154,24 @@ const { openModal } = useFlowModal()
 const leftSearchQuery = ref('')
 const rightSearchQuery = ref('')
 
-function handleSearch(query) {
+function buildSearchUrl(template, query) {
+  const normalized = (template || '').trim()
+  const encoded = encodeURIComponent(query)
+  if (!normalized) return `/?s=${encoded}`
+  if (normalized.includes('{query}')) {
+    return normalized.split('{query}').join(encoded)
+  }
+  const joiner = normalized.includes('?')
+    ? (normalized.endsWith('?') || normalized.endsWith('&') ? '' : '&')
+    : '?'
+  return `${normalized}${joiner}s=${encoded}`
+}
+
+function handleSearch(query, template) {
   if (props.isEditor) return
   if (!query) return
-  window.location.href = '/?s=' + encodeURIComponent(query)
+  const targetUrl = buildSearchUrl(template, query)
+  window.location.href = targetUrl
 }
 
 const leftButtonHref = computed(() =>

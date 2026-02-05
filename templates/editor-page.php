@@ -61,12 +61,7 @@ show_admin_bar(false);
         <div class="dsf-initial-loader">
             <div class="dsf-loader-content">
                 <div class="dsf-logo-mark">
-                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="4" y="4" width="14" height="14" rx="4" fill="#0E58E6" class="dsf-block-1"/>
-                        <rect x="22" y="4" width="14" height="14" rx="4" fill="#0E58E6" class="dsf-block-2" style="opacity: 0.8"/>
-                        <rect x="4" y="22" width="14" height="14" rx="4" fill="#0E58E6" class="dsf-block-3" style="opacity: 0.6"/>
-                        <rect x="22" y="22" width="14" height="14" rx="4" fill="#0E58E6" class="dsf-block-4" style="opacity: 0.4"/>
-                    </svg>
+                    <img src="<?php echo esc_url( DSF_PLUGIN_URL . 'assets/images/dsflow-logo.png' ); ?>" alt="" loading="lazy" />
                 </div>
                 <div class="dsf-brand-text">
                     <span class="dsf-brand-main">DesignStudio</span>
@@ -103,13 +98,17 @@ show_admin_bar(false);
 
         .dsf-logo-mark {
             margin-bottom: 24px;
+            width: 40px;
+            height: 40px;
         }
 
-        /* Logo blocks animation */
-        .dsf-block-1 { animation: dsfPulse 2s infinite ease-in-out 0s; }
-        .dsf-block-2 { animation: dsfPulse 2s infinite ease-in-out 0.2s; }
-        .dsf-block-3 { animation: dsfPulse 2s infinite ease-in-out 0.4s; }
-        .dsf-block-4 { animation: dsfPulse 2s infinite ease-in-out 0.6s; }
+        .dsf-logo-mark img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+            animation: dsfLogoPulse 2s ease-in-out infinite;
+        }
 
         .dsf-brand-text {
             font-size: 24px;
@@ -164,9 +163,9 @@ show_admin_bar(false);
             100% { transform: translateX(200%); }
         }
         
-        @keyframes dsfPulse {
-            0%, 100% { fill-opacity: 1; }
-            50% { fill-opacity: 0.5; }
+        @keyframes dsfLogoPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(0.96); opacity: 0.75; }
         }
 
         @keyframes dsfPulseText {

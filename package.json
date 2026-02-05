@@ -1,6 +1,6 @@
 {
   "name": "designstudio-flow",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Build your WordPress pages with drag-and-drop pre-coded blocks",
   "type": "module",
   "scripts": {

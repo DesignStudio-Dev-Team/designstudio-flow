@@ -177,7 +177,7 @@ class DSF_Admin {
 
 		echo '<div class="dsf-edit-with-flow">';
 		echo '<a class="button button-primary dsf-flow-button" href="' . esc_url( $url ) . '">';
-		echo wp_kses( $this->get_flow_logo_svg( 'dsf-flow-button__logo' ), $this->get_flow_logo_allowed_html() );
+		echo wp_kses( $this->get_flow_logo_svg( 'dsf-flow-button__logo', 'compact' ), $this->get_flow_logo_allowed_html() );
 		echo '<span>' . esc_html__( 'Edit with DesignStudio Flow', 'designstudio-flow' ) . '</span>';
 		echo '</a>';
 		echo '</div>';
@@ -194,7 +194,7 @@ class DSF_Admin {
 				echo '<p class="dsf-flow-editor-panel__text">' . esc_html__( 'Launch the Flow editor to design this page using blocks and global theme settings.', 'designstudio-flow' ) . '</p>';
 			}
 			echo '<a class="button button-primary dsf-flow-button dsf-flow-button--lg" href="' . esc_url( $url ) . '">';
-			echo wp_kses( $this->get_flow_logo_svg( 'dsf-flow-button__logo' ), $this->get_flow_logo_allowed_html() );
+			echo wp_kses( $this->get_flow_logo_svg( 'dsf-flow-button__logo', 'compact' ), $this->get_flow_logo_allowed_html() );
 			echo '<span>' . esc_html__( 'Edit with DesignStudio Flow', 'designstudio-flow' ) . '</span>';
 			echo '</a>';
 
@@ -238,17 +238,14 @@ class DSF_Admin {
 	/**
 	 * Inline Flow logo SVG
 	 */
-	private function get_flow_logo_svg( $class_name = '' ) {
+	private function get_flow_logo_svg( $class_name = '', $variant = 'full' ) {
 		$class_attr = $class_name ? ' class="' . esc_attr( $class_name ) . '"' : '';
+		$logo_url = DSF_PLUGIN_URL . 'assets/images/dsflow-logo.png';
+		unset( $variant );
 
 		return '<span' . $class_attr . ' aria-hidden="true">
-            <svg viewBox="0 0 40 40" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="4" y="4" width="14" height="14" rx="4" fill="#0E58E6"/>
-                <rect x="22" y="4" width="14" height="14" rx="4" fill="#0E58E6" opacity="0.8"/>
-                <rect x="4" y="22" width="14" height="14" rx="4" fill="#0E58E6" opacity="0.6"/>
-                <rect x="22" y="22" width="14" height="14" rx="4" fill="#0E58E6" opacity="0.4"/>
-            </svg>
-        </span>';
+			<img src="' . esc_url( $logo_url ) . '" alt="" loading="lazy" />
+		</span>';
 	}
 
 	/**
@@ -260,21 +257,10 @@ class DSF_Admin {
 				'class'       => true,
 				'aria-hidden' => true,
 			),
-			'svg'  => array(
-				'viewBox' => true,
-				'width'   => true,
-				'height'  => true,
-				'fill'    => true,
-				'xmlns'   => true,
-			),
-			'rect' => array(
-				'x'       => true,
-				'y'       => true,
-				'width'   => true,
-				'height'  => true,
-				'rx'      => true,
-				'fill'    => true,
-				'opacity' => true,
+			'img'  => array(
+				'src'     => true,
+				'alt'     => true,
+				'loading' => true,
 			),
 		);
 	}

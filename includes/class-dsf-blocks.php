@@ -349,6 +349,12 @@ class DSF_Blocks {
 						'default'  => 'Search by keyword',
 						'showWhen' => array( 'heroType' => 'search' ),
 					),
+					'searchUrl'                  => array(
+						'type'     => 'text',
+						'label'    => 'Search URL',
+						'default'  => '/?s={query}',
+						'showWhen' => array( 'heroType' => 'search' ),
+					),
 					// Button Settings
 					'heroButtonText'             => array(
 						'type'     => 'text',
@@ -763,6 +769,12 @@ class DSF_Blocks {
 						'default'  => 'Search by keyword',
 						'showWhen' => array( 'leftType' => 'search' ),
 					),
+					'leftSearchUrl'               => array(
+						'type'     => 'text',
+						'label'    => 'Left Search URL',
+						'default'  => '/?s={query}',
+						'showWhen' => array( 'leftType' => 'search' ),
+					),
 					'leftTextColor'               => array(
 						'type'    => 'color',
 						'label'   => 'Left Text Color',
@@ -875,6 +887,12 @@ class DSF_Blocks {
 						'type'     => 'text',
 						'label'    => 'Right Search Placeholder',
 						'default'  => 'Search by keyword',
+						'showWhen' => array( 'rightType' => 'search' ),
+					),
+					'rightSearchUrl'              => array(
+						'type'     => 'text',
+						'label'    => 'Right Search URL',
+						'default'  => '/?s={query}',
 						'showWhen' => array( 'rightType' => 'search' ),
 					),
 					'rightTextColor'              => array(
