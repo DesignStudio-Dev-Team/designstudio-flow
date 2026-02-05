@@ -1,379 +1,238 @@
-# DesignStudio Flow
+# DesignStudio Flow 🚀
 
-> Build your WordPress pages with drag-and-drop pre-coded blocks.
-
-## 🎯 Overview
-
-**DesignStudio Flow** is a lightweight, intuitive page builder for WordPress. Unlike complex builders like Elementor or Divi, Flow focuses on simplicity — offering pre-designed, professionally crafted blocks that users can customize without overwhelming options.
-
-### Key Philosophy
-
-- **Pre-coded blocks only** — No building from scratch
-- **Limited but powerful customization** — Content, images, colors, padding, fonts
-- **Fixed structure** — Users can't break the layout
-- **WooCommerce native** — Deep integration with products and categories
-- **Theme-friendly** — Blocks render between your theme's header and footer
+> Build WordPress pages with curated, pre‑designed blocks — fast, clean, and theme‑friendly.
 
 ---
 
-## ✨ Block Library
+## ✨ Overview
 
-### 🧱 Content Blocks
+**DesignStudio Flow** is a lightweight page builder focused on **clarity and control**. It uses a curated block library instead of blank‑canvas editing, so pages stay consistent, responsive, and easy to manage.
 
+### ✅ Philosophy
+- Pre‑coded blocks only (no blank canvas)
+- Limited but powerful customization
+- Layouts stay consistent and hard to break
+- Theme‑friendly header/footer rendering
+- WooCommerce‑ready components
+
+---
+
+## 🧱 Block Library
+
+### 🧩 Content Blocks
 | Block | Description |
-|-------|-------------|
-| **Hero** | Classic hero section with title, subtitle, and CTA button |
-| **Bento Hero** | Modern bento-grid style hero with search, images, and product showcase |
-| **Duo Hero** | Split-screen hero with two image containers and search bar |
-| **Features Grid** | Grid of feature cards with icons, titles, and descriptions |
-| **Text & Image** | Flexible content block with text on one side, image on the other |
-| **Testimonials** | Slider carousel with customer testimonials, images, and pagination dots |
+|---|---|
+| **Hero** | Classic hero with title, subtitle, and CTA |
+| **Bento Hero** | Modern bento grid hero with imagery + search |
+| **Duo Hero** | Split hero layout with two panels |
+| **Features Grid** | Feature cards with icons and text |
+| **Text & Image** | Side‑by‑side content + image block |
+| **Testimonials** | Slider with testimonial cards and dots |
 
 ### 🛒 Ecommerce Blocks
-
 | Block | Description |
-|-------|-------------|
-| **Product Grid** | Display products with manual or category selection |
-| **Ecommerce Showcase** | Slider with products or categories, pagination, and navigation arrows |
-| **Brand Carousel** | Display brand/partner logos in a responsive grid |
+|---|---|
+| **Product Grid** | Manual or category‑based products |
+| **Ecommerce Showcase** | Slider with products or categories |
+| **Brand Carousel** | Brand/logo grid carousel |
 
 ### 📣 Marketing Blocks
-
 | Block | Description |
-|-------|-------------|
-| **CTA Banner** | Call-to-action banner with title, subtitle, and button |
-| **Promo Banner** | Promotional banner with image, text overlay, and CTA |
-| **Featured Promo Banner** | Curved design promo with discount badge |
-| **Featured Product Banner** | Large product feature with ribbon, circle highlight, and promo code |
+|---|---|
+| **CTA Banner** | Title + subtitle + button |
+| **Promo Banner** | Image with overlay text and CTA |
+| **Featured Promo Banner** | Curved design promo layout |
+| **Featured Product Banner** | Highlighted product hero |
 
 ---
 
-## 🎨 Visual Editor & Layout
+## 🎛️ Editor & Theme Settings
 
-- **Primary Color**: `#2C5F5D` (Teal)
-- **Canvas Area**: Main drag-and-drop zone
-- **Left Sidebar**: Collapsible Block Library with schematic previews
-- **Right Sidebar**: Contextual Customizer Panel (opens on block selection)
+### 🎨 Theme Defaults
+- **Primary Color**: `#2C5F5D`
+- Defaults sync across blocks unless the user overrides a block color
 
-### 📲 Viewport Modes
-
-Toggle buttons in the header to preview different screen sizes:
+### 📲 Viewport Preview
 - **Desktop**: 100% width
-- **Tablet**: 768px fixed width
-- **Mobile**: 375px fixed width
+- **Tablet**: 768px
+- **Mobile**: 375px
 
-### 🛠️ Block Customization
-
-The right sidebar customizer panel includes contextual tabs:
-
-| Tab | Features |
-|-----|----------|
-| **Content** | Text editing, inline images, button links, toggles |
-| **Style** | Padding (slider), background colors (picker), font colors, primary colors |
-| **Products** | Source selection, category filter, manual pinning (for ecommerce blocks) |
-
-### 🖼️ WordPress Media Library Integration
-
-- Full integration with the native WordPress Media Library dialog
-- Grid-based image picker with hover effects and selection confirmation
-- Used for replacing hero backgrounds, testimonial images, product images, and more
+### 🧩 Customization Panels
+- **Content**: Text, images, buttons, toggles
+- **Style**: Spacing, background, text + button colors
+- **Products**: Source, filters, manual picks
 
 ---
 
-## 🧩 Block Features
+## 🧩 Block Capabilities
 
-### Inline Text Editing
-
-Most blocks support inline text editing directly on the canvas:
-- Click on text to edit
-- Changes save automatically
-- Works for titles, descriptions, button text, etc.
-
-### Repeater Fields
-
-Several blocks use repeater fields for managing multiple items:
-- **Testimonials**: Add/remove testimonials with title, quote, author, location, and image
-- **Features Grid**: Add/remove feature cards
-- **Brand Carousel**: Add/remove brand logos with name, URL, and image
-
-### Color Customization
-
-Blocks support various color settings:
-- Background colors
-- Title and text colors
-- Button background and text colors
-- Primary colors (affects quote icons, navigation arrows, active states)
-
-### Slider Navigation
-
-Blocks with sliders include:
-- **Navigation arrows** (teal circular buttons with hover effects)
-- **Pagination dots** (clickable indicators)
-- **Smooth animations** on slide transitions
+- Inline text editing on canvas
+- Media Library image replacement
+- Repeater fields (testimonials, features, brands)
+- CTA actions: link or modal (center or right drawer)
+- Smooth slider animations and pagination
 
 ---
 
-## 🎨 Design System
-
-### Colors
-
-| Token | Hex | Usage |
-|-------|-----|-------|
-| Primary | `#2C5F5D` | Buttons, navigation arrows, active states |
-| Secondary | `#0F6B8C` | Quote icons, accents |
-| Background | `#F3F4F6` | App background |
-| Canvas | `#FFFFFF` | Canvas background |
-| Borders | `#E5E7EB` | Dividers, inputs |
-| Text Primary | `#1F2937` | Headings |
-| Text Secondary | `#6B7280` | Descriptions |
-| Success | `#10B981` | Notifications |
-| Error | `#EF4444` | Destructive actions |
-
-### Typography
-
-| Element | Size |
-|---------|------|
-| Hero Title | 42px |
-| Block Title | 38px |
-| Subtitle/Description | 24px |
-| Body Text | 24px |
-| Button Text | 24px |
-
----
-
-## 🧑‍💻 Technical Stack
-
-### Tech Stack
-- **Framework**: Vue.js 3 (Composition API)
-- **State Management**: Pinia
-- **Styling**: Scoped CSS with `dsf-` prefix
-- **Icons**: Lucide Icons (Vue)
-- **Drag & Drop**: `vuedraggable` / `sortablejs`
-- **Notifications**: Sonner (Vue)
-
-### Key User Flows
-
-1. **Add Block**: Click "Add Block" → Browse categories → Drag block to canvas
-2. **Customize Block**: Click block → Customizer opens → Edit content/style → Changes apply immediately
-3. **Reorder Blocks**: Drag block by grip handle → Drop in new position
-4. **Edit Text**: Click on text element → Edit inline → Auto-saves
-5. **Add Testimonial**: Open customizer → Testimonials tab → Click "Add Testimonial"
-6. **Preview**: Click Preview → Controls hide → Full preview mode
-7. **Save**: Click Save Page → Toast notification confirms
-
----
-
-## 🏗️ Architecture & File Structure
+## 🧱 Architecture
 
 ```
 designstudio-flow/
-├── designstudio-flow.php          # Main plugin file
-├── README.md                      # Specification & Documentation
-│
+├── designstudio-flow.php
 ├── includes/
-│   ├── class-dsf-admin.php        # Admin menu & settings
-│   ├── class-dsf-editor.php       # Page builder editor
-│   ├── class-dsf-blocks.php       # Block registration & rendering
-│   ├── class-dsf-ajax.php         # AJAX handlers
+│   ├── class-dsf-editor.php
+│   ├── class-dsf-blocks.php
+│   ├── class-dsf-frontend.php
 │   └── ...
-│
-├── src/                           # Vue.js source files
+├── templates/
+│   ├── flow-page.php
+│   └── flow-page-fullwidth.php
+├── assets/
+│   ├── css/
+│   └── js/
+├── src/
 │   ├── components/
-│   │   ├── blocks/                # Block Preview Components
-│   │   │   ├── HeroPreview.vue
-│   │   │   ├── BentoHeroPreview.vue
-│   │   │   ├── DuoHeroPreview.vue
-│   │   │   ├── TestimonialsPreview.vue
-│   │   │   ├── TextImagePreview.vue
-│   │   │   ├── FeaturedPromoBannerPreview.vue
-│   │   │   ├── FeaturedProductBannerPreview.vue
-│   │   │   ├── EcommerceShowcasePreview.vue
-│   │   │   ├── BrandLogosPreview.vue
-│   │   │   └── ...
-│   │   ├── common/                # Shared Components
-│   │   │   ├── BlockSchematic.vue
-│   │   │   ├── InlineText.vue
-│   │   │   ├── ColorPicker.vue
-│   │   │   ├── RepeaterField.vue
-│   │   │   ├── TestimonialsRepeaterField.vue
-│   │   │   ├── BrandRepeaterField.vue
-│   │   │   └── ...
+│   │   ├── blocks/
+│   │   └── common/
+│   ├── frontend/
+│   └── styles/
+```
 
 ---
 
-## 🧱 Adding A New Block (Editor + Frontend)
+## 🧱 Creating a New Block (One Workflow)
 
-Blocks render from the **same Vue components** in both editor and frontend. A lightweight HTML snapshot is generated on save for SEO, and the frontend Vue app hydrates over it.
+Blocks render using the **same Vue component** for both editor and frontend. A lightweight HTML snapshot is generated on save for SEO, and the frontend Vue app hydrates over it.
 
-### ✅ Quick Process Checklist
+### ✅ Steps
+1. Create a new block component in `src/components/blocks/` (example: `MyBlockPreview.vue`).
+1. Keep block CSS scoped in the Vue file and shared rules in `src/styles/blocks.css`.
+1. Register the block in `includes/class-dsf-blocks.php` (id, name, category, settings).
+1. Map the block in the editor renderer (Block Wrapper).
+1. Map the block in `src/frontend/FrontendApp.vue` for frontend rendering.
+1. If the block should follow Theme Settings, use theme default colors as the block defaults.
+1. Run `npm run build` before previewing on the live frontend.
 
-1. **Create the Vue block component**
-   - New file in `src/components/blocks/`, for example `MyBlockPreview.vue`.
-   - Use `InlineText` for editable copy and keep CSS scoped in the Vue file.
-
-2. **Wire it into the editor**
-   - Import and map the component in `src/components/BlockWrapper.vue`.
-
-3. **Register the block + settings (PHP)**
-   - Add a new block in `includes/class-dsf-blocks.php` with `id`, `name`, `category`, `description`, and `settings`.
-   - If you want Theme Settings to control colors, set the block default colors to the theme defaults (e.g. `#2C5F5D` for primary).
-
-4. **Frontend rendering (Vue-powered + SEO snapshot)**
-   - The frontend mounts a Vue app that reuses the same block components: `src/frontend/FrontendApp.vue`.
-   - Block data is passed from PHP via `window.dsfFrontendData`.
-   - The mount point is output by `includes/class-dsf-frontend.php` (`#dsf-frontend-app`).
-   - On save, the editor generates a static HTML snapshot and stores it in `_dsf_html_snapshot` for SEO. Vue hydrates over that snapshot.
-
-5. **Add shared block styles (do-it-once)**
-   - Add the block CSS to `src/styles/blocks.css`.
-   - This file is used by **both** the editor and the frontend, so you only write block CSS once.
-   - `assets/css/frontend.css` should only be used for layout wrappers and JS-only styles.
-
-6. **Add optional JS**
-   - If the block needs interactions (slider, etc.), add behavior in `assets/js/frontend.js`.
+### 🚀 Starter Block Template
+Use `src/components/blocks/StarterBlockPreview.vue` as a ready‑to‑clone template.
 
 ---
 
-## 🧾 Snapshot Rendering (SEO FAQ)
+## 🧾 SEO Snapshot Rendering
 
-**Q: How does the frontend render blocks now?**  
-A: The frontend mounts a Vue app that uses the same block components as the editor. PHP outputs a mount point (`#dsf-frontend-app`) and passes data via `window.dsfFrontendData`.
-
-**Q: Where does the HTML snapshot come from?**  
-A: On every save, the editor renders the blocks off‑screen in the browser and stores the HTML in `_dsf_html_snapshot`.
-
-**Q: Will search engines see content without running JavaScript?**  
-A: Yes. The saved snapshot HTML is output by PHP before Vue mounts, so bots still see full content.
-
-**Q: Do users see layout shifting?**  
-A: The snapshot is generated from the same Vue components, so it’s visually consistent. Any shift should be minimal.
+- On save, the editor renders an **HTML snapshot** in the browser.
+- Snapshot HTML is stored in `_dsf_html_snapshot`.
+- PHP outputs the snapshot so crawlers see full content.
+- Vue hydrates and takes over for interactions.
 
 ---
 
-## ✅ Build Guard (Don’t Forget This)
+## ✅ Build & Release
 
-Any time you add or update blocks, **you must rebuild the frontend bundle** so the live site renders correctly:
-
+### Build (required after block changes)
 ```bash
 npm run build
 ```
 
-This generates the updated `assets/js/frontend.js` bundle used on the live site.
+### Release ZIP
+```bash
+npm run release
+```
 
-### 🚀 Starter Block You Can Clone
-
-A simple starter block is included at:
-
-`src/components/blocks/StarterBlockPreview.vue`
-
-It includes:
-- A title
-- A subtitle
-- A CTA button
-- Basic padding + background settings
-
-Clone this file and follow the checklist above to wire it into the editor and frontend.
-│   │   ├── selectors/             # Customizer Selectors
-│   │   │   ├── ProductsSelector.vue
-│   │   │   ├── CategorySelector.vue
-│   │   │   └── CategoriesSelector.vue
-│   │   ├── BlockLibrary.vue
-│   │   ├── EditorHeader.vue
-│   │   ├── SidePanel.vue
-│   │   ├── SettingField.vue
-│   │   └── ...
-│   └── styles/
-│       ├── variables.css          # Design Tokens
-│       └── main.css               # Global Styles
+### Release Checklist
+1. Update versions in `package.json` and `designstudio-flow.php`.
+1. Run `npm run release` to build assets and create the zip.
+1. Commit + tag:
+```bash
+git add .
+git commit -m "Release vX.Y.Z"
+git tag vX.Y.Z
+git push origin main --tags
 ```
 
 ---
 
-## � Auto-Updates from GitHub
+## ✅ Unit Testing
 
-This plugin supports automatic updates directly from GitHub releases.
+We use **Vitest** for Vue components and **PHPUnit** for core PHP behavior.
 
-### Setup (Required for Private Repos)
+### Run JavaScript Tests
+```bash
+npm run test:run
+```
 
-Add the following line to your `wp-config.php`:
+### Run PHP Tests
+```bash
+npm run test:php
+```
+
+### Coverage Highlights
+- CTA actions + modal behavior (center + drawer)
+- Theme color sync across blocks
+- WYSIWYG rendering + link handling
+- Repeater fields and block settings logic
+
+---
+
+## 🔐 Security & WordPress Standards
+
+DesignStudio Flow is built with **WordPress security best practices** and adheres to the official **WordPress coding standards**.
+
+### ✅ Security Posture
+- Sanitization + validation of user‑provided input
+- Escaping output for HTML, attributes, and URLs
+- Nonce checks for privileged actions
+- Capability checks for all editor/admin routes
+- Strict adherence to WordPress‑Extra coding rules
+
+### 🔍 Security Checks
+```bash
+npm run security-check
+```
+
+This runs PHPCS with WordPress‑Extra rules plus `npm audit`.
+
+---
+
+## 🔁 GitHub Auto‑Updates
+
+For private repos, add this to `wp-config.php`:
 
 ```php
 define('DSF_GITHUB_TOKEN', 'ghp_your_personal_access_token_here');
 ```
 
-### Creating a GitHub Personal Access Token
-
-1. Go to **GitHub** → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens**
-2. Click **Generate new token**
-3. Configure:
-   - **Token name**: `DesignStudio Flow Updates`
-   - **Repository access**: Select `designstudio-flow` repository
-   - **Permissions**: `Contents: Read-only`
-4. Copy the token and add it to `wp-config.php`
-
-### How Updates Work
-
-1. WordPress checks for updates periodically
-2. If a new version is available on GitHub Releases, you'll see an update notification
-3. Click **Update Now** — the plugin updates without deactivating
-4. Your settings and page layouts are preserved
-
-### Deploying a New Version
-
-1. **Update Version Numbers**
-   - Update `package.json`: `"version": "x.x.x"`
-   - Update `designstudio-flow.php`: `Version: x.x.x`
-
-2. **Build Release Assets**
-   ```bash
-   npm run release
-   ```
-   *This builds Vue assets and creates a production-ready ZIP.*
-
-3. **Commit & Tag**
-   ```bash
-   git add .
-   git commit -m "Release vx.x.x"
-   git tag vx.x.x
-   git push origin main --tags
-   ```
-
-4. **GitHub Release**
-   - A GitHub Release will be automatically created with the ZIP attached.
-   - Updates will be pushed to WordPress sites.
+GitHub releases are used for update delivery.
 
 ---
 
-## �📝 Changelog
+## 📝 Changelog
 
-### v1.1.0 (Current)
-- Added **Testimonials** block with slider, images, and inline editing
-- Added **Bento Hero** and **Duo Hero** blocks
-- Added **Featured Promo Banner** and **Featured Product Banner** blocks
-- Added **Text & Image** block with color customization
-- Added **Brand Carousel** block
-- Added **CTA Banner** block with full color customization
-- Added **Ecommerce Showcase** with slider navigation
-- Implemented inline text editing across all blocks
-- Added specialized repeater fields for testimonials and brands
-- Updated block schematics for accurate previews
-- Added primary color settings for navigation elements
+### v1.0.2 (Current)
+- Frontend uses the same Vue block components as the editor
+- HTML snapshot rendering for SEO + fast initial paint
+- CTA actions with modal support (center + right drawer)
+- Theme Settings propagate primary colors across blocks
+- Release tooling hardened and build output validated
+
+### v1.0.1
+- Full‑width template option for theme‑locked layouts
+- Improved editor UX and Theme Settings panel
+- Visual polish for block previews and button styling
 
 ### v1.0.0
-- Implemented core Drag & Drop builder
-- Added `Product Grid` with Manual/Category modes
-- Added `Category Grid` with "Shop All" and drag-to-reorder categories
-- Integrated WordPress Media Library
-- Responsive Preview Modes
+- Initial block library + editor foundation
+- Drag‑and‑drop layout builder
+- WooCommerce product grid + category blocks
 
 ---
 
 ## 📄 License
 
-GPL v2 or later — [https://www.gnu.org/licenses/gpl-2.0.html](https://www.gnu.org/licenses/gpl-2.0.html)
+GPL v2 or later — https://www.gnu.org/licenses/gpl-2.0.html
 
 ---
 
-## 🙏 Credits
+## 🙌 Credits
 
-Built with ❤️ by [DesignStudio Network, Inc.](https://designstudio.com)
+Built with care by **DesignStudio Network, Inc.**
