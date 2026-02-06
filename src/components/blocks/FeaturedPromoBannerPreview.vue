@@ -1,5 +1,5 @@
 <template>
-  <div class="dsf-block-preview dsf-featured-promo">
+  <div class="dsf-block-preview dsf-featured-promo" :style="previewStyle">
     <div class="dsf-featured-promo__container">
       
       <!-- Layer 1: Image Background (Right Side mainly, but full cover behind SVG) -->
@@ -128,16 +128,29 @@ import { computed } from 'vue'
 import { ArrowRight } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
 import { useFlowModal } from '../common/useFlowModal'
+import { getResponsiveValue } from '../../utils/responsiveSettings'
 
 const props = defineProps({
   settings: {
     type: Object,
     default: () => ({})
   },
-  isEditor: Boolean
+  isEditor: Boolean,
+  previewMode: {
+    type: String,
+    default: 'desktop',
+  },
 })
 
 const { openModal } = useFlowModal()
+
+const previewStyle = computed(() => {
+  const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 0
+  return {
+    paddingTop: `${paddingY}px`,
+    paddingBottom: `${paddingY}px`,
+  }
+})
 
 const buttonHref = computed(() =>
   (props.settings?.buttonAction || 'link') === 'link'

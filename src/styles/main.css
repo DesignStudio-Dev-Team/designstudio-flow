@@ -8,7 +8,6 @@
 /* Import design tokens */
 @import './variables.css';
 @import './components.css';
-@import './blocks.css';
 
 /* Tailwind Directives */
 @tailwind base;
@@ -30,4 +29,3 @@
 #dsf-editor-app *::after {
   box-sizing: border-box;
 }
-

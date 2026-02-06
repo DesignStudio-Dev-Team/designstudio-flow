@@ -2,7 +2,7 @@
   <div class="dsf-block-preview dsf-bento-hero">
     <div 
       class="dsf-bento-hero__grid"
-      :style="{ gap: (settings.gap || 12) + 'px' }"
+      :style="{ gap: gapValue + 'px', minHeight: heightValue + 'px' }"
     >
       <!-- Hero Section (Left, spans 2 rows) -->
       <div class="dsf-bento-hero__hero">
@@ -142,15 +142,26 @@ import { computed, ref } from 'vue'
 import { Search, Image, ArrowRight } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
 import { useFlowModal } from '../common/useFlowModal'
+import { getResponsiveValue } from '../../utils/responsiveSettings'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
+  previewMode: {
+    type: String,
+    default: 'desktop',
+  },
 })
 
 const { openModal } = useFlowModal()
 
 const searchQuery = ref('')
+const gapValue = computed(() =>
+  getResponsiveValue(props.settings || {}, props.previewMode, 'gap') ?? 12
+)
+const heightValue = computed(() =>
+  getResponsiveValue(props.settings || {}, props.previewMode, 'height') ?? 400
+)
 
 function buildSearchUrl(template, query) {
   const normalized = (template || '').trim()
@@ -336,14 +347,6 @@ function handleCtaClick(event) {
   display: block;
 }
 
-.dsf-bento-hero__search-btn-icon::before {
-  content: "";
-  width: 20px;
-  height: 20px;
-  display: block;
-  background: no-repeat center / 20px 20px;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
-}
 
 
 

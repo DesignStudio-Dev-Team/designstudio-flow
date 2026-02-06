@@ -4,17 +4,13 @@
       v-for="block in blocks"
       :key="block.id"
       class="dsf-block"
-      :style="{
-        marginTop: (block.settings?.marginY ?? 25) + 'px',
-        marginBottom: (block.settings?.marginY ?? 25) + 'px',
-        paddingLeft: (block.settings?.paddingX ?? 0) + 'px',
-        paddingRight: (block.settings?.paddingX ?? 0) + 'px',
-      }"
+      :style="getBlockStyle(block.settings)"
     >
       <component
         :is="getPreviewComponent(block.type)"
         :settings="block.settings"
         :is-editor="false"
+        :preview-mode="breakpoint"
       />
     </div>
     <transition name="dsf-modal" appear>
@@ -30,6 +26,7 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import HeroPreview from '../components/blocks/HeroCenteredPreview.vue'
 import ProductGridPreview from '../components/blocks/ProductGridPreview.vue'
 import EcommerceShowcasePreview from '../components/blocks/EcommerceShowcasePreview.vue'
@@ -48,6 +45,7 @@ import GenericBlockPreview from '../components/blocks/GenericBlockPreview.vue'
 import FlowModal from '../components/common/FlowModal.vue'
 import { provideFlowModal } from '../components/common/useFlowModal'
 import { createModalController } from './modalController'
+import { getResponsiveValue } from '../utils/responsiveSettings'
 
 const props = defineProps({
   blocks: {
@@ -81,4 +79,59 @@ const { modalState: modal, openModalAction: openModal, closeModalAction: closeMo
   createModalController()
 
 provideFlowModal({ openModal, closeModal })
+
+const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1200)
+let resizeHandler = null
+
+const breakpoint = computed(() => {
+  if (viewportWidth.value >= 1024) return 'desktop'
+  if (viewportWidth.value >= 768) return 'tablet'
+  return 'mobile'
+})
+
+onMounted(() => {
+  resizeHandler = () => {
+    viewportWidth.value = window.innerWidth
+  }
+  window.addEventListener('resize', resizeHandler)
+  resizeHandler()
+})
+
+onUnmounted(() => {
+  if (resizeHandler) {
+    window.removeEventListener('resize', resizeHandler)
+  }
+})
+
+function getResponsiveField(settings, key, fallback) {
+  const value = getResponsiveValue(settings || {}, breakpoint.value, key)
+  return value ?? fallback
+}
+
+function hasExplicitResponsiveValue(settings, key) {
+  if (!settings) return false
+  if (settings[key] !== undefined && settings[key] !== null) return true
+  const responsive = settings.responsive || {}
+  return ['desktop', 'tablet', 'mobile'].some(
+    (breakpointKey) => responsive[breakpointKey]?.[key] !== undefined && responsive[breakpointKey]?.[key] !== null
+  )
+}
+
+function getBlockStyle(settings) {
+  const style = {
+    marginTop: `${getResponsiveField(settings, 'marginY', 25)}px`,
+    marginBottom: `${getResponsiveField(settings, 'marginY', 25)}px`,
+    paddingLeft: `${getResponsiveField(settings, 'paddingX', 0)}px`,
+    paddingRight: `${getResponsiveField(settings, 'paddingX', 0)}px`,
+  }
+
+  if (hasExplicitResponsiveValue(settings, 'height')) {
+    const heightValue = getResponsiveValue(settings || {}, breakpoint.value, 'height')
+    if (heightValue !== undefined && heightValue !== null) {
+      style.minHeight = `${heightValue}px`
+    }
+  }
+
+  return style
+}
 </script>

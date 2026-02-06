@@ -55,10 +55,15 @@ import { computed } from 'vue'
 import { Image as ImageIcon } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
 import { useFlowModal } from '../common/useFlowModal'
+import { getResponsiveValue } from '../../utils/responsiveSettings'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
+  previewMode: {
+    type: String,
+    default: 'desktop',
+  },
 })
 
 const { openModal } = useFlowModal()
@@ -91,15 +96,20 @@ function handleButtonClick(event) {
   }
 }
 
-const containerStyle = computed(() => ({
-  backgroundColor: props.settings?.backgroundColor || '#FFFFFF',
-  paddingTop: `${props.settings?.padding || 60}px`,
-  paddingBottom: `${props.settings?.padding || 60}px`,
-  paddingLeft: `${props.settings?.paddingX || 20}px`,
-  paddingRight: `${props.settings?.paddingX || 20}px`,
-  marginTop: `${props.settings?.marginY || 0}px`,
-  marginBottom: `${props.settings?.marginY || 0}px`,
-}))
+const containerStyle = computed(() => {
+  const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 60
+  const paddingX = getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 20
+  const marginY = getResponsiveValue(props.settings || {}, props.previewMode, 'marginY') ?? 0
+  return {
+    backgroundColor: props.settings?.backgroundColor || '#FFFFFF',
+    paddingTop: `${paddingY}px`,
+    paddingBottom: `${paddingY}px`,
+    paddingLeft: `${paddingX}px`,
+    paddingRight: `${paddingX}px`,
+    marginTop: `${marginY}px`,
+    marginBottom: `${marginY}px`,
+  }
+})
 
 </script>
 

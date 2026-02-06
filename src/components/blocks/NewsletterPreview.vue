@@ -21,16 +21,25 @@
 
 <script setup>
 import { computed } from 'vue'
+import { getResponsiveValue } from '../../utils/responsiveSettings'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
+  previewMode: {
+    type: String,
+    default: 'desktop',
+  },
 })
 
-const previewStyle = computed(() => ({
-  padding: `${props.settings?.padding || 60}px 24px`,
-  backgroundColor: props.settings?.backgroundColor || '#F8FAFC',
-}))
+const previewStyle = computed(() => {
+  const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 60
+  const paddingX = getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 24
+  return {
+    padding: `${paddingY}px ${paddingX}px`,
+    backgroundColor: props.settings?.backgroundColor || '#F8FAFC',
+  }
+})
 </script>
 
 <style scoped>

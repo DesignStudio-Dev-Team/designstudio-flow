@@ -249,7 +249,15 @@ GitHub releases are used for update delivery.
 
 ## 📝 Changelog
 
-### v1.0.7 (Current)
+### v1.0.8 (Current)
+- Responsive spacing controls added for Desktop / Tablet / Mobile
+- Height slider now applies consistently in editor + frontend
+- Gap control limited to Bento Hero (only block that uses it)
+- Block styles consolidated into `components.css` (removed `blocks.css`)
+- Bento Hero search icon cleaned to single icon in editor
+- Featured Promo Banner badge aligns to true right edge
+
+### v1.0.7
 - Ecommerce Showcase now locks to exactly 5 items across on wide screens
 - Slider math updated to prevent partial cards at the edge
 
@@ -288,6 +296,41 @@ GitHub releases are used for update delivery.
 - Initial block library + editor foundation
 - Drag‑and‑drop layout builder
 - WooCommerce product grid + category blocks
+
+-- Near Future Features
+ - Create Headers and Footers
+   - in headers can create mega menus easier
+ - Create Forms - simple - [ShortCode]
+   - form fields 
+      - single line text
+      - multi-line field
+      - drop down
+      - checkboxes
+      - radio buttons
+      - hidden
+      - HTML
+      - multiple choice field
+      - number
+      - Date
+      - email
+      - phone
+      - website
+      - File Upload
+      - page break (multi-step form)
+   - can move the fields and have 2 column rows
+   - conditional option for fields
+   - allow field to be populated dynamically
+   - Form settings for Confirmations
+   - Form settings for Notifications
+   - Email Template for Forms replies
+   - Place to see Entries
+   - DSF-Forms API 
+      - view entries / active forms
+      - send to zappier / salesforce
+ - Create full landing page templates with blocks / forms pre-build
+ - Import and Export pre-build templates can also be use for syndication
+ 
+
 
 ---
 

@@ -61,10 +61,15 @@
 import { computed } from 'vue'
 import InlineText from '../common/InlineText.vue'
 import { useFlowModal } from '../common/useFlowModal'
+import { getResponsiveValue } from '../../utils/responsiveSettings'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
+  previewMode: {
+    type: String,
+    default: 'desktop',
+  },
 })
 
 const { openModal } = useFlowModal()
@@ -99,10 +104,14 @@ function handleFeatureClick(event, feature) {
   }
 }
 
-const previewStyle = computed(() => ({
-  padding: `${props.settings?.padding || 60}px 24px`,
-  backgroundColor: props.settings?.backgroundColor || '#FFFFFF',
-}))
+const previewStyle = computed(() => {
+  const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 60
+  const paddingX = getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 24
+  return {
+    padding: `${paddingY}px ${paddingX}px`,
+    backgroundColor: props.settings?.backgroundColor || '#FFFFFF',
+  }
+})
 
 const cardStyle = computed(() => ({
   backgroundColor: props.settings?.cardColor || '#1F2937',

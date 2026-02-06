@@ -115,18 +115,27 @@
 import { ref, computed } from 'vue'
 import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import { getResponsiveValue } from '../../utils/responsiveSettings'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
+  previewMode: {
+    type: String,
+    default: 'desktop',
+  },
 })
 
 const currentIndex = ref(0)
 
-const previewStyle = computed(() => ({
-  padding: `${props.settings?.padding || 60}px 24px`,
-  backgroundColor: props.settings?.backgroundColor || '#FFFFFF',
-}))
+const previewStyle = computed(() => {
+  const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 60
+  const paddingX = getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 24
+  return {
+    padding: `${paddingY}px ${paddingX}px`,
+    backgroundColor: props.settings?.backgroundColor || '#FFFFFF',
+  }
+})
 
 const displayTestimonials = computed(() => {
   return props.settings?.testimonials || [

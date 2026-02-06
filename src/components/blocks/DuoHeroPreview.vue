@@ -1,19 +1,15 @@
 <template>
   <div 
     class="dsf-duo-hero"
-    :style="{
-      ...wrapperStyle,
-      padding: (settings.padding || 40) + 'px 0',
-      minHeight: (settings.height || 500) + 'px',
-    }"
+    :style="wrapperStyle"
   >
-    <div class="dsf-duo-hero__container" :style="{ gap: (settings.gap || 20) + 'px' }">
+    <div class="dsf-duo-hero__container" :style="{ gap: gapValue + 'px' }">
       <!-- Left Panel -->
 
       <div 
         class="dsf-duo-hero__panel"
         :style="{
-          flex: `0 0 calc(${splitRatio}% - ${(settings.gap || 20) / 2}px)`
+          flex: `0 0 calc(${splitRatio}% - ${(gapValue / 2)}px)`
         }"
       >
         <img 
@@ -76,7 +72,7 @@
       <div 
         class="dsf-duo-hero__panel"
         :style="{
-          flex: `0 0 calc(${100 - splitRatio}% - ${(settings.gap || 20) / 2}px)`
+          flex: `0 0 calc(${100 - splitRatio}% - ${(gapValue / 2)}px)`
         }"
       >
         <img 
@@ -142,13 +138,18 @@ import { computed, ref } from 'vue'
 import { Search } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
 import { useFlowModal } from '../common/useFlowModal'
+import { getResponsiveValue } from '../../utils/responsiveSettings'
 
 const props = defineProps({
   settings: {
     type: Object,
     default: () => ({})
   },
-  isEditor: Boolean
+  isEditor: Boolean,
+  previewMode: {
+    type: String,
+    default: 'desktop',
+  },
 })
 
 const { openModal } = useFlowModal()
@@ -237,7 +238,26 @@ const splitRatio = computed(() => {
   return isNaN(ratio) ? 50 : ratio
 })
 
-const wrapperStyle = computed(() => ({}))
+const paddingY = computed(() =>
+  getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 40
+)
+
+const paddingX = computed(() =>
+  getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 0
+)
+
+const minHeight = computed(() =>
+  getResponsiveValue(props.settings || {}, props.previewMode, 'height') ?? 500
+)
+
+const gapValue = computed(() =>
+  getResponsiveValue(props.settings || {}, props.previewMode, 'gap') ?? 20
+)
+
+const wrapperStyle = computed(() => ({
+  padding: `${paddingY.value}px ${paddingX.value}px`,
+  minHeight: `${minHeight.value}px`,
+}))
 
 </script>
 

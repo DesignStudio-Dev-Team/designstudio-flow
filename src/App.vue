@@ -46,6 +46,7 @@
                 :block="element"
                 :index="index"
                 :is-selected="selectedBlockId === element.id"
+                :preview-mode="previewMode"
                 @select="selectBlock(element)"
                 @move-up="moveBlockUp(index)"
                 @move-down="moveBlockDown(index)"

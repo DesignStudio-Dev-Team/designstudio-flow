@@ -35,6 +35,7 @@
 <script setup>
 import { computed } from 'vue'
 import InlineText from '../common/InlineText.vue'
+import { getResponsiveValue } from '../../utils/responsiveSettings'
 
 const props = defineProps({
   settings: {
@@ -42,13 +43,21 @@ const props = defineProps({
     default: () => ({}),
   },
   isEditor: Boolean,
+  previewMode: {
+    type: String,
+    default: 'desktop',
+  },
 })
 
-const blockStyle = computed(() => ({
-  padding: `${props.settings?.padding || 60}px ${props.settings?.paddingX || 24}px`,
-  backgroundColor: props.settings?.backgroundColor || '#F5F5F4',
-  color: props.settings?.textColor || '#1F2937',
-}))
+const blockStyle = computed(() => {
+  const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 60
+  const paddingX = getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 24
+  return {
+    padding: `${paddingY}px ${paddingX}px`,
+    backgroundColor: props.settings?.backgroundColor || '#F5F5F4',
+    color: props.settings?.textColor || '#1F2937',
+  }
+})
 </script>
 
 <style scoped>

@@ -3,12 +3,7 @@
     class="dsf-block"
     :id="'block-' + block.id"
     :class="{ 'dsf-block--selected': isSelected }"
-    :style="{ 
-      marginTop: (block.settings?.marginY ?? 25) + 'px', 
-      marginBottom: (block.settings?.marginY ?? 25) + 'px',
-      paddingLeft: (block.settings?.paddingX ?? 0) + 'px',
-      paddingRight: (block.settings?.paddingX ?? 0) + 'px'
-    }"
+    :style="wrapperStyle"
     @click.stop="$emit('select')"
   >
     <!-- Block Toolbar -->
@@ -35,12 +30,15 @@
       :is="getPreviewComponent(block.type)" 
       :settings="block.settings"
       :is-editor="true"
+      :preview-mode="previewMode"
     />
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { GripVertical, Settings, ChevronUp, ChevronDown, Trash2 } from 'lucide-vue-next'
+import { getResponsiveValue } from '../utils/responsiveSettings'
 
 // Block preview components
 import HeroPreview from './blocks/HeroCenteredPreview.vue'
@@ -63,6 +61,10 @@ const props = defineProps({
   block: Object,
   index: Number,
   isSelected: Boolean,
+  previewMode: {
+    type: String,
+    default: 'desktop',
+  },
 })
 
 defineEmits(['select', 'move-up', 'move-down', 'delete', 'open-settings'])
@@ -87,4 +89,40 @@ const previewComponents = {
 function getPreviewComponent(blockType) {
   return previewComponents[blockType] || GenericBlockPreview
 }
+
+const marginY = computed(() =>
+  getResponsiveValue(props.block?.settings || {}, props.previewMode, 'marginY') ?? 25
+)
+
+const paddingX = computed(() =>
+  getResponsiveValue(props.block?.settings || {}, props.previewMode, 'paddingX') ?? 0
+)
+
+const heightValue = computed(() =>
+  getResponsiveValue(props.block?.settings || {}, props.previewMode, 'height')
+)
+
+const hasExplicitHeight = computed(() => {
+  const settings = props.block?.settings || {}
+  if (settings.height !== undefined && settings.height !== null) return true
+  const responsive = settings.responsive || {}
+  return ['desktop', 'tablet', 'mobile'].some(
+    (key) => responsive[key]?.height !== undefined && responsive[key]?.height !== null
+  )
+})
+
+const wrapperStyle = computed(() => {
+  const style = {
+    marginTop: `${marginY.value}px`,
+    marginBottom: `${marginY.value}px`,
+    paddingLeft: `${paddingX.value}px`,
+    paddingRight: `${paddingX.value}px`,
+  }
+
+  if (hasExplicitHeight.value && heightValue.value !== undefined && heightValue.value !== null) {
+    style.minHeight = `${heightValue.value}px`
+  }
+
+  return style
+})
 </script>

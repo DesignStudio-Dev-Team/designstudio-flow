@@ -263,9 +263,11 @@ const backgroundStyle = computed(() => {
 .dsf-fpb__product-img {
   position: relative;
   z-index: 1;
-  max-width: 240px;
-  max-height: 200px;
+  max-width: 400px;
+  max-height: 400px;
   object-fit: contain;
+  width:90%;
+  height:90%;
 }
 
 .dsf-fpb__product-placeholder {

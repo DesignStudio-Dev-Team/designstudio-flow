@@ -42,11 +42,16 @@
 <script setup>
 import { computed } from 'vue'
 import InlineText from '../common/InlineText.vue'
+import { getResponsiveValue } from '../../utils/responsiveSettings'
 import { useFlowModal } from '../common/useFlowModal'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
+  previewMode: {
+    type: String,
+    default: 'desktop',
+  },
 })
 
 const { openModal } = useFlowModal()
@@ -94,8 +99,11 @@ const previewStyle = computed(() => {
     bottom: 'flex-end'
   }
 
+  const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 80
+  const paddingX = getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 24
+
   return {
-    padding: `${props.settings?.padding || 80}px 24px`,
+    padding: `${paddingY}px ${paddingX}px`,
     backgroundColor: props.settings?.backgroundColor || '#3B82F6',
     color: props.settings?.textColor || '#FFFFFF',
     backgroundImage: props.settings?.backgroundImage 

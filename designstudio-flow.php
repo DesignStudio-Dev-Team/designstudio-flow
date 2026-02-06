@@ -3,7 +3,7 @@
  * Plugin Name: DesignStudio Flow
  * Plugin URI: https://designstudio.com/flow
  * Description: Build your WordPress Page with Artisanal Content Blocks. A lightweight alternative to Elementor and Divi.
- * Version: 1.0.7
+ * Version: 1.0.8
  * Author: DesignStudio
  * Author URI: https://designstudio.com
  * Text Domain: designstudio-flow

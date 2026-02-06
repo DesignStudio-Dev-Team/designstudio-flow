@@ -108,10 +108,15 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { Folder, Package, ArrowRight, ArrowLeft } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import { getResponsiveValue } from '../../utils/responsiveSettings'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
+  previewMode: {
+    type: String,
+    default: 'desktop',
+  },
 })
 
 const wpData = window.dsfEditorData || window.dsfFrontendData || {}
@@ -134,10 +139,14 @@ const itemsPerPage = computed(() => {
   return 2
 })
 
-const previewStyle = computed(() => ({
-  padding: `${props.settings?.padding || 60}px 24px`,
-  backgroundColor: props.settings?.backgroundColor || '#FFFFFF',
-}))
+const previewStyle = computed(() => {
+  const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 60
+  const paddingX = getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 24
+  return {
+    padding: `${paddingY}px ${paddingX}px`,
+    backgroundColor: props.settings?.backgroundColor || '#FFFFFF',
+  }
+})
 
 const displayItems = computed(() => {
   if (props.settings?.displayMode === 'products') {
