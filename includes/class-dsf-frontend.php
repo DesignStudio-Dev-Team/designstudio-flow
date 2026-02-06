@@ -102,10 +102,10 @@ class DSF_Frontend {
 			'dsf-frontend-app',
 			'dsfFrontendData',
 			array(
-				'postId'  => $post->ID,
-				'blocks'  => $blocks,
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'dsf_frontend_nonce' ),
+				'postId'      => $post->ID,
+				'blocks'      => $blocks,
+				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+				'nonce'       => wp_create_nonce( 'dsf_frontend_nonce' ),
 				'categories'  => $this->get_wc_categories(),
 				'isWooActive' => class_exists( 'WooCommerce' ),
 			)

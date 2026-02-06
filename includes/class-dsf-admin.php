@@ -240,7 +240,7 @@ class DSF_Admin {
 	 */
 	private function get_flow_logo_svg( $class_name = '', $variant = 'full' ) {
 		$class_attr = $class_name ? ' class="' . esc_attr( $class_name ) . '"' : '';
-		$logo_url = DSF_PLUGIN_URL . 'assets/images/dsflow-logo.png';
+		$logo_url   = DSF_PLUGIN_URL . 'assets/images/dsflow-logo.png';
 		unset( $variant );
 
 		return '<span' . $class_attr . ' aria-hidden="true">

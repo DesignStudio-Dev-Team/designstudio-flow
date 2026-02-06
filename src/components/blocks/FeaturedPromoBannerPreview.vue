@@ -325,7 +325,6 @@ function handleButtonClick(event) {
   top: 0;
   left: 0;
   width: 100%;
-  max-width: 900px; /* Matches SVG max-width */
   height: 100%;
   z-index: 3;
   pointer-events: none;

@@ -11,7 +11,9 @@
 	<!-- Verify that the text_domain is set to the desired value. -->
 	<rule ref="WordPress.WP.I18n">
 		<properties>
-			<property name="text_domain" type="array" value="designstudio-flow"/>
+			<property name="text_domain">
+				<element value="designstudio-flow"/>
+			</property>
 		</properties>
 	</rule>
 
@@ -24,4 +26,7 @@
 	<exclude-pattern>/node_modules/*</exclude-pattern>
 	<exclude-pattern>/vendor/*</exclude-pattern>
 	<exclude-pattern>/tests/*</exclude-pattern>
+	<exclude-pattern>/assets/*</exclude-pattern>
+	<exclude-pattern>/.github/*</exclude-pattern>
+	<exclude-pattern>/scripts/*</exclude-pattern>
 </ruleset>

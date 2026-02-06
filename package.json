@@ -11,7 +11,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:php": "vendor/bin/phpunit",
-    "security-check": "php -d memory_limit=3G vendor/bin/phpcs ./ --standard=WordPress-Extra && npm audit",
+    "security-check": "php -d memory_limit=1G vendor/bin/phpcs --standard=phpcs.xml.dist --extensions=php --ignore=./node_modules/*,./vendor/*,./assets/*,./tests/* && npm audit",
     "prepare": "husky install"
   },
   "dependencies": {

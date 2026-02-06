@@ -31,7 +31,7 @@
     <!-- Content Container -->
     <div class="dsf-ecommerce-showcase__container">
       <!-- Overflow wrapper for clipping -->
-      <div class="dsf-ecommerce-showcase__viewport">
+      <div ref="viewportRef" class="dsf-ecommerce-showcase__viewport">
         <div 
           ref="itemsContainer"
           class="dsf-ecommerce-showcase__track"
@@ -61,12 +61,14 @@
               :key="product.id"
               :href="product.permalink || '#'"
               class="dsf-showcase-product"
+              :style="{ width: productWidth + 'px' }"
               @click.stop
             >
               <div class="dsf-showcase-product__image">
                 <img v-if="product.image" :src="product.image" :alt="product.name" />
                 <Package v-else :size="48" style="color: #CBD5E1;" />
                 <span v-if="product.onSale" class="dsf-showcase-product__badge">SALE</span>
+                <span class="dsf-showcase-product__hover-cta" aria-hidden="true">View details →</span>
               </div>
               <div class="dsf-showcase-product__info">
                 <div class="dsf-showcase-product__price" :style="priceStyle(product)">
@@ -121,6 +123,7 @@ const props = defineProps({
 
 const wpData = window.dsfEditorData || window.dsfFrontendData || {}
 const itemsContainer = ref(null)
+const viewportRef = ref(null)
 const products = ref([])
 const isLoading = ref(false)
 const currentPage = ref(1)
@@ -137,6 +140,14 @@ const itemsPerPage = computed(() => {
   if (width >= 1024) return 4
   if (width >= 768) return 3
   return 2
+})
+
+const productWidth = computed(() => {
+  const columns = itemsPerPage.value
+  if (!columns) return 0
+  const totalGap = ITEM_GAP * (columns - 1)
+  const width = (containerWidth.value - totalGap) / columns
+  return Math.max(0, width)
 })
 
 const previewStyle = computed(() => {
@@ -239,9 +250,7 @@ function scrollPrev() {
 
 function updateScrollOffset() {
   const columns = itemsPerPage.value
-  const totalGap = ITEM_GAP * (columns - 1)
-  const itemWidth = (containerWidth.value - totalGap) / columns
-  const itemTotalWidth = itemWidth + ITEM_GAP
+  const itemTotalWidth = productWidth.value + ITEM_GAP
   scrollOffset.value = (currentPage.value - 1) * itemTotalWidth * columns
 }
 
@@ -257,8 +266,8 @@ watch(itemsPerPage, () => {
 let resizeObserver = null
 
 function updateContainerWidth() {
-  if (itemsContainer.value) {
-    containerWidth.value = itemsContainer.value.offsetWidth
+  if (viewportRef.value) {
+    containerWidth.value = viewportRef.value.offsetWidth
   }
 }
 
@@ -266,11 +275,11 @@ onMounted(() => {
   nextTick(() => {
     updateContainerWidth()
     
-    if (typeof ResizeObserver !== 'undefined' && itemsContainer.value) {
+    if (typeof ResizeObserver !== 'undefined' && viewportRef.value) {
       resizeObserver = new ResizeObserver(() => {
         updateContainerWidth()
       })
-      resizeObserver.observe(itemsContainer.value)
+      resizeObserver.observe(viewportRef.value)
     }
   })
   
@@ -394,7 +403,7 @@ watch(() => [
   transform: translateY(-50%);
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  border-radius: 9999px;
   background: #2C5F5D;
   color: white;
   border: none;
@@ -407,8 +416,9 @@ watch(() => [
 }
 
 .dsf-ecommerce-showcase__nav:hover {
-  background: #2f6d6a;
-  transform: translateY(-50%);
+  background: #387875;
+  transform: translateY(-50%) scale(1.08);
+  border-radius: 9999px;
 }
 
 .dsf-ecommerce-showcase__nav--next {
@@ -472,27 +482,29 @@ watch(() => [
   margin-bottom: 0.75rem;
 }
 
-.dsf-showcase-product__image::after {
-  content: "←";
+.dsf-showcase-product__hover-cta {
   position: absolute;
   top: 10px;
   right: 10px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 9999px;
   background: rgba(0, 0, 0, 0.35);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   opacity: 0;
   transform: translateY(-4px);
   transition: opacity 0.2s ease, transform 0.2s ease;
   pointer-events: none;
 }
 
-.dsf-showcase-product:hover .dsf-showcase-product__image::after {
+.dsf-showcase-product:hover .dsf-showcase-product__hover-cta {
   opacity: 1;
   transform: translateY(0);
 }
