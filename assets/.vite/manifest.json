@@ -1,6 +1,6 @@
 {
-  "_FrontendApp-Cybll8_f.js": {
-    "file": "js/FrontendApp-Cybll8_f.js",
+  "_FrontendApp-c2ntz3d8.js": {
+    "file": "js/FrontendApp-c2ntz3d8.js",
     "name": "FrontendApp",
     "css": [
       "css/FrontendApp.css"
@@ -16,7 +16,7 @@
     "src": "src/frontend/main.js",
     "isEntry": true,
     "imports": [
-      "_FrontendApp-Cybll8_f.js"
+      "_FrontendApp-c2ntz3d8.js"
     ]
   },
   "src/main.js": {
@@ -25,7 +25,7 @@
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
-      "_FrontendApp-Cybll8_f.js"
+      "_FrontendApp-c2ntz3d8.js"
     ],
     "css": [
       "css/editor.css"

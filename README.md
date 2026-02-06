@@ -249,7 +249,13 @@ GitHub releases are used for update delivery.
 
 ## 📝 Changelog
 
-### v1.0.8 (Current)
+### v1.0.9 (Current)
+- Asset cache‑busting now uses filemtime so uploads always load the latest bundles
+- Ecommerce Showcase preview math matches frontend (5‑across without partial cards)
+- Ecommerce Showcase hover UI refined (pill “View details →” + circular nav hover)
+- Admin templates cleaned for WordPress standards (escaping + strict compares)
+
+### v1.0.8
 - Responsive spacing controls added for Desktop / Tablet / Mobile
 - Height slider now applies consistently in editor + frontend
 - Gap control limited to Bento Hero (only block that uses it)
