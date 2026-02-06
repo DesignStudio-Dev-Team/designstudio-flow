@@ -1,6 +1,6 @@
 {
-  "_FrontendApp-75eyAG_g.js": {
-    "file": "js/FrontendApp-75eyAG_g.js",
+  "_FrontendApp-BDRrRCMn.js": {
+    "file": "js/FrontendApp-BDRrRCMn.js",
     "name": "FrontendApp",
     "css": [
       "css/FrontendApp.css"
@@ -16,7 +16,7 @@
     "src": "src/frontend/main.js",
     "isEntry": true,
     "imports": [
-      "_FrontendApp-75eyAG_g.js"
+      "_FrontendApp-BDRrRCMn.js"
     ]
   },
   "src/main.js": {
@@ -25,7 +25,7 @@
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
-      "_FrontendApp-75eyAG_g.js"
+      "_FrontendApp-BDRrRCMn.js"
     ],
     "css": [
       "css/editor.css"

@@ -111,19 +111,22 @@ class DSF_Editor {
 				true
 			);
 		} else {
+			$editor_css_version = $this->get_asset_version( 'assets/css/editor.css' );
+			$editor_js_version  = $this->get_asset_version( 'assets/js/editor.js' );
+
 			// Production - load built assets
 			wp_enqueue_style(
 				'dsf-editor',
 				DSF_PLUGIN_URL . 'assets/css/editor.css',
 				array(),
-				DSF_VERSION
+				$editor_css_version
 			);
 
 			wp_enqueue_script(
 				'dsf-editor',
 				DSF_PLUGIN_URL . 'assets/js/editor.js',
 				array(),
-				DSF_VERSION,
+				$editor_js_version,
 				true
 			);
 		}
@@ -153,6 +156,18 @@ class DSF_Editor {
 				'isWooActive' => class_exists( 'WooCommerce' ),
 			)
 		);
+	}
+
+	/**
+	 * Get version string for cache busting based on file mtime.
+	 */
+	private function get_asset_version( $relative_path ) {
+		$relative_path = ltrim( $relative_path, '/' );
+		$path          = DSF_PLUGIN_DIR . $relative_path;
+		if ( file_exists( $path ) ) {
+			return (string) filemtime( $path );
+		}
+		return DSF_VERSION;
 	}
 
 	/**

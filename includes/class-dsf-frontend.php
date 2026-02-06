@@ -45,18 +45,22 @@ class DSF_Frontend {
 		// Production or development mode
 		$is_dev = defined( 'DSF_DEV_MODE' ) && DSF_DEV_MODE;
 
+		$frontend_css_version   = $this->get_asset_version( 'assets/css/FrontendApp.css' );
+		$frontend_theme_version = $this->get_asset_version( 'assets/css/frontend.css' );
+		$frontend_js_version    = $this->get_asset_version( 'assets/js/frontend.js' );
+
 		wp_enqueue_style(
 			'dsf-frontend-app',
 			DSF_PLUGIN_URL . 'assets/css/FrontendApp.css',
 			array(),
-			DSF_VERSION
+			$frontend_css_version
 		);
 
 		wp_enqueue_style(
 			'dsf-frontend',
 			DSF_PLUGIN_URL . 'assets/css/frontend.css',
 			array( 'dsf-frontend-app' ),
-			DSF_VERSION
+			$frontend_theme_version
 		);
 
 		if ( $is_dev ) {
@@ -79,7 +83,7 @@ class DSF_Frontend {
 				'dsf-frontend-app',
 				DSF_PLUGIN_URL . 'assets/js/frontend.js',
 				array(),
-				DSF_VERSION,
+				$frontend_js_version,
 				true
 			);
 		}
@@ -112,6 +116,18 @@ class DSF_Frontend {
 			'window.dsfEditorData = window.dsfEditorData || window.dsfFrontendData || {};',
 			'before'
 		);
+	}
+
+	/**
+	 * Get version string for cache busting based on file mtime.
+	 */
+	private function get_asset_version( $relative_path ) {
+		$relative_path = ltrim( $relative_path, '/' );
+		$path          = DSF_PLUGIN_DIR . $relative_path;
+		if ( file_exists( $path ) ) {
+			return (string) filemtime( $path );
+		}
+		return DSF_VERSION;
 	}
 
 	/**

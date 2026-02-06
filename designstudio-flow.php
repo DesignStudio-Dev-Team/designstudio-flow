@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'DSF_VERSION', '1.0.7' );
+define( 'DSF_VERSION', '1.0.8' );
 define( 'DSF_PLUGIN_FILE', __FILE__ );
 define( 'DSF_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'DSF_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
