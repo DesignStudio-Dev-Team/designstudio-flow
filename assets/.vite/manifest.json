@@ -1,6 +1,6 @@
 {
-  "_FrontendApp-DgGQqyL7.js": {
-    "file": "js/FrontendApp-DgGQqyL7.js",
+  "_FrontendApp-B6tJM8Ps.js": {
+    "file": "js/FrontendApp-B6tJM8Ps.js",
     "name": "FrontendApp",
     "css": [
       "css/FrontendApp.css"
@@ -16,7 +16,7 @@
     "src": "src/frontend/main.js",
     "isEntry": true,
     "imports": [
-      "_FrontendApp-DgGQqyL7.js"
+      "_FrontendApp-B6tJM8Ps.js"
     ]
   },
   "src/main.js": {
@@ -25,7 +25,7 @@
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
-      "_FrontendApp-DgGQqyL7.js"
+      "_FrontendApp-B6tJM8Ps.js"
     ],
     "css": [
       "css/editor.css"

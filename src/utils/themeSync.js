@@ -5,27 +5,41 @@ const THEME_COLOR_ALIASES = {
   backgroundColor: new Set(['#ffffff', '#f5f5f4']),
 }
 
-export function normalizeColor(value) {
+export function normalizeValue(value) {
   if (typeof value !== 'string') return ''
   return value.trim().toLowerCase()
 }
 
-export function resolveThemeKeyFromDefault(value) {
-  const normalized = normalizeColor(value)
+export function resolveThemeKey(value, key = '') {
+  // Check key name first for fonts/explicit mapping
+  if (key === 'headingFont') return 'headingFont'
+  if (key === 'bodyFont') return 'bodyFont'
+  if (key === 'titleFont') return 'headingFont'
+  if (key === 'textFont') return 'bodyFont'
+
+  // Then check values (colors)
+  const normalized = normalizeValue(value)
   if (!normalized) return null
+  
   if (THEME_COLOR_ALIASES.secondaryColor.has(normalized)) return 'secondaryColor'
   if (THEME_COLOR_ALIASES.primaryColor.has(normalized)) return 'primaryColor'
   if (THEME_COLOR_ALIASES.textColor.has(normalized)) return 'textColor'
   if (THEME_COLOR_ALIASES.backgroundColor.has(normalized)) return 'backgroundColor'
+  
   return null
 }
 
-export function shouldSyncColor(currentValue, themeKey, oldThemeValue) {
+export function shouldSyncSetting(currentValue, themeKey, oldThemeValue) {
   if (currentValue === undefined || currentValue === null || currentValue === '') {
     return true
   }
-  const normalized = normalizeColor(currentValue)
-  if (oldThemeValue && normalized === normalizeColor(oldThemeValue)) return true
+  
+  const normalized = normalizeValue(currentValue)
+  
+  // For fonts or exact matches
+  if (oldThemeValue && normalized === normalizeValue(oldThemeValue)) return true
+  
+  // For color aliases
   const aliasSet = THEME_COLOR_ALIASES[themeKey]
   return aliasSet ? aliasSet.has(normalized) : false
 }
@@ -42,8 +56,12 @@ export function applyThemeToBlocks(blocksList, oldTheme, newTheme, linkedSetting
     let updated = false
 
     Object.entries(linkedKeys).forEach(([settingKey, themeKey]) => {
+      // Allow syncing if the key exists OR if it's a theme property that should be there
+      // if (!(settingKey in nextSettings)) return // - Removed to allow injecting theme defaults if missing? No, safer to keep.
       if (!(settingKey in nextSettings)) return
-      if (!shouldSyncColor(nextSettings[settingKey], themeKey, oldTheme[themeKey])) return
+
+      if (!shouldSyncSetting(nextSettings[settingKey], themeKey, oldTheme[themeKey])) return
+      
       nextSettings[settingKey] = newTheme[themeKey]
       updated = true
     })

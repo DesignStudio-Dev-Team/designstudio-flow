@@ -120,7 +120,7 @@ import ThemePanel from './components/ThemePanel.vue'
 import BlockLibrary from './components/BlockLibrary.vue'
 import ConfirmDialog from './components/common/ConfirmDialog.vue'
 import FrontendApp from './frontend/FrontendApp.vue'
-import { applyThemeToBlocks, resolveThemeKeyFromDefault } from './utils/themeSync'
+import { applyThemeToBlocks, resolveThemeKey } from './utils/themeSync'
 
 // Get WordPress data
 const wpData = window.dsfEditorData || {}
@@ -150,7 +150,8 @@ const themeLinkedSettings = (() => {
   Object.values(registeredBlocks).forEach((block) => {
     if (!block?.id || !block?.settings) return
     Object.entries(block.settings).forEach(([key, config]) => {
-      const themeKey = resolveThemeKeyFromDefault(config?.default)
+      // Pass both default value and key name to resolveThemeKey
+      const themeKey = resolveThemeKey(config?.default, key)
       if (!themeKey) return
       if (!linked[block.id]) linked[block.id] = {}
       linked[block.id][key] = themeKey
@@ -294,7 +295,8 @@ function getDefaultSettings(blockDef) {
   
   if (blockDef.settings) {
     Object.entries(blockDef.settings).forEach(([key, config]) => {
-      const themeKey = resolveThemeKeyFromDefault(config.default)
+      // Use helper to determine if this setting maps to a theme property
+      const themeKey = resolveThemeKey(config.default, key)
       if (themeKey && pageSettings.value?.theme?.[themeKey]) {
         defaults[key] = pageSettings.value.theme[themeKey]
       } else {

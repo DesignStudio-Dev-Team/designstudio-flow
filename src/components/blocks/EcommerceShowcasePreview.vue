@@ -497,29 +497,32 @@ watch(() => [
 
 .dsf-showcase-product__hover-cta {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  top: auto;
+  right: auto;
   height: 32px;
-  padding: 0 12px;
+  padding: 0 16px;
   border-radius: 9999px;
-  background: rgba(0, 0, 0, 0.35);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1F2937;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   opacity: 0;
-  transform: translateY(-4px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .dsf-showcase-product:hover .dsf-showcase-product__hover-cta {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateX(-50%) translateY(0);
 }
 
 .dsf-showcase-product__image img {

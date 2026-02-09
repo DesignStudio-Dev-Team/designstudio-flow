@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/**
+ * DesignStudio Flow - Frontend Styles
+ */
+
+:root {
+  --dsf-primary-50: #EFF6FF;
+  --dsf-primary-100: #DBEAFE;
+  --dsf-primary-200: #BFDBFE;
+  --dsf-primary-300: #93C5FD;
+  --dsf-primary-400: #60A5FA;
+  --dsf-primary-500: #3B82F6;
+  --dsf-primary-600: #2563EB;
+  --dsf-primary-700: #1D4ED8;
+  --dsf-primary-800: #1E40AF;
+  --dsf-primary-900: #1E3A8A;
+
+  --dsf-gray-50: #F9FAFB;
+  --dsf-gray-100: #F3F4F6;
+  --dsf-gray-200: #E5E7EB;
+  --dsf-gray-300: #D1D5DB;
+  --dsf-gray-400: #9CA3AF;
+  --dsf-gray-500: #6B7280;
+  --dsf-gray-600: #4B5563;
+  --dsf-gray-700: #374151;
+  --dsf-gray-800: #1F2937;
+  --dsf-gray-900: #111827;
+
+  --dsf-radius-none: 0;
+  --dsf-radius-sm: 0.25rem;
+  --dsf-radius-md: 0.5rem;
+  --dsf-radius-lg: 0.75rem;
+  --dsf-radius-xl: 1rem;
+  --dsf-radius-2xl: 1.5rem;
+  --dsf-radius-full: 9999px;
+
+  --dsf-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  --dsf-font-mono: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace;
+}
+
+.dsf-page-content {
+  font-family: var(--dsf-font-sans);
+  color: var(--dsf-theme-text, var(--dsf-gray-800));
+  background-color: var(--dsf-theme-background, #ffffff);
+  width: 100%;
+}
+
+.dsf-page-content__inner {
+  max-width: var(--dsf-theme-container-width, 1800px);
+  margin: 0 auto;
+  padding-left: var(--dsf-theme-content-padding, 0px);
+  padding-right: var(--dsf-theme-content-padding, 0px);
+}
+
+.dsf-page-content--fullwidth {
+  max-width: none;
+  width: 100%;
+}
+
+.dsf-page-content__inner--fullwidth {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.dsf-page-content *,
+.dsf-page-content *::before,
+.dsf-page-content *::after {
+  box-sizing: border-box;
+}
+
+.dsf-page-content a:not([class*="btn"]) {
+  color: inherit;
+}
+
+.dsf-icon {
+  display: inline-block;
+  vertical-align: middle;
+}
