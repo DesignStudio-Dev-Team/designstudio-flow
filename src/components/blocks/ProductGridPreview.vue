@@ -182,11 +182,14 @@ async function fetchProducts() {
 
 <style scoped>
 .dsf-product-grid-preview__title {
+  font-family: var(--dsf-theme-heading-font, inherit);
   text-align: center;
   font-size: 1.875rem;
   font-weight: 600;
   margin-bottom: 2rem;
-  /* color comes from inline style now */
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .dsf-product-grid-preview {
@@ -247,20 +250,29 @@ async function fetchProducts() {
 }
 
 .dsf-product-card-preview__name {
+  font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 600;
   color: var(--dsf-gray-900);
   margin: 0;
   font-size: 1rem;
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .dsf-product-card-preview__price {
+  font-family: var(--dsf-theme-body-font, inherit);
   color: var(--dsf-primary-600);
   font-weight: 600;
   font-size: 1.125rem;
+  line-height: 1.2;
 }
 
 .dsf-product-card-preview__btn {
+  font-family: var(--dsf-theme-body-font, inherit);
   width: 100%;
   padding: 0.75rem;
   background: var(--dsf-primary-600);
@@ -271,6 +283,10 @@ async function fetchProducts() {
   cursor: pointer;
   margin-top: 0.5rem;
   transition: background-color 0.2s;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dsf-product-card-preview__btn:hover {

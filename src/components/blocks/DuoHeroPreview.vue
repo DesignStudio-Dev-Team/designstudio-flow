@@ -320,12 +320,16 @@ const wrapperStyle = computed(() => ({
 }
 
 .dsf-duo-hero__title {
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 24px;
-  line-height: 1.1;
+  line-height: 1.15;
   text-shadow: 0 2px 4px rgba(0,0,0,0.3);
   color: inherit;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 /* Ensure InlineText inherits color */
@@ -340,11 +344,14 @@ const wrapperStyle = computed(() => ({
   padding: 12px 32px;
   background-color: #FFFFFF;
   color: #1F2937;
+  font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 600;
   text-decoration: none;
-  border-radius: 4px; /* Slightly rounded button */
+  border-radius: 4px;
   transition: all 0.2s;
-  font-size: 20px; /* Updated font size */
+  font-size: 20px;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .dsf-duo-hero__btn:hover {

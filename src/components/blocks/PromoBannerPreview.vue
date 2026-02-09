@@ -208,10 +208,12 @@ const buttonStyle = computed(() => ({
 }
 
 .dsf-promo-banner__pretext {
+  font-family: var(--dsf-theme-body-font, inherit);
   font-size: 24px;
   font-weight: 500;
   letter-spacing: 0.05em;
   opacity: 0.9;
+  line-height: 1.2;
 }
 
 .dsf-promo-banner__discount {
@@ -222,6 +224,7 @@ const buttonStyle = computed(() => ({
 }
 
 .dsf-promo-banner__amount {
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 142px;
   font-weight: 300;
   letter-spacing: -0.02em;
@@ -238,12 +241,14 @@ const buttonStyle = computed(() => ({
 }
 
 .dsf-promo-banner__percent {
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 85px;
   font-weight: 300;
   line-height: 1;
 }
 
 .dsf-promo-banner__suffix {
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 34px;
   font-weight: 500;
   line-height: 1;
@@ -257,6 +262,7 @@ const buttonStyle = computed(() => ({
 }
 
 .dsf-promo-banner__subtitle {
+  font-family: var(--dsf-theme-body-font, inherit);
   display: flex;
   flex-direction: column;
   font-size: 24px;
@@ -268,6 +274,7 @@ const buttonStyle = computed(() => ({
 }
 
 .dsf-promo-banner__btn {
+  font-family: var(--dsf-theme-body-font, inherit);
   margin-top: 1rem;
   padding: 0.625rem 1.5rem;
   font-size: 24px;
@@ -276,6 +283,8 @@ const buttonStyle = computed(() => ({
   border-radius: 4px;
   border: 1px solid currentColor;
   transition: all 0.2s;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .dsf-promo-banner__btn:hover {

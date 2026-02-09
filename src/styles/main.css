@@ -8,6 +8,7 @@
 /* Import design tokens */
 @import './variables.css';
 @import './components.css';
+@import '../assets/theme-typography.css';
 
 /* Tailwind Directives */
 @tailwind base;

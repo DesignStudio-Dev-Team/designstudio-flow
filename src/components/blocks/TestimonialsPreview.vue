@@ -210,16 +210,22 @@ function prev() {
 }
 
 .dsf-testimonial-card__title {
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 38px;
   font-weight: 700;
   margin: 0 0 16px 0;
-  line-height: 1.3;
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .dsf-testimonial-card__quote {
+  font-family: var(--dsf-theme-body-font, inherit);
   font-size: 24px;
   line-height: 1.6;
   margin: 0 0 24px 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .dsf-testimonial-card__author {
@@ -229,14 +235,18 @@ function prev() {
 }
 
 .dsf-testimonial-card__name {
+  font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 700;
   font-size: 24px;
   color: #1F2937;
+  line-height: 1.2;
 }
 
 .dsf-testimonial-card__location {
+  font-family: var(--dsf-theme-body-font, inherit);
   font-size: 24px;
   color: #6B7280;
+  line-height: 1.2;
 }
 
 .dsf-testimonial-card__image {

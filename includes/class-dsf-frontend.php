@@ -116,6 +116,53 @@ class DSF_Frontend {
 			'window.dsfEditorData = window.dsfEditorData || window.dsfFrontendData || {};',
 			'before'
 		);
+
+		// Enqueue Google Fonts if custom fonts are set
+		$this->enqueue_google_fonts( $post->ID );
+	}
+
+	/**
+	 * Enqueue Google Fonts for custom theme fonts
+	 */
+	private function enqueue_google_fonts( $post_id ) {
+		$settings = $this->get_page_settings( $post_id );
+		$theme    = $settings['theme'] ?? array();
+
+		$fonts_to_load = array();
+
+		// Extract font names from heading and body font settings
+		foreach ( array( 'headingFont', 'bodyFont' ) as $font_key ) {
+			if ( ! empty( $theme[ $font_key ] ) ) {
+				$font_family = $theme[ $font_key ];
+				// Extract font name from font-family string like "'Inter', sans-serif"
+				if ( preg_match( "/'([^']+)'/", $font_family, $matches ) ) {
+					$font_name = $matches[1];
+					// Skip system fonts
+					if ( ! in_array( strtolower( $font_name ), array( 'sans-serif', 'serif', 'monospace', 'cursive', 'fantasy', 'system-ui' ), true ) ) {
+						$fonts_to_load[ $font_name ] = true;
+					}
+				}
+			}
+		}
+
+		if ( empty( $fonts_to_load ) ) {
+			return;
+		}
+
+		// Build Google Fonts URL
+		$font_families = array();
+		foreach ( array_keys( $fonts_to_load ) as $font_name ) {
+			$font_families[] = str_replace( ' ', '+', $font_name ) . ':wght@400;500;600;700';
+		}
+
+		$google_fonts_url = 'https://fonts.googleapis.com/css2?family=' . implode( '&family=', $font_families ) . '&display=swap';
+
+		wp_enqueue_style(
+			'dsf-google-fonts',
+			$google_fonts_url,
+			array(),
+			null // No version for external resource
+		);
 	}
 
 	/**
@@ -241,6 +288,8 @@ class DSF_Frontend {
 				'secondaryColor'  => '#1E40AF',
 				'textColor'       => '#1F2937',
 				'backgroundColor' => '#FFFFFF',
+				'headingFont'     => '',
+				'bodyFont'        => '',
 			),
 			'layout' => array(
 				'containerWidth' => 1800,
@@ -277,10 +326,12 @@ class DSF_Frontend {
 		$secondary       = $theme['secondaryColor'] ?? $defaults['theme']['secondaryColor'];
 		$text            = $theme['textColor'] ?? $defaults['theme']['textColor'];
 		$background      = $theme['backgroundColor'] ?? $defaults['theme']['backgroundColor'];
+		$heading_font    = $theme['headingFont'] ?? '';
+		$body_font       = $theme['bodyFont'] ?? '';
 		$container_width = intval( $layout['containerWidth'] ?? $defaults['layout']['containerWidth'] );
 		$content_padding = intval( $layout['contentPadding'] ?? $defaults['layout']['contentPadding'] );
 
-		return sprintf(
+		$style = sprintf(
 			'--dsf-theme-primary:%s; --dsf-theme-secondary:%s; --dsf-theme-text:%s; --dsf-theme-background:%s; --dsf-theme-container-width:%dpx; --dsf-theme-content-padding:%dpx; --dsf-primary-500:%s; --dsf-primary-600:%s; --dsf-primary-700:%s;',
 			esc_attr( $primary ),
 			esc_attr( $secondary ),
@@ -292,6 +343,16 @@ class DSF_Frontend {
 			esc_attr( $primary ),
 			esc_attr( $primary )
 		);
+
+		// Add font CSS variables if set
+		if ( ! empty( $heading_font ) ) {
+			$style .= sprintf( ' --dsf-theme-heading-font:%s;', esc_attr( $heading_font ) );
+		}
+		if ( ! empty( $body_font ) ) {
+			$style .= sprintf( ' --dsf-theme-body-font:%s;', esc_attr( $body_font ) );
+		}
+
+		return $style;
 	}
 
 	private function get_wc_categories() {

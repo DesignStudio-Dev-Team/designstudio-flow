@@ -357,17 +357,23 @@ watch(() => [
 }
 
 .dsf-ecommerce-showcase__title {
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 42px;
   font-weight: 700;
   margin: 0;
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .dsf-ecommerce-showcase__shop-all {
+  font-family: var(--dsf-theme-body-font, inherit);
   color: #2C5F5D;
   font-size: 24px;
   font-weight: 600;
   text-decoration: none;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .dsf-ecommerce-showcase__shop-all:hover {
@@ -459,9 +465,16 @@ watch(() => [
 }
 
 .dsf-showcase-category__name {
+  font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 600;
   font-size: 24px;
   text-align: center;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Product Cards */
@@ -534,9 +547,11 @@ watch(() => [
 }
 
 .dsf-showcase-product__price {
+  font-family: var(--dsf-theme-body-font, inherit);
   font-size: 24px;
   color: var(--price-color, #6B7280);
   margin-bottom: 0.25rem;
+  line-height: 1.2;
 }
 
 .dsf-showcase-product__price--regular {
@@ -551,6 +566,7 @@ watch(() => [
 }
 
 .dsf-showcase-product__name {
+  font-family: var(--dsf-theme-body-font, inherit);
   font-size: 24px;
   font-weight: 500;
   color: var(--dsf-gray-800);
@@ -561,6 +577,8 @@ watch(() => [
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 @container (max-width: 1024px) {

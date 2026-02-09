@@ -149,6 +149,7 @@ class DSF_Editor {
 				'pageData'    => $this->get_page_data( $post_id ),
 				'blocks'      => DSF_Blocks::get_instance()->get_registered_blocks(),
 				'categories'  => $this->get_wc_categories(),
+				'themeFonts'  => $this->get_theme_fonts(),
 				'pluginUrl'   => DSF_PLUGIN_URL,
 				'homeUrl'     => home_url(),
 				'adminUrl'    => admin_url(),
@@ -305,6 +306,8 @@ class DSF_Editor {
 				'secondaryColor'  => '#1E40AF',
 				'textColor'       => '#1F2937',
 				'backgroundColor' => '#FFFFFF',
+				'headingFont'     => '',
+				'bodyFont'        => '',
 			),
 			'layout' => array(
 				'containerWidth' => 1800,
@@ -351,5 +354,99 @@ class DSF_Editor {
 			},
 			$categories
 		);
+	}
+
+	/**
+	 * Get fonts from the active WordPress theme (theme.json)
+	 */
+	private function get_theme_fonts() {
+		$fonts = array();
+
+		// Try to get fonts from theme.json (block themes)
+		if ( function_exists( 'wp_get_global_settings' ) ) {
+			$settings     = wp_get_global_settings( array( 'typography', 'fontFamilies' ) );
+			$font_sources = array( 'theme', 'custom', 'default' );
+
+			foreach ( $font_sources as $source ) {
+				if ( ! empty( $settings[ $source ] ) && is_array( $settings[ $source ] ) ) {
+					foreach ( $settings[ $source ] as $font ) {
+						if ( ! empty( $font['fontFamily'] ) && ! empty( $font['name'] ) ) {
+							$fonts[] = array(
+								'label'  => $font['name'],
+								'value'  => $font['fontFamily'],
+								'source' => $source,
+							);
+						}
+					}
+				}
+			}
+		}
+
+		// Fallback: try to get fonts from theme customizer settings
+		if ( empty( $fonts ) ) {
+			$theme_mods = get_theme_mods();
+			
+			$font_settings = array(
+				'heading_font_family',
+				'body_font_family',
+				'primary_font',
+				'secondary_font',
+				'base_font_family',
+			);
+
+			foreach ( $font_settings as $setting ) {
+				if ( ! empty( $theme_mods[ $setting ] ) ) {
+					$font_value = $theme_mods[ $setting ];
+					$font_name  = ucwords( str_replace( array( '-', '_', "'", '"' ), ' ', $font_value ) );
+					$font_name  = trim( explode( ',', $font_name )[0] );
+
+					$fonts[] = array(
+						'label'  => $font_name,
+						'value'  => "'{$font_value}', sans-serif",
+						'source' => 'customizer',
+					);
+				}
+			}
+		}
+
+		// If still no fonts found, add common system font stacks
+		if ( empty( $fonts ) ) {
+			$fonts = array(
+				array(
+					'label'  => 'System UI',
+					'value'  => "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif",
+					'source' => 'system',
+				),
+				array(
+					'label'  => 'Serif',
+					'value'  => "Georgia, 'Times New Roman', Times, serif",
+					'source' => 'system',
+				),
+				array(
+					'label'  => 'Sans Serif',
+					'value'  => "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+					'source' => 'system',
+				),
+				array(
+					'label'  => 'Monospace',
+					'value'  => "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
+					'source' => 'system',
+				),
+			);
+		}
+
+		// Remove duplicates based on value
+		$unique_fonts = array();
+		$seen_values  = array();
+
+		foreach ( $fonts as $font ) {
+			$normalized = strtolower( preg_replace( '/\s+/', '', $font['value'] ) );
+			if ( ! in_array( $normalized, $seen_values, true ) ) {
+				$seen_values[]  = $normalized;
+				$unique_fonts[] = $font;
+			}
+		}
+
+		return $unique_fonts;
 	}
 }

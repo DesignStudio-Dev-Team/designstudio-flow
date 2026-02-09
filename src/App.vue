@@ -131,6 +131,8 @@ const DEFAULT_THEME = {
   secondaryColor: '#1E40AF',
   textColor: '#1F2937',
   backgroundColor: '#FFFFFF',
+  headingFont: '',
+  bodyFont: '',
 }
 
 const DEFAULT_LAYOUT = {
@@ -220,7 +222,7 @@ const canvasStyle = computed(() => {
   const theme = pageSettings.value?.theme || DEFAULT_THEME
   const layout = pageSettings.value?.layout || DEFAULT_LAYOUT
 
-  return {
+  const style = {
     maxWidth: widths[previewMode.value],
     backgroundColor: theme.backgroundColor,
     '--dsf-theme-primary': theme.primaryColor,
@@ -230,6 +232,16 @@ const canvasStyle = computed(() => {
     '--dsf-theme-container-width': `${layout.containerWidth || DEFAULT_LAYOUT.containerWidth}px`,
     '--dsf-theme-content-padding': `${layout.contentPadding || DEFAULT_LAYOUT.contentPadding}px`,
   }
+  
+  // Add font CSS variables if set
+  if (theme.headingFont) {
+    style['--dsf-theme-heading-font'] = theme.headingFont
+  }
+  if (theme.bodyFont) {
+    style['--dsf-theme-body-font'] = theme.bodyFont
+  }
+  
+  return style
 })
 
 // Methods

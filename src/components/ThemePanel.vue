@@ -3,7 +3,7 @@
     <div class="dsf-panel__header">
       <div>
         <h2 class="dsf-panel__title">Theme Settings</h2>
-        <p class="dsf-panel__subtitle">Customize your page colors</p>
+        <p class="dsf-panel__subtitle">Customize colors and typography</p>
       </div>
       <button class="dsf-panel__close" @click="$emit('close')">
         <X :size="20" />
@@ -46,6 +46,30 @@
           :modelValue="settings.theme?.backgroundColor || '#FFFFFF'" 
           @update:modelValue="updateTheme('backgroundColor', $event)" 
         />
+      </div>
+      
+      <hr style="margin: 1.5rem 0; border-color: var(--dsf-gray-200);">
+      
+      <!-- Typography Section -->
+      <div class="dsf-form-group">
+        <label class="dsf-label">
+          <Type :size="14" style="display: inline-block; vertical-align: middle; margin-right: 0.375rem;" />
+          Heading Font
+        </label>
+        <FontPicker
+          :modelValue="settings.theme?.headingFont || ''"
+          @update:modelValue="updateTheme('headingFont', $event)"
+        />
+        <p class="dsf-helper-text">Used for titles and headings</p>
+      </div>
+      
+      <div class="dsf-form-group">
+        <label class="dsf-label">Body Font</label>
+        <FontPicker
+          :modelValue="settings.theme?.bodyFont || ''"
+          @update:modelValue="updateTheme('bodyFont', $event)"
+        />
+        <p class="dsf-helper-text">Used for paragraphs and text</p>
       </div>
       
       <hr style="margin: 1.5rem 0; border-color: var(--dsf-gray-200);">
@@ -134,8 +158,9 @@
 </template>
 
 <script setup>
-import { X } from 'lucide-vue-next'
+import { X, Type } from 'lucide-vue-next'
 import ColorPicker from './common/ColorPicker.vue'
+import FontPicker from './common/FontPicker.vue'
 
 const props = defineProps({
   settings: Object,

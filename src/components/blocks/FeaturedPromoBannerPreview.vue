@@ -253,12 +253,15 @@ function handleButtonClick(event) {
 }
 
 .dsf-featured-promo__title {
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 42px;
   font-weight: 700;
   margin-bottom: 24px;
-  line-height: 1.1;
-  width:100%;
-  max-width:600px;
+  line-height: 1.15;
+  width: 100%;
+  max-width: 600px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .dsf-featured-promo__divider {
@@ -268,10 +271,13 @@ function handleButtonClick(event) {
 }
 
 .dsf-featured-promo__description {
+  font-family: var(--dsf-theme-body-font, inherit);
   font-size: 24px;
   margin-bottom: 32px;
   line-height: 1.4;
   max-width: 80%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .dsf-featured-promo__arrow-btn {
@@ -295,8 +301,8 @@ function handleButtonClick(event) {
   min-width: 140px; /* Expands to fit text */
 }
 
-/* Text hidden by default */
 .dsf-featured-promo__btn-text {
+  font-family: var(--dsf-theme-body-font, inherit);
   color: white;
   font-weight: 600;
   font-size: 16px;
@@ -306,6 +312,7 @@ function handleButtonClick(event) {
   transition: all 0.4s ease;
   overflow: hidden;
   margin-right: 0;
+  line-height: 1.25;
 }
 
 .dsf-featured-promo__arrow-btn:hover .dsf-featured-promo__btn-text {

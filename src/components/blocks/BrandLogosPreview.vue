@@ -106,10 +106,13 @@ const displayBrands = computed(() => {
 }
 
 .dsf-brand-carousel-preview__title {
+  font-family: var(--dsf-theme-heading-font, inherit);
   text-align: center;
   font-weight: 500;
   margin: 0 0 2rem 0;
-  line-height: 1.3;
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .dsf-brand-carousel-preview__grid {
@@ -138,9 +141,12 @@ const displayBrands = computed(() => {
 }
 
 .dsf-brand-item-preview__name {
+  font-family: var(--dsf-theme-body-font, inherit);
   color: var(--dsf-gray-700);
   font-weight: 600;
   font-size: 1.125rem;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .dsf-brand-item-preview--placeholder {

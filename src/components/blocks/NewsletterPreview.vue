@@ -50,15 +50,21 @@ const previewStyle = computed(() => {
 }
 
 .dsf-newsletter-preview__title {
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 1.875rem;
   font-weight: 600;
   color: var(--dsf-gray-800);
   margin-bottom: 0.5rem;
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .dsf-newsletter-preview__subtitle {
+  font-family: var(--dsf-theme-body-font, inherit);
   color: var(--dsf-gray-500);
   margin-bottom: 1.5rem;
+  line-height: 1.5;
 }
 
 .dsf-newsletter-preview__form {
@@ -69,14 +75,17 @@ const previewStyle = computed(() => {
 }
 
 .dsf-newsletter-preview__input {
+  font-family: var(--dsf-theme-body-font, inherit);
   flex: 1;
   padding: 0.875rem 1rem;
   border: 1px solid var(--dsf-gray-200);
   border-radius: var(--dsf-radius-md);
   font-size: 1rem;
+  line-height: 1.25;
 }
 
 .dsf-newsletter-preview__btn {
+  font-family: var(--dsf-theme-body-font, inherit);
   padding: 0.875rem 1.5rem;
   background: var(--dsf-primary-500);
   color: white;
@@ -85,5 +94,6 @@ const previewStyle = computed(() => {
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
+  line-height: 1.25;
 }
 </style>

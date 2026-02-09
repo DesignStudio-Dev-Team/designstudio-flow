@@ -1,0 +1,111 @@
+/**
+ * Theme Font Integration & Defensive Typography Styles
+ * 
+ * These classes apply theme fonts and defensive CSS to prevent
+ * layout breaking when different fonts (with varying metrics) are used.
+ */
+
+/* ========================================
+   THEME FONT VARIABLES (fallbacks)
+   ======================================== */
+
+:root {
+  --dsf-theme-heading-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --dsf-theme-body-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ========================================
+   DEFENSIVE TYPOGRAPHY BASE RULES
+   ======================================== */
+
+/* Heading text styles with defensive measures */
+.dsf-font-heading {
+  font-family: var(--dsf-theme-heading-font, inherit);
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Body text styles with defensive measures */
+.dsf-font-body {
+  font-family: var(--dsf-theme-body-font, inherit);
+  line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Button text with fixed metrics */
+.dsf-font-button {
+  font-family: var(--dsf-theme-body-font, inherit);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ========================================
+   DEFENSIVE UTILITIES
+   ======================================== */
+
+/* Prevent text from breaking layouts */
+.dsf-text-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dsf-text-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dsf-text-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Ensure min-height for text containers */
+.dsf-min-height-title {
+  min-height: 1.2em;
+}
+
+.dsf-min-height-text {
+  min-height: 1.5em;
+}
+
+/* Fixed line height for consistency across fonts */
+.dsf-lh-tight { line-height: 1.1; }
+.dsf-lh-snug { line-height: 1.25; }
+.dsf-lh-normal { line-height: 1.5; }
+.dsf-lh-relaxed { line-height: 1.625; }
+
+/* Text wrapping control */
+.dsf-no-wrap {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dsf-break-word {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Safe text scaling for different font widths */
+.dsf-text-safe {
+  font-size-adjust: 0.5; /* Helps normalize x-height across fonts */
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

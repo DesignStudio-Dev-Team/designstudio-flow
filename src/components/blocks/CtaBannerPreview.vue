@@ -112,28 +112,38 @@ const previewStyle = computed(() => {
 }
 
 .dsf-cta-banner-preview__title {
-  font-size: 42px; /* Updated font size */
+  font-family: var(--dsf-theme-heading-font, inherit);
+  font-size: 42px;
   font-weight: 600;
   margin-bottom: 0.25rem;
+  line-height: 1.15;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .dsf-cta-banner-preview__subtitle {
+  font-family: var(--dsf-theme-body-font, inherit);
   opacity: 0.9;
-  font-size: 24px; /* Updated font size */
+  font-size: 24px;
+  line-height: 1.5;
 }
 
 .dsf-cta-banner-preview__btn {
   padding: 0.875rem 2rem;
   border: none;
   border-radius: var(--dsf-radius-md);
+  font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 600;
-  font-size: 24px; /* Updated font size */
+  font-size: 24px;
   cursor: pointer;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @container (max-width: 1024px) {

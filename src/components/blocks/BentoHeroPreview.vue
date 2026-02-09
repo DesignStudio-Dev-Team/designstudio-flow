@@ -288,11 +288,15 @@ function handleCtaClick(event) {
 }
 
 .dsf-bento-hero__hero-title {
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 42px;
   font-weight: 700;
   color: white;
   margin: 0 0 1rem 0;
   text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  line-height: 1.15;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .dsf-bento-hero__btn {
@@ -302,13 +306,16 @@ function handleCtaClick(event) {
   padding: 0.75rem 2rem;
   background-color: white;
   color: #1F2937;
+  font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 600;
   border-radius: 4px;
   text-decoration: none;
   transition: all 0.2s;
   cursor: pointer;
   border: none;
-  font-size: 20px; /* Updated font size */
+  font-size: 20px;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .dsf-bento-hero__btn:hover {
@@ -391,11 +398,20 @@ function handleCtaClick(event) {
 .dsf-bento-hero__box-title {
   position: relative;
   z-index: 1;
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 24px;
   font-weight: 600;
   text-align: center;
   width: 100%;
   flex-shrink: 0;
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* CTA Box */
@@ -417,10 +433,18 @@ function handleCtaClick(event) {
 }
 
 .dsf-bento-hero__cta-text {
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 24px;
   font-weight: 600;
   text-align: center;
   line-height: 1.3;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .dsf-bento-hero__cta-arrow {

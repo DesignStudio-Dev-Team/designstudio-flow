@@ -170,13 +170,19 @@ const displayFeatures = computed(() => {
 }
 
 .dsf-features-grid-preview__title {
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 2rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .dsf-features-grid-preview__subtitle {
+  font-family: var(--dsf-theme-body-font, inherit);
   font-size: 1rem;
+  line-height: 1.5;
 }
 
 .dsf-features-grid-preview__items {
@@ -197,14 +203,25 @@ const displayFeatures = computed(() => {
 }
 
 .dsf-feature-card-preview__title {
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 0.25rem;
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .dsf-feature-card-preview__desc {
+  font-family: var(--dsf-theme-body-font, inherit);
   font-size: 0.875rem;
   flex: 1;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .dsf-feature-card-preview__btn {
@@ -214,10 +231,13 @@ const displayFeatures = computed(() => {
   background: rgba(255, 255, 255, 0.15);
   color: white;
   border-radius: var(--dsf-radius-md);
+  font-family: var(--dsf-theme-body-font, inherit);
   font-size: 0.8125rem;
   font-weight: 500;
   text-decoration: none;
   transition: background 0.15s;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .dsf-feature-card-preview__btn:hover {

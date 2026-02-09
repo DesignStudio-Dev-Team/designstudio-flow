@@ -76,15 +76,21 @@ const blockStyle = computed(() => {
 }
 
 .dsf-starter-block__title {
+  font-family: var(--dsf-theme-heading-font, inherit);
   font-size: 2.5rem;
   font-weight: 700;
   margin: 0;
+  line-height: 1.15;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .dsf-starter-block__subtitle {
+  font-family: var(--dsf-theme-body-font, inherit);
   font-size: 1.25rem;
   margin: 0;
   opacity: 0.85;
+  line-height: 1.5;
 }
 
 .dsf-starter-block__btn {
@@ -96,8 +102,11 @@ const blockStyle = computed(() => {
   border-radius: 6px;
   color: #FFFFFF;
   text-decoration: none;
+  font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 600;
   transition: transform 0.2s ease, opacity 0.2s ease;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .dsf-starter-block__btn:hover {
