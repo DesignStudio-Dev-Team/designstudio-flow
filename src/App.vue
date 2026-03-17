@@ -5,8 +5,11 @@
       :title="pageTitle"
       :is-saving="isSaving"
       :preview-mode="previewMode"
+      :post-type="postType"
+      :layout-type="layoutType"
       @update:title="updateTitle"
       @preview="openPreview"
+      @view="openView"
       @save="savePage"
       @set-preview-mode="setPreviewMode"
       @open-theme="showThemePanel = true"
@@ -28,8 +31,11 @@
             <div class="dsf-canvas-empty__icon">
               <LayoutTemplate :size="48" :stroke-width="1.5" />
             </div>
-            <h3 class="dsf-canvas-empty__title">Your page is empty</h3>
-            <p class="dsf-canvas-empty__text">Add blocks from the library to get started</p>
+            <h3 class="dsf-canvas-empty__title">{{ isTemplateEditor ? 'Your template is empty' : 'Your page is empty' }}</h3>
+            <p v-if="isTemplateEditor && availableTemplateBlocksCount === 0" class="dsf-canvas-empty__text">
+              No {{ layoutType === 'footer' ? 'footer' : 'header' }} blocks are available yet.
+            </p>
+            <p v-else class="dsf-canvas-empty__text">Add blocks from the library to get started</p>
           </div>
           
           <!-- Blocks -->
@@ -71,6 +77,9 @@
       <ThemePanel
         v-if="showThemePanel"
         :settings="pageSettings"
+        :post-type="postType"
+        :layout-templates="layoutTemplates"
+        :layout-create-urls="layoutCreateUrls"
         @close="showThemePanel = false"
         @update:settings="updatePageSettings"
       />
@@ -79,10 +88,10 @@
     <!-- Add Block Button -->
     <button 
       class="dsf-add-block-btn"
-      @click="showBlockLibrary = true"
+      @click="openBlockLibrary"
     >
       <Plus :size="20" />
-      Add Block
+      {{ isTemplateEditor ? 'Add Template Block' : 'Add Block' }}
     </button>
     
     <!-- Block Library Modal -->
@@ -108,7 +117,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, createApp, nextTick } from 'vue'
+import { ref, computed, onMounted, createApp, nextTick, watch } from 'vue'
 import draggable from 'vuedraggable'
 import { Plus, LayoutTemplate } from 'lucide-vue-next'
 
@@ -124,6 +133,58 @@ import { applyThemeToBlocks, resolveThemeKey } from './utils/themeSync'
 
 // Get WordPress data
 const wpData = window.dsfEditorData || {}
+const postType = wpData.postType === 'dsf_layout' ? 'dsf_layout' : 'dsf_page'
+const layoutType = wpData.layoutType === 'footer' ? 'footer' : 'header'
+const isTemplateEditor = postType === 'dsf_layout'
+const layoutTemplates = computed(() => wpData.layoutTemplates || { headers: [], footers: [] })
+const layoutCreateUrls = computed(() => wpData.layoutCreateUrls || {})
+const availableForms = Array.isArray(wpData.forms) ? wpData.forms : []
+
+hydrateFormBlockDefinition()
+
+function hydrateFormBlockDefinition() {
+  const formBlock = wpData.blocks?.['form-embed']
+  const formField = formBlock?.settings?.formId
+  if (!formField) return
+
+  formField.options = buildFormOptions(availableForms)
+}
+
+function buildFormOptions(forms) {
+  const options = { 'Select a form': '' }
+
+  if (!Array.isArray(forms) || !forms.length) {
+    return options
+  }
+
+  forms.forEach((form) => {
+    const formId = String(form?.id || '').trim()
+    if (!formId) return
+
+    const title = (form?.title || '').trim() || `Form #${formId}`
+    options[`${title} (ID: ${formId})`] = formId
+  })
+
+  return options
+}
+
+// Font loading state
+const loadedFonts = ref(new Set())
+
+function loadGoogleFont(fontFamily) {
+  if (!fontFamily) return
+  const match = fontFamily.match(/'([^']+)'/)
+  if (!match) return
+  
+  const fontName = match[1]
+  if (loadedFonts.value.has(fontName)) return
+  
+  loadedFonts.value.add(fontName)
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}:wght@300;400;500;600;700&display=swap`
+  document.head.appendChild(link)
+}
 
 // Theme defaults & sync helpers
 const DEFAULT_THEME = {
@@ -140,6 +201,8 @@ const DEFAULT_LAYOUT = {
   contentPadding: 10,
   showHeader: true,
   showFooter: true,
+  headerTemplateId: 0,
+  footerTemplateId: 0,
   template: 'default',
 }
 
@@ -176,6 +239,9 @@ const pageSettings = ref({
 })
 
 const pageTitle = ref(wpData.postTitle || 'Untitled Page')
+const currentPostStatus = ref(wpData.postStatus || 'draft')
+const currentViewUrl = ref(wpData.viewUrl || '')
+const currentPreviewUrl = ref(wpData.previewUrl || '')
 const isSaving = ref(false)
 const previewMode = ref('desktop')
 const selectedBlock = ref(null)
@@ -193,24 +259,42 @@ const blockCategories = computed(() => {
     marketing: { label: 'Marketing', icon: 'target', blocks: [] },
     ecommerce: { label: 'Ecommerce', icon: 'shopping-cart', blocks: [] },
   }
-  
+
+  const allBlocks = Object.values(registeredBlocks)
+  const allowedBlocks = allBlocks.filter((block) => isBlockAllowedInCurrentEditor(block))
+
+  if (isTemplateEditor) {
+    const label = layoutType === 'footer' ? 'Footer Blocks' : 'Header Blocks'
+    const templateBlocks = allowedBlocks.filter((block) => block.category === 'content')
+    return {
+      content: { label, icon: 'layout-template', blocks: templateBlocks },
+    }
+  }
+
   // Define exact order for each category
-  const contentOrder = ['hero', 'bento-hero', 'duo-hero', 'text-image', 'features-grid', 'testimonials']
+  const contentOrder = ['hero', 'bento-hero', 'duo-hero', 'text-image', 'features-grid', 'testimonials', 'form-embed']
   const marketingOrder = ['featured-promo-banner', 'promo-banner', 'cta-banner', 'brand-carousel']
   const ecommerceOrder = ['ecommerce-showcase', 'featured-product-banner', 'product-grid']
-  
-  Object.values(registeredBlocks).forEach(block => {
+
+  allowedBlocks.forEach(block => {
     if (categories[block.category]) {
       categories[block.category].blocks.push(block)
     }
   })
-  
+
   // Sort blocks within categories
   categories.content.blocks.sort((a, b) => contentOrder.indexOf(a.id) - contentOrder.indexOf(b.id))
   categories.marketing.blocks.sort((a, b) => marketingOrder.indexOf(a.id) - marketingOrder.indexOf(b.id))
   categories.ecommerce.blocks.sort((a, b) => ecommerceOrder.indexOf(a.id) - ecommerceOrder.indexOf(b.id))
-  
+
   return categories
+})
+
+const availableTemplateBlocksCount = computed(() => {
+  if (!isTemplateEditor) return 0
+  return Object.values(blockCategories.value).reduce((total, category) => {
+    return total + (Array.isArray(category?.blocks) ? category.blocks.length : 0)
+  }, 0)
 })
 
 const canvasStyle = computed(() => {
@@ -269,6 +353,11 @@ function updateBlockSettings(settings) {
 }
 
 function addBlock(blockDefinition) {
+  if (!isBlockAllowedInCurrentEditor(blockDefinition)) {
+    alert('This block is not available for this template type.')
+    return
+  }
+
   const newBlock = {
     id: 'block_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
     type: blockDefinition.id,
@@ -345,6 +434,29 @@ function onDragEnd() {
   // Blocks array is already updated by v-model
 }
 
+function getBlockScope(blockDefinition) {
+  return blockDefinition?.template_scope || 'page'
+}
+
+function isBlockAllowedInCurrentEditor(blockDefinition) {
+  const scope = getBlockScope(blockDefinition)
+
+  if (!isTemplateEditor) {
+    return scope === 'page'
+  }
+
+  return scope === layoutType
+}
+
+function openBlockLibrary() {
+  if (isTemplateEditor && availableTemplateBlocksCount.value === 0) {
+    const typeLabel = layoutType === 'footer' ? 'footer' : 'header'
+    alert(`No ${typeLabel} blocks are available yet.`)
+    return
+  }
+  showBlockLibrary.value = true
+}
+
 function setPreviewMode(mode) {
   previewMode.value = mode
 }
@@ -363,9 +475,64 @@ function updatePageSettings(newSettings) {
   }
 }
 
+function isDefaultUntitledTitle(rawTitle) {
+  const normalized = (rawTitle || '').trim().toLowerCase()
+  return [
+    'untitled',
+    'untitled page',
+    'untitled header template',
+    'untitled footer template',
+  ].includes(normalized)
+}
+
+function hasMeaningfulTitle(rawTitle) {
+  const title = (rawTitle || '').trim()
+  return title.length > 0 && !isDefaultUntitledTitle(title)
+}
+
+function promptForTitle() {
+  const typeLabel = postType === 'dsf_layout'
+    ? (layoutType === 'footer' ? 'footer template' : 'header template')
+    : 'page'
+
+  const suggested = hasMeaningfulTitle(pageTitle.value) ? pageTitle.value.trim() : ''
+  const entered = window.prompt(`Enter a name for this ${typeLabel}:`, suggested)
+  if (entered === null) {
+    return null
+  }
+
+  const cleaned = entered.trim()
+  if (!cleaned) {
+    alert('Please enter a name before saving.')
+    return null
+  }
+
+  return cleaned
+}
+
 async function savePage(options = {}) {
-  const { status, silent, skipSnapshot } = options
+  const { status, silent, skipSnapshot, requireNamePrompt = true } = options
   isSaving.value = true
+
+  let titleToSave = (pageTitle.value || '').trim()
+  const needsNameOnFirstSave = requireNamePrompt
+    && currentPostStatus.value === 'draft'
+    && !hasMeaningfulTitle(titleToSave)
+
+  if (needsNameOnFirstSave) {
+    const enteredTitle = promptForTitle()
+    if (!enteredTitle) {
+      isSaving.value = false
+      return false
+    }
+    titleToSave = enteredTitle
+    pageTitle.value = enteredTitle
+  }
+
+  let statusToSave = status
+  if (!statusToSave && currentPostStatus.value === 'draft' && hasMeaningfulTitle(titleToSave)) {
+    statusToSave = 'publish'
+  }
 
   let htmlSnapshot = ''
   if (!skipSnapshot) {
@@ -376,17 +543,34 @@ async function savePage(options = {}) {
     }
   }
 
+  if (htmlSnapshot) {
+    const maxSnapshotBytes = Number.isFinite(wpData.snapshotMaxBytes)
+      ? wpData.snapshotMaxBytes
+      : 2 * 1024 * 1024
+    const snapshotBytes = new Blob([htmlSnapshot]).size
+    if (snapshotBytes > maxSnapshotBytes) {
+      console.warn(
+        `Snapshot skipped (size ${snapshotBytes} bytes exceeds ${maxSnapshotBytes}).`
+      )
+      htmlSnapshot = ''
+    }
+  }
+
   const formData = new FormData()
   formData.append('action', 'dsf_save_page')
   formData.append('nonce', wpData.nonce)
   formData.append('post_id', wpData.postId)
   formData.append('blocks', JSON.stringify(blocks.value))
   formData.append('settings', JSON.stringify(pageSettings.value))
+  formData.append('title', titleToSave)
+  if (postType === 'dsf_layout') {
+    formData.append('layout_type', layoutType)
+  }
   if (htmlSnapshot) {
     formData.append('html_snapshot', htmlSnapshot)
   }
-  if (status) {
-    formData.append('status', status)
+  if (statusToSave) {
+    formData.append('status', statusToSave)
   }
 
   async function attemptSave(payload) {
@@ -408,11 +592,23 @@ async function savePage(options = {}) {
       throw new Error(message)
     }
 
-    return true
+    return data?.data || {}
   }
 
   try {
-    await attemptSave(formData)
+    const saveResult = await attemptSave(formData)
+    if (saveResult?.post_status) {
+      currentPostStatus.value = saveResult.post_status
+    }
+    if (saveResult?.post_title) {
+      pageTitle.value = saveResult.post_title
+    }
+    if (saveResult?.permalink) {
+      currentViewUrl.value = saveResult.permalink
+    }
+    if (saveResult?.preview_url) {
+      currentPreviewUrl.value = saveResult.preview_url
+    }
     console.log('Page saved successfully')
     return true
   } catch (error) {
@@ -425,14 +621,27 @@ async function savePage(options = {}) {
         fallbackData.append('post_id', wpData.postId)
         fallbackData.append('blocks', JSON.stringify(blocks.value))
         fallbackData.append('settings', JSON.stringify(pageSettings.value))
-        if (status) {
-          fallbackData.append('status', status)
+        fallbackData.append('title', titleToSave)
+        if (postType === 'dsf_layout') {
+          fallbackData.append('layout_type', layoutType)
         }
-        await attemptSave(fallbackData)
+        if (statusToSave) {
+          fallbackData.append('status', statusToSave)
+        }
+        const fallbackResult = await attemptSave(fallbackData)
+        if (fallbackResult?.post_status) {
+          currentPostStatus.value = fallbackResult.post_status
+        }
+        if (fallbackResult?.post_title) {
+          pageTitle.value = fallbackResult.post_title
+        }
+        if (fallbackResult?.permalink) {
+          currentViewUrl.value = fallbackResult.permalink
+        }
+        if (fallbackResult?.preview_url) {
+          currentPreviewUrl.value = fallbackResult.preview_url
+        }
         console.warn('Saved without snapshot due to snapshot error.')
-        if (!silent) {
-          alert('Saved without snapshot due to a snapshot error.')
-        }
         return true
       } catch (fallbackError) {
         console.error('Fallback save error:', fallbackError)
@@ -457,32 +666,69 @@ async function generateHtmlSnapshot() {
   mount.style.pointerEvents = 'none'
   document.body.appendChild(mount)
 
-  const snapshotBlocks = JSON.parse(JSON.stringify(blocks.value || []))
-  const app = createApp(FrontendApp, { blocks: snapshotBlocks })
-  app.mount(mount)
+  let app = null
+  try {
+    const snapshotBlocks = JSON.parse(JSON.stringify(blocks.value || []))
+    app = createApp(FrontendApp, { blocks: snapshotBlocks })
+    app.mount(mount)
 
-  await nextTick()
-  const html = mount.innerHTML
-
-  app.unmount()
-  mount.remove()
-
-  return html
+    await nextTick()
+    return mount.innerHTML
+  } finally {
+    if (app) {
+      app.unmount()
+    }
+    mount.remove()
+  }
 }
 
 async function openPreview() {
-  if (!wpData.previewUrl) {
+  if (postType === 'dsf_layout') {
+    alert('Header and footer templates do not have a direct preview URL yet.')
+    return
+  }
+
+  if (!currentPreviewUrl.value) {
     alert('Preview link is unavailable for this page yet.')
     return
   }
 
-  const saved = await savePage({ status: 'draft', silent: false })
+  const saved = await savePage({ status: 'draft', silent: false, requireNamePrompt: false })
   if (saved) {
-    window.open(wpData.previewUrl, '_blank')
+    window.open(currentPreviewUrl.value, '_blank')
   } else {
     alert('Could not save the page for preview. Please try again.')
   }
 }
+
+async function openView() {
+  if (postType === 'dsf_layout') {
+    alert('Header and footer templates do not have a direct view URL yet.')
+    return
+  }
+
+  const saved = await savePage({ silent: false })
+  if (!saved) {
+    alert('Could not save the page for viewing. Please try again.')
+    return
+  }
+
+  if (!currentViewUrl.value) {
+    alert('View link is unavailable for this page yet.')
+    return
+  }
+
+  window.open(currentViewUrl.value, '_blank')
+}
+
+// Watch for font changes and load them dynamically
+watch(() => [pageSettings.value?.theme?.headingFont, pageSettings.value?.theme?.bodyFont], 
+  ([heading, body]) => {
+    if (heading) loadGoogleFont(heading)
+    if (body) loadGoogleFont(body)
+  }, 
+  { immediate: true }
+)
 
 // Lifecycle
 onMounted(() => {

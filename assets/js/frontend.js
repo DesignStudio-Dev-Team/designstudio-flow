@@ -1,1 +1,1 @@
-import{am as n,an as a}from"./FrontendApp-B6tJM8Ps.js";const o=document.getElementById("dsf-frontend-app");if(o){const t=window.dsfFrontendData||{};n(a,{blocks:t.blocks||[]}).mount(o)}
+import{at as n,au as s}from"./main-mFr9GIg5.js";const o=window.dsfFrontendData||{};function e(r,t){const a=document.getElementById(r);a&&(!Array.isArray(t)||!t.length||n(s,{blocks:t}).mount(a))}e("dsf-frontend-app",o.blocks||[]);const p=o?.layoutTemplates?.header?.blocks||[],l=o?.layoutTemplates?.footer?.blocks||[];e("dsf-layout-header-app",p);e("dsf-layout-footer-app",l);

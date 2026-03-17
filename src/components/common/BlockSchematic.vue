@@ -8,6 +8,42 @@
         <div class="dsf-schematic__btn"></div>
       </div>
     </template>
+
+    <!-- Header Mega Menu -->
+    <template v-else-if="type === 'header-mega-menu'">
+      <div class="dsf-schematic__header-mega">
+        <div class="dsf-schematic__header-mega-top">
+          <div class="dsf-schematic__line dsf-schematic__line--xxs"></div>
+          <div class="dsf-schematic__line dsf-schematic__line--xs"></div>
+        </div>
+        <div class="dsf-schematic__header-mega-nav">
+          <div class="dsf-schematic__header-mega-item" v-for="i in 5" :key="i"></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Header Cutout Mega -->
+    <template v-else-if="type === 'header-cutout-mega'">
+      <div class="dsf-schematic__header-mega">
+        <div class="dsf-schematic__header-mega-top">
+          <div class="dsf-schematic__line dsf-schematic__line--xxs"></div>
+          <div class="dsf-schematic__line dsf-schematic__line--xs"></div>
+        </div>
+        <div class="dsf-schematic__header-mega-nav">
+          <div class="dsf-schematic__header-mega-item" v-for="i in 6" :key="i"></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Footer Dealers -->
+    <template v-else-if="type === 'footer-dealers'">
+      <div class="dsf-schematic__footer-dealers">
+        <div class="dsf-schematic__footer-dealers-cards">
+          <div class="dsf-schematic__footer-dealers-card" v-for="i in 2" :key="i"></div>
+        </div>
+        <div class="dsf-schematic__footer-dealers-bottom"></div>
+      </div>
+    </template>
     
     <!-- Features Grid -->
     <template v-else-if="type === 'features-grid'">
@@ -230,6 +266,16 @@
       </div>
     </template>
 
+    <!-- Form Embed -->
+    <template v-else-if="type === 'form-embed'">
+      <div class="dsf-schematic__form-embed">
+        <div class="dsf-schematic__line dsf-schematic__line--md"></div>
+        <div class="dsf-schematic__form-input"></div>
+        <div class="dsf-schematic__form-input"></div>
+        <div class="dsf-schematic__btn dsf-schematic__btn--sm"></div>
+      </div>
+    </template>
+
     <!-- Ecommerce Showcase (Redo) -->
     <template v-else-if="type === 'ecommerce-showcase'">
       <div class="dsf-schematic__ecommerce-showcase-v2">
@@ -269,7 +315,8 @@ import {
   Megaphone,
   Mail,
   Image,
-  Percent
+  Percent,
+  ListChecks
 } from 'lucide-vue-next'
 import { computed } from 'vue'
 
@@ -300,6 +347,7 @@ const iconMap = {
   'mail': Mail,
   'image': Image,
   'percent': Percent,
+  'list-checks': ListChecks,
 }
 
 const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
@@ -342,6 +390,19 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
 .dsf-schematic__btn--sm { width: 32px; height: 8px; }
 .dsf-schematic__btn--xs { width: 28px; height: 8px; flex-shrink: 0; }
 
+.dsf-schematic__form-embed {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.dsf-schematic__form-input {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.5);
+}
+
 /* Hero */
 .dsf-schematic__hero {
   display: flex;
@@ -350,6 +411,69 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
   gap: 6px;
   width: 100%;
   padding: 10px 0;
+}
+
+/* Header Mega Menu */
+.dsf-schematic__header-mega {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 5px;
+}
+
+.dsf-schematic__header-mega-top {
+  height: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 5px;
+}
+
+.dsf-schematic__header-mega-nav {
+  height: 12px;
+  border-radius: 4px;
+  background: #111827;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  padding: 2px;
+}
+
+.dsf-schematic__header-mega-item {
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* Footer Dealers */
+.dsf-schematic__footer-dealers {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dsf-schematic__footer-dealers-cards {
+  background: #1f2430;
+  border-radius: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  padding: 5px;
+  min-height: 20px;
+}
+
+.dsf-schematic__footer-dealers-card {
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.22);
+  min-height: 14px;
+}
+
+.dsf-schematic__footer-dealers-bottom {
+  border-radius: 3px;
+  background: #414753;
+  min-height: 8px;
 }
 
 /* Features Grid */

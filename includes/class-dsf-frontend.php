@@ -26,6 +26,8 @@ class DSF_Frontend {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ), 20 );
 		add_filter( 'template_include', array( $this, 'load_flow_template' ), 99 );
 		add_filter( 'script_loader_tag', array( $this, 'add_module_type_to_scripts' ), 10, 3 );
+		add_filter( 'dsf_flow_show_header', array( $this, 'filter_show_header' ), 10, 2 );
+		add_filter( 'dsf_flow_show_footer', array( $this, 'filter_show_footer' ), 10, 2 );
 	}
 
 	/**
@@ -49,13 +51,13 @@ class DSF_Frontend {
 			return;
 		}
 
-		$post = get_post( $post_id );
-		if ( ! $post ) {
+		$current_post = get_post( $post_id );
+		if ( ! $current_post ) {
 			return;
 		}
 
 		// Check if this is a Flow page or has Flow blocks
-		$is_flow = 'dsf_page' === $post->post_type || get_post_meta( $post_id, '_dsf_enabled', true );
+		$is_flow = 'dsf_page' === $current_post->post_type || get_post_meta( $post_id, '_dsf_enabled', true );
 
 		if ( ! $is_flow ) {
 			return;
@@ -64,21 +66,21 @@ class DSF_Frontend {
 		// Production or development mode
 		$is_dev = defined( 'DSF_DEV_MODE' ) && DSF_DEV_MODE;
 
-		$frontend_css_version   = $this->get_asset_version( 'assets/css/FrontendApp.css' );
+		$main_css_version       = $this->get_asset_version( 'assets/css/main.css' );
 		$frontend_theme_version = $this->get_asset_version( 'assets/css/frontend.css' );
 		$frontend_js_version    = $this->get_asset_version( 'assets/js/frontend.js' );
 
 		wp_enqueue_style(
-			'dsf-frontend-app',
-			DSF_PLUGIN_URL . 'assets/css/FrontendApp.css',
+			'dsf-main',
+			DSF_PLUGIN_URL . 'assets/css/main.css',
 			array(),
-			$frontend_css_version
+			$main_css_version
 		);
 
 		wp_enqueue_style(
 			'dsf-frontend',
 			DSF_PLUGIN_URL . 'assets/css/frontend.css',
-			array( 'dsf-frontend-app' ),
+			array( 'dsf-main' ),
 			$frontend_theme_version
 		);
 
@@ -116,6 +118,10 @@ class DSF_Frontend {
 				$blocks = array();
 			}
 		}
+		$blocks = $this->prepare_blocks_for_frontend( $blocks );
+
+		$layout_templates = $this->get_assigned_layout_templates_data( $post_id );
+		$layout_templates = $this->prepare_layout_templates_for_frontend( $layout_templates );
 
 		wp_localize_script(
 			'dsf-frontend-app',
@@ -123,6 +129,7 @@ class DSF_Frontend {
 			array(
 				'postId'      => $post_id,
 				'blocks'      => $blocks,
+				'layoutTemplates' => $layout_templates,
 				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
 				'nonce'       => wp_create_nonce( 'dsf_frontend_nonce' ),
 				'categories'  => $this->get_wc_categories(),
@@ -138,6 +145,67 @@ class DSF_Frontend {
 
 		// Enqueue Google Fonts if custom fonts are set
 		$this->enqueue_google_fonts( $post_id );
+	}
+
+	/**
+	 * Prepare registered blocks for frontend runtime.
+	 */
+	private function prepare_blocks_for_frontend( $blocks ) {
+		if ( ! is_array( $blocks ) ) {
+			return array();
+		}
+
+		return array_map(
+			array( $this, 'prepare_single_block_for_frontend' ),
+			$blocks
+		);
+	}
+
+	/**
+	 * Prepare layout templates payload for frontend runtime.
+	 */
+	private function prepare_layout_templates_for_frontend( $layout_templates ) {
+		if ( ! is_array( $layout_templates ) ) {
+			return array();
+		}
+
+		foreach ( array( 'header', 'footer' ) as $type ) {
+			if ( empty( $layout_templates[ $type ]['blocks'] ) || ! is_array( $layout_templates[ $type ]['blocks'] ) ) {
+				continue;
+			}
+			$layout_templates[ $type ]['blocks'] = $this->prepare_blocks_for_frontend( $layout_templates[ $type ]['blocks'] );
+		}
+
+		return $layout_templates;
+	}
+
+	/**
+	 * Prepare one block payload for frontend rendering.
+	 */
+	private function prepare_single_block_for_frontend( $block ) {
+		if ( ! is_array( $block ) ) {
+			return array();
+		}
+
+		$type = isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
+		if ( 'form-embed' !== $type ) {
+			return $block;
+		}
+
+		$settings = isset( $block['settings'] ) && is_array( $block['settings'] ) ? $block['settings'] : array();
+		$form_id  = isset( $settings['formId'] ) ? absint( $settings['formId'] ) : 0;
+		$form     = $form_id ? get_post( $form_id ) : null;
+
+		if ( ! $form || 'dsf_form' !== $form->post_type ) {
+			$form_id = 0;
+		}
+
+		$settings['formId']          = $form_id ? (string) $form_id : '';
+		$settings['formTitle']       = ( $form_id && $form && $form->post_title ) ? $form->post_title : '';
+		$settings['renderedFormHtml'] = $form_id ? DSF_Forms::get_instance()->render_form_shortcode( array( 'id' => $form_id ) ) : '';
+		$block['settings']            = $settings;
+
+		return $block;
 	}
 
 	/**
@@ -290,7 +358,7 @@ class DSF_Frontend {
 
 		$output  = '<div class="' . esc_attr( $outer_class ) . '" style="' . esc_attr( $theme_style ) . '">';
 		$output .= '<div class="' . esc_attr( $inner_class ) . '">';
-		$output .= '<div id="dsf-frontend-app" data-post-id="' . intval( $post_id ) . '">';
+		$output .= '<div id="dsf-frontend-app" class="dsf-wrapper" data-post-id="' . intval( $post_id ) . '">';
 		if ( ! empty( $snapshot ) ) {
 			$output .= $snapshot;
 		}
@@ -298,6 +366,131 @@ class DSF_Frontend {
 		$output .= '</div></div>';
 
 		return $output;
+	}
+
+	/**
+	 * Resolve page setting for showing the active theme header.
+	 */
+	public function filter_show_header( $show, $post_id ) {
+		$post_id = intval( $post_id );
+		if ( ! $post_id ) {
+			return $show;
+		}
+
+		$settings = $this->get_page_settings( $post_id );
+		if ( isset( $settings['layout']['showHeader'] ) && false === $settings['layout']['showHeader'] ) {
+			return false;
+		}
+
+		return $show;
+	}
+
+	/**
+	 * Resolve page setting for showing the active theme footer.
+	 */
+	public function filter_show_footer( $show, $post_id ) {
+		$post_id = intval( $post_id );
+		if ( ! $post_id ) {
+			return $show;
+		}
+
+		$settings = $this->get_page_settings( $post_id );
+		if ( isset( $settings['layout']['showFooter'] ) && false === $settings['layout']['showFooter'] ) {
+			return false;
+		}
+
+		return $show;
+	}
+
+	/**
+	 * Render the assigned custom header/footer template for a Flow page.
+	 */
+	public function render_assigned_layout_template( $post_id, $type ) {
+		$layout_data = $this->get_assigned_layout_template_data( $post_id, $type );
+		if ( empty( $layout_data ) || empty( $layout_data['id'] ) ) {
+			return '';
+		}
+
+		$settings    = $this->get_page_settings( $post_id );
+		$type        = 'footer' === sanitize_key( $type ) ? 'footer' : 'header';
+		$template_id = intval( $layout_data['id'] );
+		$snapshot    = $layout_data['snapshot'] ?? '';
+
+		$theme_style = $this->build_theme_style( $settings );
+		$app_id      = 'dsf-layout-' . $type . '-app';
+
+		$output  = '<div class="dsf-layout-template dsf-layout-template--' . esc_attr( $type ) . '" style="' . esc_attr( $theme_style ) . '">';
+		$output .= '<div id="' . esc_attr( $app_id ) . '" class="dsf-wrapper" data-dsf-layout-id="' . intval( $template_id ) . '" data-dsf-layout-type="' . esc_attr( $type ) . '">';
+		if ( ! empty( $snapshot ) ) {
+			$output .= $snapshot;
+		}
+		$output .= '</div>';
+		$output .= '</div>';
+		return $output;
+	}
+
+	/**
+	 * Collect assigned header/footer template data for frontend bootstrapping.
+	 */
+	private function get_assigned_layout_templates_data( $post_id ) {
+		$data = array(
+			'header' => $this->get_assigned_layout_template_data( $post_id, 'header' ),
+			'footer' => $this->get_assigned_layout_template_data( $post_id, 'footer' ),
+		);
+
+		return $data;
+	}
+
+	/**
+	 * Resolve one assigned template and return sanitized data for rendering/mounting.
+	 */
+	private function get_assigned_layout_template_data( $post_id, $type ) {
+		$post_id = intval( $post_id );
+		$type    = sanitize_key( $type );
+		if ( ! $post_id || ! in_array( $type, array( 'header', 'footer' ), true ) ) {
+			return array();
+		}
+
+		$settings    = $this->get_page_settings( $post_id );
+		$layout_key  = 'header' === $type ? 'headerTemplateId' : 'footerTemplateId';
+		$template_id = absint( $settings['layout'][ $layout_key ] ?? 0 );
+		if ( ! $template_id ) {
+			return array();
+		}
+
+		$template_post = get_post( $template_id );
+		if ( ! $template_post || 'dsf_layout' !== $template_post->post_type ) {
+			return array();
+		}
+
+		$template_type = get_post_meta( $template_id, '_dsf_layout_type', true );
+		$template_type = 'footer' === $template_type ? 'footer' : 'header';
+		if ( $type !== $template_type ) {
+			return array();
+		}
+
+		if ( 'publish' !== $template_post->post_status ) {
+			if ( ! is_user_logged_in() || ! current_user_can( 'edit_post', $template_id ) ) {
+				return array();
+			}
+		}
+
+		$blocks_meta = get_post_meta( $template_id, '_dsf_blocks', true );
+		if ( is_array( $blocks_meta ) ) {
+			$blocks = $blocks_meta;
+		} else {
+			$decoded = $blocks_meta ? json_decode( $blocks_meta, true ) : array();
+			$blocks  = is_array( $decoded ) ? $decoded : array();
+		}
+
+		$snapshot = get_post_meta( $template_id, '_dsf_html_snapshot', true );
+
+		return array(
+			'id'       => $template_id,
+			'status'   => $template_post->post_status,
+			'blocks'   => $blocks,
+			'snapshot' => is_string( $snapshot ) ? $snapshot : '',
+		);
 	}
 
 	private function get_default_settings() {
@@ -315,6 +508,8 @@ class DSF_Frontend {
 				'contentPadding' => 10,
 				'showHeader'     => true,
 				'showFooter'     => true,
+				'headerTemplateId' => 0,
+				'footerTemplateId' => 0,
 				'template'       => 'default',
 			),
 		);

@@ -108,7 +108,8 @@ import {
   Award,
   Megaphone,
   Mail,
-  Image
+  Image,
+  ListChecks
 } from 'lucide-vue-next'
 import BlockSchematic from './common/BlockSchematic.vue'
 
@@ -136,6 +137,7 @@ const icons = {
   'megaphone': Megaphone,
   'mail': Mail,
   'image': Image,
+  'list-checks': ListChecks,
 }
 
 const filteredCategories = computed(() => {

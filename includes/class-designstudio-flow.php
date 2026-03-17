@@ -47,6 +47,7 @@ final class DesignStudio_Flow {
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-ajax.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-frontend.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-blocks.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-forms.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-update-checker.php';
 	}
 
@@ -81,6 +82,7 @@ final class DesignStudio_Flow {
 
 		// Initialize frontend (always needed for rendering).
 		DSF_Frontend::get_instance();
+		DSF_Forms::get_instance();
 
 		// Initialize blocks.
 		DSF_Blocks::get_instance();
@@ -146,6 +148,10 @@ final class DesignStudio_Flow {
 				'background' => '#FFFFFF',
 			),
 			'dsf_enabled_post_types' => array( 'page', 'dsf_page' ),
+			'dsf_recaptcha_enabled'  => false,
+			'dsf_recaptcha_site_key' => '',
+			'dsf_recaptcha_secret_key' => '',
+			'dsf_recaptcha_threshold' => 0.5,
 		);
 
 		foreach ( $defaults as $key => $value ) {

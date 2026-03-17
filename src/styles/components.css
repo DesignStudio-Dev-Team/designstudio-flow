@@ -192,7 +192,7 @@
     transition: var(--dsf-transition-shadow);
   }
   
-  .dsf-block:hover {
+  #dsf-editor-app .dsf-block:hover {
     box-shadow: var(--dsf-shadow-block-hover);
   }
   
@@ -617,6 +617,14 @@
 
 .dsf-modal--drawer.dsf-modal-leave-to .dsf-modal__panel {
   transform: translateX(24px);
+}
+
+.dsf-layout-template {
+  width: 100%;
+}
+
+.dsf-layout-template .dsf-frontend-blocks {
+  width: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {

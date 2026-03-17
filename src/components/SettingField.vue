@@ -186,6 +186,34 @@
       :modelValue="value"
       @update:modelValue="$emit('update', $event)"
     />
+
+    <!-- Simple Links -->
+    <SimpleLinksField
+      v-else-if="config.type === 'simple_links'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+
+    <!-- Mega Menu -->
+    <MegaMenuField
+      v-else-if="config.type === 'mega_menu'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+
+    <!-- Footer dealers -->
+    <FooterDealersField
+      v-else-if="config.type === 'footer_dealers'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+
+    <!-- Mobile stores -->
+    <MobileStoresField
+      v-else-if="config.type === 'mobile_stores'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
     
     <!-- Helper Text -->
     <p v-if="config.helper" class="dsf-helper-text">{{ config.helper }}</p>
@@ -203,6 +231,10 @@ import RepeaterField from './common/RepeaterField.vue'
 import BrandRepeaterField from './common/BrandRepeaterField.vue'
 import TestimonialsRepeaterField from './common/TestimonialsRepeaterField.vue'
 import WysiwygField from './common/WysiwygField.vue'
+import SimpleLinksField from './common/SimpleLinksField.vue'
+import MegaMenuField from './common/MegaMenuField.vue'
+import FooterDealersField from './common/FooterDealersField.vue'
+import MobileStoresField from './common/MobileStoresField.vue'
 
 const props = defineProps({
   config: Object,

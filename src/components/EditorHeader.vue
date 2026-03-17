@@ -7,7 +7,7 @@
           <img :src="logoUrl" alt="" />
         </div>
         <h1 class="dsf-header__title">DesignStudio Flow</h1>
-        <p class="dsf-header__subtitle">Build your WordPress Page with Artisanal Content Blocks</p>
+        <p class="dsf-header__subtitle">{{ subtitleText }}</p>
       </div>
     </div>
     
@@ -53,10 +53,20 @@
       
       <button 
         class="dsf-btn dsf-btn--secondary dsf-header__btn"
+        :disabled="postType === 'dsf_layout'"
         @click="$emit('preview')"
       >
         <Eye :size="16" />
-        Preview
+        {{ postType === 'dsf_layout' ? 'No Preview' : 'Preview' }}
+      </button>
+
+      <button
+        class="dsf-btn dsf-btn--secondary dsf-header__btn"
+        :disabled="postType === 'dsf_layout'"
+        @click="$emit('view')"
+      >
+        <ExternalLink :size="16" />
+        {{ postType === 'dsf_layout' ? 'No View' : 'View' }}
       </button>
       
       <button 
@@ -65,7 +75,7 @@
         @click="$emit('save')"
       >
         <Save :size="16" />
-        {{ isSaving ? 'Saving...' : 'Save Page' }}
+        {{ isSaving ? 'Saving...' : saveLabel }}
       </button>
     </div>
   </header>
@@ -73,19 +83,43 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Monitor, Tablet, Smartphone, Palette, Eye, Save } from 'lucide-vue-next'
+import { Monitor, Tablet, Smartphone, Palette, Eye, ExternalLink, Save } from 'lucide-vue-next'
 
-defineProps({
+const props = defineProps({
   title: String,
   isSaving: Boolean,
   previewMode: String,
+  postType: {
+    type: String,
+    default: 'dsf_page',
+  },
+  layoutType: {
+    type: String,
+    default: 'header',
+  },
 })
 
-defineEmits(['update:title', 'preview', 'save', 'set-preview-mode', 'open-theme'])
+defineEmits(['update:title', 'preview', 'view', 'save', 'set-preview-mode', 'open-theme'])
 
 const logoUrl = computed(() => {
   const baseUrl = window.dsfEditorData?.pluginUrl || ''
   return `${baseUrl}assets/images/dsflow-logo.png`
+})
+
+const subtitleText = computed(() => {
+  if (props.postType === 'dsf_layout') {
+    return props.layoutType === 'footer'
+      ? 'Build reusable footer templates for Flow pages'
+      : 'Build reusable header templates for Flow pages'
+  }
+  return 'Build your WordPress Page with Artisanal Content Blocks'
+})
+
+const saveLabel = computed(() => {
+  if (props.postType === 'dsf_layout') {
+    return props.layoutType === 'footer' ? 'Save Footer Template' : 'Save Header Template'
+  }
+  return 'Save Page'
 })
 </script>
 

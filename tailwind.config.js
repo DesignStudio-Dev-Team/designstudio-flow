@@ -4,7 +4,7 @@ export default {
   prefix: 'dsf-',
   
   // Only apply styles within our container - prevents global leakage
-  important: '#dsf-editor-app',
+  important: '.dsf-wrapper',
   
   content: [
     './src/**/*.{vue,js,ts,jsx,tsx}',

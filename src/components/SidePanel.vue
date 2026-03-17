@@ -14,13 +14,22 @@
     <!-- Tabs -->
     <div class="dsf-panel__tabs">
       <div class="dsf-segmented-control">
-        <button 
+        <button
           class="dsf-segmented-btn"
           :class="{ 'dsf-segmented-btn--active': activeTab === 'content' }"
           @click="activeTab = 'content'"
         >
           <FileText :size="14" />
           <span>Content</span>
+        </button>
+        <button
+          v-if="hasMobileTab"
+          class="dsf-segmented-btn"
+          :class="{ 'dsf-segmented-btn--active': activeTab === 'mobile' }"
+          @click="activeTab = 'mobile'"
+        >
+          <Smartphone :size="14" />
+          <span>Mobile</span>
         </button>
         <button 
           class="dsf-segmented-btn"
@@ -49,6 +58,21 @@
         <div class="dsf-settings-card">
           <template v-for="(config, key) in contentSettings" :key="key">
             <SettingField 
+              v-if="shouldShowField(key, block.settings)"
+              :config="config"
+              :field-key="key"
+              :value="block.settings[key]"
+              @update="(val) => updateSetting(key, val)"
+            />
+          </template>
+        </div>
+      </template>
+
+      <!-- Mobile Tab -->
+      <template v-if="activeTab === 'mobile' && hasMobileTab">
+        <div class="dsf-settings-card">
+          <template v-for="(config, key) in mobileSettings" :key="key">
+            <SettingField
               v-if="shouldShowField(key, block.settings)"
               :config="config"
               :field-key="key"
@@ -127,7 +151,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { X, FileText, Palette, ShoppingBag } from 'lucide-vue-next'
+import { X, FileText, Palette, ShoppingBag, Smartphone } from 'lucide-vue-next'
 import SettingField from './SettingField.vue'
 import { getResponsiveValue, setResponsiveValue } from '../utils/responsiveSettings'
 
@@ -155,6 +179,8 @@ const responsiveFieldVisibility = {
   gap: new Set(['bento-hero']),
 }
 
+const hasMobileTab = computed(() => blockId.value === 'header-mega-menu')
+
 const heightDefaultsByBlock = {
   'bento-hero': 400,
   'duo-hero': 500,
@@ -180,10 +206,19 @@ const contentSettings = computed(() => {
   ]
 
   return Object.fromEntries(
-    Object.entries(settings).filter(([key, config]) => 
-      !styleTypes.includes(config.type) && 
-      !styleKeys.includes(key)
+    Object.entries(settings).filter(([key, config]) =>
+      !styleTypes.includes(config.type) &&
+      !styleKeys.includes(key) &&
+      !(hasMobileTab.value && key.startsWith('mobile'))
     )
+  )
+})
+
+const mobileSettings = computed(() => {
+  if (!hasMobileTab.value) return {}
+  const settings = props.blockDefinition?.settings || {}
+  return Object.fromEntries(
+    Object.entries(settings).filter(([key]) => key.startsWith('mobile'))
   )
 })
 

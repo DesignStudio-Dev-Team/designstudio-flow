@@ -68,7 +68,7 @@
                 <img v-if="product.image" :src="product.image" :alt="product.name" />
                 <Package v-else :size="48" style="color: #CBD5E1;" />
                 <span v-if="product.onSale" class="dsf-showcase-product__badge">SALE</span>
-                <span class="dsf-showcase-product__hover-cta" aria-hidden="true">View details →</span>
+                <span v-if="!isEditor" class="dsf-showcase-product__hover-cta" aria-hidden="true">View details →</span>
               </div>
               <div class="dsf-showcase-product__info">
                 <div class="dsf-showcase-product__price" :style="priceStyle(product)">

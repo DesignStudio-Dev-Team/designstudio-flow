@@ -599,6 +599,14 @@ class DSF_Blocks {
 						'label'   => 'Box Background',
 						'default' => '#F5F5F4',
 					),
+					'boxImageSize'               => array(
+						'type'    => 'slider',
+						'label'   => 'Box Image Size',
+						'default' => 100,
+						'min'     => 30,
+						'max'     => 100,
+						'unit'    => '%',
+					),
 					'titleColor'                 => array(
 						'type'    => 'color',
 						'label'   => 'Title Color',

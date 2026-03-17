@@ -49,13 +49,13 @@ class DSF_Frontend {
 			return;
 		}
 
-		$post = get_post( $post_id );
-		if ( ! $post ) {
+		$current_post = get_post( $post_id );
+		if ( ! $current_post ) {
 			return;
 		}
 
 		// Check if this is a Flow page or has Flow blocks
-		$is_flow = 'dsf_page' === $post->post_type || get_post_meta( $post_id, '_dsf_enabled', true );
+		$is_flow = 'dsf_page' === $current_post->post_type || get_post_meta( $post_id, '_dsf_enabled', true );
 
 		if ( ! $is_flow ) {
 			return;
@@ -64,21 +64,21 @@ class DSF_Frontend {
 		// Production or development mode
 		$is_dev = defined( 'DSF_DEV_MODE' ) && DSF_DEV_MODE;
 
-		$frontend_css_version   = $this->get_asset_version( 'assets/css/FrontendApp.css' );
+		$main_css_version       = $this->get_asset_version( 'assets/css/main.css' );
 		$frontend_theme_version = $this->get_asset_version( 'assets/css/frontend.css' );
 		$frontend_js_version    = $this->get_asset_version( 'assets/js/frontend.js' );
 
 		wp_enqueue_style(
-			'dsf-frontend-app',
-			DSF_PLUGIN_URL . 'assets/css/FrontendApp.css',
+			'dsf-main',
+			DSF_PLUGIN_URL . 'assets/css/main.css',
 			array(),
-			$frontend_css_version
+			$main_css_version
 		);
 
 		wp_enqueue_style(
 			'dsf-frontend',
 			DSF_PLUGIN_URL . 'assets/css/frontend.css',
-			array( 'dsf-frontend-app' ),
+			array( 'dsf-main' ),
 			$frontend_theme_version
 		);
 
@@ -290,7 +290,7 @@ class DSF_Frontend {
 
 		$output  = '<div class="' . esc_attr( $outer_class ) . '" style="' . esc_attr( $theme_style ) . '">';
 		$output .= '<div class="' . esc_attr( $inner_class ) . '">';
-		$output .= '<div id="dsf-frontend-app" data-post-id="' . intval( $post_id ) . '">';
+		$output .= '<div id="dsf-frontend-app" class="dsf-wrapper" data-post-id="' . intval( $post_id ) . '">';
 		if ( ! empty( $snapshot ) ) {
 			$output .= $snapshot;
 		}

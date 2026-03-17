@@ -45,7 +45,7 @@ class DSF_Editor {
 	}
 
 	/**
-	 * Handle redirect to editor when editing a Flow Page
+	 * Handle redirect to editor when editing a DesignStudio Flow Page
 	 */
 	public function handle_editor_redirect() {
 		global $pagenow;
@@ -53,15 +53,37 @@ class DSF_Editor {
 		$post_id = filter_input( INPUT_GET, 'post', FILTER_VALIDATE_INT );
 		$action  = filter_input( INPUT_GET, 'action', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		$action  = $action ? sanitize_key( $action ) : '';
+		$post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$post_type = $post_type ? sanitize_key( $post_type ) : '';
 
 		if ( 'post.php' === $pagenow && $post_id && 'edit' === $action ) {
 			$post_id   = intval( $post_id );
 			$post_type = get_post_type( $post_id );
 
-			if ( 'dsf_page' === $post_type ) {
+			if ( in_array( $post_type, array( 'dsf_page', 'dsf_layout' ), true ) ) {
 				wp_safe_redirect( admin_url( 'admin.php?page=dsf-editor&post_id=' . $post_id ) );
 				exit;
 			}
+		}
+
+		if ( 'post-new.php' === $pagenow && in_array( $post_type, array( 'dsf_page', 'dsf_layout' ), true ) ) {
+			$layout_type = filter_input( INPUT_GET, 'dsf_layout_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+			$layout_type = $layout_type ? sanitize_key( $layout_type ) : 'header';
+			if ( ! in_array( $layout_type, array( 'header', 'footer' ), true ) ) {
+				$layout_type = 'header';
+			}
+
+			$redirect_url = add_query_arg(
+				array(
+					'page'            => 'dsf-editor',
+					'post_type'       => $post_type,
+					'dsf_layout_type' => $layout_type,
+				),
+				admin_url( 'admin.php' )
+			);
+
+			wp_safe_redirect( $redirect_url );
+			exit;
 		}
 	}
 
@@ -71,8 +93,8 @@ class DSF_Editor {
 	public function add_editor_page() {
 		add_submenu_page(
 			null, // Hidden from menu
-			__( 'Edit with Flow', 'designstudio-flow' ),
-			__( 'Edit with Flow', 'designstudio-flow' ),
+			__( 'Edit with DSFlow', 'designstudio-flow' ),
+			__( 'Edit with DSFlow', 'designstudio-flow' ),
 			'edit_pages',
 			'dsf-editor',
 			array( $this, 'render_editor_page' )
@@ -112,13 +134,21 @@ class DSF_Editor {
 			);
 		} else {
 			$editor_css_version = $this->get_asset_version( 'assets/css/editor.css' );
+			$main_css_version   = $this->get_asset_version( 'assets/css/main.css' );
 			$editor_js_version  = $this->get_asset_version( 'assets/js/editor.js' );
 
 			// Production - load built assets
 			wp_enqueue_style(
+				'dsf-main',
+				DSF_PLUGIN_URL . 'assets/css/main.css',
+				array(),
+				$main_css_version
+			);
+
+			wp_enqueue_style(
 				'dsf-editor',
 				DSF_PLUGIN_URL . 'assets/css/editor.css',
-				array(),
+				array( 'dsf-main' ),
 				$editor_css_version
 			);
 
@@ -135,6 +165,19 @@ class DSF_Editor {
 		$post_id = filter_input( INPUT_GET, 'post_id', FILTER_VALIDATE_INT );
 		$post_id = $post_id ? intval( $post_id ) : 0;
 		$post    = $post_id ? get_post( $post_id ) : null;
+		$post_type = $post ? $post->post_type : '';
+		if ( ! $post_type ) {
+			$query_post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+			$post_type       = $query_post_type ? sanitize_key( $query_post_type ) : 'dsf_page';
+		}
+		if ( ! in_array( $post_type, array( 'dsf_page', 'dsf_layout' ), true ) ) {
+			$post_type = 'dsf_page';
+		}
+
+		$layout_type = $this->get_layout_type( $post_id );
+		$preview_url = ( $post_id && 'dsf_page' === $post_type ) ? get_preview_post_link( $post_id ) : '';
+		$view_url    = ( $post_id && 'dsf_page' === $post_type ) ? get_permalink( $post_id ) : '';
+		$post_status = $post ? $post->post_status : 'draft';
 
 		wp_localize_script(
 			'dsf-editor',
@@ -146,14 +189,24 @@ class DSF_Editor {
 				'restNonce'   => wp_create_nonce( 'wp_rest' ),
 				'postId'      => $post_id,
 				'postTitle'   => $post ? $post->post_title : '',
+				'postType'    => $post_type,
+				'layoutType'  => $layout_type,
 				'pageData'    => $this->get_page_data( $post_id ),
+				'layoutTemplates' => $this->get_layout_templates(),
+				'layoutCreateUrls' => array(
+					'header' => admin_url( 'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=header' ),
+					'footer' => admin_url( 'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=footer' ),
+				),
 				'blocks'      => DSF_Blocks::get_instance()->get_registered_blocks(),
+				'forms'       => $this->get_available_forms(),
 				'categories'  => $this->get_wc_categories(),
 				'themeFonts'  => $this->get_theme_fonts(),
 				'pluginUrl'   => DSF_PLUGIN_URL,
 				'homeUrl'     => home_url(),
 				'adminUrl'    => admin_url(),
-				'previewUrl'  => $post_id ? get_preview_post_link( $post_id ) : '',
+				'previewUrl'  => $preview_url,
+				'viewUrl'     => $view_url,
+				'postStatus'  => $post_status,
 				'isWooActive' => class_exists( 'WooCommerce' ),
 			)
 		);
@@ -230,13 +283,33 @@ class DSF_Editor {
 
 		// Create new page if no ID
 		if ( ! $post_id ) {
+			$post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+			$post_type = $post_type ? sanitize_key( $post_type ) : 'dsf_page';
+			if ( ! in_array( $post_type, array( 'dsf_page', 'dsf_layout' ), true ) ) {
+				$post_type = 'dsf_page';
+			}
+
+			$layout_type = filter_input( INPUT_GET, 'dsf_layout_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+			$layout_type = $layout_type ? sanitize_key( $layout_type ) : 'header';
+			if ( ! in_array( $layout_type, array( 'header', 'footer' ), true ) ) {
+				$layout_type = 'header';
+			}
+
+			$default_title = 'dsf_layout' === $post_type
+				? ( 'footer' === $layout_type ? __( 'Untitled DSFlow Footer', 'designstudio-flow' ) : __( 'Untitled DSFlow Header', 'designstudio-flow' ) )
+				: __( 'Untitled Page', 'designstudio-flow' );
+
 			$post_id = wp_insert_post(
 				array(
-					'post_type'   => 'dsf_page',
+					'post_type'   => $post_type,
 					'post_status' => 'draft',
-					'post_title'  => __( 'Untitled Page', 'designstudio-flow' ),
+					'post_title'  => $default_title,
 				)
 			);
+
+			if ( 'dsf_layout' === $post_type && $post_id ) {
+				update_post_meta( $post_id, '_dsf_layout_type', $layout_type );
+			}
 
 			wp_safe_redirect( admin_url( 'admin.php?page=dsf-editor&post_id=' . $post_id ) );
 			exit;
@@ -314,8 +387,92 @@ class DSF_Editor {
 				'contentPadding' => 10,
 				'showHeader'     => true,
 				'showFooter'     => true,
+				'headerTemplateId' => 0,
+				'footerTemplateId' => 0,
 				'template'       => 'default',
 			),
+		);
+	}
+
+	/**
+	 * Get current layout type for template posts.
+	 */
+	private function get_layout_type( $post_id ) {
+		if ( ! $post_id ) {
+			$layout_type = filter_input( INPUT_GET, 'dsf_layout_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+			$layout_type = $layout_type ? sanitize_key( $layout_type ) : '';
+		} else {
+			$layout_type = get_post_meta( $post_id, '_dsf_layout_type', true );
+			$layout_type = $layout_type ? sanitize_key( $layout_type ) : '';
+		}
+
+		return 'footer' === $layout_type ? 'footer' : 'header';
+	}
+
+	/**
+	 * Get available header/footer templates for page assignment UI.
+	 */
+	private function get_layout_templates() {
+		$templates = get_posts(
+			array(
+				'post_type'      => 'dsf_layout',
+				'posts_per_page' => -1,
+				'post_status'    => array( 'publish', 'draft' ),
+				'orderby'        => 'modified',
+				'order'          => 'DESC',
+			)
+		);
+
+		$result = array(
+			'headers' => array(),
+			'footers' => array(),
+		);
+
+		foreach ( $templates as $template ) {
+			$type = get_post_meta( $template->ID, '_dsf_layout_type', true );
+			$type = 'footer' === $type ? 'footer' : 'header';
+			$key  = 'footer' === $type ? 'footers' : 'headers';
+
+			$result[ $key ][] = array(
+				'id'       => intval( $template->ID ),
+				'title'    => $template->post_title ? $template->post_title : __( '(no title)', 'designstudio-flow' ),
+				'status'   => $template->post_status,
+				'editUrl'  => admin_url( 'admin.php?page=dsf-editor&post_id=' . intval( $template->ID ) ),
+				'modified' => get_post_modified_time( 'U', true, $template ),
+			);
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Get available DesignStudio Flow forms for block settings.
+	 */
+	private function get_available_forms() {
+		$forms = get_posts(
+			array(
+				'post_type'      => 'dsf_form',
+				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+				'posts_per_page' => -1,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+			)
+		);
+
+		if ( empty( $forms ) ) {
+			return array();
+		}
+
+		return array_map(
+			function ( $form ) {
+				return array(
+					'id'        => intval( $form->ID ),
+					'title'     => $form->post_title ? $form->post_title : __( '(no title)', 'designstudio-flow' ),
+					'status'    => $form->post_status,
+					'shortcode' => "[dsform id='" . intval( $form->ID ) . "']",
+				);
+			},
+			$forms
 		);
 	}
 

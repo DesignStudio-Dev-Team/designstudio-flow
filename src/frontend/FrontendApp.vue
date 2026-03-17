@@ -4,7 +4,7 @@
       v-for="block in blocks"
       :key="block.id"
       class="dsf-block"
-      :style="getBlockStyle(block.settings)"
+      :style="getBlockStyle(block)"
     >
       <component
         :is="getPreviewComponent(block.type)"
@@ -41,6 +41,10 @@ import PromoBannerPreview from '../components/blocks/PromoBannerPreview.vue'
 import FeaturedProductBannerPreview from '../components/blocks/FeaturedProductBannerPreview.vue'
 import DuoHeroPreview from '../components/blocks/DuoHeroPreview.vue'
 import FeaturedPromoBannerPreview from '../components/blocks/FeaturedPromoBannerPreview.vue'
+import HeaderMegaMenuPreview from '../components/blocks/HeaderMegaMenuPreview.vue'
+import HeaderCutoutMegaPreview from '../components/blocks/HeaderCutoutMegaPreview.vue'
+import FooterDealersPreview from '../components/blocks/FooterDealersPreview.vue'
+import FormEmbedPreview from '../components/blocks/FormEmbedPreview.vue'
 import GenericBlockPreview from '../components/blocks/GenericBlockPreview.vue'
 import FlowModal from '../components/common/FlowModal.vue'
 import { provideFlowModal } from '../components/common/useFlowModal'
@@ -69,6 +73,10 @@ const previewComponents = {
   'featured-product-banner': FeaturedProductBannerPreview,
   'duo-hero': DuoHeroPreview,
   'featured-promo-banner': FeaturedPromoBannerPreview,
+  'header-mega-menu': HeaderMegaMenuPreview,
+  'header-cutout-mega': HeaderCutoutMegaPreview,
+  'footer-dealers': FooterDealersPreview,
+  'form-embed': FormEmbedPreview,
 }
 
 function getPreviewComponent(blockType) {
@@ -117,10 +125,19 @@ function hasExplicitResponsiveValue(settings, key) {
   )
 }
 
-function getBlockStyle(settings) {
+function getDefaultMarginByType(blockType) {
+  if (blockType === 'header-mega-menu' || blockType === 'header-cutout-mega' || blockType === 'footer-dealers') {
+    return 0
+  }
+  return 25
+}
+
+function getBlockStyle(block) {
+  const settings = block?.settings || {}
+  const marginFallback = getDefaultMarginByType(block?.type)
   const style = {
-    marginTop: `${getResponsiveField(settings, 'marginY', 25)}px`,
-    marginBottom: `${getResponsiveField(settings, 'marginY', 25)}px`,
+    marginTop: `${getResponsiveField(settings, 'marginY', marginFallback)}px`,
+    marginBottom: `${getResponsiveField(settings, 'marginY', marginFallback)}px`,
     paddingLeft: `${getResponsiveField(settings, 'paddingX', 0)}px`,
     paddingRight: `${getResponsiveField(settings, 'paddingX', 0)}px`,
   }

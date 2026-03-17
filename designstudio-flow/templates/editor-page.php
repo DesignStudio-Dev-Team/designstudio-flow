@@ -56,7 +56,7 @@ show_admin_bar( false );
 	</style>
 </head>
 <body class="dsf-editor-body">
-	<div id="dsf-editor-app">
+	<div id="dsf-editor-app" class="dsf-wrapper">
 		<!-- Vue.js app mounts here -->
 		<div class="dsf-initial-loader">
 			<div class="dsf-loader-content">

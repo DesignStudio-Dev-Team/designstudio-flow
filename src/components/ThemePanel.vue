@@ -138,6 +138,34 @@
         </div>
       </div>
 
+      <div v-if="postType !== 'dsf_layout'" class="dsf-form-group">
+        <label class="dsf-label">Header Template</label>
+        <select
+          class="dsf-input"
+          :value="settings.layout?.headerTemplateId || 0"
+          @change="updateLayout('headerTemplateId', parseTemplateId($event.target.value))"
+        >
+          <option :value="0">Theme Default Header</option>
+          <option
+            v-for="template in headerTemplates"
+            :key="template.id"
+            :value="template.id"
+          >
+            {{ formatTemplateOption(template) }}
+          </option>
+        </select>
+        <p class="dsf-helper-text">Select a custom header for this page.</p>
+        <a
+          v-if="layoutCreateUrls?.header"
+          class="dsf-theme-panel-link"
+          :href="layoutCreateUrls.header"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Create Header Template
+        </a>
+      </div>
+
       <div class="dsf-form-group">
         <label class="dsf-label">Show Footer</label>
         <div class="dsf-flex dsf-items-center dsf-justify-between">
@@ -153,20 +181,64 @@
           </button>
         </div>
       </div>
+
+      <div v-if="postType !== 'dsf_layout'" class="dsf-form-group">
+        <label class="dsf-label">Footer Template</label>
+        <select
+          class="dsf-input"
+          :value="settings.layout?.footerTemplateId || 0"
+          @change="updateLayout('footerTemplateId', parseTemplateId($event.target.value))"
+        >
+          <option :value="0">Theme Default Footer</option>
+          <option
+            v-for="template in footerTemplates"
+            :key="template.id"
+            :value="template.id"
+          >
+            {{ formatTemplateOption(template) }}
+          </option>
+        </select>
+        <p class="dsf-helper-text">Select a custom footer for this page.</p>
+        <a
+          v-if="layoutCreateUrls?.footer"
+          class="dsf-theme-panel-link"
+          :href="layoutCreateUrls.footer"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Create Footer Template
+        </a>
+      </div>
     </div>
   </aside>
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { X, Type } from 'lucide-vue-next'
 import ColorPicker from './common/ColorPicker.vue'
 import FontPicker from './common/FontPicker.vue'
 
 const props = defineProps({
   settings: Object,
+  postType: {
+    type: String,
+    default: 'dsf_page',
+  },
+  layoutTemplates: {
+    type: Object,
+    default: () => ({ headers: [], footers: [] }),
+  },
+  layoutCreateUrls: {
+    type: Object,
+    default: () => ({}),
+  },
 })
 
 const emit = defineEmits(['close', 'update:settings'])
+
+const headerTemplates = computed(() => props.layoutTemplates?.headers || [])
+const footerTemplates = computed(() => props.layoutTemplates?.footers || [])
 
 function updateTheme(key, value) {
   emit('update:settings', {
@@ -185,4 +257,30 @@ function updateLayout(key, value) {
     },
   })
 }
+
+function parseTemplateId(value) {
+  const parsed = parseInt(value, 10)
+  return Number.isNaN(parsed) ? 0 : parsed
+}
+
+function formatTemplateOption(template) {
+  if (!template?.status || template.status === 'publish') {
+    return template?.title || 'Untitled template'
+  }
+  return `${template?.title || 'Untitled template'} (${template.status})`
+}
 </script>
+
+<style scoped>
+.dsf-theme-panel-link {
+  display: inline-flex;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--dsf-primary-600);
+  text-decoration: none;
+}
+
+.dsf-theme-panel-link:hover {
+  text-decoration: underline;
+}
+</style>

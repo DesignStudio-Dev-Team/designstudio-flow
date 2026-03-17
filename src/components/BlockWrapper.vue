@@ -55,6 +55,10 @@ import PromoBannerPreview from './blocks/PromoBannerPreview.vue'
 import FeaturedProductBannerPreview from './blocks/FeaturedProductBannerPreview.vue'
 import DuoHeroPreview from './blocks/DuoHeroPreview.vue'
 import FeaturedPromoBannerPreview from './blocks/FeaturedPromoBannerPreview.vue'
+import HeaderMegaMenuPreview from './blocks/HeaderMegaMenuPreview.vue'
+import HeaderCutoutMegaPreview from './blocks/HeaderCutoutMegaPreview.vue'
+import FooterDealersPreview from './blocks/FooterDealersPreview.vue'
+import FormEmbedPreview from './blocks/FormEmbedPreview.vue'
 import GenericBlockPreview from './blocks/GenericBlockPreview.vue'
 
 const props = defineProps({
@@ -84,14 +88,24 @@ const previewComponents = {
   'featured-product-banner': FeaturedProductBannerPreview,
   'duo-hero': DuoHeroPreview,
   'featured-promo-banner': FeaturedPromoBannerPreview,
+  'header-mega-menu': HeaderMegaMenuPreview,
+  'header-cutout-mega': HeaderCutoutMegaPreview,
+  'footer-dealers': FooterDealersPreview,
+  'form-embed': FormEmbedPreview,
 }
 
 function getPreviewComponent(blockType) {
   return previewComponents[blockType] || GenericBlockPreview
 }
 
+const templateBlockTypes = new Set(['header-mega-menu', 'header-cutout-mega', 'footer-dealers'])
+
+const defaultMargin = computed(() => (
+  templateBlockTypes.has(props.block?.type) ? 0 : 25
+))
+
 const marginY = computed(() =>
-  getResponsiveValue(props.block?.settings || {}, props.previewMode, 'marginY') ?? 25
+  getResponsiveValue(props.block?.settings || {}, props.previewMode, 'marginY') ?? defaultMargin.value
 )
 
 const paddingX = computed(() =>

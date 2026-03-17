@@ -112,13 +112,21 @@ class DSF_Editor {
 			);
 		} else {
 			$editor_css_version = $this->get_asset_version( 'assets/css/editor.css' );
+			$main_css_version   = $this->get_asset_version( 'assets/css/main.css' );
 			$editor_js_version  = $this->get_asset_version( 'assets/js/editor.js' );
 
 			// Production - load built assets
 			wp_enqueue_style(
+				'dsf-main',
+				DSF_PLUGIN_URL . 'assets/css/main.css',
+				array(),
+				$main_css_version
+			);
+
+			wp_enqueue_style(
 				'dsf-editor',
 				DSF_PLUGIN_URL . 'assets/css/editor.css',
-				array(),
+				array( 'dsf-main' ),
 				$editor_css_version
 			);
 

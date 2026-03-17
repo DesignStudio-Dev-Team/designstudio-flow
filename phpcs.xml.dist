@@ -31,4 +31,5 @@
 	<exclude-pattern>/assets/*</exclude-pattern>
 	<exclude-pattern>/.github/*</exclude-pattern>
 	<exclude-pattern>/scripts/*</exclude-pattern>
+	<exclude-pattern>/build/*</exclude-pattern>
 </ruleset>

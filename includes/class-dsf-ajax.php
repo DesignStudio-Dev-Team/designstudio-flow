@@ -70,6 +70,8 @@ class DSF_Ajax {
 		$settings      = isset( $_POST['settings'] ) ? $_POST['settings'] : '{}';
 		$html_snapshot = isset( $_POST['html_snapshot'] ) ? wp_unslash( $_POST['html_snapshot'] ) : '';
 		$status        = isset( $_POST['status'] ) ? sanitize_key( $_POST['status'] ) : '';
+		$title         = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+		$layout_type   = isset( $_POST['layout_type'] ) ? sanitize_key( wp_unslash( $_POST['layout_type'] ) ) : '';
 
 		if ( ! $post_id ) {
 			wp_send_json_error( array( 'message' => 'Invalid post ID' ) );
@@ -100,6 +102,14 @@ class DSF_Ajax {
 			update_post_meta( $post_id, '_dsf_enabled', true );
 		}
 
+		if ( 'dsf_layout' === $post_type ) {
+			if ( ! in_array( $layout_type, array( 'header', 'footer' ), true ) ) {
+				$layout_type = get_post_meta( $post_id, '_dsf_layout_type', true );
+			}
+			$layout_type = 'footer' === $layout_type ? 'footer' : 'header';
+			update_post_meta( $post_id, '_dsf_layout_type', $layout_type );
+		}
+
 		// Update modified time and status (if requested)
 		$post_update = array(
 			'ID'                => $post_id,
@@ -107,19 +117,35 @@ class DSF_Ajax {
 			'post_modified_gmt' => current_time( 'mysql', 1 ),
 		);
 
+		if ( '' !== $title ) {
+			$post_update['post_title'] = $title;
+		}
+
 		if ( 'draft' === $status ) {
 			$current_status = get_post_status( $post_id );
 			if ( $current_status && 'publish' !== $current_status ) {
 				$post_update['post_status'] = 'draft';
 			}
+		} elseif ( 'publish' === $status ) {
+			$post_update['post_status'] = 'publish';
 		}
 
 		wp_update_post( $post_update );
 
+		$post_status = get_post_status( $post_id );
+		$post_title  = get_the_title( $post_id );
+		$post_type   = get_post_type( $post_id );
+		$permalink   = 'dsf_page' === $post_type ? get_permalink( $post_id ) : '';
+		$preview_url = 'dsf_page' === $post_type ? get_preview_post_link( $post_id ) : '';
+
 		wp_send_json_success(
 			array(
-				'message' => 'Page saved successfully',
-				'post_id' => $post_id,
+				'message'    => 'Page saved successfully',
+				'post_id'    => $post_id,
+				'post_status'=> $post_status,
+				'post_title' => $post_title,
+				'permalink'  => $permalink,
+				'preview_url'=> $preview_url,
 			)
 		);
 	}

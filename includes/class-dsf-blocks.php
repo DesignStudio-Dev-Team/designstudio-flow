@@ -514,17 +514,31 @@ class DSF_Blocks {
 						'label'   => 'Box 5 URL',
 						'default' => '#',
 					),
+					// CTA Box / Extra Box Toggle
+					'ctaType'                    => array(
+						'type'    => 'select',
+						'label'   => 'CTA Type',
+						'default' => 'cta',
+						'options' => array(
+							'Shop All CTA' => 'cta',
+							'Extra Box'    => 'box',
+						),
+					),
 					// CTA Box
 					'ctaText'                    => array(
 						'type'    => 'text',
 						'label'   => 'CTA Text',
 						'default' => 'Shop All',
+						'showWhen' => array( 'ctaType' => 'cta' ),
 					),
 					'ctaUrl'                     => array(
 						'type'     => 'text',
 						'label'    => 'CTA URL',
 						'default'  => '/shop',
-						'showWhen' => array( 'ctaAction' => 'link' ),
+						'showWhen' => array(
+							'ctaType'   => 'cta',
+							'ctaAction' => 'link',
+						),
 					),
 					'ctaAction'                  => array(
 						'type'    => 'select',
@@ -534,6 +548,7 @@ class DSF_Blocks {
 							'Link'       => 'link',
 							'Open Modal' => 'modal',
 						),
+						'showWhen' => array( 'ctaType' => 'cta' ),
 					),
 					'ctaModalLayout'             => array(
 						'type'     => 'select',
@@ -543,7 +558,10 @@ class DSF_Blocks {
 							'Center'       => 'center',
 							'Right Drawer' => 'drawer',
 						),
-						'showWhen' => array( 'ctaAction' => 'modal' ),
+						'showWhen' => array(
+							'ctaType'   => 'cta',
+							'ctaAction' => 'modal',
+						),
 					),
 					'ctaModalContentType'        => array(
 						'type'     => 'select',
@@ -554,13 +572,17 @@ class DSF_Blocks {
 							'HTML'      => 'html',
 							'Shortcode' => 'shortcode',
 						),
-						'showWhen' => array( 'ctaAction' => 'modal' ),
+						'showWhen' => array(
+							'ctaType'   => 'cta',
+							'ctaAction' => 'modal',
+						),
 					),
 					'ctaModalContent'            => array(
 						'type'     => 'wysiwyg',
 						'label'    => 'Modal Content',
 						'default'  => '',
 						'showWhen' => array(
+							'ctaType'             => 'cta',
 							'ctaAction'           => 'modal',
 							'ctaModalContentType' => 'wysiwyg',
 						),
@@ -570,6 +592,7 @@ class DSF_Blocks {
 						'label'    => 'Modal HTML',
 						'default'  => '',
 						'showWhen' => array(
+							'ctaType'             => 'cta',
 							'ctaAction'           => 'modal',
 							'ctaModalContentType' => 'html',
 						),
@@ -579,6 +602,7 @@ class DSF_Blocks {
 						'label'    => 'Modal Shortcode',
 						'default'  => '',
 						'showWhen' => array(
+							'ctaType'             => 'cta',
 							'ctaAction'           => 'modal',
 							'ctaModalContentType' => 'shortcode',
 						),
@@ -587,17 +611,46 @@ class DSF_Blocks {
 						'type'    => 'color',
 						'label'   => 'CTA Background',
 						'default' => '#2C5F5D',
+						'showWhen' => array( 'ctaType' => 'cta' ),
 					),
 					'ctaTextColor'               => array(
 						'type'    => 'color',
 						'label'   => 'CTA Text Color',
 						'default' => '#FFFFFF',
+						'showWhen' => array( 'ctaType' => 'cta' ),
+					),
+					// Extra Box (Box 6)
+					'box6Image'                  => array(
+						'type'     => 'image',
+						'label'    => 'Box 6 Image',
+						'default'  => '',
+						'showWhen' => array( 'ctaType' => 'box' ),
+					),
+					'box6Title'                  => array(
+						'type'     => 'text',
+						'label'    => 'Box 6 Title',
+						'default'  => 'Box 6 Title',
+						'showWhen' => array( 'ctaType' => 'box' ),
+					),
+					'box6Url'                    => array(
+						'type'     => 'text',
+						'label'    => 'Box 6 URL',
+						'default'  => '#',
+						'showWhen' => array( 'ctaType' => 'box' ),
 					),
 					// Style
 					'boxBackground'              => array(
 						'type'    => 'color',
 						'label'   => 'Box Background',
 						'default' => '#F5F5F4',
+					),
+					'boxImageSize'               => array(
+						'type'    => 'slider',
+						'label'   => 'Box Image Size',
+						'default' => 100,
+						'min'     => 30,
+						'max'     => 100,
+						'unit'    => '%',
 					),
 					'titleColor'                 => array(
 						'type'    => 'color',
@@ -1364,6 +1417,46 @@ class DSF_Blocks {
 			)
 		);
 
+		$this->register_block(
+			array(
+				'id'          => 'form-embed',
+				'name'        => 'Form',
+				'category'    => 'content',
+				'icon'        => 'list-checks',
+				'description' => 'Embed a DesignStudio Flow form',
+				'settings'    => array(
+					'formId'    => array(
+						'type'    => 'select',
+						'label'   => 'Form',
+						'default' => '',
+						'options' => array(
+							'Select a form' => '',
+						),
+					),
+					'showTitle' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Block Title',
+						'default' => false,
+					),
+					'title'     => array(
+						'type'     => 'text',
+						'label'    => 'Block Title',
+						'default'  => '',
+						'showWhen' => array(
+							'showTitle' => true,
+						),
+					),
+					'marginY'   => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
 		// ECOMMERCE Category
 		$this->register_block(
 			array(
@@ -2048,6 +2141,982 @@ class DSF_Blocks {
 						'type'    => 'slider',
 						'label'   => 'Vertical Margin',
 						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'header-mega-menu',
+				'name'        => 'Header Mega Menu',
+				'category'    => 'content',
+				'template_scope' => 'header',
+				'icon'        => 'layout-template',
+				'description' => 'Two-row header with utility links, icon actions, and configurable mega menus',
+				'settings'    => array(
+					'utilityLinks'       => array(
+						'type'    => 'simple_links',
+						'label'   => 'Utility Links',
+						'default' => array(
+							array(
+								'label' => 'Test',
+								'url'   => '#',
+							),
+							array(
+								'label' => 'About',
+								'url'   => '#',
+							),
+						),
+					),
+					'logoText'           => array(
+						'type'    => 'text',
+						'label'   => 'Logo Text',
+						'default' => 'DESIGNSTUDIO',
+					),
+					'logoImage'          => array(
+						'type'    => 'image',
+						'label'   => 'Logo Image',
+						'default' => '',
+					),
+					'logoImageSize'      => array(
+						'type'    => 'slider',
+						'label'   => 'Logo Image Size',
+						'default' => 100,
+						'min'     => 30,
+						'max'     => 100,
+						'unit'    => '%',
+					),
+					'homeUrl'            => array(
+						'type'    => 'text',
+						'label'   => 'Logo URL',
+						'default' => '/',
+					),
+					'showLanguage'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Language Icon',
+						'default' => false,
+					),
+					'showSearch'         => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Search Icon',
+						'default' => true,
+					),
+					'showAccount'        => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Account Icon',
+						'default' => true,
+					),
+					'showCart'           => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Cart Icon',
+						'default' => true,
+					),
+					'cartCount'          => array(
+						'type'    => 'number',
+						'label'   => 'Cart Count',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 99,
+					),
+					'menuItems'          => array(
+						'type'    => 'mega_menu',
+						'label'   => 'Primary Menu + Mega Menu Content',
+						'default' => array(
+							array(
+								'label'   => 'PRODUCT LINE 1',
+								'url'     => '#',
+								'hasMega' => true,
+								'columns' => array(
+									array(
+										'heading' => 'Sub Heading 1',
+										'imageLinks' => true,
+										'imageColumns' => 2,
+										'links'   => array(
+											array(
+												'label' => 'Link 1',
+												'url'   => '#',
+											),
+											array(
+												'label' => 'Link 2',
+												'url'   => '#',
+											),
+										),
+									),
+									array(
+										'heading' => 'Sub Heading 2',
+										'imageLinks' => false,
+										'imageColumns' => 2,
+										'links'   => array(
+											array(
+												'label' => 'This is Long Title',
+												'url'   => '#',
+											),
+											array(
+												'label' => 'Link 2',
+												'url'   => '#',
+											),
+										),
+									),
+									array(
+										'heading' => 'Sub Heading 3',
+										'imageLinks' => false,
+										'imageColumns' => 2,
+										'links'   => array(
+											array(
+												'label' => 'Link 1',
+												'url'   => '#',
+											),
+											array(
+												'label' => 'Link 2',
+												'url'   => '#',
+											),
+										),
+									),
+									array(
+										'heading' => 'Sub Heading 4',
+										'imageLinks' => false,
+										'imageColumns' => 2,
+										'links'   => array(
+											array(
+												'label' => 'Link 1',
+												'url'   => '#',
+											),
+											array(
+												'label' => 'Link 2',
+												'url'   => '#',
+											),
+										),
+									),
+								),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+							array(
+								'label'   => 'PRODUCT LINE 2',
+								'url'     => '#',
+								'hasMega' => true,
+								'columns' => array(
+									array(
+										'heading' => 'Sub Heading',
+										'imageLinks' => false,
+										'imageColumns' => 2,
+										'links'   => array(
+											array(
+												'label' => 'Link A',
+												'url'   => '#',
+											),
+											array(
+												'label' => 'Link B',
+												'url'   => '#',
+											),
+										),
+									),
+								),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+							array(
+								'label'   => 'PRODUCT LINE 3',
+								'url'     => '#',
+								'hasMega' => false,
+								'columns' => array(),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+							array(
+								'label'   => 'PRODUCT LINE 4',
+								'url'     => '#',
+								'hasMega' => false,
+								'columns' => array(),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+							array(
+								'label'   => 'PROMOTIONS',
+								'url'     => '#',
+								'hasMega' => false,
+								'columns' => array(),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+							array(
+								'label'   => 'SHOP ONLINE',
+								'url'     => '#',
+								'hasMega' => false,
+								'columns' => array(),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+						),
+					),
+					'mobileMenuItems'    => array(
+						'type'    => 'mega_menu',
+						'label'   => 'Mobile Menu Content',
+						'default' => array(),
+						'helper'  => 'Defaults to your desktop menu until you customize it.',
+					),
+					'mobileShowFindLocation' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Find Location (Mobile)',
+						'default' => true,
+					),
+					'mobileFindLabel' => array(
+						'type'    => 'text',
+						'label'   => 'Find Location Label',
+						'default' => 'Find a Store',
+					),
+					'mobileFindPopupTitle' => array(
+						'type'    => 'text',
+						'label'   => 'Find Location Popup Title',
+						'default' => 'Find your closest store',
+					),
+					'mobileStores'       => array(
+						'type'    => 'mobile_stores',
+						'label'   => 'Find Location Stores',
+						'default' => array(
+							array(
+								'title'       => 'New Hampton',
+								'address'     => "5008 Route 17M\nNew Hampton, New York 10958",
+								'mapsLabel'   => 'Open in Google Maps',
+								'mapsUrl'     => '#',
+								'buttonLabel' => 'Set as Default',
+								'buttonUrl'   => '#',
+							),
+							array(
+								'title'       => 'Newburgh',
+								'address'     => "49 Route 17K\nNewburgh, New York 12550",
+								'mapsLabel'   => 'Open in Google Maps',
+								'mapsUrl'     => '#',
+								'buttonLabel' => 'Set as Default',
+								'buttonUrl'   => '#',
+							),
+						),
+					),
+					'mobilePhoneNumber'  => array(
+						'type'    => 'text',
+						'label'   => 'Mobile Phone Label',
+						'default' => '845-374-3969',
+					),
+					'mobilePhoneUrl'     => array(
+						'type'    => 'text',
+						'label'   => 'Mobile Phone URL',
+						'default' => 'tel:+18453743969',
+					),
+					'mobilePhonePosition' => array(
+						'type'    => 'select',
+						'label'   => 'Mobile Phone Position',
+						'default' => 'bottom',
+						'options' => array(
+							'Top'    => 'top',
+							'Bottom' => 'bottom',
+							'Hidden' => 'hidden',
+						),
+					),
+					'mobileMenuBackground' => array(
+						'type'    => 'color',
+						'label'   => 'Mobile Menu Background',
+						'default' => '#27357A',
+					),
+					'mobileMenuTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Mobile Menu Text Color',
+						'default' => '#FFFFFF',
+					),
+					'mobileMenuDividerColor' => array(
+						'type'    => 'color',
+						'label'   => 'Mobile Menu Divider Color',
+						'default' => '#3C4A93',
+					),
+					'mobileMenuTopBackground' => array(
+						'type'    => 'color',
+						'label'   => 'Mobile Menu Top Background',
+						'default' => '#FFFFFF',
+					),
+					'mobileMenuTopTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Mobile Menu Top Text Color',
+						'default' => '#1F2A44',
+					),
+					'mobileMenuButtonBackground' => array(
+						'type'    => 'color',
+						'label'   => 'Mobile Phone Button Background',
+						'default' => '#3C6FB2',
+					),
+					'mobileMenuButtonTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Mobile Phone Button Text Color',
+						'default' => '#FFFFFF',
+					),
+					'mobileFindModalBackground' => array(
+						'type'    => 'color',
+						'label'   => 'Find Modal Background',
+						'default' => '#FFFFFF',
+					),
+					'mobileFindModalTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Find Modal Text Color',
+						'default' => '#1F2A44',
+					),
+					'mobileFindModalLinkColor' => array(
+						'type'    => 'color',
+						'label'   => 'Find Modal Link Color',
+						'default' => '#2C3D87',
+					),
+					'mobileFindModalMapsLinkColor' => array(
+						'type'    => 'color',
+						'label'   => 'Find Modal Maps Link Color',
+						'default' => '#2C3D87',
+					),
+					'mobileFindModalButtonBackground' => array(
+						'type'    => 'color',
+						'label'   => 'Find Modal Button Background',
+						'default' => '#2C3D87',
+					),
+					'mobileFindModalButtonText' => array(
+						'type'    => 'color',
+						'label'   => 'Find Modal Button Text Color',
+						'default' => '#FFFFFF',
+					),
+					'topBarBackground'   => array(
+						'type'    => 'color',
+						'label'   => 'Top Bar Background',
+						'default' => '#EFEFF1',
+					),
+					'topBarTextColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Top Bar Text Color',
+						'default' => '#2C6B34',
+					),
+					'logoColor'          => array(
+						'type'    => 'color',
+						'label'   => 'Logo Text Color',
+						'default' => '#111827',
+					),
+					'iconBackground'     => array(
+						'type'    => 'color',
+						'label'   => 'Action Icon Background',
+						'default' => '#2C6B34',
+					),
+					'iconColor'          => array(
+						'type'    => 'color',
+						'label'   => 'Action Icon Color',
+						'default' => '#FFFFFF',
+					),
+					'mainNavBackground'  => array(
+						'type'    => 'color',
+						'label'   => 'Main Nav Background',
+						'default' => '#2C6B34',
+					),
+					'mainNavTextColor'   => array(
+						'type'    => 'color',
+						'label'   => 'Main Nav Text Color',
+						'default' => '#FFFFFF',
+					),
+					'mainNavBorderColor' => array(
+						'type'    => 'color',
+						'label'   => 'Main Nav Divider Color',
+						'default' => '#5E8A62',
+					),
+					'activeNavBackground' => array(
+						'type'    => 'color',
+						'label'   => 'Active Nav Background',
+						'default' => '#FFFFFF',
+					),
+					'activeNavTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Active Nav Text Color',
+						'default' => '#111827',
+					),
+					'megaBackground'     => array(
+						'type'    => 'color',
+						'label'   => 'Mega Menu Background',
+						'default' => '#FFFFFF',
+					),
+					'megaHeadingColor'   => array(
+						'type'    => 'color',
+						'label'   => 'Mega Menu Heading Color',
+						'default' => '#111827',
+					),
+					'megaLinkColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Mega Menu Link Color',
+						'default' => '#374151',
+					),
+					'megaBorderColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Mega Menu Border Color',
+						'default' => '#E5E7EB',
+					),
+					'megaBrandImageSize' => array(
+						'type'    => 'slider',
+						'label'   => 'Mega Brand Image Size',
+						'default' => 100,
+						'min'     => 30,
+						'max'     => 100,
+						'unit'    => '%',
+					),
+					'topBarHeight'       => array(
+						'type'    => 'slider',
+						'label'   => 'Top Bar Height',
+						'default' => 72,
+						'min'     => 52,
+						'max'     => 110,
+					),
+					'topBarSidePadding'  => array(
+						'type'    => 'slider',
+						'label'   => 'Top Row Side Padding',
+						'default' => 15,
+						'min'     => 15,
+						'max'     => 60,
+					),
+					'menuBarHeight'      => array(
+						'type'    => 'slider',
+						'label'   => 'Menu Bar Height',
+						'default' => 30,
+						'min'     => 24,
+						'max'     => 86,
+					),
+					'megaMinHeight'      => array(
+						'type'    => 'slider',
+						'label'   => 'Mega Menu Min Height',
+						'default' => 160,
+						'min'     => 100,
+						'max'     => 360,
+					),
+					'paddingX'           => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 100,
+					),
+					'marginY'            => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'header-cutout-mega',
+				'name'           => 'Header Cutout Mega',
+				'category'       => 'content',
+				'template_scope' => 'header',
+				'icon'           => 'layout-template',
+				'description'    => 'Top utility strip, cutout image logo overlap, centered nav shell, and mega menu',
+				'settings'       => array(
+					'utilityLinks'        => array(
+						'type'    => 'simple_links',
+						'label'   => 'Top Utility Links',
+						'default' => array(
+							array(
+								'label' => 'CONTACT',
+								'url'   => '#',
+							),
+							array(
+								'label' => 'TELEFOON 0180 - 421399',
+								'url'   => '#',
+							),
+							array(
+								'label' => 'ADRES',
+								'url'   => '#',
+							),
+						),
+					),
+					'logoImage'           => array(
+						'type'    => 'image',
+						'label'   => 'Logo Image',
+						'default' => '',
+					),
+					'homeUrl'             => array(
+						'type'    => 'text',
+						'label'   => 'Logo URL',
+						'default' => '/',
+					),
+					'showSearch'          => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Search Icon',
+						'default' => true,
+					),
+					'menuItems'           => array(
+						'type'    => 'mega_menu',
+						'label'   => 'Primary Menu + Mega Menu Content',
+						'default' => array(
+							array(
+								'label'   => 'GROND',
+								'url'     => '#',
+								'hasMega' => true,
+								'columns' => array(
+									array(
+										'heading' => 'Merken',
+										'imageLinks' => true,
+										'imageColumns' => 2,
+										'links'   => array(
+											array(
+												'label' => 'Bekijk alle producten',
+												'url'   => '#',
+												'image' => '',
+											),
+											array(
+												'label' => 'STIHL',
+												'url'   => '#',
+												'image' => '',
+											),
+											array(
+												'label' => 'Honda',
+												'url'   => '#',
+												'image' => '',
+											),
+											array(
+												'label' => 'Orec',
+												'url'   => '#',
+												'image' => '',
+											),
+											array(
+												'label' => 'Ferrari',
+												'url'   => '#',
+												'image' => '',
+											),
+											array(
+												'label' => 'Stiga',
+												'url'   => '#',
+												'image' => '',
+											),
+										),
+									),
+									array(
+										'heading' => 'Maaien',
+										'imageLinks' => false,
+										'imageColumns' => 2,
+										'links'   => array(
+											array(
+												'label' => 'Grasmaaiers',
+												'url'   => '#',
+											),
+											array(
+												'label' => 'Robotmaaiers',
+												'url'   => '#',
+											),
+											array(
+												'label' => 'Trimmers',
+												'url'   => '#',
+											),
+											array(
+												'label' => 'Mulchmaaiers',
+												'url'   => '#',
+											),
+										),
+									),
+									array(
+										'heading' => 'Grond Bewerken',
+										'imageLinks' => false,
+										'imageColumns' => 2,
+										'links'   => array(
+											array(
+												'label' => 'Drukspuiten',
+												'url'   => '#',
+											),
+											array(
+												'label' => 'Grondboren',
+												'url'   => '#',
+											),
+											array(
+												'label' => 'Tuinfrezen',
+												'url'   => '#',
+											),
+											array(
+												'label' => 'Verticuteermachines',
+												'url'   => '#',
+											),
+										),
+									),
+								),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+							array(
+								'label'   => 'ZAGEN',
+								'url'     => '#',
+								'hasMega' => false,
+								'columns' => array(),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+							array(
+								'label'   => 'OPRUIMEN',
+								'url'     => '#',
+								'hasMega' => false,
+								'columns' => array(),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+							array(
+								'label'   => 'DRAGERS',
+								'url'     => '#',
+								'hasMega' => false,
+								'columns' => array(),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+							array(
+								'label'   => 'STROOM',
+								'url'     => '#',
+								'hasMega' => false,
+								'columns' => array(),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+							array(
+								'label'   => 'GEREEDSCHAP',
+								'url'     => '#',
+								'hasMega' => false,
+								'columns' => array(),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+							array(
+								'label'   => 'ACCESSOIRES',
+								'url'     => '#',
+								'hasMega' => false,
+								'columns' => array(),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+							array(
+								'label'   => 'SERVICE',
+								'url'     => '#',
+								'hasMega' => false,
+								'columns' => array(),
+								'banner'  => array(
+									'title' => '',
+									'image' => '',
+									'url'   => '#',
+								),
+							),
+						),
+					),
+					'topStripBackground'  => array(
+						'type'    => 'color',
+						'label'   => 'Top Strip Background',
+						'default' => '#86BF25',
+					),
+					'topStripTextColor'   => array(
+						'type'    => 'color',
+						'label'   => 'Top Strip Text Color',
+						'default' => '#111111',
+					),
+					'menuShellBackground' => array(
+						'type'    => 'color',
+						'label'   => 'Menu Background',
+						'default' => '#EBEBEB',
+					),
+					'menuTextColor'       => array(
+						'type'    => 'color',
+						'label'   => 'Menu Text Color',
+						'default' => '#111111',
+					),
+					'menuDividerColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Menu Divider Color',
+						'default' => '#D9D9D9',
+					),
+					'activeMenuBackground' => array(
+						'type'    => 'color',
+						'label'   => 'Active Menu Background',
+						'default' => '#F5F5F5',
+					),
+					'activeMenuTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Active Menu Text Color',
+						'default' => '#4F8E2F',
+					),
+					'megaBackground'      => array(
+						'type'    => 'color',
+						'label'   => 'Mega Menu Background',
+						'default' => '#F0F0F0',
+					),
+					'megaHeadingColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Mega Heading Color',
+						'default' => '#111111',
+					),
+					'megaLinkColor'       => array(
+						'type'    => 'color',
+						'label'   => 'Mega Link Color',
+						'default' => '#4F8E2F',
+					),
+					'megaBorderColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Mega Border Color',
+						'default' => '#D8D8D8',
+					),
+					'topStripHeight'      => array(
+						'type'    => 'slider',
+						'label'   => 'Top Strip Height',
+						'default' => 30,
+						'min'     => 28,
+						'max'     => 60,
+					),
+					'logoWidth'           => array(
+						'type'    => 'slider',
+						'label'   => 'Logo Width',
+						'default' => 248,
+						'min'     => 180,
+						'max'     => 420,
+					),
+					'logoHeight'          => array(
+						'type'    => 'slider',
+						'label'   => 'Logo Height',
+						'default' => 124,
+						'min'     => 90,
+						'max'     => 220,
+					),
+					'menuBarHeight'       => array(
+						'type'    => 'slider',
+						'label'   => 'Menu Bar Height',
+						'default' => 52,
+						'min'     => 30,
+						'max'     => 90,
+					),
+					'megaMinHeight'       => array(
+						'type'    => 'slider',
+						'label'   => 'Mega Menu Min Height',
+						'default' => 180,
+						'min'     => 100,
+						'max'     => 420,
+					),
+					'paddingX'            => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 100,
+					),
+					'marginY'             => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'footer-dealers',
+				'name'           => 'Footer Dealers',
+				'category'       => 'content',
+				'template_scope' => 'footer',
+				'icon'           => 'layout-template',
+				'description'    => 'Dealer/location footer with contact details, opening hours, and legal bar',
+				'settings'       => array(
+					'dealers'             => array(
+						'type'    => 'footer_dealers',
+						'label'   => 'Dealer Cards',
+						'default' => array(
+							array(
+								'name'            => 'Dealer Toonzaal 1 ~ Amsterdam',
+								'mapImage'        => '',
+								'photoImage'      => '',
+								'addressLine1'    => 'Nieuwe Prinsengracht',
+								'addressLine2'    => 'Amsterdam, Netherlands 1018ED',
+								'phone'           => '0255-555555',
+								'directionsLabel' => 'Routebeschrijving',
+								'directionsUrl'   => '#',
+								'hoursLabel'      => 'Openingstijden:',
+								'day1'            => 'ma - do',
+								'hours1'          => '08:00 - 17:00',
+								'day2'            => 'vr',
+								'hours2'          => '08:00 - 16:30',
+							),
+							array(
+								'name'            => 'Dealer Toonzaal 2 ~ Utrecht',
+								'mapImage'        => '',
+								'photoImage'      => '',
+								'addressLine1'    => 'Vleutenseweg, 3532 HP',
+								'addressLine2'    => 'Utrecht, Netherlands 1018ED',
+								'phone'           => '0255-555555',
+								'directionsLabel' => 'Routebeschrijving',
+								'directionsUrl'   => '#',
+								'hoursLabel'      => 'Openingstijden:',
+								'day1'            => 'ma - do',
+								'hours1'          => '07:30 - 17:30',
+								'day2'            => 'vr',
+								'hours2'          => '08:00 - 16:30',
+							),
+						),
+					),
+					'legalLinks'          => array(
+						'type'    => 'simple_links',
+						'label'   => 'Legal Links',
+						'default' => array(
+							array(
+								'label' => 'Privacybeleid',
+								'url'   => '#',
+							),
+							array(
+								'label' => 'Juridische disclaimer',
+								'url'   => '#',
+							),
+						),
+					),
+					'showFacebook'        => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Facebook Button',
+						'default' => true,
+					),
+					'facebookUrl'         => array(
+						'type'    => 'text',
+						'label'   => 'Facebook URL',
+						'default' => '#',
+					),
+					'copyrightText'       => array(
+						'type'    => 'text',
+						'label'   => 'Copyright Text',
+						'default' => '© 2026 Naam dealer. Alle rechten voorbehouden.',
+					),
+					'creditText'          => array(
+						'type'    => 'text',
+						'label'   => 'Credit Text',
+						'default' => 'Site door DesignStudio',
+					),
+					'backgroundColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Main Background',
+						'default' => '#14171B',
+					),
+					'bottomBarColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Bottom Bar Background',
+						'default' => '#33363B',
+					),
+					'headingColor'        => array(
+						'type'    => 'color',
+						'label'   => 'Heading Color',
+						'default' => '#FFFFFF',
+					),
+					'textColor'           => array(
+						'type'    => 'color',
+						'label'   => 'Text Color',
+						'default' => '#F8F9FB',
+					),
+					'accentColor'         => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '#8FCE7A',
+					),
+					'socialBackgroundColor' => array(
+						'type'    => 'color',
+						'label'   => 'Social Icon Background',
+						'default' => '#4267B2',
+					),
+					'socialIconColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Social Icon Color',
+						'default' => '#FFFFFF',
+					),
+					'contentMaxWidth'     => array(
+						'type'    => 'slider',
+						'label'   => 'Content Max Width',
+						'default' => 1280,
+						'min'     => 900,
+						'max'     => 1800,
+					),
+					'mapHeight'           => array(
+						'type'    => 'slider',
+						'label'   => 'Map Area Height',
+						'default' => 230,
+						'min'     => 160,
+						'max'     => 360,
+					),
+					'cardGap'             => array(
+						'type'    => 'slider',
+						'label'   => 'Card Gap',
+						'default' => 110,
+						'min'     => 20,
+						'max'     => 240,
+					),
+					'padding'             => array(
+						'type'    => 'slider',
+						'label'   => 'Top Section Padding',
+						'default' => 72,
+						'min'     => 24,
+						'max'     => 140,
+					),
+					'bottomPadding'       => array(
+						'type'    => 'slider',
+						'label'   => 'Bottom Section Padding',
+						'default' => 42,
+						'min'     => 20,
+						'max'     => 100,
+					),
+					'contentPaddingX'     => array(
+						'type'    => 'slider',
+						'label'   => 'Content Horizontal Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 80,
+					),
+					'paddingX'            => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 100,
+					),
+					'marginY'             => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 0,
 						'min'     => 0,
 						'max'     => 100,
 					),

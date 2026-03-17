@@ -63,16 +63,17 @@
       <a 
         v-for="i in 3" 
         :key="'box' + i"
-        href="#"
+        :href="boxHref(i)"
         class="dsf-bento-hero__box"
         :style="{ backgroundColor: settings.boxBackground || '#F5F5F4' }"
-        @click.prevent
+        @click="handleBoxClick(i, $event)"
       >
         <img 
           v-if="settings['box' + i + 'Image']" 
           :src="settings['box' + i + 'Image']" 
           :alt="settings['box' + i + 'Title']"
           class="dsf-bento-hero__box-img"
+          :style="{ width: (settings.boxImageSize || 100) + '%' }"
         />
         <div v-else class="dsf-bento-hero__box-placeholder">
           <Image :size="32" />
@@ -91,16 +92,17 @@
       <a 
         v-for="i in [4, 5]" 
         :key="'box' + i"
-        href="#"
+        :href="boxHref(i)"
         class="dsf-bento-hero__box dsf-bento-hero__box--bottom"
         :style="{ backgroundColor: settings.boxBackground || '#F5F5F4' }"
-        @click.prevent
+        @click="handleBoxClick(i, $event)"
       >
         <img 
           v-if="settings['box' + i + 'Image']" 
           :src="settings['box' + i + 'Image']" 
           :alt="settings['box' + i + 'Title']"
           class="dsf-bento-hero__box-img"
+          :style="{ width: (settings.boxImageSize || 100) + '%' }"
         />
         <div v-else class="dsf-bento-hero__box-placeholder">
           <Image :size="32" />
@@ -117,6 +119,7 @@
       
       <!-- CTA Box -->
       <a 
+        v-if="isCtaMode"
         :href="ctaHref"
         class="dsf-bento-hero__cta"
         :style="{ backgroundColor: settings.ctaColor || '#2C5F5D', color: settings.ctaTextColor || '#FFFFFF' }"
@@ -132,6 +135,34 @@
         <div class="dsf-bento-hero__cta-arrow">
           <ArrowRight :size="24" />
         </div>
+      </a>
+
+      <!-- Extra Box (replaces CTA when enabled) -->
+      <a
+        v-else
+        :href="boxHref(6)"
+        class="dsf-bento-hero__box dsf-bento-hero__box--bottom"
+        :style="{ backgroundColor: settings.boxBackground || '#F5F5F4' }"
+        @click="handleBoxClick(6, $event)"
+      >
+        <img 
+          v-if="settings.box6Image" 
+          :src="settings.box6Image" 
+          :alt="settings.box6Title"
+          class="dsf-bento-hero__box-img"
+          :style="{ width: (settings.boxImageSize || 100) + '%' }"
+        />
+        <div v-else class="dsf-bento-hero__box-placeholder">
+          <Image :size="32" />
+        </div>
+        <InlineText 
+          v-model="settings.box6Title" 
+          tagName="span"
+          class="dsf-bento-hero__box-title"
+          :style="{ color: settings.titleColor || '#1F2937' }"
+          :is-editor="isEditor"
+          placeholder="Box 6 Title"
+        />
       </a>
     </div>
   </div>
@@ -162,6 +193,7 @@ const gapValue = computed(() =>
 const heightValue = computed(() =>
   getResponsiveValue(props.settings || {}, props.previewMode, 'height') ?? 400
 )
+const isCtaMode = computed(() => (props.settings?.ctaType || 'cta') === 'cta')
 
 function buildSearchUrl(template, query) {
   const normalized = (template || '').trim()
@@ -181,6 +213,22 @@ function handleSearch() {
   if (!searchQuery.value) return
   const targetUrl = buildSearchUrl(props.settings?.searchUrl, searchQuery.value)
   window.location.href = targetUrl
+}
+
+function boxHref(index) {
+  const rawUrl = (props.settings?.[`box${index}Url`] || '').trim()
+  return rawUrl || '#'
+}
+
+function handleBoxClick(index, event) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+  const target = boxHref(index)
+  if (!target || target === '#') {
+    event.preventDefault()
+  }
 }
 
 const heroButtonHref = computed(() =>
