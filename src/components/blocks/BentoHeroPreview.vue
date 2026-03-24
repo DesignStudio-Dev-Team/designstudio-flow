@@ -76,17 +76,18 @@
       
       <!-- Top Row Boxes (3) -->
       <a 
-        v-for="i in 3" 
+        v-for="i in topRowBoxIndices" 
         :key="'box' + i"
         :href="boxHref(i)"
         class="dsf-bento-hero__box"
+        :class="{ 'dsf-bento-hero__box--image-only': !isBoxTitleVisible(i) }"
         :style="boxStyle(i)"
         @click="handleBoxClick(i, $event)"
       >
         <img 
           v-if="settings['box' + i + 'Image']" 
           :src="settings['box' + i + 'Image']" 
-          :alt="settings['box' + i + 'Title']"
+          :alt="boxAltText(i)"
           class="dsf-bento-hero__box-img"
           :style="{ width: (settings.boxImageSize || 100) + '%' }"
         />
@@ -94,6 +95,7 @@
           <Image :size="32" />
         </div>
         <InlineText 
+          v-if="isBoxTitleVisible(i)"
           v-model="settings['box' + i + 'Title']" 
           tagName="span"
           class="dsf-bento-hero__box-title"
@@ -120,17 +122,18 @@
       
       <!-- Bottom Row Boxes (2) -->
       <a 
-        v-for="i in [4, 5]" 
+        v-for="i in bottomRowBoxIndices" 
         :key="'box' + i"
         :href="boxHref(i)"
         class="dsf-bento-hero__box dsf-bento-hero__box--bottom"
+        :class="{ 'dsf-bento-hero__box--image-only': !isBoxTitleVisible(i) }"
         :style="boxStyle(i)"
         @click="handleBoxClick(i, $event)"
       >
         <img 
           v-if="settings['box' + i + 'Image']" 
           :src="settings['box' + i + 'Image']" 
-          :alt="settings['box' + i + 'Title']"
+          :alt="boxAltText(i)"
           class="dsf-bento-hero__box-img"
           :style="{ width: (settings.boxImageSize || 100) + '%' }"
         />
@@ -138,6 +141,7 @@
           <Image :size="32" />
         </div>
         <InlineText 
+          v-if="isBoxTitleVisible(i)"
           v-model="settings['box' + i + 'Title']" 
           tagName="span"
           class="dsf-bento-hero__box-title"
@@ -149,7 +153,7 @@
       
       <!-- CTA Box -->
       <a 
-        v-if="lastTileMode === 'cta'"
+        v-if="showLastTile && lastTileMode === 'cta'"
         :href="ctaHref"
         class="dsf-bento-hero__cta"
         :style="ctaStyle"
@@ -169,16 +173,17 @@
 
       <!-- Extra Box (replaces CTA when enabled) -->
       <a
-        v-else
+        v-else-if="showLastTile"
         :href="lastBoxHref"
         class="dsf-bento-hero__box dsf-bento-hero__box--bottom"
+        :class="{ 'dsf-bento-hero__box--image-only': !isLastTileTitleVisible }"
         :style="lastBoxStyle"
         @click="handleLastBoxClick"
       >
         <img 
           v-if="lastBoxImage" 
           :src="lastBoxImage" 
-          :alt="lastBoxTitle"
+          :alt="lastBoxAltText"
           class="dsf-bento-hero__box-img"
           :style="{ width: (settings.boxImageSize || 100) + '%' }"
         />
@@ -186,7 +191,7 @@
           <Image :size="32" />
         </div>
         <InlineText
-          v-if="lastTileMode === 'box'"
+          v-if="lastTileMode === 'box' && isLastTileTitleVisible"
           v-model="settings.box6Title" 
           tagName="span"
           class="dsf-bento-hero__box-title"
@@ -195,7 +200,7 @@
           placeholder="Box 6 Title"
         />
         <span
-          v-else
+          v-else-if="isLastTileTitleVisible"
           class="dsf-bento-hero__box-title"
           :style="{ color: settings.titleColor || '#1F2937' }"
         >
@@ -223,10 +228,6 @@ const props = defineProps({
 })
 
 const { openModal } = useFlowModal()
-const wpData = typeof window !== 'undefined'
-  ? (window.dsfEditorData || window.dsfFrontendData || {})
-  : {}
-
 const searchQuery = ref('')
 const gapValue = computed(() =>
   getResponsiveValue(props.settings || {}, props.previewMode, 'gap') ?? 12
@@ -234,6 +235,11 @@ const gapValue = computed(() =>
 const heightValue = computed(() =>
   getResponsiveValue(props.settings || {}, props.previewMode, 'height') ?? 400
 )
+const boxCountValue = computed(() => Number.parseInt(props.settings?.boxCount || '6', 10) === 4 ? 4 : 6)
+const rightColumnCount = computed(() => (boxCountValue.value === 4 ? 2 : 3))
+const topRowBoxIndices = computed(() => (boxCountValue.value === 4 ? [1, 2] : [1, 2, 3]))
+const bottomRowBoxIndices = computed(() => (boxCountValue.value === 4 ? [3, 4] : [4, 5]))
+const showLastTile = computed(() => boxCountValue.value === 6)
 const sectionBarHeight = computed(() => props.settings?.sectionBarHeight ?? 64)
 const showTopBar = computed(() => props.settings?.showTopBar === true)
 const showBottomBar = computed(() => props.settings?.showBottomBar === true)
@@ -274,6 +280,7 @@ const gridLayout = computed(() => {
 const gridStyle = computed(() => ({
   gap: `${gapValue.value}px`,
   minHeight: `${heightValue.value}px`,
+  gridTemplateColumns: `2fr repeat(${rightColumnCount.value}, 1fr)`,
   gridTemplateRows: gridLayout.value.templateRows,
 }))
 const heroStyle = computed(() => ({
@@ -282,7 +289,7 @@ const heroStyle = computed(() => ({
 }))
 const lastTileMode = computed(() => props.settings?.ctaType || 'cta')
 const availableCategories = computed(() =>
-  Array.isArray(wpData.categories) ? wpData.categories : []
+  Array.isArray(getRuntimeData().categories) ? getRuntimeData().categories : []
 )
 const selectedLastCategory = computed(() => {
   if (lastTileMode.value !== 'category') return null
@@ -292,6 +299,7 @@ const selectedLastCategory = computed(() => {
 
   return availableCategories.value.find((category) => Number(category?.id) === categoryId) || null
 })
+const isLastTileTitleVisible = computed(() => props.settings?.box6ShowTitle !== false)
 const lastBoxHref = computed(() => (
   lastTileMode.value === 'category'
     ? (selectedLastCategory.value?.url || '#')
@@ -309,10 +317,24 @@ const lastBoxTitle = computed(() => {
 
   return selectedLastCategory.value?.name || 'Select a category'
 })
+const lastBoxAltText = computed(() => {
+  const categoryAlt = selectedLastCategory.value?.imageAlt
+  if (lastTileMode.value === 'category' && categoryAlt) {
+    return categoryAlt
+  }
+
+  const manualAlt = (props.settings?.box6ImageAlt || '').trim()
+  if (lastTileMode.value === 'box' && manualAlt) {
+    return manualAlt
+  }
+
+  const title = (lastBoxTitle.value || '').trim()
+  return title || 'Last tile image'
+})
 const ctaStyle = computed(() => ({
   backgroundColor: props.settings?.ctaColor || '#2C5F5D',
   color: props.settings?.ctaTextColor || '#FFFFFF',
-  gridColumn: '4',
+  gridColumn: String(rightColumnCount.value + 1),
   gridRow: String(gridLayout.value.bottomBoxesRow),
 }))
 const lastBoxStyle = computed(() => ({
@@ -333,6 +355,22 @@ function buildSearchUrl(template, query) {
   return `${normalized}${joiner}s=${encoded}`
 }
 
+function getRuntimeData() {
+  if (typeof window === 'undefined') {
+    return {}
+  }
+
+  if (Array.isArray(window.dsfEditorData?.categories)) {
+    return window.dsfEditorData
+  }
+
+  if (Array.isArray(window.dsfFrontendData?.categories)) {
+    return window.dsfFrontendData
+  }
+
+  return window.dsfEditorData || window.dsfFrontendData || {}
+}
+
 function handleSearch() {
   if (props.isEditor) return
   if (!searchQuery.value) return
@@ -345,20 +383,44 @@ function boxHref(index) {
   return rawUrl || '#'
 }
 
-function boxPlacementStyle(index) {
-  const columnMap = {
-    1: 2,
-    2: 3,
-    3: 4,
-    4: 2,
-    5: 3,
-    6: 4,
+function isBoxTitleVisible(index) {
+  return props.settings?.[`box${index}ShowTitle`] !== false
+}
+
+function boxAltText(index) {
+  const savedAlt = String(props.settings?.[`box${index}ImageAlt`] || '').trim()
+  if (savedAlt) {
+    return savedAlt
   }
-  const row = index <= 3 ? gridLayout.value.topBoxesRow : gridLayout.value.bottomBoxesRow
+  const title = String(props.settings?.[`box${index}Title`] || '').trim()
+  return title || `Box ${index} image`
+}
+
+function boxPlacementStyle(index) {
+  const layoutMap = boxCountValue.value === 4
+    ? {
+        1: { column: 2, row: gridLayout.value.topBoxesRow },
+        2: { column: 3, row: gridLayout.value.topBoxesRow },
+        3: { column: 2, row: gridLayout.value.bottomBoxesRow },
+        4: { column: 3, row: gridLayout.value.bottomBoxesRow },
+      }
+    : {
+        1: { column: 2, row: gridLayout.value.topBoxesRow },
+        2: { column: 3, row: gridLayout.value.topBoxesRow },
+        3: { column: 4, row: gridLayout.value.topBoxesRow },
+        4: { column: 2, row: gridLayout.value.bottomBoxesRow },
+        5: { column: 3, row: gridLayout.value.bottomBoxesRow },
+        6: { column: 4, row: gridLayout.value.bottomBoxesRow },
+      }
+  const placement = layoutMap[index]
+
+  if (!placement) {
+    return {}
+  }
 
   return {
-    gridColumn: String(columnMap[index]),
-    gridRow: String(row),
+    gridColumn: String(placement.column),
+    gridRow: String(placement.row),
   }
 }
 
@@ -371,7 +433,7 @@ function boxStyle(index) {
 
 function sectionBarStyle(row) {
   return {
-    gridColumn: '2 / 5',
+    gridColumn: `2 / ${rightColumnCount.value + 2}`,
     gridRow: String(row),
     minHeight: `${sectionBarHeight.value}px`,
     backgroundColor: props.settings?.sectionBarBackground || '#1E467B',
@@ -603,6 +665,10 @@ function handleCtaClick(event) {
   position: relative;
 }
 
+.dsf-bento-hero__box--image-only {
+  justify-content: center;
+}
+
 .dsf-bento-hero__box:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -616,6 +682,12 @@ function handleCtaClick(event) {
   margin-bottom: 0.5rem;
 }
 
+.dsf-bento-hero__box--image-only .dsf-bento-hero__box-img {
+  flex: 0 1 auto;
+  max-height: 100%;
+  margin-bottom: 0;
+}
+
 .dsf-bento-hero__box-placeholder {
   position: relative;
   flex: 1;
@@ -625,6 +697,10 @@ function handleCtaClick(event) {
   width: 100%;
   color: #9CA3AF;
   opacity: 0.5;
+}
+
+.dsf-bento-hero__box--image-only .dsf-bento-hero__box-placeholder {
+  flex: 0 1 auto;
 }
 
 .dsf-bento-hero__box-title {
@@ -699,7 +775,7 @@ function handleCtaClick(event) {
 /* Mobile Responsive using Container Queries */
 @container (max-width: 768px) {
   .dsf-bento-hero__grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr !important;
     grid-template-rows: auto !important;
     height: auto;
   }
@@ -713,7 +789,6 @@ function handleCtaClick(event) {
   }
 
   .dsf-bento-hero__hero {
-    grid-column: 1 / -1 !important;
     min-height: 350px;
   }
 
@@ -723,7 +798,7 @@ function handleCtaClick(event) {
   }
 
   .dsf-bento-hero__section-bar {
-    grid-column: 1 / -1 !important;
+    width: 100%;
   }
 }
 </style>

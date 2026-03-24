@@ -30,6 +30,7 @@ class DSF_Update_Checker {
 	private $plugin_slug;
 	private $plugin_basename;
 	private $current_version;
+	private $plugin_update_uri;
 
 	/**
 	 * Cache key and duration
@@ -59,6 +60,7 @@ class DSF_Update_Checker {
 		$this->plugin_slug     = 'designstudio-flow';
 		$this->plugin_basename = DSF_PLUGIN_BASENAME;
 		$this->current_version = DSF_VERSION;
+		$this->plugin_update_uri = 'https://github.com/' . $this->github_username . '/' . $this->github_repo;
 
 		// Load GitHub token: check wp-config constant first, then fallback to option
 		if ( defined( 'DSF_GITHUB_TOKEN' ) && DSF_GITHUB_TOKEN ) {
@@ -85,6 +87,9 @@ class DSF_Update_Checker {
 
 		// Filter for authenticated downloads (private repos)
 		add_filter( 'upgrader_pre_download', array( $this, 'filter_download' ), 10, 3 );
+
+		// Normalize extracted GitHub package folders to the plugin directory name.
+		add_filter( 'upgrader_source_selection', array( $this, 'normalize_package_source' ), 10, 4 );
 	}
 
 	/**
@@ -99,6 +104,7 @@ class DSF_Update_Checker {
 
 		if ( $remote_version && version_compare( $this->current_version, $remote_version->version, '<' ) ) {
 			$transient->response[ $this->plugin_basename ] = (object) array(
+				'id'           => $this->plugin_update_uri,
 				'slug'         => $this->plugin_slug,
 				'plugin'       => $this->plugin_basename,
 				'new_version'  => $remote_version->version,
@@ -133,6 +139,7 @@ class DSF_Update_Checker {
 		}
 
 		return (object) array(
+			'id'             => $this->plugin_update_uri,
 			'name'           => 'DesignStudio Flow',
 			'slug'           => $this->plugin_slug,
 			'version'        => $remote_version->version,
@@ -192,11 +199,17 @@ class DSF_Update_Checker {
 			return false;
 		}
 
-		// Find the zip asset
+		// Find the best release ZIP asset.
 		$download_url = '';
 		if ( ! empty( $release->assets ) ) {
+			$preferred_asset = 'designstudio-flow-' . ltrim( $release->tag_name, 'v' ) . '.zip';
+
 			foreach ( $release->assets as $asset ) {
-				if ( false !== strpos( $asset->name, '.zip' ) ) {
+				if ( empty( $asset->name ) || '.zip' !== strtolower( substr( $asset->name, -4 ) ) ) {
+					continue;
+				}
+
+				if ( $asset->name === $preferred_asset || 0 === strpos( $asset->name, $this->plugin_slug . '-' ) ) {
 					// For private repos, use the API URL (requires auth)
 					// For public repos, use the browser download URL
 					if ( ! empty( $this->github_token ) ) {
@@ -209,7 +222,7 @@ class DSF_Update_Checker {
 			}
 		}
 
-		// Fallback to zipball (works for both public and private)
+		// Fallback to zipball if no release asset is attached.
 		if ( empty( $download_url ) ) {
 			$download_url = $release->zipball_url;
 		}
@@ -287,6 +300,60 @@ class DSF_Update_Checker {
 	}
 
 	/**
+	 * Normalize extracted GitHub package folders so WordPress upgrades in place.
+	 *
+	 * GitHub zipballs unzip to repo-name-hash folders, which do not match the
+	 * installed plugin directory. WordPress expects the source folder name to
+	 * match the existing plugin directory during upgrades.
+	 *
+	 * @param string      $source        Source file source location.
+	 * @param string      $remote_source Remote file source location.
+	 * @param WP_Upgrader $upgrader      Upgrader instance.
+	 * @param array       $hook_extra    Extra upgrader context.
+	 * @return string|WP_Error
+	 */
+	public function normalize_package_source( $source, $remote_source, $upgrader, $hook_extra ) {
+		unset( $upgrader );
+
+		if ( ! $this->is_our_plugin_update( $hook_extra ) ) {
+			return $source;
+		}
+
+		$normalized_source = untrailingslashit( $source );
+		$expected_source   = trailingslashit( $remote_source ) . $this->plugin_slug;
+
+		if ( $normalized_source === untrailingslashit( $expected_source ) ) {
+			return $source;
+		}
+
+		$plugin_file = trailingslashit( $normalized_source ) . 'designstudio-flow.php';
+		if ( ! file_exists( $plugin_file ) ) {
+			return $source;
+		}
+
+		global $wp_filesystem;
+
+		if ( ! $wp_filesystem ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+
+		if ( ! $wp_filesystem ) {
+			return new WP_Error( 'dsf_update_fs_unavailable', 'Could not access the WordPress filesystem during update.' );
+		}
+
+		if ( $wp_filesystem->exists( $expected_source ) && ! $wp_filesystem->delete( $expected_source, true ) ) {
+			return new WP_Error( 'dsf_update_source_conflict', 'Could not prepare the plugin update directory.' );
+		}
+
+		if ( ! $wp_filesystem->move( $normalized_source, $expected_source, true ) ) {
+			return new WP_Error( 'dsf_update_source_move_failed', 'Could not normalize the plugin update package.' );
+		}
+
+		return $expected_source;
+	}
+
+	/**
 	 * Clear cache after update
 	 */
 	public function clear_cache( $upgrader, $options ) {
@@ -294,6 +361,28 @@ class DSF_Update_Checker {
 		if ( isset( $options['action'], $options['type'] ) && 'update' === $options['action'] && 'plugin' === $options['type'] ) {
 			delete_transient( $this->cache_key );
 		}
+	}
+
+	/**
+	 * Check whether the current upgrader context is for this plugin.
+	 *
+	 * @param array $hook_extra Extra upgrader context.
+	 * @return bool
+	 */
+	private function is_our_plugin_update( $hook_extra ) {
+		if ( empty( $hook_extra['type'] ) || 'plugin' !== $hook_extra['type'] ) {
+			return false;
+		}
+
+		if ( ! empty( $hook_extra['plugin'] ) ) {
+			return $hook_extra['plugin'] === $this->plugin_basename;
+		}
+
+		if ( ! empty( $hook_extra['plugins'] ) && is_array( $hook_extra['plugins'] ) ) {
+			return in_array( $this->plugin_basename, $hook_extra['plugins'], true );
+		}
+
+		return false;
 	}
 }
 

@@ -541,12 +541,13 @@ class DSF_Ajax {
 				$thumbnail_id = get_term_meta( $cat->term_id, 'thumbnail_id', true );
 
 				return array(
-					'id'    => $cat->term_id,
-					'name'  => $cat->name,
-					'slug'  => $cat->slug,
-					'url'   => get_term_link( $cat ),
-					'count' => $cat->count,
-					'image' => $thumbnail_id ? wp_get_attachment_url( $thumbnail_id ) : '',
+					'id'       => $cat->term_id,
+					'name'     => $cat->name,
+					'slug'     => $cat->slug,
+					'url'      => get_term_link( $cat ),
+					'count'    => $cat->count,
+					'image'    => $thumbnail_id ? wp_get_attachment_url( $thumbnail_id ) : '',
+					'imageAlt' => $thumbnail_id ? get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ) : '',
 				);
 			},
 			$categories

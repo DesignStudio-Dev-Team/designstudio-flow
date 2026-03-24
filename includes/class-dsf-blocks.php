@@ -440,8 +440,16 @@ class DSF_Blocks {
 					),
 					// Feature Boxes (5 boxes)
 					'box1Image'                  => array(
-						'type'    => 'image',
-						'label'   => 'Box 1 Image',
+						'type'            => 'image',
+						'label'           => 'Box 1 Image',
+						'default'         => '',
+						'mediaMetaFields' => array(
+							'alt' => 'box1ImageAlt',
+						),
+					),
+					'box1ImageAlt'               => array(
+						'type'    => 'text',
+						'label'   => 'Box 1 Image Alt',
 						'default' => '',
 					),
 					'box1Title'                  => array(
@@ -449,14 +457,36 @@ class DSF_Blocks {
 						'label'   => 'Box 1 Title',
 						'default' => 'Box 1 Title',
 					),
+					'box1ShowTitle'              => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Box 1 Title',
+						'default' => true,
+					),
 					'box1Url'                    => array(
 						'type'    => 'text',
 						'label'   => 'Box 1 URL',
 						'default' => '#',
 					),
+					'boxCount'                   => array(
+						'type'    => 'select',
+						'label'   => 'Box Count',
+						'default' => '6',
+						'options' => array(
+							'4' => '4',
+							'6' => '6',
+						),
+					),
 					'box2Image'                  => array(
-						'type'    => 'image',
-						'label'   => 'Box 2 Image',
+						'type'            => 'image',
+						'label'           => 'Box 2 Image',
+						'default'         => '',
+						'mediaMetaFields' => array(
+							'alt' => 'box2ImageAlt',
+						),
+					),
+					'box2ImageAlt'               => array(
+						'type'    => 'text',
+						'label'   => 'Box 2 Image Alt',
 						'default' => '',
 					),
 					'box2Title'                  => array(
@@ -464,14 +494,27 @@ class DSF_Blocks {
 						'label'   => 'Box 2 Title',
 						'default' => 'Box 2 Title',
 					),
+					'box2ShowTitle'              => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Box 2 Title',
+						'default' => true,
+					),
 					'box2Url'                    => array(
 						'type'    => 'text',
 						'label'   => 'Box 2 URL',
 						'default' => '#',
 					),
 					'box3Image'                  => array(
-						'type'    => 'image',
-						'label'   => 'Box 3 Image',
+						'type'            => 'image',
+						'label'           => 'Box 3 Image',
+						'default'         => '',
+						'mediaMetaFields' => array(
+							'alt' => 'box3ImageAlt',
+						),
+					),
+					'box3ImageAlt'               => array(
+						'type'    => 'text',
+						'label'   => 'Box 3 Image Alt',
 						'default' => '',
 					),
 					'box3Title'                  => array(
@@ -479,14 +522,27 @@ class DSF_Blocks {
 						'label'   => 'Box 3 Title',
 						'default' => 'Box 3 Title',
 					),
+					'box3ShowTitle'              => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Box 3 Title',
+						'default' => true,
+					),
 					'box3Url'                    => array(
 						'type'    => 'text',
 						'label'   => 'Box 3 URL',
 						'default' => '#',
 					),
 					'box4Image'                  => array(
-						'type'    => 'image',
-						'label'   => 'Box 4 Image',
+						'type'            => 'image',
+						'label'           => 'Box 4 Image',
+						'default'         => '',
+						'mediaMetaFields' => array(
+							'alt' => 'box4ImageAlt',
+						),
+					),
+					'box4ImageAlt'               => array(
+						'type'    => 'text',
+						'label'   => 'Box 4 Image Alt',
 						'default' => '',
 					),
 					'box4Title'                  => array(
@@ -494,25 +550,48 @@ class DSF_Blocks {
 						'label'   => 'Box 4 Title',
 						'default' => 'Box 4 Title',
 					),
+					'box4ShowTitle'              => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Box 4 Title',
+						'default' => true,
+					),
 					'box4Url'                    => array(
 						'type'    => 'text',
 						'label'   => 'Box 4 URL',
 						'default' => '#',
 					),
 					'box5Image'                  => array(
-						'type'    => 'image',
-						'label'   => 'Box 5 Image',
-						'default' => '',
+						'type'            => 'image',
+						'label'           => 'Box 5 Image',
+						'default'         => '',
+						'mediaMetaFields' => array(
+							'alt' => 'box5ImageAlt',
+						),
+						'showWhen'        => array( 'boxCount' => '6' ),
+					),
+					'box5ImageAlt'               => array(
+						'type'     => 'text',
+						'label'    => 'Box 5 Image Alt',
+						'default'  => '',
+						'showWhen' => array( 'boxCount' => '6' ),
 					),
 					'box5Title'                  => array(
-						'type'    => 'text',
-						'label'   => 'Box 5 Title',
-						'default' => 'Box 5 Title',
+						'type'     => 'text',
+						'label'    => 'Box 5 Title',
+						'default'  => 'Box 5 Title',
+						'showWhen' => array( 'boxCount' => '6' ),
+					),
+					'box5ShowTitle'              => array(
+						'type'     => 'toggle',
+						'label'    => 'Show Box 5 Title',
+						'default'  => true,
+						'showWhen' => array( 'boxCount' => '6' ),
 					),
 					'box5Url'                    => array(
-						'type'    => 'text',
-						'label'   => 'Box 5 URL',
-						'default' => '#',
+						'type'     => 'text',
+						'label'    => 'Box 5 URL',
+						'default'  => '#',
+						'showWhen' => array( 'boxCount' => '6' ),
 					),
 					// Section Bars
 					'showTopBar'                 => array(
@@ -537,29 +616,34 @@ class DSF_Blocks {
 						'default'  => 'Shop by Brand',
 						'showWhen' => array( 'showBottomBar' => true ),
 					),
-					// Last Tile Type
+					// Last Box Type
 					'ctaType'                    => array(
 						'type'    => 'select',
-						'label'   => 'Last Tile Type',
+						'label'   => 'Last Box Type',
 						'default' => 'cta',
 						'options' => array(
 							'Shop All CTA' => 'cta',
 							'Category Box' => 'category',
 							'Extra Box'    => 'box',
 						),
+						'showWhen' => array( 'boxCount' => '6' ),
 					),
 					// CTA Box
 					'ctaText'                    => array(
 						'type'    => 'text',
 						'label'   => 'CTA Text',
 						'default' => 'Shop All',
-						'showWhen' => array( 'ctaType' => 'cta' ),
+						'showWhen' => array(
+							'boxCount' => '6',
+							'ctaType'  => 'cta',
+						),
 					),
 					'ctaUrl'                     => array(
 						'type'     => 'text',
 						'label'    => 'CTA URL',
 						'default'  => '/shop',
 						'showWhen' => array(
+							'boxCount'  => '6',
 							'ctaType'   => 'cta',
 							'ctaAction' => 'link',
 						),
@@ -572,7 +656,10 @@ class DSF_Blocks {
 							'Link'       => 'link',
 							'Open Modal' => 'modal',
 						),
-						'showWhen' => array( 'ctaType' => 'cta' ),
+						'showWhen' => array(
+							'boxCount' => '6',
+							'ctaType'  => 'cta',
+						),
 					),
 					'ctaModalLayout'             => array(
 						'type'     => 'select',
@@ -583,6 +670,7 @@ class DSF_Blocks {
 							'Right Drawer' => 'drawer',
 						),
 						'showWhen' => array(
+							'boxCount'  => '6',
 							'ctaType'   => 'cta',
 							'ctaAction' => 'modal',
 						),
@@ -597,6 +685,7 @@ class DSF_Blocks {
 							'Shortcode' => 'shortcode',
 						),
 						'showWhen' => array(
+							'boxCount'  => '6',
 							'ctaType'   => 'cta',
 							'ctaAction' => 'modal',
 						),
@@ -606,6 +695,7 @@ class DSF_Blocks {
 						'label'    => 'Modal Content',
 						'default'  => '',
 						'showWhen' => array(
+							'boxCount'            => '6',
 							'ctaType'             => 'cta',
 							'ctaAction'           => 'modal',
 							'ctaModalContentType' => 'wysiwyg',
@@ -616,6 +706,7 @@ class DSF_Blocks {
 						'label'    => 'Modal HTML',
 						'default'  => '',
 						'showWhen' => array(
+							'boxCount'            => '6',
 							'ctaType'             => 'cta',
 							'ctaAction'           => 'modal',
 							'ctaModalContentType' => 'html',
@@ -626,6 +717,7 @@ class DSF_Blocks {
 						'label'    => 'Modal Shortcode',
 						'default'  => '',
 						'showWhen' => array(
+							'boxCount'            => '6',
 							'ctaType'             => 'cta',
 							'ctaAction'           => 'modal',
 							'ctaModalContentType' => 'shortcode',
@@ -635,38 +727,74 @@ class DSF_Blocks {
 						'type'    => 'color',
 						'label'   => 'CTA Background',
 						'default' => '#2C5F5D',
-						'showWhen' => array( 'ctaType' => 'cta' ),
+						'showWhen' => array(
+							'boxCount' => '6',
+							'ctaType'  => 'cta',
+						),
 					),
 					'ctaTextColor'               => array(
 						'type'    => 'color',
 						'label'   => 'CTA Text Color',
 						'default' => '#FFFFFF',
-						'showWhen' => array( 'ctaType' => 'cta' ),
+						'showWhen' => array(
+							'boxCount' => '6',
+							'ctaType'  => 'cta',
+						),
 					),
 					// Extra Box (Box 6)
 					'box6CategoryId'             => array(
 						'type'     => 'category',
 						'label'    => 'Box 6 Category',
 						'default'  => 0,
-						'showWhen' => array( 'ctaType' => 'category' ),
+						'showWhen' => array(
+							'boxCount' => '6',
+							'ctaType'  => 'category',
+						),
 					),
 					'box6Image'                  => array(
-						'type'     => 'image',
-						'label'    => 'Box 6 Image',
+						'type'            => 'image',
+						'label'           => 'Box 6 Image',
+						'default'         => '',
+						'mediaMetaFields' => array(
+							'alt' => 'box6ImageAlt',
+						),
+						'showWhen'        => array(
+							'boxCount' => '6',
+							'ctaType'  => 'box',
+						),
+					),
+					'box6ImageAlt'               => array(
+						'type'     => 'text',
+						'label'    => 'Box 6 Image Alt',
 						'default'  => '',
-						'showWhen' => array( 'ctaType' => 'box' ),
+						'showWhen' => array(
+							'boxCount' => '6',
+							'ctaType'  => 'box',
+						),
 					),
 					'box6Title'                  => array(
 						'type'     => 'text',
 						'label'    => 'Box 6 Title',
 						'default'  => 'Box 6 Title',
-						'showWhen' => array( 'ctaType' => 'box' ),
+						'showWhen' => array(
+							'boxCount' => '6',
+							'ctaType'  => 'box',
+						),
+					),
+					'box6ShowTitle'              => array(
+						'type'     => 'toggle',
+						'label'    => 'Show Last Box Title',
+						'default'  => true,
+						'showWhen' => array( 'boxCount' => '6' ),
 					),
 					'box6Url'                    => array(
 						'type'     => 'text',
 						'label'    => 'Box 6 URL',
 						'default'  => '#',
-						'showWhen' => array( 'ctaType' => 'box' ),
+						'showWhen' => array(
+							'boxCount' => '6',
+							'ctaType'  => 'box',
+						),
 					),
 					// Style
 					'boxBackground'              => array(

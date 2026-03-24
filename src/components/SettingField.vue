@@ -103,7 +103,7 @@
       <!-- Image Preview (when set) -->
       <div v-if="value" class="dsf-image-upload__preview">
         <img :src="value" alt="" />
-        <button class="dsf-image-upload__remove" @click="$emit('update', '')" title="Remove Image">
+        <button class="dsf-image-upload__remove" @click="handleImageRemove" title="Remove Image">
           <X :size="16" />
         </button>
       </div>
@@ -115,7 +115,7 @@
           class="dsf-input"
           placeholder="Enter image URL..."
           :value="value"
-          @input="$emit('update', $event.target.value)"
+          @input="handleImageInput"
         />
       </div>
       
@@ -275,7 +275,9 @@ function openMediaLibrary() {
     frame.on('select', () => {
       try {
         const selection = frame.state().get('selection').first().toJSON()
-        emit('update', selection.url)
+        emitImageUpdate(selection.url, {
+          alt: selection.alt || '',
+        })
       } catch (e) {
         console.error('Error selecting image:', e)
       }
@@ -286,6 +288,37 @@ function openMediaLibrary() {
     console.error('WordPress Media Library not found')
     alert('Media Library is not available. Please ensure you are logged into WordPress.')
   }
+}
+
+function emitImageUpdate(url, metadata = {}) {
+  const metaFields = props.config?.mediaMetaFields || {}
+  const hasMetaFields = Object.keys(metaFields).length > 0
+
+  if (!hasMetaFields) {
+    emit('update', url)
+    return
+  }
+
+  const updates = {
+    [props.fieldKey]: url,
+  }
+
+  if (metaFields.alt) {
+    updates[metaFields.alt] = metadata.alt || ''
+  }
+
+  emit('update', {
+    __dsfBatch: true,
+    updates,
+  })
+}
+
+function handleImageInput(event) {
+  emitImageUpdate(event.target.value, { alt: '' })
+}
+
+function handleImageRemove() {
+  emitImageUpdate('', { alt: '' })
 }
 </script>
 

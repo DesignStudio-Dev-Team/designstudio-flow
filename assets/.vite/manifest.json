@@ -1,6 +1,6 @@
 {
-  "_main-C90dZCT4.js": {
-    "file": "js/main-C90dZCT4.js",
+  "_main-Cef0ONLj.js": {
+    "file": "js/main-Cef0ONLj.js",
     "name": "main",
     "css": [
       "css/main.css"
@@ -16,7 +16,7 @@
     "src": "src/frontend/main.js",
     "isEntry": true,
     "imports": [
-      "_main-C90dZCT4.js"
+      "_main-Cef0ONLj.js"
     ]
   },
   "src/main.js": {
@@ -25,7 +25,7 @@
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
-      "_main-C90dZCT4.js"
+      "_main-Cef0ONLj.js"
     ],
     "css": [
       "css/editor.css"

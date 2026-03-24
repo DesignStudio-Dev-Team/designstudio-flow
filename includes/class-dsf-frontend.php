@@ -593,12 +593,13 @@ class DSF_Frontend {
 				$term_link    = get_term_link( $cat );
 
 				return array(
-					'id'    => $cat->term_id,
-					'name'  => $cat->name,
-					'slug'  => $cat->slug,
-					'count' => $cat->count,
-					'url'   => is_wp_error( $term_link ) ? '' : $term_link,
-					'image' => $thumbnail_id ? wp_get_attachment_url( $thumbnail_id ) : '',
+					'id'       => $cat->term_id,
+					'name'     => $cat->name,
+					'slug'     => $cat->slug,
+					'count'    => $cat->count,
+					'url'      => is_wp_error( $term_link ) ? '' : $term_link,
+					'image'    => $thumbnail_id ? wp_get_attachment_url( $thumbnail_id ) : '',
+					'imageAlt' => $thumbnail_id ? get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ) : '',
 				);
 			},
 			$categories

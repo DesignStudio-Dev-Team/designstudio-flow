@@ -27,7 +27,7 @@ echo "📦 Building DesignStudio Flow v$VERSION..."
 echo "🔨 Building Vue assets..."
 echo "🧹 Cleaning previous Vite assets..."
 rm -rf assets/.vite
-rm -f assets/js/editor.js assets/js/frontend.js assets/js/*-*.js
+rm -f assets/js/editor.js assets/js/frontend.js assets/js/main-*.js
 rm -f assets/css/editor.css assets/css/FrontendApp.css
 npm run build
 
