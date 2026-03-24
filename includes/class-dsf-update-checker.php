@@ -35,8 +35,9 @@ class DSF_Update_Checker {
 	/**
 	 * Cache key and duration
 	 */
-	private $cache_key      = 'dsf_update_check';
+	private $cache_key      = 'dsf_update_check_v2';
 	private $cache_duration = 12 * HOUR_IN_SECONDS;
+	private $version_option_key = 'dsf_update_checker_version';
 
 	/**
 	 * Single instance
@@ -81,6 +82,9 @@ class DSF_Update_Checker {
 
 		// Plugin info popup
 		add_filter( 'plugins_api', array( $this, 'plugin_info' ), 20, 3 );
+
+		// Refresh update state when the installed plugin version changes.
+		add_action( 'admin_init', array( $this, 'maybe_refresh_update_state' ) );
 
 		// After update, clear cache
 		add_action( 'upgrader_process_complete', array( $this, 'clear_cache' ), 10, 2 );
@@ -181,6 +185,31 @@ class DSF_Update_Checker {
 			$headers['Authorization'] = 'Bearer ' . $this->github_token;
 		}
 
+		$release_version = $this->get_latest_release_version( $headers );
+		$tag_version     = $this->get_latest_tag_version( $headers );
+
+		if ( $release_version && ( ! $tag_version || version_compare( $release_version->version, $tag_version->version, '>=' ) ) ) {
+			$version_data = $release_version;
+		} else {
+			$version_data = $tag_version;
+		}
+
+		if ( ! $version_data ) {
+			return false;
+		}
+
+		set_transient( $this->cache_key, $version_data, $this->cache_duration );
+
+		return $version_data;
+	}
+
+	/**
+	 * Get latest published GitHub release metadata.
+	 *
+	 * @param array $headers Request headers.
+	 * @return object|false
+	 */
+	private function get_latest_release_version( $headers ) {
 		$response = wp_remote_get(
 			"https://api.github.com/repos/{$this->github_username}/{$this->github_repo}/releases/latest",
 			array(
@@ -210,36 +239,93 @@ class DSF_Update_Checker {
 				}
 
 				if ( $asset->name === $preferred_asset || 0 === strpos( $asset->name, $this->plugin_slug . '-' ) ) {
-					// For private repos, use the API URL (requires auth)
-					// For public repos, use the browser download URL
-					if ( ! empty( $this->github_token ) ) {
-						$download_url = $asset->url; // API URL for authenticated download
-					} else {
-						$download_url = $asset->browser_download_url;
-					}
+					$download_url = ! empty( $this->github_token ) ? $asset->url : $asset->browser_download_url;
 					break;
 				}
 			}
 		}
 
-		// Fallback to zipball if no release asset is attached.
 		if ( empty( $download_url ) ) {
 			$download_url = $release->zipball_url;
 		}
 
-		$version_data = (object) array(
+		return (object) array(
 			'version'      => ltrim( $release->tag_name, 'v' ),
 			'download_url' => $download_url,
 			'url'          => $release->html_url,
 			'changelog'    => $release->body ?? '',
 			'last_updated' => $release->published_at ?? '',
-			'tested'       => '', // Can be parsed from release body if needed
+			'tested'       => '',
 			'requires_php' => '7.4',
 		);
+	}
 
-		set_transient( $this->cache_key, $version_data, $this->cache_duration );
+	/**
+	 * Get the highest semver GitHub tag when a formal release has not been published yet.
+	 *
+	 * @param array $headers Request headers.
+	 * @return object|false
+	 */
+	private function get_latest_tag_version( $headers ) {
+		$response = wp_remote_get(
+			"https://api.github.com/repos/{$this->github_username}/{$this->github_repo}/tags?per_page=20",
+			array(
+				'timeout' => 10,
+				'headers' => $headers,
+			)
+		);
 
-		return $version_data;
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			return false;
+		}
+
+		$tags = json_decode( wp_remote_retrieve_body( $response ) );
+		if ( empty( $tags ) || ! is_array( $tags ) ) {
+			return false;
+		}
+
+		$latest_tag = false;
+
+		foreach ( $tags as $tag ) {
+			if ( empty( $tag->name ) ) {
+				continue;
+			}
+
+			$version = ltrim( $tag->name, 'v' );
+			if ( ! preg_match( '/^\d+(?:\.\d+)+$/', $version ) ) {
+				continue;
+			}
+
+			$tag_data = (object) array(
+				'version'      => $version,
+				'download_url' => $this->get_tag_download_url( $tag->name ),
+				'url'          => "https://github.com/{$this->github_username}/{$this->github_repo}/releases/tag/{$tag->name}",
+				'changelog'    => '',
+				'last_updated' => '',
+				'tested'       => '',
+				'requires_php' => '7.4',
+			);
+
+			if ( ! $latest_tag || version_compare( $latest_tag->version, $tag_data->version, '<' ) ) {
+				$latest_tag = $tag_data;
+			}
+		}
+
+		return $latest_tag;
+	}
+
+	/**
+	 * Build a downloadable ZIP URL from a Git tag.
+	 *
+	 * @param string $tag_name Git tag name.
+	 * @return string
+	 */
+	private function get_tag_download_url( $tag_name ) {
+		if ( ! empty( $this->github_token ) ) {
+			return "https://api.github.com/repos/{$this->github_username}/{$this->github_repo}/zipball/{$tag_name}";
+		}
+
+		return "https://github.com/{$this->github_username}/{$this->github_repo}/archive/refs/tags/{$tag_name}.zip";
 	}
 
 	/**
@@ -360,7 +446,25 @@ class DSF_Update_Checker {
 		unset( $upgrader );
 		if ( isset( $options['action'], $options['type'] ) && 'update' === $options['action'] && 'plugin' === $options['type'] ) {
 			delete_transient( $this->cache_key );
+			delete_site_transient( 'update_plugins' );
 		}
+	}
+
+	/**
+	 * Clear cached updater state whenever the installed plugin version changes.
+	 *
+	 * @return void
+	 */
+	public function maybe_refresh_update_state() {
+		$stored_version = get_option( $this->version_option_key, '' );
+
+		if ( $stored_version === $this->current_version ) {
+			return;
+		}
+
+		delete_transient( $this->cache_key );
+		delete_site_transient( 'update_plugins' );
+		update_option( $this->version_option_key, $this->current_version, false );
 	}
 
 	/**

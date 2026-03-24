@@ -40,3 +40,6 @@ Thumbs.db
 # Git
 .git/
 .gitattributes
+
+# Local mirror / accidental nested plugin copy
+designstudio-flow/
