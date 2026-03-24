@@ -1,6 +1,6 @@
 {
-  "_main-mFr9GIg5.js": {
-    "file": "js/main-mFr9GIg5.js",
+  "_main-C90dZCT4.js": {
+    "file": "js/main-C90dZCT4.js",
     "name": "main",
     "css": [
       "css/main.css"
@@ -16,7 +16,7 @@
     "src": "src/frontend/main.js",
     "isEntry": true,
     "imports": [
-      "_main-mFr9GIg5.js"
+      "_main-C90dZCT4.js"
     ]
   },
   "src/main.js": {
@@ -25,7 +25,7 @@
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
-      "_main-mFr9GIg5.js"
+      "_main-C90dZCT4.js"
     ],
     "css": [
       "css/editor.css"

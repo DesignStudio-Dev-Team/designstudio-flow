@@ -2,10 +2,10 @@
   <div class="dsf-block-preview dsf-bento-hero">
     <div 
       class="dsf-bento-hero__grid"
-      :style="{ gap: gapValue + 'px', minHeight: heightValue + 'px' }"
+      :style="gridStyle"
     >
-      <!-- Hero Section (Left, spans 2 rows) -->
-      <div class="dsf-bento-hero__hero">
+      <!-- Hero Section -->
+      <div class="dsf-bento-hero__hero" :style="heroStyle">
         <img 
           v-if="settings.heroImage" 
           :src="settings.heroImage" 
@@ -58,6 +58,21 @@
           </a>
         </div>
       </div>
+
+      <!-- Top Bar -->
+      <div
+        v-if="showTopBar"
+        class="dsf-bento-hero__section-bar"
+        :style="sectionBarStyle(gridLayout.topBarRow)"
+      >
+        <InlineText
+          v-model="settings.topBarText"
+          tagName="span"
+          class="dsf-bento-hero__section-bar-text"
+          :is-editor="isEditor"
+          placeholder="Shop by Category"
+        />
+      </div>
       
       <!-- Top Row Boxes (3) -->
       <a 
@@ -65,7 +80,7 @@
         :key="'box' + i"
         :href="boxHref(i)"
         class="dsf-bento-hero__box"
-        :style="{ backgroundColor: settings.boxBackground || '#F5F5F4' }"
+        :style="boxStyle(i)"
         @click="handleBoxClick(i, $event)"
       >
         <img 
@@ -87,6 +102,21 @@
           :placeholder="'Box ' + i + ' Title'"
         />
       </a>
+
+      <!-- Bottom Bar -->
+      <div
+        v-if="showBottomBar"
+        class="dsf-bento-hero__section-bar"
+        :style="sectionBarStyle(gridLayout.bottomBarRow)"
+      >
+        <InlineText
+          v-model="settings.bottomBarText"
+          tagName="span"
+          class="dsf-bento-hero__section-bar-text"
+          :is-editor="isEditor"
+          placeholder="Shop by Brand"
+        />
+      </div>
       
       <!-- Bottom Row Boxes (2) -->
       <a 
@@ -94,7 +124,7 @@
         :key="'box' + i"
         :href="boxHref(i)"
         class="dsf-bento-hero__box dsf-bento-hero__box--bottom"
-        :style="{ backgroundColor: settings.boxBackground || '#F5F5F4' }"
+        :style="boxStyle(i)"
         @click="handleBoxClick(i, $event)"
       >
         <img 
@@ -119,10 +149,10 @@
       
       <!-- CTA Box -->
       <a 
-        v-if="isCtaMode"
+        v-if="lastTileMode === 'cta'"
         :href="ctaHref"
         class="dsf-bento-hero__cta"
-        :style="{ backgroundColor: settings.ctaColor || '#2C5F5D', color: settings.ctaTextColor || '#FFFFFF' }"
+        :style="ctaStyle"
         @click="handleCtaClick"
       >
         <InlineText 
@@ -140,22 +170,23 @@
       <!-- Extra Box (replaces CTA when enabled) -->
       <a
         v-else
-        :href="boxHref(6)"
+        :href="lastBoxHref"
         class="dsf-bento-hero__box dsf-bento-hero__box--bottom"
-        :style="{ backgroundColor: settings.boxBackground || '#F5F5F4' }"
-        @click="handleBoxClick(6, $event)"
+        :style="lastBoxStyle"
+        @click="handleLastBoxClick"
       >
         <img 
-          v-if="settings.box6Image" 
-          :src="settings.box6Image" 
-          :alt="settings.box6Title"
+          v-if="lastBoxImage" 
+          :src="lastBoxImage" 
+          :alt="lastBoxTitle"
           class="dsf-bento-hero__box-img"
           :style="{ width: (settings.boxImageSize || 100) + '%' }"
         />
         <div v-else class="dsf-bento-hero__box-placeholder">
           <Image :size="32" />
         </div>
-        <InlineText 
+        <InlineText
+          v-if="lastTileMode === 'box'"
           v-model="settings.box6Title" 
           tagName="span"
           class="dsf-bento-hero__box-title"
@@ -163,6 +194,13 @@
           :is-editor="isEditor"
           placeholder="Box 6 Title"
         />
+        <span
+          v-else
+          class="dsf-bento-hero__box-title"
+          :style="{ color: settings.titleColor || '#1F2937' }"
+        >
+          {{ lastBoxTitle }}
+        </span>
       </a>
     </div>
   </div>
@@ -185,6 +223,9 @@ const props = defineProps({
 })
 
 const { openModal } = useFlowModal()
+const wpData = typeof window !== 'undefined'
+  ? (window.dsfEditorData || window.dsfFrontendData || {})
+  : {}
 
 const searchQuery = ref('')
 const gapValue = computed(() =>
@@ -193,7 +234,91 @@ const gapValue = computed(() =>
 const heightValue = computed(() =>
   getResponsiveValue(props.settings || {}, props.previewMode, 'height') ?? 400
 )
-const isCtaMode = computed(() => (props.settings?.ctaType || 'cta') === 'cta')
+const sectionBarHeight = computed(() => props.settings?.sectionBarHeight ?? 64)
+const showTopBar = computed(() => props.settings?.showTopBar === true)
+const showBottomBar = computed(() => props.settings?.showBottomBar === true)
+const gridLayout = computed(() => {
+  const rows = []
+  let currentRow = 1
+  let topBarRow = null
+  let bottomBarRow = null
+
+  if (showTopBar.value) {
+    topBarRow = currentRow
+    rows.push(`minmax(${sectionBarHeight.value}px, auto)`)
+    currentRow += 1
+  }
+
+  const topBoxesRow = currentRow
+  rows.push('1fr')
+  currentRow += 1
+
+  if (showBottomBar.value) {
+    bottomBarRow = currentRow
+    rows.push(`minmax(${sectionBarHeight.value}px, auto)`)
+    currentRow += 1
+  }
+
+  const bottomBoxesRow = currentRow
+  rows.push('1fr')
+
+  return {
+    topBarRow,
+    topBoxesRow,
+    bottomBarRow,
+    bottomBoxesRow,
+    totalRows: currentRow,
+    templateRows: rows.join(' '),
+  }
+})
+const gridStyle = computed(() => ({
+  gap: `${gapValue.value}px`,
+  minHeight: `${heightValue.value}px`,
+  gridTemplateRows: gridLayout.value.templateRows,
+}))
+const heroStyle = computed(() => ({
+  gridColumn: '1',
+  gridRow: `1 / span ${gridLayout.value.totalRows}`,
+}))
+const lastTileMode = computed(() => props.settings?.ctaType || 'cta')
+const availableCategories = computed(() =>
+  Array.isArray(wpData.categories) ? wpData.categories : []
+)
+const selectedLastCategory = computed(() => {
+  if (lastTileMode.value !== 'category') return null
+
+  const categoryId = Number.parseInt(props.settings?.box6CategoryId, 10)
+  if (!Number.isFinite(categoryId) || categoryId <= 0) return null
+
+  return availableCategories.value.find((category) => Number(category?.id) === categoryId) || null
+})
+const lastBoxHref = computed(() => (
+  lastTileMode.value === 'category'
+    ? (selectedLastCategory.value?.url || '#')
+    : boxHref(6)
+))
+const lastBoxImage = computed(() => (
+  lastTileMode.value === 'category'
+    ? (selectedLastCategory.value?.image || '')
+    : (props.settings?.box6Image || '')
+))
+const lastBoxTitle = computed(() => {
+  if (lastTileMode.value !== 'category') {
+    return props.settings?.box6Title || 'Box 6 Title'
+  }
+
+  return selectedLastCategory.value?.name || 'Select a category'
+})
+const ctaStyle = computed(() => ({
+  backgroundColor: props.settings?.ctaColor || '#2C5F5D',
+  color: props.settings?.ctaTextColor || '#FFFFFF',
+  gridColumn: '4',
+  gridRow: String(gridLayout.value.bottomBoxesRow),
+}))
+const lastBoxStyle = computed(() => ({
+  ...boxPlacementStyle(6),
+  backgroundColor: props.settings?.boxBackground || '#F5F5F4',
+}))
 
 function buildSearchUrl(template, query) {
   const normalized = (template || '').trim()
@@ -220,12 +345,58 @@ function boxHref(index) {
   return rawUrl || '#'
 }
 
+function boxPlacementStyle(index) {
+  const columnMap = {
+    1: 2,
+    2: 3,
+    3: 4,
+    4: 2,
+    5: 3,
+    6: 4,
+  }
+  const row = index <= 3 ? gridLayout.value.topBoxesRow : gridLayout.value.bottomBoxesRow
+
+  return {
+    gridColumn: String(columnMap[index]),
+    gridRow: String(row),
+  }
+}
+
+function boxStyle(index) {
+  return {
+    ...boxPlacementStyle(index),
+    backgroundColor: props.settings?.boxBackground || '#F5F5F4',
+  }
+}
+
+function sectionBarStyle(row) {
+  return {
+    gridColumn: '2 / 5',
+    gridRow: String(row),
+    minHeight: `${sectionBarHeight.value}px`,
+    backgroundColor: props.settings?.sectionBarBackground || '#1E467B',
+    color: props.settings?.sectionBarTextColor || '#FFFFFF',
+  }
+}
+
 function handleBoxClick(index, event) {
   if (props.isEditor) {
     event.preventDefault()
     return
   }
   const target = boxHref(index)
+  if (!target || target === '#') {
+    event.preventDefault()
+  }
+}
+
+function handleLastBoxClick(event) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+
+  const target = lastBoxHref.value
   if (!target || target === '#') {
     event.preventDefault()
   }
@@ -302,10 +473,8 @@ function handleCtaClick(event) {
   min-height: 400px;
 }
 
-/* Hero Section - spans 2 rows */
+/* Hero Section */
 .dsf-bento-hero__hero {
-  grid-row: 1 / 3;
-  grid-column: 1;
   position: relative;
   border-radius: var(--dsf-radius-lg);
   overflow: hidden;
@@ -402,8 +571,23 @@ function handleCtaClick(event) {
   display: block;
 }
 
+.dsf-bento-hero__section-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  border-radius: var(--dsf-radius-lg);
+  text-align: center;
+}
 
-
+.dsf-bento-hero__section-bar-text {
+  font-family: var(--dsf-theme-heading-font, inherit);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
 
 /* Feature Boxes */
 .dsf-bento-hero__box {
@@ -509,19 +693,27 @@ function handleCtaClick(event) {
   .dsf-bento-hero__hero-title { font-size: 34px; }
   .dsf-bento-hero__box-title,
   .dsf-bento-hero__cta-text { font-size: 20px; }
+  .dsf-bento-hero__section-bar-text { font-size: 20px; }
 }
 
 /* Mobile Responsive using Container Queries */
 @container (max-width: 768px) {
   .dsf-bento-hero__grid {
     grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: auto;
+    grid-template-rows: auto !important;
     height: auto;
   }
 
+  .dsf-bento-hero__hero,
+  .dsf-bento-hero__box,
+  .dsf-bento-hero__cta,
+  .dsf-bento-hero__section-bar {
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+
   .dsf-bento-hero__hero {
-    grid-column: 1 / -1;
-    grid-row: auto;
+    grid-column: 1 / -1 !important;
     min-height: 350px;
   }
 
@@ -530,5 +722,8 @@ function handleCtaClick(event) {
     min-height: 200px;
   }
 
+  .dsf-bento-hero__section-bar {
+    grid-column: 1 / -1 !important;
+  }
 }
 </style>

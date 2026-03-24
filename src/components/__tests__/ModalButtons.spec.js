@@ -17,6 +17,7 @@ vi.mock('../common/useFlowModal', () => ({
 describe('Modal CTA Buttons', () => {
   beforeEach(() => {
     openModal.mockReset()
+    window.dsfEditorData = {}
   })
 
   it('opens modal from Bento Hero main button', async () => {
@@ -62,6 +63,35 @@ describe('Modal CTA Buttons', () => {
       contentType: 'wysiwyg',
       content: '<p>CTA</p>',
     })
+  })
+
+  it('uses the selected category for the Bento Hero last box', () => {
+    window.dsfEditorData = {
+      categories: [
+        {
+          id: 12,
+          name: 'Outdoor Seating',
+          url: '/product-category/outdoor-seating',
+          image: '/images/outdoor-seating.jpg',
+        },
+      ],
+    }
+
+    const wrapper = mount(BentoHeroPreview, {
+      props: {
+        settings: {
+          ctaType: 'category',
+          box6CategoryId: 12,
+        },
+        isEditor: false,
+      },
+    })
+
+    const lastBox = wrapper.findAll('.dsf-bento-hero__box--bottom').at(2)
+
+    expect(lastBox.attributes('href')).toBe('/product-category/outdoor-seating')
+    expect(lastBox.text()).toContain('Outdoor Seating')
+    expect(lastBox.find('img').attributes('src')).toBe('/images/outdoor-seating.jpg')
   })
 
   it('opens modal from Duo Hero left button', async () => {

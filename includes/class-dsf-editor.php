@@ -500,12 +500,14 @@ class DSF_Editor {
 		return array_map(
 			function ( $cat ) {
 				$thumbnail_id = get_term_meta( $cat->term_id, 'thumbnail_id', true );
+				$term_link    = get_term_link( $cat );
 
 				return array(
 					'id'    => $cat->term_id,
 					'name'  => $cat->name,
 					'slug'  => $cat->slug,
 					'count' => $cat->count,
+					'url'   => is_wp_error( $term_link ) ? '' : $term_link,
 					'image' => $thumbnail_id ? wp_get_attachment_url( $thumbnail_id ) : '',
 				);
 			},

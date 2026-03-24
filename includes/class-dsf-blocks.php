@@ -514,13 +514,37 @@ class DSF_Blocks {
 						'label'   => 'Box 5 URL',
 						'default' => '#',
 					),
-					// CTA Box / Extra Box Toggle
+					// Section Bars
+					'showTopBar'                 => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Top Bar',
+						'default' => false,
+					),
+					'topBarText'                 => array(
+						'type'     => 'text',
+						'label'    => 'Top Bar Text',
+						'default'  => 'Shop by Category',
+						'showWhen' => array( 'showTopBar' => true ),
+					),
+					'showBottomBar'              => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Bottom Bar',
+						'default' => false,
+					),
+					'bottomBarText'              => array(
+						'type'     => 'text',
+						'label'    => 'Bottom Bar Text',
+						'default'  => 'Shop by Brand',
+						'showWhen' => array( 'showBottomBar' => true ),
+					),
+					// Last Tile Type
 					'ctaType'                    => array(
 						'type'    => 'select',
-						'label'   => 'CTA Type',
+						'label'   => 'Last Tile Type',
 						'default' => 'cta',
 						'options' => array(
 							'Shop All CTA' => 'cta',
+							'Category Box' => 'category',
 							'Extra Box'    => 'box',
 						),
 					),
@@ -620,6 +644,12 @@ class DSF_Blocks {
 						'showWhen' => array( 'ctaType' => 'cta' ),
 					),
 					// Extra Box (Box 6)
+					'box6CategoryId'             => array(
+						'type'     => 'category',
+						'label'    => 'Box 6 Category',
+						'default'  => 0,
+						'showWhen' => array( 'ctaType' => 'category' ),
+					),
 					'box6Image'                  => array(
 						'type'     => 'image',
 						'label'    => 'Box 6 Image',
@@ -656,6 +686,23 @@ class DSF_Blocks {
 						'type'    => 'color',
 						'label'   => 'Title Color',
 						'default' => '#1F2937',
+					),
+					'sectionBarBackground'       => array(
+						'type'    => 'color',
+						'label'   => 'Section Bar Background',
+						'default' => '#1E467B',
+					),
+					'sectionBarTextColor'        => array(
+						'type'    => 'color',
+						'label'   => 'Section Bar Text Color',
+						'default' => '#FFFFFF',
+					),
+					'sectionBarHeight'           => array(
+						'type'    => 'slider',
+						'label'   => 'Section Bar Height',
+						'default' => 64,
+						'min'     => 40,
+						'max'     => 120,
 					),
 					'gap'                        => array(
 						'type'    => 'slider',
