@@ -12,6 +12,9 @@ vendor/
 .husky/
 scripts/
 
+# Vite internals (manifest, etc. — not needed at runtime)
+assets/.vite/
+
 # Config files
 .github/
 .gitignore

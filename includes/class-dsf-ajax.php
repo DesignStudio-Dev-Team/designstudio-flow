@@ -166,6 +166,7 @@ class DSF_Ajax {
 				'stroke-linejoin' => true,
 				'aria-hidden'     => true,
 				'role'            => true,
+				'data-*'          => true,
 			),
 			'path'     => array(
 				'd'               => true,
@@ -174,6 +175,7 @@ class DSF_Ajax {
 				'stroke-width'    => true,
 				'stroke-linecap'  => true,
 				'stroke-linejoin' => true,
+				'data-*'          => true,
 			),
 			'circle'   => array(
 				'cx'     => true,
@@ -181,6 +183,7 @@ class DSF_Ajax {
 				'r'      => true,
 				'fill'   => true,
 				'stroke' => true,
+				'data-*' => true,
 			),
 			'rect'     => array(
 				'x'      => true,
@@ -191,6 +194,7 @@ class DSF_Ajax {
 				'ry'     => true,
 				'fill'   => true,
 				'stroke' => true,
+				'data-*' => true,
 			),
 			'line'     => array(
 				'x1'     => true,
@@ -198,71 +202,85 @@ class DSF_Ajax {
 				'x2'     => true,
 				'y2'     => true,
 				'stroke' => true,
+				'data-*' => true,
 			),
 			'polyline' => array(
 				'points' => true,
 				'fill'   => true,
 				'stroke' => true,
+				'data-*' => true,
 			),
 			'polygon'  => array(
 				'points' => true,
 				'fill'   => true,
 				'stroke' => true,
+				'data-*' => true,
 			),
 			'g'        => array(
 				'class'  => true,
 				'fill'   => true,
 				'stroke' => true,
+				'data-*' => true,
 			),
 			'div'      => array(
-				'class' => true,
-				'style' => true,
-				'id'    => true,
+				'class'  => true,
+				'style'  => true,
+				'id'     => true,
+				'data-*' => true,
 			),
 			'section'  => array(
-				'class' => true,
-				'style' => true,
-				'id'    => true,
+				'class'  => true,
+				'style'  => true,
+				'id'     => true,
+				'data-*' => true,
 			),
 			'span'     => array(
-				'class' => true,
-				'style' => true,
-				'id'    => true,
+				'class'  => true,
+				'style'  => true,
+				'id'     => true,
+				'data-*' => true,
 			),
 			'p'        => array(
-				'class' => true,
-				'style' => true,
-				'id'    => true,
+				'class'  => true,
+				'style'  => true,
+				'id'     => true,
+				'data-*' => true,
 			),
 			'h1'       => array(
-				'class' => true,
-				'style' => true,
-				'id'    => true,
+				'class'  => true,
+				'style'  => true,
+				'id'     => true,
+				'data-*' => true,
 			),
 			'h2'       => array(
-				'class' => true,
-				'style' => true,
-				'id'    => true,
+				'class'  => true,
+				'style'  => true,
+				'id'     => true,
+				'data-*' => true,
 			),
 			'h3'       => array(
-				'class' => true,
-				'style' => true,
-				'id'    => true,
+				'class'  => true,
+				'style'  => true,
+				'id'     => true,
+				'data-*' => true,
 			),
 			'h4'       => array(
-				'class' => true,
-				'style' => true,
-				'id'    => true,
+				'class'  => true,
+				'style'  => true,
+				'id'     => true,
+				'data-*' => true,
 			),
 			'h5'       => array(
-				'class' => true,
-				'style' => true,
-				'id'    => true,
+				'class'  => true,
+				'style'  => true,
+				'id'     => true,
+				'data-*' => true,
 			),
 			'h6'       => array(
-				'class' => true,
-				'style' => true,
-				'id'    => true,
+				'class'  => true,
+				'style'  => true,
+				'id'     => true,
+				'data-*' => true,
 			),
 			'a'        => array(
 				'class'      => true,
@@ -271,6 +289,7 @@ class DSF_Ajax {
 				'target'     => true,
 				'rel'        => true,
 				'aria-label' => true,
+				'data-*'     => true,
 			),
 			'img'      => array(
 				'class'   => true,
@@ -280,12 +299,14 @@ class DSF_Ajax {
 				'width'   => true,
 				'height'  => true,
 				'loading' => true,
+				'data-*'  => true,
 			),
 			'button'   => array(
 				'class'      => true,
 				'style'      => true,
 				'type'       => true,
 				'aria-label' => true,
+				'data-*'     => true,
 			),
 			'input'    => array(
 				'class'       => true,
@@ -294,6 +315,7 @@ class DSF_Ajax {
 				'value'       => true,
 				'placeholder' => true,
 				'name'        => true,
+				'data-*'      => true,
 			),
 		);
 
@@ -433,6 +455,9 @@ class DSF_Ajax {
 			$regular_display = '' !== $regular ? html_entity_decode( wp_strip_all_tags( wc_price( $regular ) ) ) : '';
 			$sale_display    = '' !== $sale ? html_entity_decode( wp_strip_all_tags( wc_price( $sale ) ) ) : '';
 
+			$cat_terms = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'names' ) );
+			$tag_terms = wp_get_post_terms( $product->get_id(), 'product_tag', array( 'fields' => 'names' ) );
+
 			$result[] = array(
 				'id'              => $product->get_id(),
 				'name'            => $product->get_name(),
@@ -446,10 +471,55 @@ class DSF_Ajax {
 				'permalink'       => $product->get_permalink(),
 				'add_to_cart_url' => $product->add_to_cart_url(),
 				'stock_status'    => $product->get_stock_status(),
+				'price_num'       => (float) $product->get_price(),
+				'rating'          => round( (float) $product->get_average_rating(), 1 ),
+				'categories'      => is_wp_error( $cat_terms ) ? array() : $cat_terms,
+				'tags'            => is_wp_error( $tag_terms ) ? array() : $tag_terms,
+				'attributes'      => $this->get_product_filter_attributes( $product ),
 			);
 		}
 
 		wp_send_json_success( array( 'products' => $result ) );
+	}
+
+	/**
+	 * Build a normalized attribute map for client-side filtering.
+	 * Keys are lowercase attribute labels (e.g. "brand", "material", "color").
+	 *
+	 * @param WC_Product $product
+	 * @return array<string, string[]>
+	 */
+	private function get_product_filter_attributes( $product ) {
+		$attrs = array();
+
+		// Standard WooCommerce product attributes (pa_* taxonomies + custom)
+		foreach ( $product->get_attributes() as $attribute ) {
+			if ( $attribute->is_taxonomy() ) {
+				$label  = wc_attribute_label( $attribute->get_name() );
+				$terms  = wp_get_post_terms( $product->get_id(), $attribute->get_name(), array( 'fields' => 'names' ) );
+				$values = is_wp_error( $terms ) ? array() : (array) $terms;
+			} else {
+				$label  = $attribute->get_name();
+				$values = array_map( 'trim', $attribute->get_options() );
+			}
+
+			if ( ! empty( $values ) ) {
+				$key           = strtolower( str_replace( ' ', '_', $label ) );
+				$attrs[ $key ] = array_values( array_filter( $values ) );
+			}
+		}
+
+		// WooCommerce Brands plugin (product_brand taxonomy).
+		// Merge into the 'brand' key so the Vue filter picks them up automatically.
+		if ( taxonomy_exists( 'product_brand' ) ) {
+			$brand_terms = wp_get_post_terms( $product->get_id(), 'product_brand', array( 'fields' => 'names' ) );
+			if ( ! is_wp_error( $brand_terms ) && ! empty( $brand_terms ) ) {
+				$existing        = isset( $attrs['brand'] ) ? $attrs['brand'] : array();
+				$attrs['brand']  = array_values( array_unique( array_merge( $existing, (array) $brand_terms ) ) );
+			}
+		}
+
+		return $attrs;
 	}
 
 	/**

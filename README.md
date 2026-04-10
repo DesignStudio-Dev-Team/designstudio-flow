@@ -171,8 +171,17 @@ npm run release
 ```
 
 ### Release Checklist
-1. Update versions in `package.json` and `designstudio-flow.php`.
+1. Update versions in:
+   - `package.json`
+   - `package-lock.json`
+   - `designstudio-flow.php` plugin header
+   - `designstudio-flow.php` `DSF_VERSION` constant
 1. Run `npm run release` to build assets and create the zip.
+1. Verify the ZIP contains a single top-level `designstudio-flow/` folder and the required runtime files:
+   - `designstudio-flow.php`
+   - `includes/`
+   - `templates/`
+   - `assets/`
 1. Commit + tag:
 ```bash
 git add .
@@ -180,6 +189,18 @@ git commit -m "Release vX.Y.Z"
 git tag vX.Y.Z
 git push origin main --tags
 ```
+
+### Backend Update Rollout
+If you want sites to update from wp-admin, do this after tagging:
+
+1. Go to the GitHub repo Releases page.
+1. Create a release for the matching tag, for example `v1.1.10`.
+1. Upload the generated ZIP, for example `designstudio-flow-1.1.10.zip`.
+1. Publish the release.
+1. On the WordPress site, go to `Dashboard > Updates` and click `Check Again`.
+1. Then update the plugin from `Plugins`.
+
+> Important: The clean release ZIP is the file that should be attached to the GitHub Release. Do not upload a zip that contains a nested duplicate `designstudio-flow/` plugin folder.
 
 ---
 
@@ -235,6 +256,19 @@ define('DSF_GITHUB_TOKEN', 'ghp_your_personal_access_token_here');
 
 GitHub releases are used for update delivery.
 
+As of `v1.1.10`, the updater can also fall back to Git tags if a formal GitHub Release has not been published yet. Still, the recommended production workflow is:
+
+1. Push the version commit and tag.
+1. Publish a GitHub Release for that tag.
+1. Attach the generated plugin ZIP to the release.
+
+This gives WordPress the cleanest update path and ensures the backend updater can find the exact release package.
+
+### Notes for Existing Sites
+- Sites already running `v1.1.10` or newer can benefit from the improved updater behavior.
+- For older installed versions, the safest first jump is still a proper GitHub Release with the ZIP attached.
+- If a site does not immediately see the update, click `Check Again` on `Dashboard > Updates` or clear plugin/object cache.
+
 ### 🔐 How to Get a GitHub Token (Private Repo)
 1. Go to GitHub → **Settings** → **Developer settings** → **Personal access tokens**.
 1. Create a **Fine‑grained token** (recommended) or **Classic token**.
@@ -249,7 +283,13 @@ GitHub releases are used for update delivery.
 
 ## 📝 Changelog
 
-### v1.0.9 (Current)
+### v1.1.10 (Current)
+- Fixed release packaging so the ZIP contains only one `designstudio-flow/` plugin folder
+- Fixed plugin version constant mismatch that could confuse updates
+- Improved GitHub updater to clear stale cache when the installed version changes
+- Added fallback update detection from Git tags when a GitHub Release is missing
+
+### v1.0.9
 - Asset cache‑busting now uses filemtime so uploads always load the latest bundles
 - Ecommerce Showcase preview math matches frontend (5‑across without partial cards)
 - Ecommerce Showcase hover UI refined (pill “View details →” + circular nav hover)

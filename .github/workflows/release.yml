@@ -8,46 +8,65 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Verify assets are built
+      - name: Verify tag version matches plugin header
         run: |
-          if [ ! -d "assets/js" ] || [ ! -d "assets/css" ]; then
-            echo "❌ Error: Built assets not found!"
-            echo "Please run 'npm run build' before pushing the tag."
+          PLUGIN_VERSION=$(grep -m1 "Version:" designstudio-flow.php | sed 's/.*Version:[[:space:]]*//' | tr -d '[:space:]')
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          if [ "$PLUGIN_VERSION" != "$TAG_VERSION" ]; then
+            echo "❌ Version mismatch!"
+            echo "   Tag:    v$TAG_VERSION"
+            echo "   Plugin: $PLUGIN_VERSION"
+            echo "Update 'Version:' in designstudio-flow.php and DSF_VERSION constant before tagging."
             exit 1
           fi
-          echo "✅ Built assets found"
+          echo "✅ Version match: $PLUGIN_VERSION"
 
-      - name: Create plugin directory
+      - name: Verify built assets exist
+        run: |
+          MISSING=0
+          for f in assets/js/frontend.js assets/js/editor.js assets/css/main.css assets/css/frontend.css assets/css/editor.css; do
+            if [ ! -f "$f" ]; then
+              echo "❌ Missing built asset: $f"
+              MISSING=1
+            fi
+          done
+          if [ "$MISSING" = "1" ]; then
+            echo "Run 'npm run build' locally and commit the built assets before pushing the tag."
+            exit 1
+          fi
+          echo "✅ Built assets verified"
+
+      - name: Package plugin with distignore
         run: |
           mkdir -p build/designstudio-flow
-          
-          # Copy production files only
-          cp -r assets build/designstudio-flow/
-          cp -r includes build/designstudio-flow/
-          cp -r templates build/designstudio-flow/
-          cp designstudio-flow.php build/designstudio-flow/
-          cp README.md build/designstudio-flow/
+          rsync -a --exclude-from=".distignore" ./ build/designstudio-flow/
+          echo "📁 Packaged files:"
+          find build/designstudio-flow -type f | sort
 
       - name: Create ZIP archive
         run: |
           cd build
-          zip -r ../designstudio-flow-${{ steps.get_version.outputs.VERSION }}.zip designstudio-flow
+          zip -rq ../designstudio-flow-${{ steps.get_version.outputs.VERSION }}.zip designstudio-flow
+          echo "✅ Created designstudio-flow-${{ steps.get_version.outputs.VERSION }}.zip"
+          unzip -l ../designstudio-flow-${{ steps.get_version.outputs.VERSION }}.zip | tail -5
 
       - name: Generate changelog from commits
         id: changelog
         run: |
           PREVIOUS_TAG=$(git describe --abbrev=0 --tags HEAD^ 2>/dev/null || echo "")
           if [ -n "$PREVIOUS_TAG" ]; then
-            CHANGELOG=$(git log $PREVIOUS_TAG..HEAD --pretty=format:"- %s" --no-merges)
+            CHANGELOG=$(git log "$PREVIOUS_TAG..HEAD" --pretty=format:"- %s" --no-merges)
           else
             CHANGELOG=$(git log --pretty=format:"- %s" --no-merges -20)
           fi
@@ -56,21 +75,21 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: designstudio-flow-${{ steps.get_version.outputs.VERSION }}.zip
           name: DesignStudio Flow v${{ steps.get_version.outputs.VERSION }}
           body: |
             ## DesignStudio Flow v${{ steps.get_version.outputs.VERSION }}
-            
+
             ### Changes
             ${{ steps.changelog.outputs.CHANGELOG }}
-            
+
             ### Installation
             1. Download `designstudio-flow-${{ steps.get_version.outputs.VERSION }}.zip`
             2. Go to WordPress Admin → Plugins → Add New → Upload Plugin
             3. Upload the zip file and activate
-            
+
             ### Updating
             If you have auto-updates configured, WordPress will notify you of the new version.
             Click "Update Now" to update without deactivating.

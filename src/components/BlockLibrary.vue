@@ -120,7 +120,7 @@ const props = defineProps({
 defineEmits(['close', 'add'])
 
 const searchQuery = ref('')
-const openCategories = ref(['content']) // Start with Content open
+const openCategories = ref(['']) // Start with Content open
 
 const icons = {
   'layout-template': LayoutTemplate,

@@ -31,6 +31,5 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Release zips (keep the current version tracked)
+# Release zips
 designstudio-flow-*.zip
-!designstudio-flow-1.0.9.zip

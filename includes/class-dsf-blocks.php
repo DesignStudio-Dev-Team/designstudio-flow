@@ -1179,6 +1179,15 @@ class DSF_Blocks {
 						'label'   => 'Banner Image',
 						'default' => '',
 					),
+					'imagePosition'          => array(
+						'type'    => 'select',
+						'label'   => 'Image Position',
+						'default' => 'right',
+						'options' => array(
+							'Image Right' => 'right',
+							'Image Left'  => 'left',
+						),
+					),
 					'buttonText'             => array(
 						'type'    => 'text',
 						'label'   => 'Button Text',
@@ -1265,6 +1274,7 @@ class DSF_Blocks {
 						'default' => 'bottom-right',
 						'options' => array(
 							'Bottom Right'      => 'bottom-right',
+							'Bottom Left'       => 'bottom-left',
 							'Overlapping Curve' => 'overlapping',
 						),
 					),
@@ -1669,12 +1679,66 @@ class DSF_Blocks {
 						'label'   => 'Select Products',
 						'default' => array(),
 					),
-					'limit'            => array(
+					'limit'              => array(
 						'type'    => 'number',
 						'label'   => 'Products to Show',
 						'default' => 6,
 						'min'     => 1,
 						'max'     => 100,
+					),
+					'enableFilters'      => array(
+						'type'    => 'toggle',
+						'label'   => 'Enable Filters',
+						'default' => false,
+					),
+					'filterPosition'     => array(
+						'type'     => 'select',
+						'label'    => 'Filter Sidebar Position',
+						'default'  => 'left',
+						'options'  => array( 'Left' => 'left', 'Right' => 'right' ),
+						'showWhen' => array( 'enableFilters' => true ),
+					),
+					'filterShowPrice'    => array(
+						'type'     => 'toggle',
+						'label'    => 'Price Filter',
+						'default'  => true,
+						'showWhen' => array( 'enableFilters' => true ),
+					),
+					'filterShowCategory' => array(
+						'type'     => 'toggle',
+						'label'    => 'Category Filter',
+						'default'  => true,
+						'showWhen' => array( 'enableFilters' => true ),
+					),
+					'filterShowBrand'    => array(
+						'type'     => 'toggle',
+						'label'    => 'Brand Filter',
+						'default'  => true,
+						'showWhen' => array( 'enableFilters' => true ),
+					),
+					'filterShowMaterial' => array(
+						'type'     => 'toggle',
+						'label'    => 'Material Filter',
+						'default'  => false,
+						'showWhen' => array( 'enableFilters' => true ),
+					),
+					'filterShowColor'    => array(
+						'type'     => 'toggle',
+						'label'    => 'Color Filter',
+						'default'  => false,
+						'showWhen' => array( 'enableFilters' => true ),
+					),
+					'filterShowTags'     => array(
+						'type'     => 'toggle',
+						'label'    => 'Tags Filter',
+						'default'  => false,
+						'showWhen' => array( 'enableFilters' => true ),
+					),
+					'filterShowRating'   => array(
+						'type'     => 'toggle',
+						'label'    => 'Rating Filter',
+						'default'  => false,
+						'showWhen' => array( 'enableFilters' => true ),
 					),
 					'columns'          => array(
 						'type'    => 'select',

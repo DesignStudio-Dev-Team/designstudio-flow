@@ -1,7 +1,7 @@
 <template>
-  <aside class="dsf-panel dsf-animate-slide-in-right">
-    <!-- Header -->
-    <div class="dsf-panel__header">
+  <div class="dsf-panel dsf-panel--float" :style="floatStyle">
+    <!-- Header / Drag Handle -->
+    <div class="dsf-panel__header dsf-panel__drag-handle" @mousedown="startDrag">
       <div>
         <h2 class="dsf-panel__title">Customize Block</h2>
         <p class="dsf-panel__subtitle">{{ blockDefinition?.name || 'Block' }}</p>
@@ -256,11 +256,11 @@
         </template>
       </template>
     </div>
-  </aside>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, reactive, onMounted, onUnmounted } from 'vue'
 import { X, FileText, Palette, ShoppingBag, Smartphone, ChevronDown } from 'lucide-vue-next'
 import SettingField from './SettingField.vue'
 import { getResponsiveValue, setResponsiveValue } from '../utils/responsiveSettings'
@@ -271,6 +271,53 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'update:settings'])
+
+// ── Draggable float ──────────────────────────────────────────────────────────
+const pos = reactive({ x: 0, y: 0 })
+let dragStartX = 0, dragStartY = 0, dragStartPosX = 0, dragStartPosY = 0, isDragging = false
+
+onMounted(() => {
+  pos.x = Math.max(0, window.innerWidth - 420)
+  pos.y = 80
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+})
+
+const floatStyle = computed(() => ({
+  left: `${pos.x}px`,
+  top: `${pos.y}px`,
+  right: 'auto',
+  bottom: 'auto',
+  marginTop: '0',
+}))
+
+function startDrag(e) {
+  if (e.target.closest('button')) return
+  isDragging = true
+  dragStartX = e.clientX
+  dragStartY = e.clientY
+  dragStartPosX = pos.x
+  dragStartPosY = pos.y
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+  e.preventDefault()
+}
+
+function onDrag(e) {
+  if (!isDragging) return
+  pos.x = dragStartPosX + (e.clientX - dragStartX)
+  pos.y = dragStartPosY + (e.clientY - dragStartY)
+}
+
+function stopDrag() {
+  isDragging = false
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 const activeTab = ref('content')
 const responsiveBreakpoint = ref('desktop')
@@ -623,6 +670,28 @@ function shouldShowField(key, settings) {
 </script>
 
 <style scoped>
+/* Floating window overrides */
+.dsf-panel--float {
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin-top: 0 !important;
+  border-left: none;
+  border: 1px solid var(--dsf-gray-200);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.08);
+  max-height: 85vh;
+}
+
+.dsf-panel__drag-handle {
+  cursor: grab;
+  user-select: none;
+}
+
+.dsf-panel__drag-handle:active {
+  cursor: grabbing;
+}
+
 .dsf-settings-expander {
   background: #ffffff;
   border: 1px solid var(--dsf-gray-200);

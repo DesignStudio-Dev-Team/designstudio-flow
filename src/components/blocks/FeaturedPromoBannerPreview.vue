@@ -1,6 +1,6 @@
 <template>
   <div class="dsf-block-preview dsf-featured-promo" :style="previewStyle">
-    <div class="dsf-featured-promo__container">
+    <div class="dsf-featured-promo__container" :class="{ 'dsf-featured-promo__container--image-left': imagePosition === 'left' }">
       
       <!-- Layer 1: Image Background (Right Side mainly, but full cover behind SVG) -->
       <div class="dsf-featured-promo__image-layer">
@@ -144,6 +144,8 @@ const props = defineProps({
 
 const { openModal } = useFlowModal()
 
+const imagePosition = computed(() => props.settings?.imagePosition || 'right')
+
 const previewStyle = computed(() => {
   const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 0
   return {
@@ -201,7 +203,7 @@ function handleButtonClick(event) {
   position: absolute;
   top: 0;
   right: 0;
-  width: 100%; /* Cover full width, SVG will mask left */
+  width: 65%;
   height: 100%;
   z-index: 0;
 }
@@ -355,16 +357,46 @@ function handleButtonClick(event) {
   pointer-events: auto; /* Re-enable clicks */
 }
 
+/* Image Left layout */
+.dsf-featured-promo__container--image-left .dsf-featured-promo__image-layer {
+  left: 0;
+  right: auto;
+}
+
+.dsf-featured-promo__container--image-left .dsf-featured-promo__svg-layer {
+  left: auto;
+  right: 0;
+  transform: scaleX(-1);
+}
+
+.dsf-featured-promo__container--image-left .dsf-featured-promo__content {
+  margin-left: auto;
+}
+
 /* Positions */
 .dsf-featured-promo__badge--bottom-right {
   bottom: 20px;
   right: 20px;
 }
 
+.dsf-featured-promo__badge--bottom-left {
+  bottom: 20px;
+  left: 20px;
+}
+
 .dsf-featured-promo__badge--overlapping {
-  bottom: 50px;
-  right: 100px; /* Centers 140px badge on the right edge */
-  /* If container clips, user might need to adjust, but this is the "Overlapping" intent */
+  left: 40%;
+  top: 80%;
+  transform: translate(-50%, -50%);
+  right: auto;
+  bottom: auto;
+}
+
+/* Mirror overlapping badge for image-left layout */
+.dsf-featured-promo__container--image-left .dsf-featured-promo__badge--overlapping {
+  left: 52%;
+  top: 80%;
+  transform: translate(50%, -50%);
 }
 
 /* Font Sizes */

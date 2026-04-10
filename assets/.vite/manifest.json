@@ -1,6 +1,6 @@
 {
-  "_main-Cef0ONLj.js": {
-    "file": "js/main-Cef0ONLj.js",
+  "_main-2gxBtb5X.js": {
+    "file": "js/main-2gxBtb5X.js",
     "name": "main",
     "css": [
       "css/main.css"
@@ -16,7 +16,7 @@
     "src": "src/frontend/main.js",
     "isEntry": true,
     "imports": [
-      "_main-Cef0ONLj.js"
+      "_main-2gxBtb5X.js"
     ]
   },
   "src/main.js": {
@@ -25,7 +25,7 @@
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
-      "_main-Cef0ONLj.js"
+      "_main-2gxBtb5X.js"
     ],
     "css": [
       "css/editor.css"
