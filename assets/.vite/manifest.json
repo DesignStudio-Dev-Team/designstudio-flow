@@ -1,6 +1,6 @@
 {
-  "_main-2gxBtb5X.js": {
-    "file": "js/main-2gxBtb5X.js",
+  "_main-D5j-oqV4.js": {
+    "file": "js/main-D5j-oqV4.js",
     "name": "main",
     "css": [
       "css/main.css"
@@ -16,7 +16,7 @@
     "src": "src/frontend/main.js",
     "isEntry": true,
     "imports": [
-      "_main-2gxBtb5X.js"
+      "_main-D5j-oqV4.js"
     ]
   },
   "src/main.js": {
@@ -25,7 +25,7 @@
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
-      "_main-2gxBtb5X.js"
+      "_main-D5j-oqV4.js"
     ],
     "css": [
       "css/editor.css"

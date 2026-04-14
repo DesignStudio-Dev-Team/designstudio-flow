@@ -290,6 +290,22 @@
       </div>
     </template>
     
+    <!-- Form with Content -->
+    <template v-else-if="type === 'form-with-content'">
+      <div class="dsf-schematic__form-with-content">
+        <div class="dsf-schematic__fwc-col dsf-schematic__fwc-col--content">
+          <div class="dsf-schematic__line dsf-schematic__line--md"></div>
+          <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+          <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+        </div>
+        <div class="dsf-schematic__fwc-col dsf-schematic__fwc-col--form">
+          <div class="dsf-schematic__form-input"></div>
+          <div class="dsf-schematic__form-input"></div>
+          <div class="dsf-schematic__btn dsf-schematic__btn--sm"></div>
+        </div>
+      </div>
+    </template>
+
     <!-- Default fallback -->
     <template v-else>
       <div class="dsf-schematic__default">
@@ -401,6 +417,19 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
   height: 10px;
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.5);
+}
+
+.dsf-schematic__form-with-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.dsf-schematic__fwc-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 /* Hero */

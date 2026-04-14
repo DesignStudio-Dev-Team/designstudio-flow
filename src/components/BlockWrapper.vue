@@ -30,6 +30,7 @@
       :is="getPreviewComponent(block.type)" 
       :settings="block.settings"
       :is-editor="true"
+      :block-id="block.id"
       :preview-mode="previewMode"
     />
   </div>
@@ -59,6 +60,7 @@ import HeaderMegaMenuPreview from './blocks/HeaderMegaMenuPreview.vue'
 import HeaderCutoutMegaPreview from './blocks/HeaderCutoutMegaPreview.vue'
 import FooterDealersPreview from './blocks/FooterDealersPreview.vue'
 import FormEmbedPreview from './blocks/FormEmbedPreview.vue'
+import FormWithContentPreview from './blocks/FormWithContentPreview.vue'
 import GenericBlockPreview from './blocks/GenericBlockPreview.vue'
 
 const props = defineProps({
@@ -92,6 +94,7 @@ const previewComponents = {
   'header-cutout-mega': HeaderCutoutMegaPreview,
   'footer-dealers': FooterDealersPreview,
   'form-embed': FormEmbedPreview,
+  'form-with-content': FormWithContentPreview,
 }
 
 function getPreviewComponent(blockType) {

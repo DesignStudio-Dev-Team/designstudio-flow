@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import SidePanel from '../SidePanel.vue'
 
 const settingFieldStub = {
-  props: ['fieldKey'],
+  props: ['fieldKey', 'allSettings'],
   template: '<div class="setting-stub">{{ fieldKey }}</div>',
 }
 

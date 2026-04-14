@@ -34,10 +34,30 @@
           
           <!-- Item Fields (collapsible) -->
           <div v-show="openItems.includes(index)" class="dsf-repeater-item__body">
+            <!-- Image -->
+            <div class="dsf-form-group">
+              <label class="dsf-label">Image</label>
+              <MediaPicker
+                :modelValue="element.image"
+                @update:modelValue="updateField(index, 'image', $event)"
+              />
+            </div>
+            <!-- Image Position -->
+            <div class="dsf-form-group">
+              <label class="dsf-label">Image Position</label>
+              <select
+                class="dsf-input"
+                :value="element.imagePosition || 'above'"
+                @change="updateField(index, 'imagePosition', $event.target.value)"
+              >
+                <option value="above">Above Title</option>
+                <option value="below">Below Title</option>
+              </select>
+            </div>
             <div class="dsf-form-group">
               <label class="dsf-label">Title</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 class="dsf-input"
                 :value="element.title"
                 @input="updateField(index, 'title', $event.target.value)"
@@ -45,12 +65,10 @@
             </div>
             <div class="dsf-form-group">
               <label class="dsf-label">Description</label>
-              <textarea 
-                class="dsf-input"
-                rows="2"
-                :value="element.description"
-                @input="updateField(index, 'description', $event.target.value)"
-              ></textarea>
+              <WysiwygField
+                :modelValue="element.description"
+                @update:modelValue="updateField(index, 'description', $event)"
+              />
             </div>
             <div class="dsf-form-group">
               <label class="dsf-label">Button Text</label>
@@ -151,6 +169,7 @@ import { ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import { Plus, Trash2, GripVertical, ChevronDown } from 'lucide-vue-next'
 import WysiwygField from './WysiwygField.vue'
+import MediaPicker from './MediaPicker.vue'
 
 const props = defineProps({
   modelValue: {
@@ -192,11 +211,14 @@ function toggleItem(index) {
   }
 }
 
+
 function addItem() {
   const newItem = {
     id: `item-${Date.now()}`,
     title: 'New Feature',
     description: 'Description here',
+    image: '',
+    imagePosition: 'above',
     buttonText: 'Learn More',
     buttonUrl: '#',
     buttonAction: 'link',

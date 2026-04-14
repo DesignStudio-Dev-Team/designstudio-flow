@@ -208,6 +208,7 @@ class DSF_Editor {
 				'viewUrl'     => $view_url,
 				'postStatus'  => $post_status,
 				'isWooActive' => class_exists( 'WooCommerce' ),
+				'wcAjaxUrl'   => class_exists( 'WooCommerce' ) ? \WC_AJAX::get_endpoint( 'add_to_cart' ) : '',
 			)
 		);
 	}
@@ -477,7 +478,7 @@ class DSF_Editor {
 	}
 
 	/**
-	 * Get WooCommerce categories
+	 * Get WooCommerce categories with recursive product counts and parent info.
 	 */
 	private function get_wc_categories() {
 		if ( ! class_exists( 'WooCommerce' ) ) {
@@ -497,23 +498,48 @@ class DSF_Editor {
 			return array();
 		}
 
-		return array_map(
-			function ( $cat ) {
-				$thumbnail_id = get_term_meta( $cat->term_id, 'thumbnail_id', true );
-				$term_link    = get_term_link( $cat );
+		// Build an id→direct_count map and a parent→children map.
+		$direct_counts = array();
+		$children_map  = array();
+		foreach ( $categories as $cat ) {
+			$direct_counts[ $cat->term_id ] = (int) $cat->count;
+			if ( ! isset( $children_map[ $cat->parent ] ) ) {
+				$children_map[ $cat->parent ] = array();
+			}
+			$children_map[ $cat->parent ][] = $cat->term_id;
+		}
 
-				return array(
-					'id'       => $cat->term_id,
-					'name'     => $cat->name,
-					'slug'     => $cat->slug,
-					'count'    => $cat->count,
-					'url'      => is_wp_error( $term_link ) ? '' : $term_link,
-					'image'    => $thumbnail_id ? wp_get_attachment_url( $thumbnail_id ) : '',
-					'imageAlt' => $thumbnail_id ? get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ) : '',
-				);
-			},
-			$categories
-		);
+		// Recursively sum a category's count plus all descendants.
+		$get_total = null;
+		$get_total = function ( $id ) use ( &$get_total, &$direct_counts, &$children_map ) {
+			$total = isset( $direct_counts[ $id ] ) ? $direct_counts[ $id ] : 0;
+			if ( ! empty( $children_map[ $id ] ) ) {
+				foreach ( $children_map[ $id ] as $child_id ) {
+					$total += $get_total( $child_id );
+				}
+			}
+			return $total;
+		};
+
+		$result = array();
+		foreach ( $categories as $cat ) {
+			$thumbnail_id = get_term_meta( $cat->term_id, 'thumbnail_id', true );
+			$term_link    = get_term_link( $cat );
+
+			$result[] = array(
+				'id'          => $cat->term_id,
+				'name'        => $cat->name,
+				'slug'        => $cat->slug,
+				'parent'      => (int) $cat->parent,
+				'count'       => (int) $cat->count,
+				'total_count' => $get_total( $cat->term_id ),
+				'url'         => is_wp_error( $term_link ) ? '' : $term_link,
+				'image'       => $thumbnail_id ? wp_get_attachment_url( $thumbnail_id ) : '',
+				'imageAlt'    => $thumbnail_id ? get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ) : '',
+			);
+		}
+
+		return $result;
 	}
 
 	/**

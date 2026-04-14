@@ -143,11 +143,13 @@ const availableForms = Array.isArray(wpData.forms) ? wpData.forms : []
 hydrateFormBlockDefinition()
 
 function hydrateFormBlockDefinition() {
-  const formBlock = wpData.blocks?.['form-embed']
-  const formField = formBlock?.settings?.formId
-  if (!formField) return
+  const formOptions = buildFormOptions(availableForms)
 
-  formField.options = buildFormOptions(availableForms)
+  const formEmbedField = wpData.blocks?.['form-embed']?.settings?.formId
+  if (formEmbedField) formEmbedField.options = formOptions
+
+  const formWithContentField = wpData.blocks?.['form-with-content']?.settings?.formId
+  if (formWithContentField) formWithContentField.options = formOptions
 }
 
 function buildFormOptions(forms) {
@@ -272,7 +274,7 @@ const blockCategories = computed(() => {
   }
 
   // Define exact order for each category
-  const contentOrder = ['hero', 'bento-hero', 'duo-hero', 'text-image', 'features-grid', 'testimonials', 'form-embed']
+  const contentOrder = ['hero', 'bento-hero', 'duo-hero', 'text-image', 'features-grid', 'testimonials', 'form-embed', 'form-with-content']
   const marketingOrder = ['featured-promo-banner', 'promo-banner', 'cta-banner', 'brand-carousel']
   const ecommerceOrder = ['ecommerce-showcase', 'featured-product-banner', 'product-grid']
 

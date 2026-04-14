@@ -126,6 +126,29 @@
       </button>
     </div>
     
+    <!-- Video Upload -->
+    <div v-else-if="config.type === 'video'" class="dsf-image-upload">
+      <div v-if="value" class="dsf-image-upload__preview dsf-image-upload__preview--video">
+        <video :src="value" class="dsf-video-thumb" muted preload="metadata" />
+        <button class="dsf-image-upload__remove" @click="handleImageRemove" title="Remove Video">
+          <X :size="16" />
+        </button>
+      </div>
+      <div class="dsf-image-upload__url-group">
+        <input
+          type="text"
+          class="dsf-input"
+          placeholder="Enter video URL..."
+          :value="value"
+          @input="handleImageInput"
+        />
+      </div>
+      <button class="dsf-btn dsf-btn--secondary dsf-w-full dsf-mt-2" @click="openVideoLibrary">
+        <ImagePlus :size="16" />
+        {{ value ? 'Change from Media Library' : 'Select from Media Library' }}
+      </button>
+    </div>
+
     <!-- Category Selector -->
     <CategorySelector 
       v-else-if="config.type === 'category'"
@@ -143,6 +166,13 @@
     <!-- Products Selector -->
     <ProductsSelector 
       v-else-if="config.type === 'products'"
+      :value="value"
+      :config="config"
+      @update="$emit('update', $event)"
+    />
+
+    <ProductAttributeFiltersField
+      v-else-if="config.type === 'multiselect_tags'"
       :value="value"
       :config="config"
       @update="$emit('update', $event)"
@@ -226,6 +256,7 @@ import { X, ImagePlus, Folder, Hand, ShoppingBag } from 'lucide-vue-next'
 import CategorySelector from './selectors/CategorySelector.vue'
 import CategoriesSelector from './selectors/CategoriesSelector.vue'
 import ProductsSelector from './selectors/ProductsSelector.vue'
+import ProductAttributeFiltersField from './common/ProductAttributeFiltersField.vue'
 import ColorPicker from './common/ColorPicker.vue'
 import RepeaterField from './common/RepeaterField.vue'
 import BrandRepeaterField from './common/BrandRepeaterField.vue'
@@ -240,6 +271,10 @@ const props = defineProps({
   config: Object,
   fieldKey: String,
   value: [String, Number, Boolean, Array, Object],
+  allSettings: {
+    type: Object,
+    default: () => ({}),
+  },
 })
 
 const emit = defineEmits(['update'])
@@ -259,6 +294,24 @@ const sourceOptions = computed(() => {
     { value: 'manual', title: 'Manual', desc: 'Pick specific products', icon: Hand },
   ]
 })
+
+function openVideoLibrary() {
+  if (typeof window.wp === 'undefined' || !window.wp.media) return
+  const frame = window.wp.media({
+    title: 'Select Video',
+    button: { text: 'Use this video' },
+    multiple: false,
+  })
+  frame.on('select', () => {
+    try {
+      const selection = frame.state().get('selection').first().toJSON()
+      emitImageUpdate(selection.url)
+    } catch (e) {
+      console.error('Error selecting video:', e)
+    }
+  })
+  frame.open()
+}
 
 function openMediaLibrary() {
   // Use WordPress media library
@@ -338,28 +391,38 @@ function handleImageRemove() {
 
 .dsf-image-upload__remove {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 28px;
-  height: 28px;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
-  border-radius: var(--dsf-radius-md);
-  box-shadow: var(--dsf-shadow-md);
-  color: var(--dsf-danger-500);
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  color: white;
   cursor: pointer;
   border: none;
-  transition: transform 0.15s ease;
+  transition: background 0.15s;
 }
 
 .dsf-image-upload__remove:hover {
-  transform: scale(1.1);
+  background: rgba(220, 38, 38, 0.9);
 }
 
 .dsf-image-upload__url-group {
   margin-top: 0.5rem;
+}
+
+.dsf-image-upload__preview--video {
+  background: #000;
+}
+
+.dsf-video-thumb {
+  width: 100%;
+  height: 120px;
+  object-fit: contain;
+  display: block;
 }
 
 .dsf-image-upload__url-group .dsf-input {

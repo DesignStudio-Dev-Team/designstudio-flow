@@ -10,6 +10,7 @@
         :is="getPreviewComponent(block.type)"
         :settings="block.settings"
         :is-editor="false"
+        :block-id="block.id"
         :preview-mode="breakpoint"
       />
     </div>
@@ -45,6 +46,7 @@ import HeaderMegaMenuPreview from '../components/blocks/HeaderMegaMenuPreview.vu
 import HeaderCutoutMegaPreview from '../components/blocks/HeaderCutoutMegaPreview.vue'
 import FooterDealersPreview from '../components/blocks/FooterDealersPreview.vue'
 import FormEmbedPreview from '../components/blocks/FormEmbedPreview.vue'
+import FormWithContentPreview from '../components/blocks/FormWithContentPreview.vue'
 import GenericBlockPreview from '../components/blocks/GenericBlockPreview.vue'
 import FlowModal from '../components/common/FlowModal.vue'
 import { provideFlowModal } from '../components/common/useFlowModal'
@@ -77,6 +79,7 @@ const previewComponents = {
   'header-cutout-mega': HeaderCutoutMegaPreview,
   'footer-dealers': FooterDealersPreview,
   'form-embed': FormEmbedPreview,
+  'form-with-content': FormWithContentPreview,
 }
 
 function getPreviewComponent(blockType) {

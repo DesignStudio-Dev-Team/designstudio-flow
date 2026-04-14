@@ -33,7 +33,7 @@
         <div v-if="activeFilterCount > 0" class="dsf-filter-sidebar__active">
           <div class="dsf-filter-sidebar__active-header">
             <span class="dsf-filter-sidebar__active-label">Active Filters</span>
-            <button class="dsf-filter-sidebar__clear-all" @click="clearAllFilters">Clear all</button>
+            <button type="button" class="dsf-filter-sidebar__clear-all" @click="clearAllFilters">Clear all</button>
           </div>
           <div class="dsf-filter-sidebar__chips">
             <span
@@ -42,14 +42,14 @@
               class="dsf-filter-chip"
             >
               {{ chip.label }}
-              <button class="dsf-filter-chip__remove" @click="removeChip(chip)">×</button>
+              <button type="button" class="dsf-filter-chip__remove" @click="removeChip(chip)">×</button>
             </span>
           </div>
         </div>
 
         <!-- Price Range Filter -->
-        <div v-if="settings.filterShowPrice !== false" class="dsf-filter-group">
-          <button class="dsf-filter-group__header" @click="toggleGroup('price')">
+        <div v-if="filterVisibility.price" class="dsf-filter-group">
+          <button type="button" class="dsf-filter-group__header" @click="toggleGroup('price')">
             <span class="dsf-filter-group__title">Price</span>
             <ChevronDown :size="16" :class="['dsf-filter-group__chevron', openGroups.price ? 'dsf-filter-group__chevron--open' : '']" />
           </button>
@@ -86,8 +86,8 @@
         </div>
 
         <!-- Category Filter -->
-        <div v-if="settings.filterShowCategory !== false && allCategories.length > 0" class="dsf-filter-group">
-          <button class="dsf-filter-group__header" @click="toggleGroup('category')">
+        <div v-if="filterVisibility.category && allCategories.length > 0" class="dsf-filter-group">
+          <button type="button" class="dsf-filter-group__header" @click="toggleGroup('category')">
             <span class="dsf-filter-group__title">Category</span>
             <ChevronDown :size="16" :class="['dsf-filter-group__chevron', openGroups.category ? 'dsf-filter-group__chevron--open' : '']" />
           </button>
@@ -109,85 +109,36 @@
           </div>
         </div>
 
-        <!-- Brand Filter -->
-        <div v-if="settings.filterShowBrand !== false && allBrands.length > 0" class="dsf-filter-group">
-          <button class="dsf-filter-group__header" @click="toggleGroup('brand')">
-            <span class="dsf-filter-group__title">Brand</span>
-            <ChevronDown :size="16" :class="['dsf-filter-group__chevron', openGroups.brand ? 'dsf-filter-group__chevron--open' : '']" />
-          </button>
-          <div v-if="openGroups.brand" class="dsf-filter-group__body">
-            <label
-              v-for="brand in allBrands"
-              :key="brand.value"
-              class="dsf-filter-option"
-            >
-              <input
-                type="checkbox"
-                class="dsf-filter-option__check"
-                :value="brand.value"
-                v-model="activeBrands"
-              />
-              <span class="dsf-filter-option__label">{{ brand.label }}</span>
-              <span class="dsf-filter-option__count">({{ brand.count }})</span>
-            </label>
+        <!-- Dynamic Attribute Filters -->
+        <template v-for="attrKey in enabledAttributeKeys" :key="attrKey">
+          <div v-if="getAttributeOptions(attrKey).length > 0" class="dsf-filter-group">
+            <button type="button" class="dsf-filter-group__header" @click="toggleGroup(attrKey)">
+              <span class="dsf-filter-group__title">{{ humanizeKey(attrKey) }}</span>
+              <ChevronDown :size="16" :class="['dsf-filter-group__chevron', openGroups[attrKey] ? 'dsf-filter-group__chevron--open' : '']" />
+            </button>
+            <div v-if="openGroups[attrKey]" class="dsf-filter-group__body">
+              <label
+                v-for="opt in getAttributeOptions(attrKey)"
+                :key="opt.value"
+                class="dsf-filter-option"
+              >
+                <input
+                  type="checkbox"
+                  class="dsf-filter-option__check"
+                  :value="opt.value"
+                  :checked="isAttrValueActive(attrKey, opt.value)"
+                  @change="toggleAttrValue(attrKey, opt.value, $event.target.checked)"
+                />
+                <span class="dsf-filter-option__label">{{ opt.label }}</span>
+                <span class="dsf-filter-option__count">({{ opt.count }})</span>
+              </label>
+            </div>
           </div>
-        </div>
-
-        <!-- Material Filter -->
-        <div v-if="settings.filterShowMaterial && allMaterials.length > 0" class="dsf-filter-group">
-          <button class="dsf-filter-group__header" @click="toggleGroup('material')">
-            <span class="dsf-filter-group__title">Material</span>
-            <ChevronDown :size="16" :class="['dsf-filter-group__chevron', openGroups.material ? 'dsf-filter-group__chevron--open' : '']" />
-          </button>
-          <div v-if="openGroups.material" class="dsf-filter-group__body">
-            <label
-              v-for="mat in allMaterials"
-              :key="mat.value"
-              class="dsf-filter-option"
-            >
-              <input
-                type="checkbox"
-                class="dsf-filter-option__check"
-                :value="mat.value"
-                v-model="activeMaterials"
-              />
-              <span class="dsf-filter-option__label">{{ mat.label }}</span>
-              <span class="dsf-filter-option__count">({{ mat.count }})</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Color Filter -->
-        <div v-if="settings.filterShowColor && allColors.length > 0" class="dsf-filter-group">
-          <button class="dsf-filter-group__header" @click="toggleGroup('color')">
-            <span class="dsf-filter-group__title">Color</span>
-            <ChevronDown :size="16" :class="['dsf-filter-group__chevron', openGroups.color ? 'dsf-filter-group__chevron--open' : '']" />
-          </button>
-          <div v-if="openGroups.color" class="dsf-filter-group__body dsf-filter-group__body--colors">
-            <label
-              v-for="color in allColors"
-              :key="color.value"
-              class="dsf-filter-option dsf-filter-option--color"
-            >
-              <input
-                type="checkbox"
-                class="dsf-filter-option__check"
-                :value="color.value"
-                v-model="activeColors"
-              />
-              <span
-                class="dsf-filter-option__swatch"
-                :style="{ backgroundColor: colorSwatch(color.value) }"
-              ></span>
-              <span class="dsf-filter-option__label">{{ color.label }}</span>
-              <span class="dsf-filter-option__count">({{ color.count }})</span>
-            </label>
-          </div>
-        </div>
+        </template>
 
         <!-- Tags Filter -->
         <div v-if="settings.filterShowTags && allTags.length > 0" class="dsf-filter-group">
-          <button class="dsf-filter-group__header" @click="toggleGroup('tags')">
+          <button type="button" class="dsf-filter-group__header" @click="toggleGroup('tags')">
             <span class="dsf-filter-group__title">Tags</span>
             <ChevronDown :size="16" :class="['dsf-filter-group__chevron', openGroups.tags ? 'dsf-filter-group__chevron--open' : '']" />
           </button>
@@ -211,7 +162,7 @@
 
         <!-- Rating Filter -->
         <div v-if="settings.filterShowRating" class="dsf-filter-group">
-          <button class="dsf-filter-group__header" @click="toggleGroup('rating')">
+          <button type="button" class="dsf-filter-group__header" @click="toggleGroup('rating')">
             <span class="dsf-filter-group__title">Rating</span>
             <ChevronDown :size="16" :class="['dsf-filter-group__chevron', openGroups.rating ? 'dsf-filter-group__chevron--open' : '']" />
           </button>
@@ -255,11 +206,45 @@
 
       <!-- Product Area -->
       <div class="dsf-product-grid-preview__main">
-        <!-- Results Bar -->
-        <div v-if="filtersEnabled && !loading" class="dsf-product-grid-preview__results-bar">
-          <span class="dsf-product-grid-preview__results-count">
-            {{ filteredProducts.length }} {{ filteredProducts.length === 1 ? 'product' : 'products' }}
-          </span>
+        <!-- Search + Results -->
+        <div
+          v-if="!loading && (filtersEnabled || searchEnabled)"
+          class="dsf-product-grid-preview__toolbar"
+        >
+          <div
+            v-if="searchEnabled"
+            class="dsf-product-grid-preview__search"
+            role="search"
+          >
+            <Search :size="16" class="dsf-product-grid-preview__search-icon" />
+            <input
+              v-model="searchQuery"
+              type="search"
+              class="dsf-product-grid-preview__search-input"
+              :placeholder="settings.searchPlaceholder || 'Search products'"
+              aria-label="Search products in this grid"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+            <button
+              v-if="searchQuery"
+              type="button"
+              class="dsf-product-grid-preview__search-clear"
+              @click="clearSearch"
+            >
+              Clear
+            </button>
+          </div>
+
+          <div class="dsf-product-grid-preview__results-bar" aria-live="polite">
+            <span class="dsf-product-grid-preview__results-count">
+              {{ filteredProducts.length }} {{ filteredProducts.length === 1 ? 'product' : 'products' }}
+              <template v-if="searchEnabled && normalizedSearchQuery">
+                for "{{ searchQuery.trim() }}"
+              </template>
+            </span>
+          </div>
         </div>
 
         <!-- Loading Skeleton -->
@@ -269,7 +254,7 @@
             :style="gridStyle"
           >
             <div
-              v-for="n in (settings.limit || 6)"
+              v-for="n in (settings.perPage || 12)"
               :key="n"
               class="dsf-skeleton-card"
             >
@@ -290,37 +275,164 @@
             :style="gridStyle"
           >
             <div
-              v-for="product in filteredProducts"
+              v-for="product in pagedProducts"
               :key="product.id"
               class="dsf-product-card-preview"
+              :class="`dsf-product-card-preview--${cardStyle}`"
             >
-              <div class="dsf-product-card-preview__image">
-                <img v-if="product.image" :src="product.image" :alt="product.name" />
-                <ShoppingBag v-else :size="32" />
-              </div>
-              <div class="dsf-product-card-preview__body">
-                <h4 class="dsf-product-card-preview__name">{{ product.name }}</h4>
-                <div class="dsf-product-card-preview__meta">
-                  <div v-if="settings.showPrice !== false" class="dsf-product-card-preview__price">
-                    {{ product.price || '$99.00' }}
+              <!-- ── Classic ── -->
+              <template v-if="cardStyle === 'classic'">
+                <a :href="product.permalink || '#'" class="dsf-product-card-preview__image-link">
+                  <div class="dsf-product-card-preview__image">
+                    <img v-if="product.image" :src="product.image" :alt="product.name" />
+                    <ShoppingBag v-else :size="32" />
                   </div>
-                  <div v-if="product.rating > 0" class="dsf-product-card-preview__rating">
-                    <Star v-for="s in 5" :key="s" :size="12" :class="s <= Math.round(product.rating) ? 'dsf-star--filled' : 'dsf-star--empty'" />
+                </a>
+                <div class="dsf-product-card-preview__body">
+                  <div v-if="product.attributes?.brand?.[0]" class="dsf-product-card-preview__brand">{{ product.attributes.brand[0] }}</div>
+                  <a :href="product.permalink || '#'" class="dsf-product-card-preview__name-link">
+                    <h4 class="dsf-product-card-preview__name">{{ product.name }}</h4>
+                  </a>
+                  <div class="dsf-product-card-preview__sub">
+                    <span v-if="product.categories?.[0]">{{ product.categories[0] }}</span>
+                    <template v-for="(vals, key) in product.attributes" :key="key">
+                      <template v-if="key !== 'brand' && vals?.[0]">
+                        <span class="dsf-product-card-preview__sub-sep">·</span>
+                        <span>{{ vals[0] }}</span>
+                      </template>
+                    </template>
+                  </div>
+                  <div class="dsf-product-card-preview__meta">
+                    <div v-if="settings.showPrice !== false" class="dsf-product-card-preview__price">{{ product.price || '$99.00' }}</div>
+                    <div v-if="product.rating > 0" class="dsf-product-card-preview__rating">
+                      <Star v-for="s in 5" :key="s" :size="12" :class="s <= Math.round(product.rating) ? 'dsf-star--filled' : 'dsf-star--empty'" />
+                    </div>
+                  </div>
+                  <button
+                    v-if="settings.showButton !== false"
+                    class="dsf-product-card-preview__btn"
+                    :class="cartButtonClass(product)"
+                    :disabled="cartState[product.id] === 'loading'"
+                    @click.prevent="handleAddToCart(product)"
+                  >{{ cartButtonLabel(product) }}</button>
+                </div>
+              </template>
+
+              <!-- ── Minimal ── -->
+              <template v-else-if="cardStyle === 'minimal'">
+                <div class="dsf-product-card-preview__image">
+                  <img v-if="product.image" :src="product.image" :alt="product.name" />
+                  <ShoppingBag v-else :size="32" />
+                  <div class="dsf-product-card-preview__image-actions">
+                    <a :href="product.permalink || '#'" class="dsf-product-card-preview__icon-btn" :title="'View ' + product.name">
+                      <Eye :size="16" />
+                    </a>
+                    <button
+                      v-if="settings.showButton !== false"
+                      class="dsf-product-card-preview__icon-btn dsf-product-card-preview__icon-btn--cart"
+                      :class="{ 'dsf-product-card-preview__icon-btn--added': cartState[product.id] === 'added' }"
+                      :disabled="cartState[product.id] === 'loading'"
+                      :title="settings.buttonText || 'Add to Cart'"
+                      @click.prevent="handleAddToCart(product)"
+                    >
+                      <ShoppingCart :size="16" />
+                    </button>
                   </div>
                 </div>
-                <button v-if="settings.showButton !== false" class="dsf-product-card-preview__btn">
-                  {{ settings.buttonText || 'Add to Cart' }}
-                </button>
-              </div>
+                <div class="dsf-product-card-preview__body">
+                  <div v-if="product.attributes?.brand?.[0]" class="dsf-product-card-preview__brand">{{ product.attributes.brand[0] }}</div>
+                  <a :href="product.permalink || '#'" class="dsf-product-card-preview__name-link">
+                    <h4 class="dsf-product-card-preview__name">{{ product.name }}</h4>
+                  </a>
+                  <div class="dsf-product-card-preview__sub">
+                    <span v-if="product.categories?.[0]">{{ product.categories[0] }}</span>
+                    <template v-for="(vals, key) in product.attributes" :key="key">
+                      <template v-if="key !== 'brand' && vals?.[0]">
+                        <span class="dsf-product-card-preview__sub-sep">·</span>
+                        <span>{{ vals[0] }}</span>
+                      </template>
+                    </template>
+                  </div>
+                  <div v-if="settings.showPrice !== false" class="dsf-product-card-preview__price">{{ product.price || '$99.00' }}</div>
+                </div>
+              </template>
+
+              <!-- ── Modern ── -->
+              <template v-else-if="cardStyle === 'modern'">
+                <a :href="product.permalink || '#'" class="dsf-product-card-preview__image-link">
+                  <div class="dsf-product-card-preview__image">
+                    <img v-if="product.image" :src="product.image" :alt="product.name" />
+                    <ShoppingBag v-else :size="40" />
+                    <div class="dsf-product-card-preview__overlay">
+                      <div v-if="product.attributes?.brand?.[0]" class="dsf-product-card-preview__brand">{{ product.attributes.brand[0] }}</div>
+                      <a :href="product.permalink || '#'" class="dsf-product-card-preview__name-link">
+                        <h4 class="dsf-product-card-preview__name">{{ product.name }}</h4>
+                      </a>
+                      <div class="dsf-product-card-preview__sub">
+                        <span v-if="product.categories?.[0]">{{ product.categories[0] }}</span>
+                        <template v-for="(vals, key) in product.attributes" :key="key">
+                          <template v-if="key !== 'brand' && vals?.[0]">
+                            <span class="dsf-product-card-preview__sub-sep">·</span>
+                            <span>{{ vals[0] }}</span>
+                          </template>
+                        </template>
+                      </div>
+                      <div class="dsf-product-card-preview__meta">
+                        <div v-if="settings.showPrice !== false" class="dsf-product-card-preview__price">{{ product.price || '$99.00' }}</div>
+                        <div v-if="product.rating > 0" class="dsf-product-card-preview__rating">
+                          <Star v-for="s in 5" :key="s" :size="11" :class="s <= Math.round(product.rating) ? 'dsf-star--filled' : 'dsf-star--empty'" />
+                        </div>
+                      </div>
+                      <button
+                        v-if="settings.showButton !== false"
+                        class="dsf-product-card-preview__btn"
+                        :class="cartButtonClass(product)"
+                        :disabled="cartState[product.id] === 'loading'"
+                        @click.prevent="handleAddToCart(product)"
+                      >{{ cartButtonLabel(product) }}</button>
+                    </div>
+                  </div>
+                </a>
+              </template>
             </div>
+          </div>
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="dsf-product-grid-preview__pagination">
+            <button
+              type="button"
+              class="dsf-pagination__btn"
+              :disabled="currentPage === 1"
+              @click="goToPage(currentPage - 1)"
+            >‹</button>
+            <button
+              v-for="page in totalPages"
+              :key="page"
+              type="button"
+              class="dsf-pagination__btn"
+              :class="{ 'dsf-pagination__btn--active': page === currentPage }"
+              @click="goToPage(page)"
+            >{{ page }}</button>
+            <button
+              type="button"
+              class="dsf-pagination__btn"
+              :disabled="currentPage === totalPages"
+              @click="goToPage(currentPage + 1)"
+            >›</button>
           </div>
         </template>
 
         <!-- No Results -->
         <div v-else class="dsf-product-grid-preview__no-results">
           <ShoppingBag :size="40" class="dsf-product-grid-preview__no-results-icon" />
-          <p>No products match your filters.</p>
-          <button class="dsf-product-grid-preview__no-results-btn" @click="clearAllFilters">Clear filters</button>
+          <p>{{ noResultsMessage }}</p>
+          <button
+            v-if="hasActiveControls"
+            type="button"
+            class="dsf-product-grid-preview__no-results-btn"
+            @click="resetVisibleControls"
+          >
+            {{ resetActionLabel }}
+          </button>
         </div>
 
       </div>
@@ -330,41 +442,131 @@
 
 <script setup>
 import { computed, ref, reactive, onMounted, watch } from 'vue'
-import { ShoppingBag, ChevronDown, Star } from 'lucide-vue-next'
+import { ShoppingBag, ChevronDown, Star, Search, Eye, ShoppingCart } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
 import { getResponsiveValue } from '../../utils/responsiveSettings'
+import { navigateToUrl } from '../../utils/browserNavigation'
 
 const props = defineProps({
   settings: Object,
   isEditor: Boolean,
+  blockId: {
+    type: [String, Number],
+    default: '',
+  },
   previewMode: {
     type: String,
     default: 'desktop',
   },
 })
 
+function getWpData() {
+  const editorData = window.dsfEditorData
+  if (editorData && Object.keys(editorData).length > 0) {
+    return editorData
+  }
+  return window.dsfFrontendData || editorData || {}
+}
+
 const products = ref([])
-const loading = ref(false)
-const wpData = window.dsfEditorData || {}
+const loading = ref(Boolean(getWpData().isWooActive))
+const hasFetchedProducts = ref(!Boolean(getWpData().isWooActive))
+const urlStateHydrated = ref(false)
+const syncingUrlState = ref(false)
+
+// ─── Pagination state ─────────────────────────────────────────────────────────
+const currentPage = ref(1)
+
+// ─── Cart state ───────────────────────────────────────────────────────────────
+// cartState[productId] = 'idle' | 'loading' | 'added' | 'error'
+const cartState = reactive({})
 
 // ─── Filter state ─────────────────────────────────────────────────────────────
-// Bounds pre-seeded to match the demo product price range so the slider works
-// immediately in the editor without needing a reactive sync on mount.
 const priceMin = ref(89)
 const priceMax = ref(899)
 const priceFilter = ref([89, 899])
 const activeCategories = ref([])
-const activeBrands = ref([])
-const activeMaterials = ref([])
-const activeColors = ref([])
+const activeAttributeValues = reactive({}) // { [attrKey]: string[] }
 const activeTags = ref([])
 const activeRating = ref(null)
-const openGroups = reactive({ price: true, category: true, brand: true, material: false, color: false, tags: false, rating: false })
+const searchQuery = ref('')
+const openGroups = reactive({ price: true, category: true, tags: false, rating: false })
+
+const demoProducts = Array.from({ length: 8 }, (_, i) => ({
+  id: i + 1,
+  name: ['Premium Teak Chair', 'Acme Lounger', 'Coastal Sofa', 'Rattan Table', 'Oak Bench', 'Cedar Swing', 'Bamboo Planter', 'Iron Firepit'][i] || 'Product',
+  price: ['$349.00', '$229.00', '$899.00', '$479.00', '$199.00', '$699.00', '$89.00', '$399.00'][i] || '$99.00',
+  price_num: [349, 229, 899, 479, 199, 699, 89, 399][i] || 99,
+  rating: [4.8, 4.2, 4.5, 3.9, 4.0, 4.7, 3.5, 4.3][i] || 0,
+  image: null,
+  categories: [['Chairs'], ['Chairs', 'Outdoor'], ['Sofas'], ['Tables'], ['Benches'], ['Swings'], ['Planters'], ['Fire Pits']][i] || [],
+  tags: [['bestseller', 'sale'], ['sale'], ['new'], ['bestseller'], ['clearance'], ['new', 'featured'], ['sale'], ['featured']][i] || [],
+  attributes: {
+    brand: [['Acme'], ['Acme'], ['Coastal Living'], ['Rattan Co'], ['OakWorks'], ['SwingMaster'], ['GreenLife'], ['IronCraft']][i] || [],
+    material: [['Teak'], ['Aluminum'], ['Rattan'], ['Rattan'], ['Oak'], ['Cedar'], ['Bamboo'], ['Iron']][i] || [],
+    color: [['Brown'], ['Gray'], ['Beige'], ['Natural'], ['Brown'], ['Brown'], ['Green'], ['Black']][i] || [],
+  },
+}))
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
-const isWooActive = computed(() => wpData.isWooActive || false)
+const isWooActive = computed(() => getWpData().isWooActive || false)
 const filtersEnabled = computed(() => props.settings?.enableFilters === true)
+const cardStyle = computed(() => props.settings?.cardStyle || 'classic')
+const searchEnabled = computed(() => props.settings?.enableSearch === true)
 const filterPosition = computed(() => props.settings?.filterPosition || 'left')
+const normalizedSearchQuery = computed(() => searchQuery.value.trim().toLowerCase())
+const dataReadyForUrlState = computed(() => !isWooActive.value || hasFetchedProducts.value)
+const selectedSourceCategoryId = computed(() => {
+  const value = Number.parseInt(props.settings?.categoryId, 10)
+  return Number.isFinite(value) && value > 0 ? value : 0
+})
+const availableCategories = computed(() => Array.isArray(getWpData().categories) ? getWpData().categories : [])
+const selectedSourceCategory = computed(() =>
+  availableCategories.value.find((category) => Number(category?.id) === selectedSourceCategoryId.value) || null
+)
+const filterVisibility = computed(() => ({
+  price: filtersEnabled.value && props.settings?.filterShowPrice !== false,
+  category: filtersEnabled.value && props.settings?.filterShowCategory !== false,
+  tags: filtersEnabled.value && props.settings?.filterShowTags === true,
+  rating: filtersEnabled.value && props.settings?.filterShowRating === true,
+}))
+const enabledAttributeKeys = computed(() =>
+  filtersEnabled.value ? (Array.isArray(props.settings?.filterAttributes) ? props.settings.filterAttributes : []) : []
+)
+const blockUrlNamespace = computed(() => {
+  const raw = String(props.blockId || 'product-grid').trim().toLowerCase()
+  const sanitized = raw.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+  return sanitized || 'product_grid'
+})
+const filterParamKeys = computed(() => {
+  const base = {
+    category: `dsf_pg_${blockUrlNamespace.value}_cat`,
+    tags: `dsf_pg_${blockUrlNamespace.value}_tags`,
+    rating: `dsf_pg_${blockUrlNamespace.value}_rating`,
+    minPrice: `dsf_pg_${blockUrlNamespace.value}_min_price`,
+    maxPrice: `dsf_pg_${blockUrlNamespace.value}_max_price`,
+  }
+  enabledAttributeKeys.value.forEach((key) => {
+    base[key] = `dsf_pg_${blockUrlNamespace.value}_attr_${key}`
+  })
+  return base
+})
+const shouldSyncUrlFilters = computed(() =>
+  !props.isEditor &&
+  filtersEnabled.value &&
+  typeof window !== 'undefined' &&
+  typeof window.history?.replaceState === 'function'
+)
+const canPersistSearch = computed(() =>
+  !props.isEditor &&
+  searchEnabled.value &&
+  typeof window !== 'undefined' &&
+  typeof window.sessionStorage !== 'undefined'
+)
+const searchStorageKey = computed(() => {
+  const pageId = getWpData().postId || (typeof window !== 'undefined' ? window.location.pathname : 'page')
+  return `dsf_pg_search_${pageId}_${blockUrlNamespace.value}`
+})
 
 const previewStyle = computed(() => {
   const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 60
@@ -382,179 +584,271 @@ const gridStyle = computed(() => {
   return { '--columns': cols }
 })
 
-// All products before client filters (fetched or demo)
 const sourceProducts = computed(() => {
-  if (products.value.length > 0) return products.value
+  const items = products.value.length > 0 ? products.value : (isWooActive.value ? [] : demoProducts)
 
-  // Demo products for editor when WooCommerce is not active
-  return Array.from({ length: 8 }, (_, i) => ({
-    id: i + 1,
-    name: ['Premium Teak Chair', 'Acme Lounger', 'Coastal Sofa', 'Rattan Table', 'Oak Bench', 'Cedar Swing', 'Bamboo Planter', 'Iron Firepit'][i] || 'Product',
-    price: ['$349.00', '$229.00', '$899.00', '$479.00', '$199.00', '$699.00', '$89.00', '$399.00'][i] || '$99.00',
-    price_num: [349, 229, 899, 479, 199, 699, 89, 399][i] || 99,
-    rating: [4.8, 4.2, 4.5, 3.9, 4.0, 4.7, 3.5, 4.3][i] || 0,
-    image: null,
-    categories: [['Chairs'], ['Chairs', 'Outdoor'], ['Sofas'], ['Tables'], ['Benches'], ['Swings'], ['Planters'], ['Fire Pits']][i] || [],
-    tags: [['bestseller', 'sale'], ['sale'], ['new'], ['bestseller'], ['clearance'], ['new', 'featured'], ['sale'], ['featured']][i] || [],
-    attributes: {
-      brand: [['Acme'], ['Acme'], ['Coastal Living'], ['Rattan Co'], ['OakWorks'], ['SwingMaster'], ['GreenLife'], ['IronCraft']][i] || [],
-      material: [['Teak'], ['Aluminum'], ['Rattan'], ['Rattan'], ['Oak'], ['Cedar'], ['Bamboo'], ['Iron']][i] || [],
-      color: [['Brown'], ['Gray'], ['Beige'], ['Natural'], ['Brown'], ['Brown'], ['Green'], ['Black']][i] || [],
-    },
-  }))
+  if (props.settings?.source !== 'category' || selectedSourceCategoryId.value <= 0) {
+    return items
+  }
+
+  return items.filter((product) => {
+    if (Array.isArray(product.category_ids) && product.category_ids.length > 0) {
+      return product.category_ids.includes(selectedSourceCategoryId.value)
+    }
+
+    if (selectedSourceCategory.value?.name) {
+      return (product.categories || []).includes(selectedSourceCategory.value.name)
+    }
+
+    return true
+  })
 })
 
-// Derive available filter options from a product list
 function buildOptions(items, accessor) {
   const counts = {}
-  items.forEach(p => {
-    const values = accessor(p)
-    if (Array.isArray(values)) {
-      values.forEach(v => { counts[v] = (counts[v] || 0) + 1 })
-    }
+  items.forEach((product) => {
+    const values = accessor(product)
+    if (!Array.isArray(values)) return
+    values.forEach((value) => {
+      counts[value] = (counts[value] || 0) + 1
+    })
   })
   return Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
-    .map(([v, c]) => ({ value: v, label: v, count: c }))
+    .map(([value, count]) => ({ value, label: value, count }))
 }
 
-/**
- * Returns sourceProducts filtered by ALL active filters EXCEPT the given group.
- * Used so each group's options reflect what the other active filters allow,
- * making the sidebar "smart" — options that would yield zero results disappear.
- */
-function filterExcluding(exclude) {
-  let result = sourceProducts.value
-
-  if (exclude !== 'price') {
-    result = result.filter(p => {
-      const n = p.price_num || 0
-      return n >= priceFilter.value[0] && n <= priceFilter.value[1]
+function buildDistinctValues(items, accessor) {
+  const values = new Map()
+  items.forEach((item) => {
+    const nextValues = accessor(item)
+    if (!Array.isArray(nextValues)) return
+    nextValues.forEach((value) => {
+      if (typeof value === 'string' && value && !values.has(value)) {
+        values.set(value, value)
+      }
     })
-  }
-
-  if (exclude !== 'category' && activeCategories.value.length > 0) {
-    result = result.filter(p => activeCategories.value.some(c => (p.categories || []).includes(c)))
-  }
-
-  if (exclude !== 'brand' && activeBrands.value.length > 0) {
-    result = result.filter(p => activeBrands.value.some(b => (p.attributes?.brand || []).includes(b)))
-  }
-
-  if (exclude !== 'material' && activeMaterials.value.length > 0) {
-    result = result.filter(p => activeMaterials.value.some(m => (p.attributes?.material || []).includes(m)))
-  }
-
-  if (exclude !== 'color' && activeColors.value.length > 0) {
-    result = result.filter(p => activeColors.value.some(c => (p.attributes?.color || []).includes(c)))
-  }
-
-  if (exclude !== 'tag' && activeTags.value.length > 0) {
-    result = result.filter(p => activeTags.value.some(t => (p.tags || []).includes(t)))
-  }
-
-  if (exclude !== 'rating' && activeRating.value !== null) {
-    result = result.filter(p => (p.rating || 0) >= activeRating.value)
-  }
-
-  return result
+  })
+  return Array.from(values.values())
 }
 
-// Each group's options are built from products filtered by every OTHER active filter.
-// This makes options that would produce zero results disappear automatically.
-const allCategories = computed(() => buildOptions(filterExcluding('category'), p => p.categories || []))
-const allBrands     = computed(() => buildOptions(filterExcluding('brand'),    p => p.attributes?.brand || []))
-const allMaterials  = computed(() => buildOptions(filterExcluding('material'), p => p.attributes?.material || []))
-const allColors     = computed(() => buildOptions(filterExcluding('color'),    p => p.attributes?.color || []))
-const allTags       = computed(() => buildOptions(filterExcluding('tag'),      p => p.tags || []))
+function normalizeFilterToken(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
 
-// Sync price range bounds when real products load from WooCommerce.
-// Not immediate — price bounds from demo products are always [89, 899] and
-// set at ref initialisation, so we only need to update after a real fetch.
-watch(products, (items) => {
-  if (items.length === 0) return
-  const prices = items.map(p => p.price_num || 0).filter(n => n > 0)
+function serializeFilterValues(values) {
+  return [...new Set(values.map(normalizeFilterToken).filter(Boolean))].sort().join(',')
+}
+
+function parseFilterTokens(value) {
+  if (!value) return []
+  return value
+    .split(',')
+    .map((token) => normalizeFilterToken(token))
+    .filter(Boolean)
+}
+
+function matchFilterTokens(tokens, values) {
+  const lookup = new Map()
+  values.forEach((value) => {
+    const token = normalizeFilterToken(value)
+    if (token && !lookup.has(token)) {
+      lookup.set(token, value)
+    }
+  })
+  return tokens
+    .map((token) => lookup.get(token))
+    .filter(Boolean)
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function syncPriceBounds(items, { resetRange = true } = {}) {
+  const prices = items
+    .map((product) => product.price_num || 0)
+    .filter((price) => Number.isFinite(price) && price > 0)
+
   if (prices.length === 0) return
+
   const min = Math.floor(Math.min(...prices))
   const max = Math.ceil(Math.max(...prices))
   priceMin.value = min
   priceMax.value = max
-  priceFilter.value = [min, max]
-})
 
-const filteredProducts = computed(() => {
-  if (!filtersEnabled.value) {
-    return sourceProducts.value.slice(0, props.settings?.limit || 6)
+  if (resetRange) {
+    priceFilter.value = [min, max]
+    return
   }
 
-  let result = sourceProducts.value
+  const nextMin = clamp(priceFilter.value[0], min, max)
+  const nextMax = clamp(priceFilter.value[1], min, max)
+  priceFilter.value = nextMin <= nextMax ? [nextMin, nextMax] : [min, max]
+}
 
-  // Price
-  result = result.filter(p => {
-    const n = p.price_num || 0
-    return n >= priceFilter.value[0] && n <= priceFilter.value[1]
+function applySelectedFilters(items, exclude = '') {
+  let result = items
+
+  if (filterVisibility.value.price && exclude !== 'price') {
+    result = result.filter((product) => {
+      const price = product.price_num || 0
+      return price >= priceFilter.value[0] && price <= priceFilter.value[1]
+    })
+  }
+
+  if (filterVisibility.value.category && exclude !== 'category' && activeCategories.value.length > 0) {
+    result = result.filter((product) => activeCategories.value.some((category) => (product.categories || []).includes(category)))
+  }
+
+  enabledAttributeKeys.value.forEach((attrKey) => {
+    const active = activeAttributeValues[attrKey] || []
+    if (exclude !== `attr:${attrKey}` && active.length > 0) {
+      result = result.filter((product) => active.some((v) => (product.attributes?.[attrKey] || []).includes(v)))
+    }
   })
 
-  // Categories
-  if (activeCategories.value.length > 0) {
-    result = result.filter(p =>
-      activeCategories.value.some(c => (p.categories || []).includes(c))
-    )
+  if (filterVisibility.value.tags && exclude !== 'tags' && activeTags.value.length > 0) {
+    result = result.filter((product) => activeTags.value.some((tag) => (product.tags || []).includes(tag)))
   }
 
-  // Brand
-  if (activeBrands.value.length > 0) {
-    result = result.filter(p =>
-      activeBrands.value.some(b => (p.attributes?.brand || []).includes(b))
-    )
+  if (filterVisibility.value.rating && exclude !== 'rating' && activeRating.value !== null) {
+    result = result.filter((product) => (product.rating || 0) >= activeRating.value)
   }
 
-  // Material
-  if (activeMaterials.value.length > 0) {
-    result = result.filter(p =>
-      activeMaterials.value.some(m => (p.attributes?.material || []).includes(m))
-    )
-  }
+  return result
+}
 
-  // Color
-  if (activeColors.value.length > 0) {
-    result = result.filter(p =>
-      activeColors.value.some(c => (p.attributes?.color || []).includes(c))
-    )
-  }
+function filterExcluding(exclude) {
+  return applySelectedFilters(sourceProducts.value, exclude)
+}
 
-  // Tags
-  if (activeTags.value.length > 0) {
-    result = result.filter(p =>
-      activeTags.value.some(t => (p.tags || []).includes(t))
-    )
-  }
+function flattenProductAttributes(product) {
+  return Object.values(product.attributes || {}).flat().filter(Boolean)
+}
 
-  // Rating
-  if (activeRating.value !== null) {
-    result = result.filter(p => (p.rating || 0) >= activeRating.value)
+function productMatchesSearch(product, term) {
+  if (!term) return true
+  const haystack = [
+    product.name,
+    ...(product.categories || []),
+    ...(product.tags || []),
+    ...flattenProductAttributes(product),
+  ]
+    .join(' ')
+    .toLowerCase()
+
+  return haystack.includes(term)
+}
+
+const allCategoryValues = computed(() => buildDistinctValues(sourceProducts.value, (product) => product.categories || []))
+const allTagValues = computed(() => buildDistinctValues(sourceProducts.value, (product) => product.tags || []))
+
+const allCategories = computed(() => buildOptions(filterExcluding('category'), (product) => product.categories || []))
+const allTags = computed(() => buildOptions(filterExcluding('tags'), (product) => product.tags || []))
+
+function getAttributeOptions(attrKey) {
+  return buildOptions(filterExcluding(`attr:${attrKey}`), (product) => product.attributes?.[attrKey] || [])
+}
+
+function isAttrValueActive(attrKey, value) {
+  return (activeAttributeValues[attrKey] || []).includes(value)
+}
+
+function toggleAttrValue(attrKey, value, checked) {
+  if (!activeAttributeValues[attrKey]) {
+    activeAttributeValues[attrKey] = []
+  }
+  if (checked) {
+    if (!activeAttributeValues[attrKey].includes(value)) {
+      activeAttributeValues[attrKey] = [...activeAttributeValues[attrKey], value]
+    }
+  } else {
+    activeAttributeValues[attrKey] = activeAttributeValues[attrKey].filter((v) => v !== value)
+  }
+}
+
+function humanizeKey(key) {
+  return String(key || '').split('_').filter(Boolean).map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
+}
+
+const perPage = computed(() => Math.max(1, parseInt(props.settings?.perPage, 10) || 12))
+
+const filteredProducts = computed(() => {
+  let result = filtersEnabled.value ? applySelectedFilters(sourceProducts.value) : sourceProducts.value
+
+  if (searchEnabled.value && normalizedSearchQuery.value) {
+    result = result.filter((product) => productMatchesSearch(product, normalizedSearchQuery.value))
   }
 
   return result
 })
 
-// Active filter chips for the summary strip
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredProducts.value.length / perPage.value)))
+
+const pagedProducts = computed(() => {
+  const start = (currentPage.value - 1) * perPage.value
+  return filteredProducts.value.slice(start, start + perPage.value)
+})
+
 const activeChips = computed(() => {
   const chips = []
-  activeCategories.value.forEach(v => chips.push({ key: `cat-${v}`, label: v, type: 'category', value: v }))
-  activeBrands.value.forEach(v => chips.push({ key: `brand-${v}`, label: v, type: 'brand', value: v }))
-  activeMaterials.value.forEach(v => chips.push({ key: `mat-${v}`, label: v, type: 'material', value: v }))
-  activeColors.value.forEach(v => chips.push({ key: `col-${v}`, label: v, type: 'color', value: v }))
-  activeTags.value.forEach(v => chips.push({ key: `tag-${v}`, label: `#${v}`, type: 'tag', value: v }))
-  if (activeRating.value !== null) chips.push({ key: 'rating', label: `${activeRating.value}+ stars`, type: 'rating', value: activeRating.value })
-  const isPriceFiltered = priceFilter.value[0] > priceMin.value || priceFilter.value[1] < priceMax.value
-  if (isPriceFiltered) chips.push({ key: 'price', label: `$${priceFilter.value[0]} – $${priceFilter.value[1]}`, type: 'price' })
+
+  if (filterVisibility.value.category) {
+    activeCategories.value.forEach((value) => chips.push({ key: `cat-${value}`, label: value, type: 'category', value }))
+  }
+
+  enabledAttributeKeys.value.forEach((attrKey) => {
+    const active = activeAttributeValues[attrKey] || []
+    active.forEach((value) => chips.push({ key: `attr-${attrKey}-${value}`, label: value, type: 'attr', attrKey, value }))
+  })
+
+  if (filterVisibility.value.tags) {
+    activeTags.value.forEach((value) => chips.push({ key: `tag-${value}`, label: `#${value}`, type: 'tag', value }))
+  }
+
+  if (filterVisibility.value.rating && activeRating.value !== null) {
+    chips.push({ key: 'rating', label: `${activeRating.value}+ stars`, type: 'rating', value: activeRating.value })
+  }
+
+  if (filterVisibility.value.price && (priceFilter.value[0] > priceMin.value || priceFilter.value[1] < priceMax.value)) {
+    chips.push({ key: 'price', label: `$${priceFilter.value[0]} – $${priceFilter.value[1]}`, type: 'price' })
+  }
+
   return chips
 })
 
 const activeFilterCount = computed(() => activeChips.value.length)
+const hasActiveControls = computed(() => activeFilterCount.value > 0 || (searchEnabled.value && normalizedSearchQuery.value.length > 0))
+const noResultsMessage = computed(() => {
+  if (searchEnabled.value && normalizedSearchQuery.value && activeFilterCount.value > 0) {
+    return 'No products match your search within the current filters.'
+  }
+  if (searchEnabled.value && normalizedSearchQuery.value) {
+    return 'No products match your search.'
+  }
+  if (activeFilterCount.value > 0) {
+    return 'No products match your filters.'
+  }
+  return 'No products available right now.'
+})
+const resetActionLabel = computed(() => {
+  if (searchEnabled.value && normalizedSearchQuery.value && activeFilterCount.value > 0) {
+    return 'Clear search & filters'
+  }
+  if (searchEnabled.value && normalizedSearchQuery.value) {
+    return 'Clear search'
+  }
+  return 'Clear filters'
+})
 
-// Price range track fill style
 const priceRangeStyle = computed(() => {
   const range = priceMax.value - priceMin.value
   if (range === 0) return { left: '0%', width: '100%' }
@@ -563,93 +857,356 @@ const priceRangeStyle = computed(() => {
   return { left: `${left}%`, right: `${right}%`, width: 'auto' }
 })
 
+watch(products, (items) => {
+  if (items.length === 0) return
+  syncPriceBounds(items, { resetRange: !urlStateHydrated.value })
+})
+
+watch(
+  () => [shouldSyncUrlFilters.value, dataReadyForUrlState.value],
+  ([canSync, isReady]) => {
+    if (!canSync) {
+      urlStateHydrated.value = false
+      return
+    }
+    if (isReady && !urlStateHydrated.value) {
+      hydrateFiltersFromUrl()
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  [priceFilter, activeCategories, activeAttributeValues, activeTags, activeRating],
+  () => {
+    currentPage.value = 1
+    if (urlStateHydrated.value && !syncingUrlState.value) {
+      navigateWithFilters()
+    }
+  },
+  { deep: true }
+)
+
+watch(searchQuery, () => {
+  currentPage.value = 1
+})
+
+watch(
+  searchQuery,
+  (value) => {
+    if (!canPersistSearch.value) return
+    const nextValue = value.trim()
+    if (nextValue) {
+      window.sessionStorage.setItem(searchStorageKey.value, value)
+    } else {
+      window.sessionStorage.removeItem(searchStorageKey.value)
+    }
+  }
+)
+
 // ─── Methods ─────────────────────────────────────────────────────────────────
+// ─── Add to cart ──────────────────────────────────────────────────────────────
+function isVariableProduct(product) {
+  return product.product_type === 'variable' || product.product_type === 'variable-subscription'
+}
+
+async function handleAddToCart(product) {
+  // In editor just show demo feedback
+  if (props.isEditor) {
+    cartState[product.id] = 'added'
+    setTimeout(() => { cartState[product.id] = 'idle' }, 1800)
+    return
+  }
+
+  // Variable products → go to product page to pick variants
+  if (isVariableProduct(product)) {
+    window.location.href = product.permalink || '#'
+    return
+  }
+
+  // Out of stock → go to product page
+  if (product.stock_status === 'outofstock') {
+    window.location.href = product.permalink || '#'
+    return
+  }
+
+  const wpData = getWpData()
+  const wcAjaxUrl = wpData.wcAjaxUrl || '/?wc-ajax=add_to_cart'
+
+  cartState[product.id] = 'loading'
+
+  try {
+    const formData = new FormData()
+    formData.append('product_id', product.id)
+    formData.append('quantity', 1)
+
+    const response = await fetch(wcAjaxUrl, {
+      method: 'POST',
+      body: formData,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+
+    const data = await response.json()
+
+    if (data.error) {
+      // WooCommerce returned an error (e.g. needs variation selection)
+      window.location.href = product.permalink || '#'
+      return
+    }
+
+    cartState[product.id] = 'added'
+
+    // Trigger WooCommerce cart fragment refresh so the cart widget updates
+    if (typeof jQuery !== 'undefined') {
+      jQuery(document.body).trigger('wc_fragment_refresh')
+      jQuery(document.body).trigger('added_to_cart', [data.fragments, data.cart_hash, null])
+    }
+
+    // Reset button label after 2.5s
+    setTimeout(() => { cartState[product.id] = 'idle' }, 2500)
+  } catch {
+    cartState[product.id] = 'error'
+    setTimeout(() => { cartState[product.id] = 'idle' }, 2000)
+  }
+}
+
+function cartButtonLabel(product) {
+  const state = cartState[product.id]
+  if (state === 'loading') return '...'
+  if (state === 'added') return '✓ Added'
+  if (state === 'error') return 'Try again'
+  if (isVariableProduct(product)) return 'Select options'
+  if (product.stock_status === 'outofstock') return 'Out of stock'
+  return props.settings?.buttonText || 'Add to Cart'
+}
+
+function cartButtonClass(product) {
+  return {
+    'dsf-product-card-preview__btn--loading': cartState[product.id] === 'loading',
+    'dsf-product-card-preview__btn--added': cartState[product.id] === 'added',
+    'dsf-product-card-preview__btn--error': cartState[product.id] === 'error',
+  }
+}
+
+function goToPage(page) {
+  currentPage.value = Math.max(1, Math.min(page, totalPages.value))
+  if (!props.isEditor) {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
 function toggleGroup(key) {
   openGroups[key] = !openGroups[key]
 }
 
-function onPriceMinInput(e) {
-  const val = parseInt(e.target.value)
-  if (val < priceFilter.value[1]) priceFilter.value = [val, priceFilter.value[1]]
+function onPriceMinInput(event) {
+  const value = parseInt(event.target.value, 10)
+  if (value < priceFilter.value[1]) {
+    priceFilter.value = [value, priceFilter.value[1]]
+  }
 }
 
-function onPriceMaxInput(e) {
-  const val = parseInt(e.target.value)
-  if (val > priceFilter.value[0]) priceFilter.value = [priceFilter.value[0], val]
+function onPriceMaxInput(event) {
+  const value = parseInt(event.target.value, 10)
+  if (value > priceFilter.value[0]) {
+    priceFilter.value = [priceFilter.value[0], value]
+  }
 }
 
 function removeChip(chip) {
-  if (chip.type === 'category') activeCategories.value = activeCategories.value.filter(v => v !== chip.value)
-  else if (chip.type === 'brand') activeBrands.value = activeBrands.value.filter(v => v !== chip.value)
-  else if (chip.type === 'material') activeMaterials.value = activeMaterials.value.filter(v => v !== chip.value)
-  else if (chip.type === 'color') activeColors.value = activeColors.value.filter(v => v !== chip.value)
-  else if (chip.type === 'tag') activeTags.value = activeTags.value.filter(v => v !== chip.value)
+  if (chip.type === 'category') activeCategories.value = activeCategories.value.filter((value) => value !== chip.value)
+  else if (chip.type === 'attr') activeAttributeValues[chip.attrKey] = (activeAttributeValues[chip.attrKey] || []).filter((v) => v !== chip.value)
+  else if (chip.type === 'tag') activeTags.value = activeTags.value.filter((value) => value !== chip.value)
   else if (chip.type === 'rating') activeRating.value = null
   else if (chip.type === 'price') priceFilter.value = [priceMin.value, priceMax.value]
 }
 
 function clearAllFilters() {
   activeCategories.value = []
-  activeBrands.value = []
-  activeMaterials.value = []
-  activeColors.value = []
+  Object.keys(activeAttributeValues).forEach((key) => { activeAttributeValues[key] = [] })
   activeTags.value = []
   activeRating.value = null
   priceFilter.value = [priceMin.value, priceMax.value]
 }
 
-function colorSwatch(colorName) {
-  const map = {
-    red: '#ef4444', blue: '#3b82f6', green: '#22c55e', yellow: '#eab308',
-    orange: '#f97316', purple: '#a855f7', pink: '#ec4899', black: '#111827',
-    white: '#f9fafb', gray: '#9ca3af', grey: '#9ca3af', brown: '#92400e',
-    natural: '#d4a574', beige: '#f5f0e8', tan: '#d2b48c', teak: '#8B6914',
-    aluminum: '#9ca3af', iron: '#374151', bamboo: '#84cc16',
-  }
-  return map[colorName.toLowerCase()] || '#9ca3af'
+function clearSearch() {
+  searchQuery.value = ''
 }
 
-// ─── Data fetching ─────────────────────────────────────────────────────────────
+function resetVisibleControls() {
+  clearAllFilters()
+  clearSearch()
+}
+
+
+function hydrateFiltersFromUrl() {
+  if (!shouldSyncUrlFilters.value) return
+
+  const params = new URLSearchParams(window.location.search)
+  const keys = filterParamKeys.value
+
+  syncingUrlState.value = true
+
+  activeCategories.value = filterVisibility.value.category
+    ? matchFilterTokens(parseFilterTokens(params.get(keys.category)), allCategoryValues.value)
+    : []
+
+  enabledAttributeKeys.value.forEach((attrKey) => {
+    const allValues = buildDistinctValues(sourceProducts.value, (product) => product.attributes?.[attrKey] || [])
+    activeAttributeValues[attrKey] = matchFilterTokens(parseFilterTokens(params.get(keys[attrKey])), allValues)
+  })
+
+  activeTags.value = filterVisibility.value.tags
+    ? matchFilterTokens(parseFilterTokens(params.get(keys.tags)), allTagValues.value)
+    : []
+
+  if (filterVisibility.value.rating) {
+    const parsedRating = Number.parseInt(params.get(keys.rating), 10)
+    activeRating.value = Number.isFinite(parsedRating) ? clamp(parsedRating, 1, 4) : null
+  } else {
+    activeRating.value = null
+  }
+
+  if (filterVisibility.value.price) {
+    const minParam = Number.parseInt(params.get(keys.minPrice), 10)
+    const maxParam = Number.parseInt(params.get(keys.maxPrice), 10)
+    let nextMin = Number.isFinite(minParam) ? clamp(minParam, priceMin.value, priceMax.value) : priceMin.value
+    let nextMax = Number.isFinite(maxParam) ? clamp(maxParam, priceMin.value, priceMax.value) : priceMax.value
+
+    if (nextMin > nextMax) {
+      [nextMin, nextMax] = [nextMax, nextMin]
+    }
+
+    priceFilter.value = [nextMin, nextMax]
+  } else {
+    priceFilter.value = [priceMin.value, priceMax.value]
+  }
+
+  syncingUrlState.value = false
+  urlStateHydrated.value = true
+  normalizeFilterUrlInPlace()
+}
+
+function buildCurrentFilterUrl() {
+  const url = new URL(window.location.href)
+  const keys = filterParamKeys.value
+  const params = url.searchParams
+
+  Object.values(keys).forEach((key) => params.delete(key))
+
+  if (filterVisibility.value.category && activeCategories.value.length > 0) {
+    params.set(keys.category, serializeFilterValues(activeCategories.value))
+  }
+
+  enabledAttributeKeys.value.forEach((attrKey) => {
+    const active = activeAttributeValues[attrKey] || []
+    if (active.length > 0) {
+      params.set(keys[attrKey], serializeFilterValues(active))
+    }
+  })
+
+  if (filterVisibility.value.tags && activeTags.value.length > 0) {
+    params.set(keys.tags, serializeFilterValues(activeTags.value))
+  }
+
+  if (filterVisibility.value.rating && activeRating.value !== null) {
+    params.set(keys.rating, String(activeRating.value))
+  }
+
+  if (filterVisibility.value.price && (priceFilter.value[0] > priceMin.value || priceFilter.value[1] < priceMax.value)) {
+    params.set(keys.minPrice, String(priceFilter.value[0]))
+    params.set(keys.maxPrice, String(priceFilter.value[1]))
+  }
+
+  return `${url.pathname}${params.toString() ? `?${params.toString()}` : ''}${url.hash}`
+}
+
+function normalizeFilterUrlInPlace() {
+  if (!shouldSyncUrlFilters.value || syncingUrlState.value) return
+
+  const nextUrl = buildCurrentFilterUrl()
+  const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
+  if (nextUrl !== currentUrl) {
+    window.history.replaceState(window.history.state, '', nextUrl)
+  }
+}
+
+function navigateWithFilters() {
+  if (!shouldSyncUrlFilters.value || syncingUrlState.value) return
+
+  const nextUrl = buildCurrentFilterUrl()
+  const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
+
+  if (nextUrl !== currentUrl) {
+    navigateToUrl(nextUrl)
+  }
+}
+
+function restorePersistedSearch() {
+  if (!canPersistSearch.value) return
+  const storedValue = window.sessionStorage.getItem(searchStorageKey.value)
+  if (storedValue) {
+    searchQuery.value = storedValue
+  }
+}
+
+// ─── Data fetching ───────────────────────────────────────────────────────────
 watch(
   () => [
     props.settings?.source,
     props.settings?.categoryId,
     props.settings?.productIds,
     props.settings?.pinnedProductIds,
-    props.settings?.limit,
     props.settings?.enableFilters,
+    props.settings?.enableSearch,
   ],
-  () => { if (wpData.isWooActive) fetchProducts() },
+  () => {
+    if (isWooActive.value) {
+      fetchProducts()
+    }
+  },
   { deep: true }
 )
 
 onMounted(async () => {
-  if (wpData.isWooActive) await fetchProducts()
+  restorePersistedSearch()
+  if (isWooActive.value) {
+    await fetchProducts()
+  }
 })
 
 async function fetchProducts() {
   loading.value = true
+  hasFetchedProducts.value = false
+
   const formData = new FormData()
+  const wpData = getWpData()
   formData.append('action', 'dsf_get_products')
   formData.append('nonce', wpData.nonce)
 
   const productIds = props.settings?.source === 'manual'
     ? props.settings?.productIds
     : props.settings?.pinnedProductIds
-  if (productIds?.length) formData.append('product_ids', JSON.stringify(productIds))
-  if (props.settings?.categoryId) formData.append('category_id', props.settings.categoryId)
+
+  if (productIds?.length) {
+    formData.append('product_ids', JSON.stringify(productIds))
+  }
+
+  if (props.settings?.categoryId) {
+    formData.append('category_id', props.settings.categoryId)
+  }
+
   formData.append('source', props.settings?.source || 'category')
-  // Fetch more when filters are enabled so client-side filtering has enough data
-  const limit = filtersEnabled.value ? Math.max(100, props.settings?.limit || 6) : (props.settings?.limit || 6)
-  formData.append('limit', limit)
 
   try {
     const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData })
     const data = await response.json()
-    if (data.success) products.value = data.data.products
+    products.value = data.success ? (data.data.products || []) : []
   } catch (error) {
     console.error('Error fetching products:', error)
+    products.value = []
   } finally {
+    hasFetchedProducts.value = true
     loading.value = false
   }
 }
@@ -979,10 +1536,71 @@ async function fetchProducts() {
 }
 
 /* ── Results bar ───────────────────────────────────────────────────────────── */
+.dsf-product-grid-preview__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.dsf-product-grid-preview__search {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex: 1 1 320px;
+  min-width: min(100%, 260px);
+  max-width: 420px;
+  padding: 0 0.875rem;
+  border: 1px solid var(--dsf-gray-200);
+  border-radius: 999px;
+  background: white;
+}
+
+.dsf-product-grid-preview__search:focus-within {
+  border-color: var(--dsf-primary-500, #2e7d32);
+}
+
+.dsf-product-grid-preview__search-icon {
+  color: var(--dsf-gray-400);
+  flex-shrink: 0;
+}
+
+.dsf-product-grid-preview__search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--dsf-gray-800);
+  font-size: 0.875rem;
+  padding: 0.875rem 0;
+}
+
+.dsf-product-grid-preview__search-input:focus {
+  outline: none;
+}
+
+.dsf-product-grid-preview__search-input::placeholder {
+  color: var(--dsf-gray-400);
+}
+
+.dsf-product-grid-preview__search-clear {
+  border: none;
+  background: none;
+  color: var(--dsf-primary-600);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
 .dsf-product-grid-preview__results-bar {
   display: flex;
   align-items: center;
-  margin-bottom: 1rem;
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .dsf-product-grid-preview__results-count {
@@ -997,18 +1615,17 @@ async function fetchProducts() {
   gap: 1.5rem;
 }
 
-/* ── Product card ──────────────────────────────────────────────────────────── */
+/* ── Product card – shared base ────────────────────────────────────────────── */
 .dsf-product-card-preview {
-  background: white;
-  border-radius: var(--dsf-radius-lg);
-  overflow: hidden;
-  border: 1px solid var(--dsf-gray-200);
-  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.dsf-product-card-preview:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+.dsf-product-card-preview__image-link {
+  display: block;
+  flex-shrink: 0;
+  text-decoration: none;
 }
 
 .dsf-product-card-preview__image {
@@ -1018,7 +1635,6 @@ async function fetchProducts() {
   align-items: center;
   justify-content: center;
   color: var(--dsf-gray-400);
-  border-bottom: 1px solid var(--dsf-gray-100);
   position: relative;
   overflow: hidden;
 }
@@ -1027,34 +1643,58 @@ async function fetchProducts() {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  mix-blend-mode: multiply;
-  transition: transform 0.3s ease;
+  transition: transform 0.35s ease;
 }
 
-.dsf-product-card-preview:hover .dsf-product-card-preview__image img {
-  transform: scale(1.05);
+.dsf-product-card-preview__name-link {
+  text-decoration: none;
 }
 
 .dsf-product-card-preview__body {
-  padding: 1.25rem;
-  background: white;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  flex: 1;
 }
 
+/* Brand label */
+.dsf-product-card-preview__brand {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dsf-gray-500);
+  margin-bottom: 0.25rem;
+}
+
+/* Title: fixed 2-line reserved height — cards stay equal regardless of title length */
 .dsf-product-card-preview__name {
   font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 600;
-  color: var(--dsf-gray-900);
   margin: 0;
-  font-size: 1rem;
-  line-height: 1.4;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  min-height: calc(0.9375rem * 1.45 * 2);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Category / attribute line */
+.dsf-product-card-preview__sub {
+  font-size: 0.75rem;
+  color: var(--dsf-primary-600);
+  margin-top: 0.25rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dsf-product-card-preview__sub-sep {
+  margin: 0 0.25rem;
+  color: var(--dsf-gray-300);
 }
 
 .dsf-product-card-preview__meta {
@@ -1066,9 +1706,8 @@ async function fetchProducts() {
 
 .dsf-product-card-preview__price {
   font-family: var(--dsf-theme-body-font, inherit);
-  color: var(--dsf-primary-600);
-  font-weight: 600;
-  font-size: 1.125rem;
+  font-weight: 700;
+  font-size: 1.0625rem;
   line-height: 1.2;
 }
 
@@ -1080,23 +1719,271 @@ async function fetchProducts() {
 .dsf-product-card-preview__btn {
   font-family: var(--dsf-theme-body-font, inherit);
   width: 100%;
-  padding: 0.75rem;
-  background: var(--dsf-primary-600);
-  color: white;
+  padding: 0.7rem 1rem;
   border: none;
   border-radius: var(--dsf-radius-md);
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  margin-top: 0.5rem;
-  transition: background-color 0.2s;
+  margin-top: auto;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
   line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.dsf-product-card-preview__btn:hover {
+/* ── Classic ───────────────────────────────────────────────────────────────── */
+.dsf-product-card-preview--classic {
+  background: #fff;
+  border-radius: var(--dsf-radius-lg);
+  border: 1px solid var(--dsf-gray-200);
+  overflow: hidden;
+}
+
+.dsf-product-card-preview--classic:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -4px rgba(0,0,0,.1), 0 4px 8px -2px rgba(0,0,0,.06);
+}
+
+.dsf-product-card-preview--classic .dsf-product-card-preview__image {
+  border-bottom: 1px solid var(--dsf-gray-100);
+  border-radius: var(--dsf-radius-lg) var(--dsf-radius-lg) 0 0;
+}
+
+.dsf-product-card-preview--classic .dsf-product-card-preview__image img {
+  mix-blend-mode: multiply;
+}
+
+.dsf-product-card-preview--classic:hover .dsf-product-card-preview__image img {
+  transform: scale(1.05);
+}
+
+.dsf-product-card-preview--classic .dsf-product-card-preview__body {
+  padding: 1rem 1.125rem 1.125rem;
+  gap: 0;
+}
+
+.dsf-product-card-preview--classic .dsf-product-card-preview__name {
+  color: var(--dsf-gray-900);
+  margin-top: 0.125rem;
+}
+
+.dsf-product-card-preview--classic .dsf-product-card-preview__name-link:hover .dsf-product-card-preview__name {
+  color: var(--dsf-primary-600);
+}
+
+.dsf-product-card-preview--classic .dsf-product-card-preview__meta {
+  margin-top: 0.625rem;
+}
+
+.dsf-product-card-preview--classic .dsf-product-card-preview__price {
+  color: var(--dsf-primary-600);
+}
+
+.dsf-product-card-preview--classic .dsf-product-card-preview__btn {
+  background: var(--dsf-primary-600);
+  color: #fff;
+  margin-top: 0.875rem;
+}
+
+.dsf-product-card-preview--classic .dsf-product-card-preview__btn:hover {
   background: var(--dsf-primary-700);
+}
+
+/* ── Minimal ───────────────────────────────────────────────────────────────── */
+.dsf-product-card-preview--minimal {
+  background: #fff;
+  border-radius: var(--dsf-radius-lg);
+  border: 1px solid var(--dsf-gray-200);
+  overflow: visible;
+}
+
+.dsf-product-card-preview--minimal .dsf-product-card-preview__image {
+  border-radius: var(--dsf-radius-lg) var(--dsf-radius-lg) 0 0;
+  overflow: hidden;
+}
+
+.dsf-product-card-preview--minimal:hover .dsf-product-card-preview__image img {
+  transform: scale(1.04);
+}
+
+/* Action buttons that appear on image hover */
+.dsf-product-card-preview__image-actions {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.dsf-product-card-preview--minimal:hover .dsf-product-card-preview__image-actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dsf-product-card-preview__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  cursor: pointer;
+  color: var(--dsf-gray-700);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.dsf-product-card-preview__icon-btn:hover {
+  background: var(--dsf-gray-900);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+.dsf-product-card-preview__icon-btn--cart:hover {
+  background: var(--dsf-primary-600);
+  color: #fff;
+}
+
+.dsf-product-card-preview__icon-btn--added {
+  background: var(--dsf-primary-600) !important;
+  color: #fff !important;
+}
+
+/* ── Cart button states ─────────────────────────────────────────────────────── */
+.dsf-product-card-preview__btn--loading {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.dsf-product-card-preview__btn--added {
+  background: #16a34a !important;
+  border-color: #16a34a !important;
+  color: #fff !important;
+}
+
+.dsf-product-card-preview__btn--error {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #fff !important;
+}
+
+.dsf-product-card-preview--minimal .dsf-product-card-preview__body {
+  padding: 0.875rem 1rem 1rem;
+  gap: 0;
+  border-top: 1px solid var(--dsf-gray-100);
+}
+
+.dsf-product-card-preview--minimal .dsf-product-card-preview__name {
+  color: var(--dsf-gray-900);
+  font-weight: 600;
+  margin-top: 0.125rem;
+}
+
+.dsf-product-card-preview--minimal .dsf-product-card-preview__name-link:hover .dsf-product-card-preview__name {
+  color: var(--dsf-primary-600);
+}
+
+.dsf-product-card-preview--minimal .dsf-product-card-preview__price {
+  color: var(--dsf-gray-900);
+  font-size: 1rem;
+  margin-top: 0.625rem;
+  margin-top: auto;
+  padding-top: 0.625rem;
+}
+
+/* ── Modern ────────────────────────────────────────────────────────────────── */
+.dsf-product-card-preview--modern {
+  border-radius: var(--dsf-radius-lg);
+  overflow: hidden;
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__image-link {
+  display: block;
+  flex: 1;
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__image {
+  aspect-ratio: 3 / 4;
+  border-radius: var(--dsf-radius-lg);
+  overflow: hidden;
+  height: 100%;
+}
+
+.dsf-product-card-preview--modern:hover .dsf-product-card-preview__image img {
+  transform: scale(1.06);
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.3) 50%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.25rem;
+  gap: 0.3rem;
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__brand {
+  color: rgba(255,255,255,0.65);
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__name {
+  color: #fff;
+  font-size: 1rem;
+  min-height: calc(1rem * 1.45 * 2);
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__name-link:hover .dsf-product-card-preview__name {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__sub {
+  color: rgba(255,255,255,0.55);
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__sub-sep {
+  color: rgba(255,255,255,0.3);
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__meta {
+  margin-top: 0.25rem;
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__price {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__rating .dsf-star--filled,
+.dsf-product-card-preview--modern .dsf-product-card-preview__rating .dsf-star--empty {
+  color: rgba(255,255,255,0.75);
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__btn {
+  background: rgba(255,255,255,0.14);
+  color: #fff;
+  border: 1.5px solid rgba(255,255,255,0.45);
+  border-radius: var(--dsf-radius-md);
+  backdrop-filter: blur(6px);
+  margin-top: 0.625rem;
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__btn:hover {
+  background: #fff;
+  color: var(--dsf-gray-900);
+  border-color: transparent;
 }
 
 /* ── No results ────────────────────────────────────────────────────────────── */
@@ -1207,6 +2094,20 @@ async function fetchProducts() {
   .dsf-filter-sidebar {
     width: 100%;
   }
+
+  .dsf-product-grid-preview__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dsf-product-grid-preview__search {
+    max-width: none;
+  }
+
+  .dsf-product-grid-preview__results-bar {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
 }
 
 @container (max-width: 1024px) {
@@ -1219,5 +2120,47 @@ async function fetchProducts() {
   .dsf-product-grid-preview__items {
     grid-template-columns: 1fr !important;
   }
+}
+
+.dsf-product-grid-preview__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.dsf-pagination__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 0.5rem;
+  border: 1px solid var(--dsf-gray-200);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--dsf-gray-700);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.dsf-pagination__btn:hover:not(:disabled) {
+  background: var(--dsf-gray-50);
+  border-color: var(--dsf-gray-300);
+}
+
+.dsf-pagination__btn--active {
+  background: var(--dsf-gray-900);
+  border-color: var(--dsf-gray-900);
+  color: #fff;
+}
+
+.dsf-pagination__btn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 </style>

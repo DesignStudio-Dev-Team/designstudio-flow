@@ -55,202 +55,159 @@
     <div class="dsf-panel__body dsf-bg-gray-50">
       <!-- Content Tab -->
       <template v-if="activeTab === 'content'">
-        <template v-if="hasGroupedContentSections">
-          <div
-            v-for="section in contentSettingSections"
-            :key="section.key"
-            class="dsf-settings-expander"
-            :data-section="section.key"
+        <div
+          v-for="section in contentSettingSections"
+          :key="section.key"
+          class="dsf-settings-expander"
+          :data-section="section.key"
+        >
+          <button
+            class="dsf-settings-expander__trigger"
+            type="button"
+            @click="toggleContentSection(section.key)"
           >
-            <button
-              class="dsf-settings-expander__trigger"
-              type="button"
-              @click="toggleContentSection(section.key)"
-            >
-              <span class="dsf-settings-expander__title">{{ section.title }}</span>
-              <ChevronDown
-                :size="18"
-                class="dsf-settings-expander__chevron"
-                :class="{ 'dsf-settings-expander__chevron--open': isContentSectionExpanded(section.key) }"
-              />
-            </button>
-
-            <div
-              v-if="isContentSectionExpanded(section.key)"
-              class="dsf-settings-expander__body"
-            >
-              <template v-for="fieldKey in section.fields" :key="fieldKey">
-                <SettingField
-                  :config="contentSettings[fieldKey]"
-                  :field-key="fieldKey"
-                  :value="block.settings[fieldKey]"
-                  @update="(val) => updateSetting(fieldKey, val)"
-                />
-              </template>
-            </div>
-          </div>
-        </template>
-
-        <div v-else class="dsf-settings-card">
-          <template v-for="(config, key) in contentSettings" :key="key">
-            <SettingField 
-              v-if="shouldShowField(key, block.settings)"
-              :config="config"
-              :field-key="key"
-              :value="block.settings[key]"
-              @update="(val) => updateSetting(key, val)"
+            <span class="dsf-settings-expander__title">{{ section.title }}</span>
+            <ChevronDown
+              :size="18"
+              class="dsf-settings-expander__chevron"
+              :class="{ 'dsf-settings-expander__chevron--open': isContentSectionExpanded(section.key) }"
             />
-          </template>
+          </button>
+
+          <div
+            v-if="isContentSectionExpanded(section.key)"
+            class="dsf-settings-expander__body"
+          >
+            <template v-for="fieldKey in section.fields" :key="fieldKey">
+              <SettingField
+                :config="contentSettings[fieldKey]"
+                :field-key="fieldKey"
+                :value="block.settings[fieldKey]"
+                :all-settings="block.settings"
+                @update="(val) => updateSetting(fieldKey, val)"
+              />
+            </template>
+          </div>
         </div>
       </template>
 
       <!-- Mobile Tab -->
       <template v-if="activeTab === 'mobile' && hasMobileTab">
-        <div class="dsf-settings-card">
-          <template v-for="(config, key) in mobileSettings" :key="key">
-            <SettingField
-              v-if="shouldShowField(key, block.settings)"
-              :config="config"
-              :field-key="key"
-              :value="block.settings[key]"
-              @update="(val) => updateSetting(key, val)"
+        <div
+          v-for="section in mobileSettingSections"
+          :key="section.key"
+          class="dsf-settings-expander"
+        >
+          <button
+            class="dsf-settings-expander__trigger"
+            type="button"
+            @click="toggleMobileSection(section.key)"
+          >
+            <span class="dsf-settings-expander__title">{{ section.title }}</span>
+            <ChevronDown
+              :size="18"
+              class="dsf-settings-expander__chevron"
+              :class="{ 'dsf-settings-expander__chevron--open': isMobileSectionExpanded(section.key) }"
             />
-          </template>
+          </button>
+          <div v-if="isMobileSectionExpanded(section.key)" class="dsf-settings-expander__body">
+            <template v-for="fieldKey in section.fields" :key="fieldKey">
+              <SettingField
+                :config="mobileSettings[fieldKey]"
+                :field-key="fieldKey"
+                :value="block.settings[fieldKey]"
+                :all-settings="block.settings"
+                @update="(val) => updateSetting(fieldKey, val)"
+              />
+            </template>
+          </div>
         </div>
       </template>
-      
+
       <!-- Style Tab -->
       <template v-if="activeTab === 'style'">
-        <template v-if="hasGroupedStyleSections">
-          <div
-            v-for="section in styleSettingSections"
-            :key="section.key"
-            class="dsf-settings-expander"
-            :data-style-section="section.key"
+        <div
+          v-for="section in styleSettingSections"
+          :key="section.key"
+          class="dsf-settings-expander"
+          :data-style-section="section.key"
+        >
+          <button
+            class="dsf-settings-expander__trigger"
+            type="button"
+            @click="toggleStyleSection(section.key)"
           >
-            <button
-              class="dsf-settings-expander__trigger"
-              type="button"
-              @click="toggleStyleSection(section.key)"
-            >
-              <span class="dsf-settings-expander__title">{{ section.title }}</span>
-              <ChevronDown
-                :size="18"
-                class="dsf-settings-expander__chevron"
-                :class="{ 'dsf-settings-expander__chevron--open': isStyleSectionExpanded(section.key) }"
-              />
-            </button>
+            <span class="dsf-settings-expander__title">{{ section.title }}</span>
+            <ChevronDown
+              :size="18"
+              class="dsf-settings-expander__chevron"
+              :class="{ 'dsf-settings-expander__chevron--open': isStyleSectionExpanded(section.key) }"
+            />
+          </button>
 
-            <div
-              v-if="isStyleSectionExpanded(section.key)"
-              class="dsf-settings-expander__body"
-            >
-              <template v-if="section.key === 'spacing'">
-                <div class="dsf-segmented-control dsf-segmented-control--sm">
-                  <button
-                    class="dsf-segmented-btn"
-                    :class="{ 'dsf-segmented-btn--active': responsiveBreakpoint === 'desktop' }"
-                    @click="responsiveBreakpoint = 'desktop'"
-                  >
-                    Desktop
-                  </button>
-                  <button
-                    class="dsf-segmented-btn"
-                    :class="{ 'dsf-segmented-btn--active': responsiveBreakpoint === 'tablet' }"
-                    @click="responsiveBreakpoint = 'tablet'"
-                  >
-                    Tablet
-                  </button>
-                  <button
-                    class="dsf-segmented-btn"
-                    :class="{ 'dsf-segmented-btn--active': responsiveBreakpoint === 'mobile' }"
-                    @click="responsiveBreakpoint = 'mobile'"
-                  >
-                    Mobile
-                  </button>
-                </div>
-                <template v-for="(config, key) in responsiveFieldConfigs" :key="key">
-                  <SettingField
-                    :config="config"
-                    :field-key="key"
-                    :value="getResponsiveFieldValue(key)"
-                    @update="(val) => updateResponsiveField(key, val)"
-                  />
-                </template>
+          <div
+            v-if="isStyleSectionExpanded(section.key)"
+            class="dsf-settings-expander__body"
+          >
+            <template v-if="section.key === 'spacing'">
+              <div class="dsf-segmented-control dsf-segmented-control--sm">
+                <button
+                  class="dsf-segmented-btn"
+                  :class="{ 'dsf-segmented-btn--active': responsiveBreakpoint === 'desktop' }"
+                  @click="responsiveBreakpoint = 'desktop'"
+                >
+                  Desktop
+                </button>
+                <button
+                  class="dsf-segmented-btn"
+                  :class="{ 'dsf-segmented-btn--active': responsiveBreakpoint === 'tablet' }"
+                  @click="responsiveBreakpoint = 'tablet'"
+                >
+                  Tablet
+                </button>
+                <button
+                  class="dsf-segmented-btn"
+                  :class="{ 'dsf-segmented-btn--active': responsiveBreakpoint === 'mobile' }"
+                  @click="responsiveBreakpoint = 'mobile'"
+                >
+                  Mobile
+                </button>
+              </div>
+              <template v-for="(config, key) in responsiveFieldConfigs" :key="key">
+                <SettingField
+                  :config="config"
+                  :field-key="key"
+                  :value="getResponsiveFieldValue(key)"
+                  :all-settings="block.settings"
+                  @update="(val) => updateResponsiveField(key, val)"
+                />
               </template>
+            </template>
 
-              <template v-else>
-                <template v-for="fieldKey in section.fields" :key="fieldKey">
-                  <SettingField
-                    :config="styleSettings[fieldKey]"
-                    :field-key="fieldKey"
-                    :value="block.settings[fieldKey]"
-                    @update="(val) => updateSetting(fieldKey, val)"
-                  />
-                </template>
+            <template v-else>
+              <template v-for="fieldKey in section.fields" :key="fieldKey">
+                <SettingField
+                  :config="styleSettings[fieldKey]"
+                  :field-key="fieldKey"
+                  :value="block.settings[fieldKey]"
+                  :all-settings="block.settings"
+                  @update="(val) => updateSetting(fieldKey, val)"
+                />
               </template>
-            </div>
-          </div>
-        </template>
-
-        <template v-else>
-          <div class="dsf-settings-card">
-            <template v-for="(config, key) in styleSettings" :key="key">
-              <SettingField 
-                v-if="shouldShowField(key, block.settings)"
-                :config="config"
-                :field-key="key"
-                :value="block.settings[key]"
-                @update="(val) => updateSetting(key, val)"
-              />
             </template>
           </div>
-
-          <div class="dsf-settings-card">
-            <div class="dsf-settings-card__header">Responsive Spacing</div>
-            <div class="dsf-segmented-control dsf-segmented-control--sm">
-              <button
-                class="dsf-segmented-btn"
-                :class="{ 'dsf-segmented-btn--active': responsiveBreakpoint === 'desktop' }"
-                @click="responsiveBreakpoint = 'desktop'"
-              >
-                Desktop
-              </button>
-              <button
-                class="dsf-segmented-btn"
-                :class="{ 'dsf-segmented-btn--active': responsiveBreakpoint === 'tablet' }"
-                @click="responsiveBreakpoint = 'tablet'"
-              >
-                Tablet
-              </button>
-              <button
-                class="dsf-segmented-btn"
-                :class="{ 'dsf-segmented-btn--active': responsiveBreakpoint === 'mobile' }"
-                @click="responsiveBreakpoint = 'mobile'"
-              >
-                Mobile
-              </button>
-            </div>
-            <template v-for="(config, key) in responsiveFieldConfigs" :key="key">
-              <SettingField
-                :config="config"
-                :field-key="key"
-                :value="getResponsiveFieldValue(key)"
-                @update="(val) => updateResponsiveField(key, val)"
-              />
-            </template>
-          </div>
-        </template>
+        </div>
       </template>
-      
+
       <!-- Data Tab (Products/Categories) -->
       <template v-if="activeTab === 'data' && hasDataTab">
         <template v-for="(config, key) in dataSettings" :key="key">
-          <SettingField 
+          <SettingField
             v-if="shouldShowField(key, block.settings)"
             :config="config"
             :field-key="key"
             :value="block.settings[key]"
+            :all-settings="block.settings"
             @update="(val) => updateSetting(key, val)"
           />
         </template>
@@ -321,26 +278,9 @@ function stopDrag() {
 
 const activeTab = ref('content')
 const responsiveBreakpoint = ref('desktop')
-const defaultExpandedContentSections = {
-  hero: false,
-  layout: false,
-  bars: false,
-  box1: false,
-  box2: false,
-  box3: false,
-  box4: false,
-  box5: false,
-  lastTile: false,
-}
-const expandedContentSections = ref({ ...defaultExpandedContentSections })
-const defaultExpandedStyleSections = {
-  tiles: false,
-  bars: false,
-  lastTile: false,
-  general: false,
-  spacing: false,
-}
-const expandedStyleSections = ref({ ...defaultExpandedStyleSections })
+const expandedContentSections = ref({})
+const expandedStyleSections = ref({})
+const expandedMobileSections = ref({})
 
 const responsiveFieldOrder = ['height', 'gap', 'padding', 'paddingX', 'marginY']
 const responsiveFieldDefaults = {
@@ -377,9 +317,10 @@ const contentSettings = computed(() => {
   const settings = props.blockDefinition?.settings || {}
   const styleTypes = ['color', 'slider']
   const styleKeys = [
-    'contentPosition', 'imagePosition', 'columns', 'padding', 'backgroundColor', 
+    'contentPosition', 'imagePosition', 'padding', 'backgroundColor',
     'textColor', 'titleColor', 'cardColor', 'shopAllColor', 'buttonColor', 'buttonTextColor',
-    'backgroundType', 'gradientDirection', 'backgroundImage', 'gradientStart', 'gradientEnd'
+    'backgroundType', 'gradientDirection', 'backgroundImage', 'gradientStart', 'gradientEnd',
+    'cardStyle'
   ]
 
   return Object.fromEntries(
@@ -403,9 +344,10 @@ const styleSettings = computed(() => {
   const settings = props.blockDefinition?.settings || {}
   const styleTypes = ['color', 'slider']
   const styleKeys = [
-    'contentPosition', 'imagePosition', 'columns', 'padding', 'backgroundColor', 
+    'contentPosition', 'imagePosition', 'padding', 'backgroundColor',
     'textColor', 'titleColor', 'cardColor', 'shopAllColor', 'buttonColor', 'buttonTextColor',
-    'backgroundType', 'gradientDirection', 'backgroundImage', 'gradientStart', 'gradientEnd'
+    'backgroundType', 'gradientDirection', 'backgroundImage', 'gradientStart', 'gradientEnd',
+    'cardStyle'
   ]
 
   return Object.fromEntries(
@@ -441,155 +383,91 @@ const responsiveFieldConfigs = computed(() => {
 
 const hasDataTab = computed(() => false) // Disable Data tab
 const dataTabLabel = computed(() => '') // Not used
-const hasGroupedContentSections = computed(() => blockId.value === 'bento-hero')
-const hasGroupedStyleSections = computed(() => blockId.value === 'bento-hero')
+
+function buildSections(settings, currentSettings, explicitSections) {
+  if (explicitSections) {
+    const assignedKeys = new Set(explicitSections.flatMap((s) => s.fields))
+    const sections = explicitSections
+      .map((section) => ({
+        ...section,
+        fields: section.fields.filter(
+          (key) => settings[key] && shouldShowField(key, currentSettings)
+        ),
+      }))
+      .filter((s) => s.fields.length > 0)
+
+    // Remaining fields not assigned to any explicit section
+    const remaining = Object.keys(settings).filter(
+      (key) => !assignedKeys.has(key) && shouldShowField(key, currentSettings)
+    )
+    if (remaining.length > 0) {
+      sections.push({ key: 'general', title: 'General', fields: remaining })
+    }
+    return sections
+  }
+
+  // Auto-group: bucket by `section` property on each field config, fallback to 'settings'
+  const buckets = new Map()
+  Object.entries(settings).forEach(([key, config]) => {
+    if (!shouldShowField(key, currentSettings)) return
+    const sectionKey = config.section || 'settings'
+    const sectionTitle = config.sectionTitle || (sectionKey === 'settings' ? 'Settings' : sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1))
+    if (!buckets.has(sectionKey)) {
+      buckets.set(sectionKey, { key: sectionKey, title: sectionTitle, fields: [] })
+    }
+    buckets.get(sectionKey).fields.push(key)
+  })
+  return Array.from(buckets.values()).filter((s) => s.fields.length > 0)
+}
+
+const bentoCotentSections = [
+  {
+    key: 'hero', title: 'Hero',
+    fields: ['heroImage','heroTitle','heroType','searchPlaceholder','searchUrl','heroButtonText','heroButtonAction','heroButtonUrl','heroButtonModalLayout','heroButtonModalContentType','heroButtonModalContent','heroButtonModalHtml','heroButtonModalShortcode'],
+  },
+  { key: 'layout', title: 'Layout', fields: ['boxCount'] },
+  { key: 'bars', title: 'Section Bars', fields: ['showTopBar','topBarText','showBottomBar','bottomBarText'] },
+  { key: 'box1', title: 'Box 1', fields: ['box1Image','box1Title','box1ShowTitle','box1Url'] },
+  { key: 'box2', title: 'Box 2', fields: ['box2Image','box2Title','box2ShowTitle','box2Url'] },
+  { key: 'box3', title: 'Box 3', fields: ['box3Image','box3Title','box3ShowTitle','box3Url'] },
+  { key: 'box4', title: 'Box 4', fields: ['box4Image','box4Title','box4ShowTitle','box4Url'] },
+  { key: 'box5', title: 'Box 5', fields: ['box5Image','box5Title','box5ShowTitle','box5Url'] },
+  {
+    key: 'lastTile', title: 'Last Box',
+    fields: ['ctaType','ctaText','ctaUrl','ctaAction','ctaModalLayout','ctaModalContentType','ctaModalContent','ctaModalHtml','ctaModalShortcode','box6CategoryId','box6Image','box6Title','box6ShowTitle','box6Url'],
+  },
+]
+
+const bentoStyleSections = [
+  { key: 'tiles', title: 'Tiles', fields: ['boxBackground','boxImageSize','titleColor'] },
+  { key: 'bars', title: 'Section Bars', fields: ['sectionBarBackground','sectionBarTextColor','sectionBarHeight'] },
+  { key: 'lastTile', title: 'Last Box', fields: ['ctaColor','ctaTextColor'] },
+]
+
 const contentSettingSections = computed(() => {
-  if (!hasGroupedContentSections.value) return []
-
-  const sectionDefinitions = [
-    {
-      key: 'hero',
-      title: 'Hero',
-      fields: [
-        'heroImage',
-        'heroTitle',
-        'heroType',
-        'searchPlaceholder',
-        'searchUrl',
-        'heroButtonText',
-        'heroButtonAction',
-        'heroButtonUrl',
-        'heroButtonModalLayout',
-        'heroButtonModalContentType',
-        'heroButtonModalContent',
-        'heroButtonModalHtml',
-        'heroButtonModalShortcode',
-      ],
-    },
-    {
-      key: 'layout',
-      title: 'Layout',
-      fields: ['boxCount'],
-    },
-    {
-      key: 'bars',
-      title: 'Section Bars',
-      fields: ['showTopBar', 'topBarText', 'showBottomBar', 'bottomBarText'],
-    },
-    {
-      key: 'box1',
-      title: 'Box 1',
-      fields: ['box1Image', 'box1Title', 'box1ShowTitle', 'box1Url'],
-    },
-    {
-      key: 'box2',
-      title: 'Box 2',
-      fields: ['box2Image', 'box2Title', 'box2ShowTitle', 'box2Url'],
-    },
-    {
-      key: 'box3',
-      title: 'Box 3',
-      fields: ['box3Image', 'box3Title', 'box3ShowTitle', 'box3Url'],
-    },
-    {
-      key: 'box4',
-      title: 'Box 4',
-      fields: ['box4Image', 'box4Title', 'box4ShowTitle', 'box4Url'],
-    },
-    {
-      key: 'box5',
-      title: 'Box 5',
-      fields: ['box5Image', 'box5Title', 'box5ShowTitle', 'box5Url'],
-    },
-    {
-      key: 'lastTile',
-      title: 'Last Box',
-      fields: [
-        'ctaType',
-        'ctaText',
-        'ctaUrl',
-        'ctaAction',
-        'ctaModalLayout',
-        'ctaModalContentType',
-        'ctaModalContent',
-        'ctaModalHtml',
-        'ctaModalShortcode',
-        'box6CategoryId',
-        'box6Image',
-        'box6Title',
-        'box6ShowTitle',
-        'box6Url',
-      ],
-    },
-  ]
-
-  return sectionDefinitions
-    .map((section) => ({
-      ...section,
-      fields: section.fields.filter(
-        (key) => contentSettings.value[key] && shouldShowField(key, props.block?.settings || {})
-      ),
-    }))
-    .filter((section) => section.fields.length > 0)
+  const explicit = blockId.value === 'bento-hero' ? bentoCotentSections : null
+  return buildSections(contentSettings.value, props.block?.settings || {}, explicit)
 })
 
+const mobileSettingSections = computed(() =>
+  buildSections(mobileSettings.value, props.block?.settings || {}, null)
+)
+
 const styleSettingSections = computed(() => {
-  if (!hasGroupedStyleSections.value) return []
-
-  const sectionDefinitions = [
-    {
-      key: 'tiles',
-      title: 'Tiles',
-      fields: ['boxBackground', 'boxImageSize', 'titleColor'],
-    },
-    {
-      key: 'bars',
-      title: 'Section Bars',
-      fields: ['sectionBarBackground', 'sectionBarTextColor', 'sectionBarHeight'],
-    },
-    {
-      key: 'lastTile',
-      title: 'Last Box',
-      fields: ['ctaColor', 'ctaTextColor'],
-    },
-  ]
-
-  const assignedKeys = new Set(sectionDefinitions.flatMap((section) => section.fields))
-  const visibleSections = sectionDefinitions
-    .map((section) => ({
-      ...section,
-      fields: section.fields.filter(
-        (key) => styleSettings.value[key] && shouldShowField(key, props.block?.settings || {})
-      ),
-    }))
-    .filter((section) => section.fields.length > 0)
-
-  const generalFields = Object.keys(styleSettings.value).filter(
-    (key) => !assignedKeys.has(key) && shouldShowField(key, props.block?.settings || {})
-  )
-
-  if (generalFields.length > 0) {
-    visibleSections.push({
-      key: 'general',
-      title: 'General',
-      fields: generalFields,
-    })
-  }
+  const explicit = blockId.value === 'bento-hero' ? bentoStyleSections : null
+  const sections = buildSections(styleSettings.value, props.block?.settings || {}, explicit)
 
   if (Object.keys(responsiveFieldConfigs.value).length > 0) {
-    visibleSections.push({
-      key: 'spacing',
-      title: 'Responsive Spacing',
-      fields: [],
-    })
+    sections.push({ key: 'spacing', title: 'Responsive Spacing', fields: [] })
   }
 
-  return visibleSections
+  return sections
 })
 
 watch(blockId, () => {
-  expandedContentSections.value = { ...defaultExpandedContentSections }
-  expandedStyleSections.value = { ...defaultExpandedStyleSections }
+  expandedContentSections.value = {}
+  expandedStyleSections.value = {}
+  expandedMobileSections.value = {}
 })
 
 function updateSetting(key, value) {
@@ -601,7 +479,7 @@ function updateSetting(key, value) {
 }
 
 function isContentSectionExpanded(key) {
-  return expandedContentSections.value[key] !== false
+  return expandedContentSections.value[key] === true
 }
 
 function toggleContentSection(key) {
@@ -612,13 +490,24 @@ function toggleContentSection(key) {
 }
 
 function isStyleSectionExpanded(key) {
-  return expandedStyleSections.value[key] !== false
+  return expandedStyleSections.value[key] === true
 }
 
 function toggleStyleSection(key) {
   expandedStyleSections.value = {
     ...expandedStyleSections.value,
     [key]: !isStyleSectionExpanded(key),
+  }
+}
+
+function isMobileSectionExpanded(key) {
+  return expandedMobileSections.value[key] === true
+}
+
+function toggleMobileSection(key) {
+  expandedMobileSections.value = {
+    ...expandedMobileSections.value,
+    [key]: !isMobileSectionExpanded(key),
   }
 }
 

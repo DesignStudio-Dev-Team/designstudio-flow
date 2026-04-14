@@ -11,6 +11,15 @@ class DSF_Frontend {
 
 	private static $instance = null;
 
+	/**
+	 * Track which posts have had their Flow blocks rendered,
+	 * so the_content filter does not output native content a second time.
+	 */
+	private $rendered_posts = array();
+
+	/** Per-request cache for get_page_settings() results. */
+	private $settings_cache = array();
+
 	public static function get_instance() {
 		if ( null === self::$instance ) {
 			self::$instance = new self();
@@ -133,7 +142,9 @@ class DSF_Frontend {
 				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
 				'nonce'       => wp_create_nonce( 'dsf_frontend_nonce' ),
 				'categories'  => $this->get_wc_categories(),
-				'isWooActive' => class_exists( 'WooCommerce' ),
+				'isWooActive'     => class_exists( 'WooCommerce' ),
+				'wcAjaxUrl'       => class_exists( 'WooCommerce' ) ? \WC_AJAX::get_endpoint( 'add_to_cart' ) : '',
+				'wcCartNonce'     => class_exists( 'WooCommerce' ) ? wp_create_nonce( 'woocommerce-process_checkout' ) : '',
 			)
 		);
 
@@ -188,7 +199,7 @@ class DSF_Frontend {
 		}
 
 		$type = isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
-		if ( 'form-embed' !== $type ) {
+		if ( ! in_array( $type, array( 'form-embed', 'form-with-content' ), true ) ) {
 			return $block;
 		}
 
@@ -200,8 +211,8 @@ class DSF_Frontend {
 			$form_id = 0;
 		}
 
-		$settings['formId']          = $form_id ? (string) $form_id : '';
-		$settings['formTitle']       = ( $form_id && $form && $form->post_title ) ? $form->post_title : '';
+		$settings['formId']           = $form_id ? (string) $form_id : '';
+		$settings['formTitle']        = ( $form_id && $form && $form->post_title ) ? $form->post_title : '';
 		$settings['renderedFormHtml'] = $form_id ? DSF_Forms::get_instance()->render_form_shortcode( array( 'id' => $form_id ) ) : '';
 		$block['settings']            = $settings;
 
@@ -287,6 +298,12 @@ class DSF_Frontend {
 			return $content;
 		}
 
+		// If the custom flow template already called render_flow_blocks() directly,
+		// suppress this second the_content invocation to avoid a duplicate render.
+		if ( isset( $this->rendered_posts[ $post->ID ] ) ) {
+			return '';
+		}
+
 		// Only for Flow pages or Flow-enabled pages
 		$is_flow = 'dsf_page' === $post->post_type || get_post_meta( $post->ID, '_dsf_enabled', true );
 		if ( ! $is_flow ) {
@@ -323,6 +340,10 @@ class DSF_Frontend {
 		$template_file   = 'fullwidth' === $template_choice ? 'flow-page-fullwidth.php' : 'flow-page.php';
 		$custom_template = DSF_PLUGIN_DIR . 'templates/' . $template_file;
 		if ( file_exists( $custom_template ) ) {
+			// Custom template calls render_flow_blocks() directly.
+			// Remove the_content filter to prevent a second render if any theme/plugin
+			// hook fires the_content before or after the template's direct call.
+			remove_filter( 'the_content', array( $this, 'render_flow_content' ), 20 );
 			return $custom_template;
 		}
 
@@ -336,6 +357,9 @@ class DSF_Frontend {
 		if ( ! $post_id ) {
 			return '';
 		}
+
+		// Mark that blocks have been rendered so the_content filter skips them.
+		$this->rendered_posts[ $post_id ] = true;
 
 		$blocks_json = get_post_meta( $post_id, '_dsf_blocks', true );
 		if ( ! $blocks_json ) {
@@ -516,6 +540,10 @@ class DSF_Frontend {
 	}
 
 	public function get_page_settings( $post_id ) {
+		if ( isset( $this->settings_cache[ $post_id ] ) ) {
+			return $this->settings_cache[ $post_id ];
+		}
+
 		$raw_settings = get_post_meta( $post_id, '_dsf_settings', true );
 		if ( is_array( $raw_settings ) ) {
 			$settings = $raw_settings;
@@ -528,6 +556,7 @@ class DSF_Frontend {
 		$settings['theme']  = array_merge( $defaults['theme'], $settings['theme'] ?? array() );
 		$settings['layout'] = array_merge( $defaults['layout'], $settings['layout'] ?? array() );
 
+		$this->settings_cache[ $post_id ] = $settings;
 		return $settings;
 	}
 
@@ -587,22 +616,51 @@ class DSF_Frontend {
 			return array();
 		}
 
-		return array_map(
-			function ( $cat ) {
-				$thumbnail_id = get_term_meta( $cat->term_id, 'thumbnail_id', true );
-				$term_link    = get_term_link( $cat );
+		// Build an id→direct_count map and a parent→children map.
+		$direct_counts = array();
+		$children_map  = array();
+		foreach ( $categories as $cat ) {
+			$direct_counts[ $cat->term_id ] = (int) $cat->count;
+			if ( ! isset( $children_map[ $cat->parent ] ) ) {
+				$children_map[ $cat->parent ] = array();
+			}
+			$children_map[ $cat->parent ][] = $cat->term_id;
+		}
 
-				return array(
-					'id'       => $cat->term_id,
-					'name'     => $cat->name,
-					'slug'     => $cat->slug,
-					'count'    => $cat->count,
-					'url'      => is_wp_error( $term_link ) ? '' : $term_link,
-					'image'    => $thumbnail_id ? wp_get_attachment_url( $thumbnail_id ) : '',
-					'imageAlt' => $thumbnail_id ? get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ) : '',
-				);
-			},
-			$categories
-		);
+		// Recursively sum a category's count plus all descendants.
+		$get_total = null;
+		$get_total = function ( $id, $visited = array() ) use ( &$get_total, &$direct_counts, &$children_map ) {
+			if ( isset( $visited[ $id ] ) ) {
+				return 0; // Guard against malformed self-referencing terms.
+			}
+			$visited[ $id ] = true;
+			$total          = isset( $direct_counts[ $id ] ) ? $direct_counts[ $id ] : 0;
+			if ( ! empty( $children_map[ $id ] ) ) {
+				foreach ( $children_map[ $id ] as $child_id ) {
+					$total += $get_total( $child_id, $visited );
+				}
+			}
+			return $total;
+		};
+
+		$result = array();
+		foreach ( $categories as $cat ) {
+			$thumbnail_id = get_term_meta( $cat->term_id, 'thumbnail_id', true );
+			$term_link    = get_term_link( $cat );
+
+			$result[] = array(
+				'id'          => $cat->term_id,
+				'name'        => $cat->name,
+				'slug'        => $cat->slug,
+				'parent'      => (int) $cat->parent,
+				'count'       => (int) $cat->count,
+				'total_count' => $get_total( $cat->term_id ),
+				'url'         => is_wp_error( $term_link ) ? '' : $term_link,
+				'image'       => $thumbnail_id ? wp_get_attachment_url( $thumbnail_id ) : '',
+				'imageAlt'    => $thumbnail_id ? get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ) : '',
+			);
+		}
+
+		return $result;
 	}
 }

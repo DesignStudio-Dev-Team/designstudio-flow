@@ -369,7 +369,6 @@ class DSF_Ajax {
 		}
 
 		$category_id = isset( $_POST['category_id'] ) ? intval( $_POST['category_id'] ) : 0;
-		$limit       = isset( $_POST['limit'] ) ? intval( $_POST['limit'] ) : 12;
 		$source      = isset( $_POST['source'] ) ? sanitize_text_field( $_POST['source'] ) : 'category';
 
 		// Handle product_ids sent as JSON string or Array
@@ -398,6 +397,16 @@ class DSF_Ajax {
 				'posts_per_page' => -1, // Get all pinned
 			);
 
+			if ( 'manual' !== $source && $category_id ) {
+				$pinned_args['tax_query'] = array(
+					array(
+						'taxonomy' => 'product_cat',
+						'field'    => 'term_id',
+						'terms'    => $category_id,
+					),
+				);
+			}
+
 			$pinned_posts = get_posts( $pinned_args );
 
 			// If Manual Source, we ONLY show pinned products (filtered by what exists)
@@ -409,31 +418,27 @@ class DSF_Ajax {
 			}
 		}
 
-		// If Category Source and we need more products (or have no pins)
-		if ( 'manual' !== $source && count( $products ) < $limit ) {
-			$remaining = $limit - count( $products );
+		// If Category Source fetch all remaining products
+		if ( 'manual' !== $source ) {
+			$cat_args = array(
+				'post_type'      => 'product',
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'post__not_in'   => $product_ids, // Exclude pinned to avoid duplicates
+			);
 
-			if ( $remaining > 0 ) {
-				$cat_args = array(
-					'post_type'      => 'product',
-					'post_status'    => 'publish',
-					'posts_per_page' => $remaining,
-					'post__not_in'   => $product_ids, // Exclude pinned to avoid duplicates
+			if ( $category_id ) {
+				$cat_args['tax_query'] = array(
+					array(
+						'taxonomy' => 'product_cat',
+						'field'    => 'term_id',
+						'terms'    => $category_id,
+					),
 				);
-
-				if ( $category_id ) {
-					$cat_args['tax_query'] = array(
-						array(
-							'taxonomy' => 'product_cat',
-							'field'    => 'term_id',
-							'terms'    => $category_id,
-						),
-					);
-				}
-
-				$cat_posts = get_posts( $cat_args );
-				$products  = array_merge( $products, $cat_posts );
 			}
+
+			$cat_posts = get_posts( $cat_args );
+			$products  = array_merge( $products, $cat_posts );
 		}
 
 		// Format Result
@@ -455,8 +460,9 @@ class DSF_Ajax {
 			$regular_display = '' !== $regular ? html_entity_decode( wp_strip_all_tags( wc_price( $regular ) ) ) : '';
 			$sale_display    = '' !== $sale ? html_entity_decode( wp_strip_all_tags( wc_price( $sale ) ) ) : '';
 
-			$cat_terms = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'names' ) );
-			$tag_terms = wp_get_post_terms( $product->get_id(), 'product_tag', array( 'fields' => 'names' ) );
+			$cat_terms     = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'names' ) );
+			$cat_term_ids  = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'ids' ) );
+			$tag_terms     = wp_get_post_terms( $product->get_id(), 'product_tag', array( 'fields' => 'names' ) );
 
 			$result[] = array(
 				'id'              => $product->get_id(),
@@ -470,10 +476,12 @@ class DSF_Ajax {
 				'image'           => $image_url,
 				'permalink'       => $product->get_permalink(),
 				'add_to_cart_url' => $product->add_to_cart_url(),
+				'product_type'    => $product->get_type(),
 				'stock_status'    => $product->get_stock_status(),
 				'price_num'       => (float) $product->get_price(),
 				'rating'          => round( (float) $product->get_average_rating(), 1 ),
 				'categories'      => is_wp_error( $cat_terms ) ? array() : $cat_terms,
+				'category_ids'    => is_wp_error( $cat_term_ids ) ? array() : array_map( 'intval', (array) $cat_term_ids ),
 				'tags'            => is_wp_error( $tag_terms ) ? array() : $tag_terms,
 				'attributes'      => $this->get_product_filter_attributes( $product ),
 			);

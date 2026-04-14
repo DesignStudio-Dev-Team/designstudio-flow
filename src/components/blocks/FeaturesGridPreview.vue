@@ -26,28 +26,42 @@
       class="dsf-features-grid-preview__items"
       :style="{ '--columns': settings.columns || 3 }"
     >
-      <div 
-        v-for="(feature, idx) in displayFeatures" 
+      <div
+        v-for="(feature, idx) in displayFeatures"
         :key="idx"
         class="dsf-feature-card-preview"
         :style="cardStyle"
       >
-        <h4 
+        <!-- Image above title -->
+        <img
+          v-if="feature.image && (feature.imagePosition || 'above') === 'above'"
+          :src="feature.image"
+          class="dsf-feature-card-preview__image"
+          alt=""
+        />
+        <h4
           class="dsf-feature-card-preview__title"
           :style="{ color: settings.cardTitleColor || '#60A5FA' }"
         >
           {{ feature.title }}
         </h4>
-        <p 
+        <!-- Image below title -->
+        <img
+          v-if="feature.image && (feature.imagePosition || 'above') === 'below'"
+          :src="feature.image"
+          class="dsf-feature-card-preview__image"
+          alt=""
+        />
+        <p
           class="dsf-feature-card-preview__desc"
           :style="{ color: settings.cardDescriptionColor || '#9CA3AF' }"
-        >
-          {{ feature.description }}
-        </p>
-        <a 
+          v-html="feature.description"
+        />
+        <a
           v-if="feature.buttonText"
           :href="getFeatureHref(feature)"
           class="dsf-feature-card-preview__btn"
+          :style="buttonStyle"
           @click="handleFeatureClick($event, feature)"
         >
           {{ feature.buttonText }}
@@ -117,11 +131,22 @@ const cardStyle = computed(() => ({
   backgroundColor: props.settings?.cardColor || '#1F2937',
 }))
 
+const buttonStyle = computed(() => {
+  const style = {}
+  const bg = props.settings?.buttonColor
+  const text = props.settings?.buttonTextColor
+  if (bg) { style.backgroundColor = bg; style.borderColor = bg }
+  if (text) { style.color = text }
+  return style
+})
+
 const displayFeatures = computed(() => {
   return props.settings?.features || [
     {
       title: 'Easy to Use',
       description: 'Intuitive drag-and-drop interface',
+      image: '',
+      imagePosition: 'above',
       buttonText: 'Learn More',
       buttonUrl: '#',
       buttonAction: 'link',
@@ -134,6 +159,8 @@ const displayFeatures = computed(() => {
     {
       title: 'Customizable',
       description: 'Full control over styling and layout',
+      image: '',
+      imagePosition: 'above',
       buttonText: 'Learn More',
       buttonUrl: '#',
       buttonAction: 'link',
@@ -146,6 +173,8 @@ const displayFeatures = computed(() => {
     {
       title: 'Responsive',
       description: 'Works perfectly on all devices',
+      image: '',
+      imagePosition: 'above',
       buttonText: 'Learn More',
       buttonUrl: '#',
       buttonAction: 'link',
@@ -200,6 +229,15 @@ const displayFeatures = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  overflow: hidden;
+}
+
+.dsf-feature-card-preview__image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  border-radius: var(--dsf-radius-md);
 }
 
 .dsf-feature-card-preview__title {

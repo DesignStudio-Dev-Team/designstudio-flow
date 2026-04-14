@@ -120,7 +120,7 @@ const props = defineProps({
 defineEmits(['close', 'add'])
 
 const searchQuery = ref('')
-const openCategories = ref(['']) // Start with Content open
+const openCategories = ref(['content']) // Start with Content open
 
 const icons = {
   'layout-template': LayoutTemplate,
@@ -138,6 +138,7 @@ const icons = {
   'mail': Mail,
   'image': Image,
   'list-checks': ListChecks,
+  'layout-columns': Columns,
 }
 
 const filteredCategories = computed(() => {

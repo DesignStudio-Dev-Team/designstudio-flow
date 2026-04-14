@@ -218,6 +218,8 @@ class DSF_Blocks {
 							array(
 								'title'                  => 'Easy to Use',
 								'description'            => 'Intuitive drag-and-drop interface',
+								'image'                  => '',
+								'imagePosition'          => 'above',
 								'buttonText'             => 'Learn More',
 								'buttonUrl'              => '#',
 								'buttonAction'           => 'link',
@@ -230,6 +232,8 @@ class DSF_Blocks {
 							array(
 								'title'                  => 'Customizable',
 								'description'            => 'Full control over styling',
+								'image'                  => '',
+								'imagePosition'          => 'above',
 								'buttonText'             => 'Learn More',
 								'buttonUrl'              => '#',
 								'buttonAction'           => 'link',
@@ -242,6 +246,8 @@ class DSF_Blocks {
 							array(
 								'title'                  => 'Responsive',
 								'description'            => 'Works on all devices',
+								'image'                  => '',
+								'imagePosition'          => 'above',
 								'buttonText'             => 'Learn More',
 								'buttonUrl'              => '#',
 								'buttonAction'           => 'link',
@@ -288,6 +294,16 @@ class DSF_Blocks {
 						'type'    => 'color',
 						'label'   => 'Card Description Color',
 						'default' => '#9CA3AF',
+					),
+					'buttonColor'          => array(
+						'type'    => 'color',
+						'label'   => 'Button Color',
+						'default' => '',
+					),
+					'buttonTextColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Button Text Color',
+						'default' => '',
 					),
 					'padding'              => array(
 						'type'    => 'slider',
@@ -1642,6 +1658,138 @@ class DSF_Blocks {
 			)
 		);
 
+		$this->register_block(
+			array(
+				'id'          => 'form-with-content',
+				'name'        => 'Form with Content',
+				'category'    => 'content',
+				'icon'        => 'columns',
+				'description' => 'Two-column block with a form on one side and rich content on the other',
+				'settings'    => array(
+					// Section header
+					'sectionTitle'    => array(
+						'type'    => 'text',
+						'label'   => 'Section Title',
+						'default' => '',
+					),
+					'showDivider'     => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Divider Line',
+						'default' => false,
+					),
+					'dividerColor'    => array(
+						'type'     => 'color',
+						'label'    => 'Divider Color',
+						'default'  => '#E5E7EB',
+						'showWhen' => array( 'showDivider' => true ),
+					),
+					// Form settings
+					'formId'          => array(
+						'type'    => 'select',
+						'label'   => 'Form',
+						'default' => '',
+						'options' => array(
+							'Select a form' => '',
+						),
+					),
+					'formSide'        => array(
+						'type'    => 'select',
+						'label'   => 'Form Position',
+						'default' => 'right',
+						'options' => array(
+							'Form on Left'  => 'left',
+							'Form on Right' => 'right',
+						),
+					),
+					// Content column
+					'content'         => array(
+						'type'    => 'wysiwyg',
+						'label'   => 'Content',
+						'default' => '<p><b>Your dream backyard starts here!</b></p><p>Fill out the form and we\'ll be in touch as soon as possible.</p>',
+					),
+					'mediaType'       => array(
+						'type'    => 'select',
+						'label'   => 'Media Type',
+						'default' => 'video',
+						'options' => array(
+							'Video' => 'video',
+							'Image' => 'image',
+						),
+					),
+					'image'           => array(
+						'type'     => 'image',
+						'label'    => 'Image',
+						'default'  => '',
+						'showWhen' => array( 'mediaType' => 'image' ),
+					),
+					'logo'            => array(
+						'type'    => 'image',
+						'label'   => 'Logo',
+						'default' => '',
+					),
+					'video'           => array(
+						'type'     => 'text',
+						'label'    => 'Video Embed URL (YouTube / Vimeo)',
+						'default'  => '',
+						'showWhen' => array( 'mediaType' => 'video' ),
+					),
+					'videoFile'       => array(
+						'type'     => 'video',
+						'label'    => 'Video File (MP4 / WebM from Media Library)',
+						'default'  => '',
+						'showWhen' => array( 'mediaType' => 'video' ),
+					),
+					// Colors
+					'backgroundColor' => array(
+						'type'    => 'color',
+						'label'   => 'Background Color',
+						'default' => '#FFFFFF',
+					),
+					'contentBg'       => array(
+						'type'    => 'color',
+						'label'   => 'Content Background',
+						'default' => '',
+					),
+					'formBg'          => array(
+						'type'    => 'color',
+						'label'   => 'Form Column Background',
+						'default' => '',
+					),
+					'textColor'       => array(
+						'type'    => 'color',
+						'label'   => 'Text Color',
+						'default' => '#1F2937',
+					),
+					'titleColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Section Title Color',
+						'default' => '#1F2937',
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 60,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 100,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
 		// ECOMMERCE Category
 		$this->register_block(
 			array(
@@ -1651,21 +1799,50 @@ class DSF_Blocks {
 				'icon'        => 'shopping-bag',
 				'description' => 'Display products from WooCommerce',
 				'settings'    => array(
+					// ── Section: Settings ────────────────────────────────
 					'title'            => array(
-						'type'    => 'text',
-						'label'   => 'Section Title',
-						'default' => 'Featured Products',
+						'type'         => 'text',
+						'label'        => 'Section Title',
+						'default'      => 'Featured Products',
+						'section'      => 'settings',
+						'sectionTitle' => 'Settings',
 					),
+					'showPrice'        => array(
+						'type'         => 'toggle',
+						'label'        => 'Show Price',
+						'default'      => true,
+						'section'      => 'settings',
+						'sectionTitle' => 'Settings',
+					),
+					'showButton'       => array(
+						'type'         => 'toggle',
+						'label'        => 'Show Add to Cart',
+						'default'      => true,
+						'section'      => 'settings',
+						'sectionTitle' => 'Settings',
+					),
+					'buttonText'       => array(
+						'type'         => 'text',
+						'label'        => 'Button Text',
+						'default'      => 'Add to Cart',
+						'section'      => 'settings',
+						'sectionTitle' => 'Settings',
+					),
+					// ── Section: Source ──────────────────────────────────
 					'source'           => array(
-						'type'    => 'source',
-						'label'   => 'Product Source',
-						'default' => 'category',
-						'options' => array( 'category', 'manual' ),
+						'type'         => 'source',
+						'label'        => 'Product Source',
+						'default'      => 'category',
+						'options'      => array( 'category', 'manual' ),
+						'section'      => 'source',
+						'sectionTitle' => 'Source',
 					),
 					'categoryId'       => array(
-						'type'    => 'category',
-						'label'   => 'Select Category',
-						'default' => 0,
+						'type'         => 'category',
+						'label'        => 'Select Category',
+						'default'      => 0,
+						'section'      => 'source',
+						'sectionTitle' => 'Source',
 					),
 					'pinnedProductIds' => array(
 						'type'                => 'products',
@@ -1673,93 +1850,112 @@ class DSF_Blocks {
 						'default'             => array(),
 						'searchPlaceholder'   => 'Search category products...',
 						'hideSearchCardTitle' => true,
+						'section'             => 'source',
+						'sectionTitle'        => 'Source',
 					),
 					'productIds'       => array(
-						'type'    => 'products',
-						'label'   => 'Select Products',
-						'default' => array(),
+						'type'         => 'products',
+						'label'        => 'Select Products',
+						'default'      => array(),
+						'section'      => 'source',
+						'sectionTitle' => 'Source',
 					),
-					'limit'              => array(
-						'type'    => 'number',
-						'label'   => 'Products to Show',
-						'default' => 6,
-						'min'     => 1,
-						'max'     => 100,
-					),
-					'enableFilters'      => array(
-						'type'    => 'toggle',
-						'label'   => 'Enable Filters',
-						'default' => false,
-					),
-					'filterPosition'     => array(
-						'type'     => 'select',
-						'label'    => 'Filter Sidebar Position',
-						'default'  => 'left',
-						'options'  => array( 'Left' => 'left', 'Right' => 'right' ),
-						'showWhen' => array( 'enableFilters' => true ),
-					),
-					'filterShowPrice'    => array(
-						'type'     => 'toggle',
-						'label'    => 'Price Filter',
-						'default'  => true,
-						'showWhen' => array( 'enableFilters' => true ),
-					),
-					'filterShowCategory' => array(
-						'type'     => 'toggle',
-						'label'    => 'Category Filter',
-						'default'  => true,
-						'showWhen' => array( 'enableFilters' => true ),
-					),
-					'filterShowBrand'    => array(
-						'type'     => 'toggle',
-						'label'    => 'Brand Filter',
-						'default'  => true,
-						'showWhen' => array( 'enableFilters' => true ),
-					),
-					'filterShowMaterial' => array(
-						'type'     => 'toggle',
-						'label'    => 'Material Filter',
-						'default'  => false,
-						'showWhen' => array( 'enableFilters' => true ),
-					),
-					'filterShowColor'    => array(
-						'type'     => 'toggle',
-						'label'    => 'Color Filter',
-						'default'  => false,
-						'showWhen' => array( 'enableFilters' => true ),
-					),
-					'filterShowTags'     => array(
-						'type'     => 'toggle',
-						'label'    => 'Tags Filter',
-						'default'  => false,
-						'showWhen' => array( 'enableFilters' => true ),
-					),
-					'filterShowRating'   => array(
-						'type'     => 'toggle',
-						'label'    => 'Rating Filter',
-						'default'  => false,
-						'showWhen' => array( 'enableFilters' => true ),
+					'perPage'          => array(
+						'type'         => 'number',
+						'label'        => 'Products Per Page',
+						'default'      => 12,
+						'min'          => 1,
+						'max'          => 100,
+						'section'      => 'source',
+						'sectionTitle' => 'Source',
 					),
 					'columns'          => array(
+						'type'         => 'select',
+						'label'        => 'Columns',
+						'default'      => '3',
+						'options'      => array( '2', '3', '4' ),
+						'section'      => 'source',
+						'sectionTitle' => 'Source',
+					),
+					// ── Section: Filters ─────────────────────────────────
+					'enableFilters'      => array(
+						'type'         => 'toggle',
+						'label'        => 'Enable Filters',
+						'default'      => false,
+						'section'      => 'filters',
+						'sectionTitle' => 'Filters',
+					),
+					'enableSearch'       => array(
+						'type'         => 'toggle',
+						'label'        => 'Enable Search',
+						'default'      => false,
+						'section'      => 'filters',
+						'sectionTitle' => 'Filters',
+					),
+					'searchPlaceholder'  => array(
+						'type'         => 'text',
+						'label'        => 'Search Placeholder',
+						'default'      => 'Search products',
+						'showWhen'     => array( 'enableSearch' => true ),
+						'section'      => 'filters',
+						'sectionTitle' => 'Filters',
+					),
+					'filterPosition'     => array(
+						'type'         => 'select',
+						'label'        => 'Filter Sidebar Position',
+						'default'      => 'left',
+						'options'      => array( 'Left' => 'left', 'Right' => 'right' ),
+						'showWhen'     => array( 'enableFilters' => true ),
+						'section'      => 'filters',
+						'sectionTitle' => 'Filters',
+					),
+					'filterShowPrice'    => array(
+						'type'         => 'toggle',
+						'label'        => 'Price Filter',
+						'default'      => true,
+						'showWhen'     => array( 'enableFilters' => true ),
+						'section'      => 'filters',
+						'sectionTitle' => 'Filters',
+					),
+					'filterShowCategory' => array(
+						'type'         => 'toggle',
+						'label'        => 'Category Filter',
+						'default'      => true,
+						'showWhen'     => array( 'enableFilters' => true ),
+						'section'      => 'filters',
+						'sectionTitle' => 'Filters',
+					),
+					'filterAttributes'   => array(
+						'type'         => 'multiselect_tags',
+						'label'        => 'Attribute Filters',
+						'default'      => array(),
+						'helper'       => 'Type an attribute key (e.g. brand, color, material) and press Enter to add it as a filter.',
+						'showWhen'     => array( 'enableFilters' => true ),
+						'section'      => 'filters',
+						'sectionTitle' => 'Filters',
+					),
+					'filterShowTags'     => array(
+						'type'         => 'toggle',
+						'label'        => 'Tags Filter',
+						'default'      => false,
+						'showWhen'     => array( 'enableFilters' => true ),
+						'section'      => 'filters',
+						'sectionTitle' => 'Filters',
+					),
+					'filterShowRating'   => array(
+						'type'         => 'toggle',
+						'label'        => 'Rating Filter',
+						'default'      => false,
+						'showWhen'     => array( 'enableFilters' => true ),
+						'section'      => 'filters',
+						'sectionTitle' => 'Filters',
+					),
+					// ── Style fields (no section → go to Style tab) ──────
+					'cardStyle'        => array(
 						'type'    => 'select',
-						'label'   => 'Columns',
-						'default' => '3',
-						'options' => array( '2', '3', '4' ),
-					),
-					'showPrice'        => array(
-						'type'    => 'toggle',
-						'label'   => 'Show Price',
-						'default' => true,
-					),
-					'showButton'       => array(
-						'type'    => 'toggle',
-						'label'   => 'Show Add to Cart',
-						'default' => true,
-					),
-					'buttonText'       => array(
-						'type'    => 'text',
-						'label'   => 'Button Text',
-						'default' => 'Add to Cart',
+						'label'   => 'Card Style',
+						'default' => 'classic',
+						'options' => array( 'Classic' => 'classic', 'Minimal' => 'minimal', 'Modern' => 'modern' ),
 					),
 					'backgroundColor'  => array(
 						'type'    => 'color',
