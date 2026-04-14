@@ -283,7 +283,10 @@ This gives WordPress the cleanest update path and ensures the backend updater ca
 
 ## 📝 Changelog
 
-### v1.1.10 (Current)
+### v1.1.12 (Current)
+- Synced plugin header `Version` and `DSF_VERSION` constant to `1.1.12` for release validation
+
+### v1.1.10
 - Fixed release packaging so the ZIP contains only one `designstudio-flow/` plugin folder
 - Fixed plugin version constant mismatch that could confuse updates
 - Improved GitHub updater to clear stale cache when the installed version changes
