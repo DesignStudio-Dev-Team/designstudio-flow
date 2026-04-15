@@ -634,10 +634,10 @@ class DSF_Blocks {
 					),
 					// Last Box Type
 					'ctaType'                    => array(
-						'type'    => 'select',
-						'label'   => 'Last Box Type',
-						'default' => 'cta',
-						'options' => array(
+						'type'     => 'select',
+						'label'    => 'Last Box Type',
+						'default'  => 'cta',
+						'options'  => array(
 							'Shop All CTA' => 'cta',
 							'Category Box' => 'category',
 							'Extra Box'    => 'box',
@@ -646,9 +646,9 @@ class DSF_Blocks {
 					),
 					// CTA Box
 					'ctaText'                    => array(
-						'type'    => 'text',
-						'label'   => 'CTA Text',
-						'default' => 'Shop All',
+						'type'     => 'text',
+						'label'    => 'CTA Text',
+						'default'  => 'Shop All',
 						'showWhen' => array(
 							'boxCount' => '6',
 							'ctaType'  => 'cta',
@@ -665,10 +665,10 @@ class DSF_Blocks {
 						),
 					),
 					'ctaAction'                  => array(
-						'type'    => 'select',
-						'label'   => 'CTA Action',
-						'default' => 'link',
-						'options' => array(
+						'type'     => 'select',
+						'label'    => 'CTA Action',
+						'default'  => 'link',
+						'options'  => array(
 							'Link'       => 'link',
 							'Open Modal' => 'modal',
 						),
@@ -740,18 +740,18 @@ class DSF_Blocks {
 						),
 					),
 					'ctaColor'                   => array(
-						'type'    => 'color',
-						'label'   => 'CTA Background',
-						'default' => '#2C5F5D',
+						'type'     => 'color',
+						'label'    => 'CTA Background',
+						'default'  => '#2C5F5D',
 						'showWhen' => array(
 							'boxCount' => '6',
 							'ctaType'  => 'cta',
 						),
 					),
 					'ctaTextColor'               => array(
-						'type'    => 'color',
-						'label'   => 'CTA Text Color',
-						'default' => '#FFFFFF',
+						'type'     => 'color',
+						'label'    => 'CTA Text Color',
+						'default'  => '#FFFFFF',
 						'showWhen' => array(
 							'boxCount' => '6',
 							'ctaType'  => 'cta',
@@ -1800,28 +1800,28 @@ class DSF_Blocks {
 				'description' => 'Display products from WooCommerce',
 				'settings'    => array(
 					// ── Section: Settings ────────────────────────────────
-					'title'            => array(
+					'title'              => array(
 						'type'         => 'text',
 						'label'        => 'Section Title',
 						'default'      => 'Featured Products',
 						'section'      => 'settings',
 						'sectionTitle' => 'Settings',
 					),
-					'showPrice'        => array(
+					'showPrice'          => array(
 						'type'         => 'toggle',
 						'label'        => 'Show Price',
 						'default'      => true,
 						'section'      => 'settings',
 						'sectionTitle' => 'Settings',
 					),
-					'showButton'       => array(
+					'showButton'         => array(
 						'type'         => 'toggle',
 						'label'        => 'Show Add to Cart',
 						'default'      => true,
 						'section'      => 'settings',
 						'sectionTitle' => 'Settings',
 					),
-					'buttonText'       => array(
+					'buttonText'         => array(
 						'type'         => 'text',
 						'label'        => 'Button Text',
 						'default'      => 'Add to Cart',
@@ -1829,7 +1829,7 @@ class DSF_Blocks {
 						'sectionTitle' => 'Settings',
 					),
 					// ── Section: Source ──────────────────────────────────
-					'source'           => array(
+					'source'             => array(
 						'type'         => 'source',
 						'label'        => 'Product Source',
 						'default'      => 'category',
@@ -1837,14 +1837,14 @@ class DSF_Blocks {
 						'section'      => 'source',
 						'sectionTitle' => 'Source',
 					),
-					'categoryId'       => array(
+					'categoryId'         => array(
 						'type'         => 'category',
 						'label'        => 'Select Category',
 						'default'      => 0,
 						'section'      => 'source',
 						'sectionTitle' => 'Source',
 					),
-					'pinnedProductIds' => array(
+					'pinnedProductIds'   => array(
 						'type'                => 'products',
 						'label'               => 'Pin Top Products (Optional)',
 						'default'             => array(),
@@ -1853,14 +1853,14 @@ class DSF_Blocks {
 						'section'             => 'source',
 						'sectionTitle'        => 'Source',
 					),
-					'productIds'       => array(
+					'productIds'         => array(
 						'type'         => 'products',
 						'label'        => 'Select Products',
 						'default'      => array(),
 						'section'      => 'source',
 						'sectionTitle' => 'Source',
 					),
-					'perPage'          => array(
+					'perPage'            => array(
 						'type'         => 'number',
 						'label'        => 'Products Per Page',
 						'default'      => 12,
@@ -1869,7 +1869,7 @@ class DSF_Blocks {
 						'section'      => 'source',
 						'sectionTitle' => 'Source',
 					),
-					'columns'          => array(
+					'columns'            => array(
 						'type'         => 'select',
 						'label'        => 'Columns',
 						'default'      => '3',
@@ -1904,7 +1904,10 @@ class DSF_Blocks {
 						'type'         => 'select',
 						'label'        => 'Filter Sidebar Position',
 						'default'      => 'left',
-						'options'      => array( 'Left' => 'left', 'Right' => 'right' ),
+						'options'      => array(
+							'Left'  => 'left',
+							'Right' => 'right',
+						),
 						'showWhen'     => array( 'enableFilters' => true ),
 						'section'      => 'filters',
 						'sectionTitle' => 'Filters',
@@ -1951,37 +1954,41 @@ class DSF_Blocks {
 						'sectionTitle' => 'Filters',
 					),
 					// ── Style fields (no section → go to Style tab) ──────
-					'cardStyle'        => array(
+					'cardStyle'          => array(
 						'type'    => 'select',
 						'label'   => 'Card Style',
 						'default' => 'classic',
-						'options' => array( 'Classic' => 'classic', 'Minimal' => 'minimal', 'Modern' => 'modern' ),
+						'options' => array(
+							'Classic' => 'classic',
+							'Minimal' => 'minimal',
+							'Modern'  => 'modern',
+						),
 					),
-					'backgroundColor'  => array(
+					'backgroundColor'    => array(
 						'type'    => 'color',
 						'label'   => 'Background Color',
 						'default' => '#FFFFFF',
 					),
-					'titleColor'       => array(
+					'titleColor'         => array(
 						'type'    => 'color',
 						'label'   => 'Title Color',
 						'default' => '#1F2937',
 					),
-					'padding'          => array(
+					'padding'            => array(
 						'type'    => 'slider',
 						'label'   => 'Vertical Padding',
 						'default' => 60,
 						'min'     => 20,
 						'max'     => 120,
 					),
-					'paddingX'         => array(
+					'paddingX'           => array(
 						'type'    => 'slider',
 						'label'   => 'Horizontal Padding',
 						'default' => 0,
 						'min'     => 0,
 						'max'     => 100,
 					),
-					'marginY'          => array(
+					'marginY'            => array(
 						'type'    => 'slider',
 						'label'   => 'Vertical Margin',
 						'default' => 25,
@@ -2585,14 +2592,14 @@ class DSF_Blocks {
 
 		$this->register_block(
 			array(
-				'id'          => 'header-mega-menu',
-				'name'        => 'Header Mega Menu',
-				'category'    => 'content',
+				'id'             => 'header-mega-menu',
+				'name'           => 'Header Mega Menu',
+				'category'       => 'content',
 				'template_scope' => 'header',
-				'icon'        => 'layout-template',
-				'description' => 'Two-row header with utility links, icon actions, and configurable mega menus',
-				'settings'    => array(
-					'utilityLinks'       => array(
+				'icon'           => 'layout-template',
+				'description'    => 'Two-row header with utility links, icon actions, and configurable mega menus',
+				'settings'       => array(
+					'utilityLinks'                    => array(
 						'type'    => 'simple_links',
 						'label'   => 'Utility Links',
 						'default' => array(
@@ -2606,17 +2613,17 @@ class DSF_Blocks {
 							),
 						),
 					),
-					'logoText'           => array(
+					'logoText'                        => array(
 						'type'    => 'text',
 						'label'   => 'Logo Text',
 						'default' => 'DESIGNSTUDIO',
 					),
-					'logoImage'          => array(
+					'logoImage'                       => array(
 						'type'    => 'image',
 						'label'   => 'Logo Image',
 						'default' => '',
 					),
-					'logoImageSize'      => array(
+					'logoImageSize'                   => array(
 						'type'    => 'slider',
 						'label'   => 'Logo Image Size',
 						'default' => 100,
@@ -2624,39 +2631,39 @@ class DSF_Blocks {
 						'max'     => 100,
 						'unit'    => '%',
 					),
-					'homeUrl'            => array(
+					'homeUrl'                         => array(
 						'type'    => 'text',
 						'label'   => 'Logo URL',
 						'default' => '/',
 					),
-					'showLanguage'       => array(
+					'showLanguage'                    => array(
 						'type'    => 'toggle',
 						'label'   => 'Show Language Icon',
 						'default' => false,
 					),
-					'showSearch'         => array(
+					'showSearch'                      => array(
 						'type'    => 'toggle',
 						'label'   => 'Show Search Icon',
 						'default' => true,
 					),
-					'showAccount'        => array(
+					'showAccount'                     => array(
 						'type'    => 'toggle',
 						'label'   => 'Show Account Icon',
 						'default' => true,
 					),
-					'showCart'           => array(
+					'showCart'                        => array(
 						'type'    => 'toggle',
 						'label'   => 'Show Cart Icon',
 						'default' => true,
 					),
-					'cartCount'          => array(
+					'cartCount'                       => array(
 						'type'    => 'number',
 						'label'   => 'Cart Count',
 						'default' => 0,
 						'min'     => 0,
 						'max'     => 99,
 					),
-					'menuItems'          => array(
+					'menuItems'                       => array(
 						'type'    => 'mega_menu',
 						'label'   => 'Primary Menu + Mega Menu Content',
 						'default' => array(
@@ -2666,10 +2673,10 @@ class DSF_Blocks {
 								'hasMega' => true,
 								'columns' => array(
 									array(
-										'heading' => 'Sub Heading 1',
-										'imageLinks' => true,
+										'heading'      => 'Sub Heading 1',
+										'imageLinks'   => true,
 										'imageColumns' => 2,
-										'links'   => array(
+										'links'        => array(
 											array(
 												'label' => 'Link 1',
 												'url'   => '#',
@@ -2681,10 +2688,10 @@ class DSF_Blocks {
 										),
 									),
 									array(
-										'heading' => 'Sub Heading 2',
-										'imageLinks' => false,
+										'heading'      => 'Sub Heading 2',
+										'imageLinks'   => false,
 										'imageColumns' => 2,
-										'links'   => array(
+										'links'        => array(
 											array(
 												'label' => 'This is Long Title',
 												'url'   => '#',
@@ -2696,10 +2703,10 @@ class DSF_Blocks {
 										),
 									),
 									array(
-										'heading' => 'Sub Heading 3',
-										'imageLinks' => false,
+										'heading'      => 'Sub Heading 3',
+										'imageLinks'   => false,
 										'imageColumns' => 2,
-										'links'   => array(
+										'links'        => array(
 											array(
 												'label' => 'Link 1',
 												'url'   => '#',
@@ -2711,10 +2718,10 @@ class DSF_Blocks {
 										),
 									),
 									array(
-										'heading' => 'Sub Heading 4',
-										'imageLinks' => false,
+										'heading'      => 'Sub Heading 4',
+										'imageLinks'   => false,
 										'imageColumns' => 2,
-										'links'   => array(
+										'links'        => array(
 											array(
 												'label' => 'Link 1',
 												'url'   => '#',
@@ -2738,10 +2745,10 @@ class DSF_Blocks {
 								'hasMega' => true,
 								'columns' => array(
 									array(
-										'heading' => 'Sub Heading',
-										'imageLinks' => false,
+										'heading'      => 'Sub Heading',
+										'imageLinks'   => false,
 										'imageColumns' => 2,
-										'links'   => array(
+										'links'        => array(
 											array(
 												'label' => 'Link A',
 												'url'   => '#',
@@ -2805,28 +2812,28 @@ class DSF_Blocks {
 							),
 						),
 					),
-					'mobileMenuItems'    => array(
+					'mobileMenuItems'                 => array(
 						'type'    => 'mega_menu',
 						'label'   => 'Mobile Menu Content',
 						'default' => array(),
 						'helper'  => 'Defaults to your desktop menu until you customize it.',
 					),
-					'mobileShowFindLocation' => array(
+					'mobileShowFindLocation'          => array(
 						'type'    => 'toggle',
 						'label'   => 'Show Find Location (Mobile)',
 						'default' => true,
 					),
-					'mobileFindLabel' => array(
+					'mobileFindLabel'                 => array(
 						'type'    => 'text',
 						'label'   => 'Find Location Label',
 						'default' => 'Find a Store',
 					),
-					'mobileFindPopupTitle' => array(
+					'mobileFindPopupTitle'            => array(
 						'type'    => 'text',
 						'label'   => 'Find Location Popup Title',
 						'default' => 'Find your closest store',
 					),
-					'mobileStores'       => array(
+					'mobileStores'                    => array(
 						'type'    => 'mobile_stores',
 						'label'   => 'Find Location Stores',
 						'default' => array(
@@ -2848,17 +2855,17 @@ class DSF_Blocks {
 							),
 						),
 					),
-					'mobilePhoneNumber'  => array(
+					'mobilePhoneNumber'               => array(
 						'type'    => 'text',
 						'label'   => 'Mobile Phone Label',
 						'default' => '845-374-3969',
 					),
-					'mobilePhoneUrl'     => array(
+					'mobilePhoneUrl'                  => array(
 						'type'    => 'text',
 						'label'   => 'Mobile Phone URL',
 						'default' => 'tel:+18453743969',
 					),
-					'mobilePhonePosition' => array(
+					'mobilePhonePosition'             => array(
 						'type'    => 'select',
 						'label'   => 'Mobile Phone Position',
 						'default' => 'bottom',
@@ -2868,57 +2875,57 @@ class DSF_Blocks {
 							'Hidden' => 'hidden',
 						),
 					),
-					'mobileMenuBackground' => array(
+					'mobileMenuBackground'            => array(
 						'type'    => 'color',
 						'label'   => 'Mobile Menu Background',
 						'default' => '#27357A',
 					),
-					'mobileMenuTextColor' => array(
+					'mobileMenuTextColor'             => array(
 						'type'    => 'color',
 						'label'   => 'Mobile Menu Text Color',
 						'default' => '#FFFFFF',
 					),
-					'mobileMenuDividerColor' => array(
+					'mobileMenuDividerColor'          => array(
 						'type'    => 'color',
 						'label'   => 'Mobile Menu Divider Color',
 						'default' => '#3C4A93',
 					),
-					'mobileMenuTopBackground' => array(
+					'mobileMenuTopBackground'         => array(
 						'type'    => 'color',
 						'label'   => 'Mobile Menu Top Background',
 						'default' => '#FFFFFF',
 					),
-					'mobileMenuTopTextColor' => array(
+					'mobileMenuTopTextColor'          => array(
 						'type'    => 'color',
 						'label'   => 'Mobile Menu Top Text Color',
 						'default' => '#1F2A44',
 					),
-					'mobileMenuButtonBackground' => array(
+					'mobileMenuButtonBackground'      => array(
 						'type'    => 'color',
 						'label'   => 'Mobile Phone Button Background',
 						'default' => '#3C6FB2',
 					),
-					'mobileMenuButtonTextColor' => array(
+					'mobileMenuButtonTextColor'       => array(
 						'type'    => 'color',
 						'label'   => 'Mobile Phone Button Text Color',
 						'default' => '#FFFFFF',
 					),
-					'mobileFindModalBackground' => array(
+					'mobileFindModalBackground'       => array(
 						'type'    => 'color',
 						'label'   => 'Find Modal Background',
 						'default' => '#FFFFFF',
 					),
-					'mobileFindModalTextColor' => array(
+					'mobileFindModalTextColor'        => array(
 						'type'    => 'color',
 						'label'   => 'Find Modal Text Color',
 						'default' => '#1F2A44',
 					),
-					'mobileFindModalLinkColor' => array(
+					'mobileFindModalLinkColor'        => array(
 						'type'    => 'color',
 						'label'   => 'Find Modal Link Color',
 						'default' => '#2C3D87',
 					),
-					'mobileFindModalMapsLinkColor' => array(
+					'mobileFindModalMapsLinkColor'    => array(
 						'type'    => 'color',
 						'label'   => 'Find Modal Maps Link Color',
 						'default' => '#2C3D87',
@@ -2928,82 +2935,82 @@ class DSF_Blocks {
 						'label'   => 'Find Modal Button Background',
 						'default' => '#2C3D87',
 					),
-					'mobileFindModalButtonText' => array(
+					'mobileFindModalButtonText'       => array(
 						'type'    => 'color',
 						'label'   => 'Find Modal Button Text Color',
 						'default' => '#FFFFFF',
 					),
-					'topBarBackground'   => array(
+					'topBarBackground'                => array(
 						'type'    => 'color',
 						'label'   => 'Top Bar Background',
 						'default' => '#EFEFF1',
 					),
-					'topBarTextColor'    => array(
+					'topBarTextColor'                 => array(
 						'type'    => 'color',
 						'label'   => 'Top Bar Text Color',
 						'default' => '#2C6B34',
 					),
-					'logoColor'          => array(
+					'logoColor'                       => array(
 						'type'    => 'color',
 						'label'   => 'Logo Text Color',
 						'default' => '#111827',
 					),
-					'iconBackground'     => array(
+					'iconBackground'                  => array(
 						'type'    => 'color',
 						'label'   => 'Action Icon Background',
 						'default' => '#2C6B34',
 					),
-					'iconColor'          => array(
+					'iconColor'                       => array(
 						'type'    => 'color',
 						'label'   => 'Action Icon Color',
 						'default' => '#FFFFFF',
 					),
-					'mainNavBackground'  => array(
+					'mainNavBackground'               => array(
 						'type'    => 'color',
 						'label'   => 'Main Nav Background',
 						'default' => '#2C6B34',
 					),
-					'mainNavTextColor'   => array(
+					'mainNavTextColor'                => array(
 						'type'    => 'color',
 						'label'   => 'Main Nav Text Color',
 						'default' => '#FFFFFF',
 					),
-					'mainNavBorderColor' => array(
+					'mainNavBorderColor'              => array(
 						'type'    => 'color',
 						'label'   => 'Main Nav Divider Color',
 						'default' => '#5E8A62',
 					),
-					'activeNavBackground' => array(
+					'activeNavBackground'             => array(
 						'type'    => 'color',
 						'label'   => 'Active Nav Background',
 						'default' => '#FFFFFF',
 					),
-					'activeNavTextColor' => array(
+					'activeNavTextColor'              => array(
 						'type'    => 'color',
 						'label'   => 'Active Nav Text Color',
 						'default' => '#111827',
 					),
-					'megaBackground'     => array(
+					'megaBackground'                  => array(
 						'type'    => 'color',
 						'label'   => 'Mega Menu Background',
 						'default' => '#FFFFFF',
 					),
-					'megaHeadingColor'   => array(
+					'megaHeadingColor'                => array(
 						'type'    => 'color',
 						'label'   => 'Mega Menu Heading Color',
 						'default' => '#111827',
 					),
-					'megaLinkColor'      => array(
+					'megaLinkColor'                   => array(
 						'type'    => 'color',
 						'label'   => 'Mega Menu Link Color',
 						'default' => '#374151',
 					),
-					'megaBorderColor'    => array(
+					'megaBorderColor'                 => array(
 						'type'    => 'color',
 						'label'   => 'Mega Menu Border Color',
 						'default' => '#E5E7EB',
 					),
-					'megaBrandImageSize' => array(
+					'megaBrandImageSize'              => array(
 						'type'    => 'slider',
 						'label'   => 'Mega Brand Image Size',
 						'default' => 100,
@@ -3011,42 +3018,42 @@ class DSF_Blocks {
 						'max'     => 100,
 						'unit'    => '%',
 					),
-					'topBarHeight'       => array(
+					'topBarHeight'                    => array(
 						'type'    => 'slider',
 						'label'   => 'Top Bar Height',
 						'default' => 72,
 						'min'     => 52,
 						'max'     => 110,
 					),
-					'topBarSidePadding'  => array(
+					'topBarSidePadding'               => array(
 						'type'    => 'slider',
 						'label'   => 'Top Row Side Padding',
 						'default' => 15,
 						'min'     => 15,
 						'max'     => 60,
 					),
-					'menuBarHeight'      => array(
+					'menuBarHeight'                   => array(
 						'type'    => 'slider',
 						'label'   => 'Menu Bar Height',
 						'default' => 30,
 						'min'     => 24,
 						'max'     => 86,
 					),
-					'megaMinHeight'      => array(
+					'megaMinHeight'                   => array(
 						'type'    => 'slider',
 						'label'   => 'Mega Menu Min Height',
 						'default' => 160,
 						'min'     => 100,
 						'max'     => 360,
 					),
-					'paddingX'           => array(
+					'paddingX'                        => array(
 						'type'    => 'slider',
 						'label'   => 'Horizontal Padding',
 						'default' => 0,
 						'min'     => 0,
 						'max'     => 100,
 					),
-					'marginY'            => array(
+					'marginY'                         => array(
 						'type'    => 'slider',
 						'label'   => 'Vertical Margin',
 						'default' => 0,
@@ -3066,7 +3073,7 @@ class DSF_Blocks {
 				'icon'           => 'layout-template',
 				'description'    => 'Top utility strip, cutout image logo overlap, centered nav shell, and mega menu',
 				'settings'       => array(
-					'utilityLinks'        => array(
+					'utilityLinks'         => array(
 						'type'    => 'simple_links',
 						'label'   => 'Top Utility Links',
 						'default' => array(
@@ -3084,22 +3091,22 @@ class DSF_Blocks {
 							),
 						),
 					),
-					'logoImage'           => array(
+					'logoImage'            => array(
 						'type'    => 'image',
 						'label'   => 'Logo Image',
 						'default' => '',
 					),
-					'homeUrl'             => array(
+					'homeUrl'              => array(
 						'type'    => 'text',
 						'label'   => 'Logo URL',
 						'default' => '/',
 					),
-					'showSearch'          => array(
+					'showSearch'           => array(
 						'type'    => 'toggle',
 						'label'   => 'Show Search Icon',
 						'default' => true,
 					),
-					'menuItems'           => array(
+					'menuItems'            => array(
 						'type'    => 'mega_menu',
 						'label'   => 'Primary Menu + Mega Menu Content',
 						'default' => array(
@@ -3109,10 +3116,10 @@ class DSF_Blocks {
 								'hasMega' => true,
 								'columns' => array(
 									array(
-										'heading' => 'Merken',
-										'imageLinks' => true,
+										'heading'      => 'Merken',
+										'imageLinks'   => true,
 										'imageColumns' => 2,
-										'links'   => array(
+										'links'        => array(
 											array(
 												'label' => 'Bekijk alle producten',
 												'url'   => '#',
@@ -3146,10 +3153,10 @@ class DSF_Blocks {
 										),
 									),
 									array(
-										'heading' => 'Maaien',
-										'imageLinks' => false,
+										'heading'      => 'Maaien',
+										'imageLinks'   => false,
 										'imageColumns' => 2,
-										'links'   => array(
+										'links'        => array(
 											array(
 												'label' => 'Grasmaaiers',
 												'url'   => '#',
@@ -3169,10 +3176,10 @@ class DSF_Blocks {
 										),
 									),
 									array(
-										'heading' => 'Grond Bewerken',
-										'imageLinks' => false,
+										'heading'      => 'Grond Bewerken',
+										'imageLinks'   => false,
 										'imageColumns' => 2,
-										'links'   => array(
+										'links'        => array(
 											array(
 												'label' => 'Drukspuiten',
 												'url'   => '#',
@@ -3277,27 +3284,27 @@ class DSF_Blocks {
 							),
 						),
 					),
-					'topStripBackground'  => array(
+					'topStripBackground'   => array(
 						'type'    => 'color',
 						'label'   => 'Top Strip Background',
 						'default' => '#86BF25',
 					),
-					'topStripTextColor'   => array(
+					'topStripTextColor'    => array(
 						'type'    => 'color',
 						'label'   => 'Top Strip Text Color',
 						'default' => '#111111',
 					),
-					'menuShellBackground' => array(
+					'menuShellBackground'  => array(
 						'type'    => 'color',
 						'label'   => 'Menu Background',
 						'default' => '#EBEBEB',
 					),
-					'menuTextColor'       => array(
+					'menuTextColor'        => array(
 						'type'    => 'color',
 						'label'   => 'Menu Text Color',
 						'default' => '#111111',
 					),
-					'menuDividerColor'    => array(
+					'menuDividerColor'     => array(
 						'type'    => 'color',
 						'label'   => 'Menu Divider Color',
 						'default' => '#D9D9D9',
@@ -3307,74 +3314,74 @@ class DSF_Blocks {
 						'label'   => 'Active Menu Background',
 						'default' => '#F5F5F5',
 					),
-					'activeMenuTextColor' => array(
+					'activeMenuTextColor'  => array(
 						'type'    => 'color',
 						'label'   => 'Active Menu Text Color',
 						'default' => '#4F8E2F',
 					),
-					'megaBackground'      => array(
+					'megaBackground'       => array(
 						'type'    => 'color',
 						'label'   => 'Mega Menu Background',
 						'default' => '#F0F0F0',
 					),
-					'megaHeadingColor'    => array(
+					'megaHeadingColor'     => array(
 						'type'    => 'color',
 						'label'   => 'Mega Heading Color',
 						'default' => '#111111',
 					),
-					'megaLinkColor'       => array(
+					'megaLinkColor'        => array(
 						'type'    => 'color',
 						'label'   => 'Mega Link Color',
 						'default' => '#4F8E2F',
 					),
-					'megaBorderColor'     => array(
+					'megaBorderColor'      => array(
 						'type'    => 'color',
 						'label'   => 'Mega Border Color',
 						'default' => '#D8D8D8',
 					),
-					'topStripHeight'      => array(
+					'topStripHeight'       => array(
 						'type'    => 'slider',
 						'label'   => 'Top Strip Height',
 						'default' => 30,
 						'min'     => 28,
 						'max'     => 60,
 					),
-					'logoWidth'           => array(
+					'logoWidth'            => array(
 						'type'    => 'slider',
 						'label'   => 'Logo Width',
 						'default' => 248,
 						'min'     => 180,
 						'max'     => 420,
 					),
-					'logoHeight'          => array(
+					'logoHeight'           => array(
 						'type'    => 'slider',
 						'label'   => 'Logo Height',
 						'default' => 124,
 						'min'     => 90,
 						'max'     => 220,
 					),
-					'menuBarHeight'       => array(
+					'menuBarHeight'        => array(
 						'type'    => 'slider',
 						'label'   => 'Menu Bar Height',
 						'default' => 52,
 						'min'     => 30,
 						'max'     => 90,
 					),
-					'megaMinHeight'       => array(
+					'megaMinHeight'        => array(
 						'type'    => 'slider',
 						'label'   => 'Mega Menu Min Height',
 						'default' => 180,
 						'min'     => 100,
 						'max'     => 420,
 					),
-					'paddingX'            => array(
+					'paddingX'             => array(
 						'type'    => 'slider',
 						'label'   => 'Horizontal Padding',
 						'default' => 0,
 						'min'     => 0,
 						'max'     => 100,
 					),
-					'marginY'             => array(
+					'marginY'              => array(
 						'type'    => 'slider',
 						'label'   => 'Vertical Margin',
 						'default' => 0,
@@ -3394,7 +3401,7 @@ class DSF_Blocks {
 				'icon'           => 'layout-template',
 				'description'    => 'Dealer/location footer with contact details, opening hours, and legal bar',
 				'settings'       => array(
-					'dealers'             => array(
+					'dealers'               => array(
 						'type'    => 'footer_dealers',
 						'label'   => 'Dealer Cards',
 						'default' => array(
@@ -3430,7 +3437,7 @@ class DSF_Blocks {
 							),
 						),
 					),
-					'legalLinks'          => array(
+					'legalLinks'            => array(
 						'type'    => 'simple_links',
 						'label'   => 'Legal Links',
 						'default' => array(
@@ -3444,47 +3451,47 @@ class DSF_Blocks {
 							),
 						),
 					),
-					'showFacebook'        => array(
+					'showFacebook'          => array(
 						'type'    => 'toggle',
 						'label'   => 'Show Facebook Button',
 						'default' => true,
 					),
-					'facebookUrl'         => array(
+					'facebookUrl'           => array(
 						'type'    => 'text',
 						'label'   => 'Facebook URL',
 						'default' => '#',
 					),
-					'copyrightText'       => array(
+					'copyrightText'         => array(
 						'type'    => 'text',
 						'label'   => 'Copyright Text',
 						'default' => '© 2026 Naam dealer. Alle rechten voorbehouden.',
 					),
-					'creditText'          => array(
+					'creditText'            => array(
 						'type'    => 'text',
 						'label'   => 'Credit Text',
 						'default' => 'Site door DesignStudio',
 					),
-					'backgroundColor'     => array(
+					'backgroundColor'       => array(
 						'type'    => 'color',
 						'label'   => 'Main Background',
 						'default' => '#14171B',
 					),
-					'bottomBarColor'      => array(
+					'bottomBarColor'        => array(
 						'type'    => 'color',
 						'label'   => 'Bottom Bar Background',
 						'default' => '#33363B',
 					),
-					'headingColor'        => array(
+					'headingColor'          => array(
 						'type'    => 'color',
 						'label'   => 'Heading Color',
 						'default' => '#FFFFFF',
 					),
-					'textColor'           => array(
+					'textColor'             => array(
 						'type'    => 'color',
 						'label'   => 'Text Color',
 						'default' => '#F8F9FB',
 					),
-					'accentColor'         => array(
+					'accentColor'           => array(
 						'type'    => 'color',
 						'label'   => 'Accent Color',
 						'default' => '#8FCE7A',
@@ -3494,61 +3501,61 @@ class DSF_Blocks {
 						'label'   => 'Social Icon Background',
 						'default' => '#4267B2',
 					),
-					'socialIconColor'     => array(
+					'socialIconColor'       => array(
 						'type'    => 'color',
 						'label'   => 'Social Icon Color',
 						'default' => '#FFFFFF',
 					),
-					'contentMaxWidth'     => array(
+					'contentMaxWidth'       => array(
 						'type'    => 'slider',
 						'label'   => 'Content Max Width',
 						'default' => 1280,
 						'min'     => 900,
 						'max'     => 1800,
 					),
-					'mapHeight'           => array(
+					'mapHeight'             => array(
 						'type'    => 'slider',
 						'label'   => 'Map Area Height',
 						'default' => 230,
 						'min'     => 160,
 						'max'     => 360,
 					),
-					'cardGap'             => array(
+					'cardGap'               => array(
 						'type'    => 'slider',
 						'label'   => 'Card Gap',
 						'default' => 110,
 						'min'     => 20,
 						'max'     => 240,
 					),
-					'padding'             => array(
+					'padding'               => array(
 						'type'    => 'slider',
 						'label'   => 'Top Section Padding',
 						'default' => 72,
 						'min'     => 24,
 						'max'     => 140,
 					),
-					'bottomPadding'       => array(
+					'bottomPadding'         => array(
 						'type'    => 'slider',
 						'label'   => 'Bottom Section Padding',
 						'default' => 42,
 						'min'     => 20,
 						'max'     => 100,
 					),
-					'contentPaddingX'     => array(
+					'contentPaddingX'       => array(
 						'type'    => 'slider',
 						'label'   => 'Content Horizontal Padding',
 						'default' => 24,
 						'min'     => 0,
 						'max'     => 80,
 					),
-					'paddingX'            => array(
+					'paddingX'              => array(
 						'type'    => 'slider',
 						'label'   => 'Horizontal Padding',
 						'default' => 0,
 						'min'     => 0,
 						'max'     => 100,
 					),
-					'marginY'             => array(
+					'marginY'               => array(
 						'type'    => 'slider',
 						'label'   => 'Vertical Margin',
 						'default' => 0,

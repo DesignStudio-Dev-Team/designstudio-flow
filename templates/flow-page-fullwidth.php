@@ -8,10 +8,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$flow_post_id = get_queried_object_id();
-$frontend     = DSF_Frontend::get_instance();
-$show_header  = apply_filters( 'dsf_flow_show_header', true, $flow_post_id );
-$show_footer  = apply_filters( 'dsf_flow_show_footer', true, $flow_post_id );
+$flow_post_id         = get_queried_object_id();
+$frontend             = DSF_Frontend::get_instance();
+$show_header          = apply_filters( 'dsf_flow_show_header', true, $flow_post_id );
+$show_footer          = apply_filters( 'dsf_flow_show_footer', true, $flow_post_id );
 $custom_header_markup = $show_header ? $frontend->render_assigned_layout_template( $flow_post_id, 'header' ) : '';
 $custom_footer_markup = $show_footer ? $frontend->render_assigned_layout_template( $flow_post_id, 'footer' ) : '';
 
@@ -25,7 +25,7 @@ $syndified_themes   = array(
 );
 $is_syndified_theme = in_array( $theme_slug, $syndified_themes, true ) || in_array( $parent_slug, $syndified_themes, true );
 
-$render_theme_header = function() use ( $is_syndified_theme ) {
+$render_theme_header = function () use ( $is_syndified_theme ) {
 	if ( $is_syndified_theme ) {
 		$header_template = locate_template( array( 'header.php' ), false, false );
 		$child_header    = trailingslashit( get_stylesheet_directory() ) . 'header.php';
@@ -50,7 +50,7 @@ $render_theme_header = function() use ( $is_syndified_theme ) {
 	get_header();
 };
 
-$render_theme_footer = function() use ( $is_syndified_theme ) {
+$render_theme_footer = function () use ( $is_syndified_theme ) {
 	if ( $is_syndified_theme ) {
 		$footer_template = locate_template( array( 'footer.php' ), false, false );
 		$child_footer    = trailingslashit( get_stylesheet_directory() ) . 'footer.php';

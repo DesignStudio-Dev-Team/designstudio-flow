@@ -35,8 +35,8 @@ class DSF_Update_Checker {
 	/**
 	 * Cache key and duration
 	 */
-	private $cache_key      = 'dsf_update_check_v2';
-	private $cache_duration = 12 * HOUR_IN_SECONDS;
+	private $cache_key          = 'dsf_update_check_v2';
+	private $cache_duration     = 12 * HOUR_IN_SECONDS;
 	private $version_option_key = 'dsf_update_checker_version';
 
 	/**
@@ -58,9 +58,9 @@ class DSF_Update_Checker {
 	 * Constructor
 	 */
 	private function __construct() {
-		$this->plugin_slug     = 'designstudio-flow';
-		$this->plugin_basename = DSF_PLUGIN_BASENAME;
-		$this->current_version = DSF_VERSION;
+		$this->plugin_slug       = 'designstudio-flow';
+		$this->plugin_basename   = DSF_PLUGIN_BASENAME;
+		$this->current_version   = DSF_VERSION;
 		$this->plugin_update_uri = 'https://github.com/' . $this->github_username . '/' . $this->github_repo;
 
 		// Load GitHub token: check wp-config constant first, then fallback to option
@@ -408,7 +408,7 @@ class DSF_Update_Checker {
 		$normalized_source = untrailingslashit( $source );
 		$expected_source   = trailingslashit( $remote_source ) . $this->plugin_slug;
 
-		if ( $normalized_source === untrailingslashit( $expected_source ) ) {
+		if ( untrailingslashit( $expected_source ) === $normalized_source ) {
 			return $source;
 		}
 

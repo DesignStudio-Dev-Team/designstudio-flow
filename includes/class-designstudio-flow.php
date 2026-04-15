@@ -140,18 +140,18 @@ final class DesignStudio_Flow {
 	 */
 	private function set_default_options() {
 		$defaults = array(
-			'dsf_version'            => DSF_VERSION,
-			'dsf_default_colors'     => array(
+			'dsf_version'              => DSF_VERSION,
+			'dsf_default_colors'       => array(
 				'primary'    => '#3B82F6',
 				'secondary'  => '#1E40AF',
 				'text'       => '#1F2937',
 				'background' => '#FFFFFF',
 			),
-			'dsf_enabled_post_types' => array( 'page', 'dsf_page' ),
-			'dsf_recaptcha_enabled'  => false,
-			'dsf_recaptcha_site_key' => '',
+			'dsf_enabled_post_types'   => array( 'page', 'dsf_page' ),
+			'dsf_recaptcha_enabled'    => false,
+			'dsf_recaptcha_site_key'   => '',
 			'dsf_recaptcha_secret_key' => '',
-			'dsf_recaptcha_threshold' => 0.5,
+			'dsf_recaptcha_threshold'  => 0.5,
 		);
 
 		foreach ( $defaults as $key => $value ) {

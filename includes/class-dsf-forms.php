@@ -61,9 +61,9 @@ class DSF_Forms {
 	public function handle_form_editor_redirect() {
 		global $pagenow;
 
-		$post_id = filter_input( INPUT_GET, 'post', FILTER_VALIDATE_INT );
-		$action  = filter_input( INPUT_GET, 'action', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
-		$action  = $action ? sanitize_key( $action ) : '';
+		$post_id   = filter_input( INPUT_GET, 'post', FILTER_VALIDATE_INT );
+		$action    = filter_input( INPUT_GET, 'action', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$action    = $action ? sanitize_key( $action ) : '';
 		$post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		$post_type = $post_type ? sanitize_key( $post_type ) : '';
 
@@ -118,15 +118,15 @@ class DSF_Forms {
 			'dsf-forms-builder',
 			'dsfFormsBuilderData',
 			array(
-				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
-				'nonce'       => wp_create_nonce( 'dsf_forms_nonce' ),
-				'formId'      => $form_id,
-				'formTitle'   => ( $form && 'dsf_form' === $form->post_type ) ? $form->post_title : '',
-				'rows'        => $this->get_form_rows( $form_id ),
-				'settings'    => $this->get_form_settings( $form_id ),
+				'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+				'nonce'        => wp_create_nonce( 'dsf_forms_nonce' ),
+				'formId'       => $form_id,
+				'formTitle'    => ( $form && 'dsf_form' === $form->post_type ) ? $form->post_title : '',
+				'rows'         => $this->get_form_rows( $form_id ),
+				'settings'     => $this->get_form_settings( $form_id ),
 				'entriesCount' => $this->get_form_entries_count( $form_id ),
-				'shortcode'   => $form_id ? "[dsform id='" . $form_id . "']" : '',
-				'status'      => ( $form && 'dsf_form' === $form->post_type ) ? $form->post_status : 'draft',
+				'shortcode'    => $form_id ? "[dsform id='" . $form_id . "']" : '',
+				'status'       => ( $form && 'dsf_form' === $form->post_type ) ? $form->post_status : 'draft',
 				'adminListUrl' => admin_url( 'edit.php?post_type=dsf_form' ),
 			)
 		);
@@ -184,7 +184,7 @@ class DSF_Forms {
 			return $actions;
 		}
 
-		$url = admin_url( 'admin.php?page=dsf-form-builder&form_id=' . intval( $post->ID ) );
+		$url                         = admin_url( 'admin.php?page=dsf-form-builder&form_id=' . intval( $post->ID ) );
 		$actions['dsf_form_builder'] = '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Edit with Form Builder', 'designstudio-flow' ) . '</a>';
 
 		return $actions;
@@ -242,9 +242,9 @@ class DSF_Forms {
 			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
 		}
 
-		$title    = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
-		$status   = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : '';
-		$rows_raw = isset( $_POST['rows'] ) ? wp_unslash( $_POST['rows'] ) : '[]';
+		$title        = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+		$status       = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : '';
+		$rows_raw     = isset( $_POST['rows'] ) ? wp_unslash( $_POST['rows'] ) : '[]';
 		$settings_raw = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : '{}';
 
 		$rows_data = json_decode( $rows_raw, true );
@@ -317,7 +317,7 @@ class DSF_Forms {
 			wp_send_json_error( array( 'message' => __( 'Invalid form nonce.', 'designstudio-flow' ) ), 403 );
 		}
 
-		$recaptcha_token = isset( $_POST['recaptcha_token'] ) ? sanitize_text_field( wp_unslash( $_POST['recaptcha_token'] ) ) : '';
+		$recaptcha_token  = isset( $_POST['recaptcha_token'] ) ? sanitize_text_field( wp_unslash( $_POST['recaptcha_token'] ) ) : '';
 		$recaptcha_action = isset( $_POST['recaptcha_action'] ) ? sanitize_key( wp_unslash( $_POST['recaptcha_action'] ) ) : 'dsf_form_submit';
 		$recaptcha_result = $this->verify_recaptcha_token( $recaptcha_token, $recaptcha_action );
 		if ( is_wp_error( $recaptcha_result ) ) {
@@ -462,9 +462,9 @@ class DSF_Forms {
 			'dsf-forms',
 			'dsfFormsFrontendData',
 			array(
-				'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
-				'nonce'      => wp_create_nonce( 'dsf_forms_frontend_nonce' ),
-				'recaptcha'  => $recaptcha,
+				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+				'nonce'     => wp_create_nonce( 'dsf_forms_frontend_nonce' ),
+				'recaptcha' => $recaptcha,
 			)
 		);
 	}
@@ -478,9 +478,9 @@ class DSF_Forms {
 			return '';
 		}
 
-		$submit_label  = $settings['submitLabel'] ?? __( 'Submit', 'designstudio-flow' );
-		$next_label    = $settings['nextLabel'] ?? __( 'Next', 'designstudio-flow' );
-		$previous_label = $settings['previousLabel'] ?? __( 'Previous', 'designstudio-flow' );
+		$submit_label    = $settings['submitLabel'] ?? __( 'Submit', 'designstudio-flow' );
+		$next_label      = $settings['nextLabel'] ?? __( 'Next', 'designstudio-flow' );
+		$previous_label  = $settings['previousLabel'] ?? __( 'Previous', 'designstudio-flow' );
 		$success_message = $settings['confirmationMessage'] ?? '';
 		if ( '' === $success_message ) {
 			$success_message = $settings['successMessage'] ?? __( 'Thanks! Your form has been submitted.', 'designstudio-flow' );
@@ -492,8 +492,8 @@ class DSF_Forms {
 		$output     .= '<form class="dsf-form" method="post" data-dsf-multipage="' . intval( $total_pages > 1 ) . '" data-dsf-success-message="' . esc_attr( $success_message ) . '" novalidate>';
 
 		foreach ( $pages as $page_index => $page ) {
-			$is_active  = 0 === $page_index;
-			$page_class = 'dsf-form-page' . ( $is_active ? ' is-active' : '' );
+			$is_active       = 0 === $page_index;
+			$page_class      = 'dsf-form-page' . ( $is_active ? ' is-active' : '' );
 			$next_transition = $page['nextTransition'] ?? 'slide-left';
 
 			$output .= '<div class="' . esc_attr( $page_class ) . '" data-dsf-page-index="' . intval( $page_index ) . '" data-dsf-next-transition="' . esc_attr( $next_transition ) . '"' . ( $is_active ? '' : ' hidden' ) . '>';
@@ -511,8 +511,8 @@ class DSF_Forms {
 
 				$columns = count( $fields );
 				if ( 1 === $columns ) {
-					$single_field = $fields[0];
-					$has_half     = ( isset( $single_field['width'] ) && 'half' === $single_field['width'] );
+					$single_field   = $fields[0];
+					$has_half       = ( isset( $single_field['width'] ) && 'half' === $single_field['width'] );
 					$is_forced_full = in_array( $single_field['type'] ?? '', array( 'hidden', 'page_break' ), true );
 					if ( $has_half && ! $is_forced_full ) {
 						$columns = 2;
@@ -540,7 +540,7 @@ class DSF_Forms {
 			$output .= '</div>';
 		}
 
-		$output .= '<div class="dsf-form-message" aria-live="polite"></div>';
+		$output   .= '<div class="dsf-form-message" aria-live="polite"></div>';
 		$recaptcha = $this->get_recaptcha_settings();
 		if ( $recaptcha['enabled'] ) {
 			$output .= '<p class="dsf-form-recaptcha-note">';
@@ -577,7 +577,7 @@ class DSF_Forms {
 
 			if ( 1 === count( $fields ) && $field && 'page_break' === ( $field['type'] ?? '' ) ) {
 				$pages[ $current_page ]['nextTransition'] = $field['pageBreakAnimation'] ?? 'slide-left';
-				$pages[] = array(
+				$pages[]                                  = array(
 					'rows'           => array(),
 					'nextTransition' => 'slide-left',
 				);
@@ -607,28 +607,28 @@ class DSF_Forms {
 			return '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '">';
 		}
 
-		$field_key  = sanitize_title( $field['id'] ?? 'field' );
+		$field_key = sanitize_title( $field['id'] ?? 'field' );
 		if ( '' === $field_key ) {
 			$field_key = 'field';
 		}
-		$field_id   = 'dsf-form-' . intval( $form_id ) . '-' . intval( $page_index ) . '-' . intval( $field_index ) . '-' . $field_key;
-		$label      = $field['label'] ?? $this->get_default_field_label( $type );
-		$name       = $field['name'] ?? 'field_' . intval( $field_index + 1 );
-		$required   = ! empty( $field['required'] );
-		$placeholder = $field['placeholder'] ?? '';
+		$field_id      = 'dsf-form-' . intval( $form_id ) . '-' . intval( $page_index ) . '-' . intval( $field_index ) . '-' . $field_key;
+		$label         = $field['label'] ?? $this->get_default_field_label( $type );
+		$name          = $field['name'] ?? 'field_' . intval( $field_index + 1 );
+		$required      = ! empty( $field['required'] );
+		$placeholder   = $field['placeholder'] ?? '';
 		$required_attr = $required ? ' required' : '';
 		$required_mark = $required ? ' <span class="dsf-required" aria-hidden="true">*</span>' : '';
-		$options    = isset( $field['options'] ) && is_array( $field['options'] ) ? $field['options'] : array();
-		$html_value = $field['html'] ?? '';
+		$options       = isset( $field['options'] ) && is_array( $field['options'] ) ? $field['options'] : array();
+		$html_value    = $field['html'] ?? '';
 		$default_value = $field['defaultValue'] ?? '';
-		$help_text = $field['helpText'] ?? '';
+		$help_text     = $field['helpText'] ?? '';
 
 		$group_required_attr = '';
 		if ( $required && in_array( $type, array( 'checkboxes', 'radio_buttons' ), true ) ) {
 			$group_required_attr = ' data-required-group="1"';
 		}
 
-		$output  = '<div class="dsf-form-field dsf-form-field--' . esc_attr( $type ) . '" data-field-type="' . esc_attr( $type ) . '"' . $group_required_attr . '>';
+		$output = '<div class="dsf-form-field dsf-form-field--' . esc_attr( $type ) . '" data-field-type="' . esc_attr( $type ) . '"' . $group_required_attr . '>';
 
 		if ( 'html' === $type ) {
 			$output .= '<div class="dsf-form-html">' . wp_kses_post( $html_value ) . '</div>';
@@ -646,10 +646,10 @@ class DSF_Forms {
 				$output .= '<div class="dsf-form-options">';
 				foreach ( $options as $index => $option ) {
 					$option_id = $field_id . '-cb-' . intval( $index );
-					$output .= '<label class="dsf-form-option" for="' . esc_attr( $option_id ) . '">';
-					$output .= '<input type="checkbox" id="' . esc_attr( $option_id ) . '" name="' . esc_attr( $name ) . '[]" value="' . esc_attr( $option ) . '">';
-					$output .= '<span>' . esc_html( $option ) . '</span>';
-					$output .= '</label>';
+					$output   .= '<label class="dsf-form-option" for="' . esc_attr( $option_id ) . '">';
+					$output   .= '<input type="checkbox" id="' . esc_attr( $option_id ) . '" name="' . esc_attr( $name ) . '[]" value="' . esc_attr( $option ) . '">';
+					$output   .= '<span>' . esc_html( $option ) . '</span>';
+					$output   .= '</label>';
 				}
 				$output .= '</div>';
 				break;
@@ -657,10 +657,10 @@ class DSF_Forms {
 				$output .= '<div class="dsf-form-options">';
 				foreach ( $options as $index => $option ) {
 					$option_id = $field_id . '-rb-' . intval( $index );
-					$output .= '<label class="dsf-form-option" for="' . esc_attr( $option_id ) . '">';
-					$output .= '<input type="radio" id="' . esc_attr( $option_id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( $option ) . '">';
-					$output .= '<span>' . esc_html( $option ) . '</span>';
-					$output .= '</label>';
+					$output   .= '<label class="dsf-form-option" for="' . esc_attr( $option_id ) . '">';
+					$output   .= '<input type="radio" id="' . esc_attr( $option_id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( $option ) . '">';
+					$output   .= '<span>' . esc_html( $option ) . '</span>';
+					$output   .= '</label>';
 				}
 				$output .= '</div>';
 				break;
@@ -752,19 +752,19 @@ class DSF_Forms {
 	 */
 	private function get_default_form_settings() {
 		return array(
-			'submitLabel'             => __( 'Submit', 'designstudio-flow' ),
-			'nextLabel'               => __( 'Next', 'designstudio-flow' ),
-			'previousLabel'           => __( 'Previous', 'designstudio-flow' ),
-			'successMessage'          => __( 'Thanks! Your form has been submitted.', 'designstudio-flow' ),
-			'sendAdminNotifications'  => true,
-			'adminEmails'             => array(),
-			'notificationSubject'     => __( 'New form submission - {form_title}', 'designstudio-flow' ),
-			'notificationIntro'       => '',
-			'sendSubmitterCopy'       => false,
-			'confirmationType'        => 'message',
-			'confirmationMessage'     => __( 'Thanks! Your form was submitted successfully.', 'designstudio-flow' ),
-			'redirectUrl'             => '',
-			'connections'             => array(),
+			'submitLabel'            => __( 'Submit', 'designstudio-flow' ),
+			'nextLabel'              => __( 'Next', 'designstudio-flow' ),
+			'previousLabel'          => __( 'Previous', 'designstudio-flow' ),
+			'successMessage'         => __( 'Thanks! Your form has been submitted.', 'designstudio-flow' ),
+			'sendAdminNotifications' => true,
+			'adminEmails'            => array(),
+			'notificationSubject'    => __( 'New form submission - {form_title}', 'designstudio-flow' ),
+			'notificationIntro'      => '',
+			'sendSubmitterCopy'      => false,
+			'confirmationType'       => 'message',
+			'confirmationMessage'    => __( 'Thanks! Your form was submitted successfully.', 'designstudio-flow' ),
+			'redirectUrl'            => '',
+			'connections'            => array(),
 		);
 	}
 
@@ -906,7 +906,7 @@ class DSF_Forms {
 			return;
 		}
 
-		$form_title = ( $form instanceof WP_Post ) ? get_the_title( $form ) : __( 'Form', 'designstudio-flow' );
+		$form_title  = ( $form instanceof WP_Post ) ? get_the_title( $form ) : __( 'Form', 'designstudio-flow' );
 		$subject_tpl = isset( $settings['notificationSubject'] ) ? (string) $settings['notificationSubject'] : '';
 		if ( '' === $subject_tpl ) {
 			$subject_tpl = __( 'New form submission - {form_title}', 'designstudio-flow' );
@@ -914,7 +914,7 @@ class DSF_Forms {
 		$subject = str_replace( '{form_title}', $form_title, $subject_tpl );
 
 		$message_lines = array();
-		$intro = isset( $settings['notificationIntro'] ) ? trim( (string) $settings['notificationIntro'] ) : '';
+		$intro         = isset( $settings['notificationIntro'] ) ? trim( (string) $settings['notificationIntro'] ) : '';
 		if ( '' !== $intro ) {
 			$message_lines[] = $intro;
 			$message_lines[] = '';
@@ -1012,7 +1012,7 @@ class DSF_Forms {
 				continue;
 			}
 
-			$row_fields = isset( $row['fields'] ) && is_array( $row['fields'] ) ? $row['fields'] : array();
+			$row_fields   = isset( $row['fields'] ) && is_array( $row['fields'] ) ? $row['fields'] : array();
 			$clean_fields = array();
 
 			foreach ( $row_fields as $field ) {
@@ -1214,11 +1214,11 @@ class DSF_Forms {
 	 * Get frontend reCAPTCHA settings.
 	 */
 	private function get_recaptcha_settings() {
-		$enabled = (bool) get_option( 'dsf_recaptcha_enabled', false );
-		$site_key = trim( (string) get_option( 'dsf_recaptcha_site_key', '' ) );
+		$enabled    = (bool) get_option( 'dsf_recaptcha_enabled', false );
+		$site_key   = trim( (string) get_option( 'dsf_recaptcha_site_key', '' ) );
 		$secret_key = trim( (string) get_option( 'dsf_recaptcha_secret_key', '' ) );
-		$threshold = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
-		$threshold = min( 1, max( 0, $threshold ) );
+		$threshold  = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
+		$threshold  = min( 1, max( 0, $threshold ) );
 
 		$is_ready = $enabled && '' !== $site_key && '' !== $secret_key;
 
@@ -1248,7 +1248,7 @@ class DSF_Forms {
 			return new WP_Error( 'dsf_recaptcha_missing_secret', __( 'reCAPTCHA is not configured correctly.', 'designstudio-flow' ) );
 		}
 
-		$remote_ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$remote_ip    = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 		$request_body = array(
 			'secret'   => $secret_key,
 			'response' => $token,
