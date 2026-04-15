@@ -190,9 +190,11 @@ const openItems = ref([0]) // First item open by default
 
 // Initialize local items
 watch(() => props.modelValue, (newVal) => {
+  const previousIds = localItems.value.map((item) => item.id)
   localItems.value = (newVal || []).map((item, idx) => ({
     ...item,
-    id: item.id || `item-${idx}-${Date.now()}`
+    // Preserve a stable key so inputs do not lose focus while typing.
+    id: item.id || previousIds[idx] || `item-${idx}-${Date.now()}`
   }))
 }, { immediate: true, deep: true })
 

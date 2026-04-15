@@ -140,12 +140,12 @@ class DSF_Ajax {
 
 		wp_send_json_success(
 			array(
-				'message'    => 'Page saved successfully',
-				'post_id'    => $post_id,
-				'post_status'=> $post_status,
-				'post_title' => $post_title,
-				'permalink'  => $permalink,
-				'preview_url'=> $preview_url,
+				'message'     => 'Page saved successfully',
+				'post_id'     => $post_id,
+				'post_status' => $post_status,
+				'post_title'  => $post_title,
+				'permalink'   => $permalink,
+				'preview_url' => $preview_url,
 			)
 		);
 	}
@@ -460,9 +460,9 @@ class DSF_Ajax {
 			$regular_display = '' !== $regular ? html_entity_decode( wp_strip_all_tags( wc_price( $regular ) ) ) : '';
 			$sale_display    = '' !== $sale ? html_entity_decode( wp_strip_all_tags( wc_price( $sale ) ) ) : '';
 
-			$cat_terms     = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'names' ) );
-			$cat_term_ids  = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'ids' ) );
-			$tag_terms     = wp_get_post_terms( $product->get_id(), 'product_tag', array( 'fields' => 'names' ) );
+			$cat_terms    = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'names' ) );
+			$cat_term_ids = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'ids' ) );
+			$tag_terms    = wp_get_post_terms( $product->get_id(), 'product_tag', array( 'fields' => 'names' ) );
 
 			$result[] = array(
 				'id'              => $product->get_id(),
@@ -522,8 +522,8 @@ class DSF_Ajax {
 		if ( taxonomy_exists( 'product_brand' ) ) {
 			$brand_terms = wp_get_post_terms( $product->get_id(), 'product_brand', array( 'fields' => 'names' ) );
 			if ( ! is_wp_error( $brand_terms ) && ! empty( $brand_terms ) ) {
-				$existing        = isset( $attrs['brand'] ) ? $attrs['brand'] : array();
-				$attrs['brand']  = array_values( array_unique( array_merge( $existing, (array) $brand_terms ) ) );
+				$existing       = isset( $attrs['brand'] ) ? $attrs['brand'] : array();
+				$attrs['brand'] = array_values( array_unique( array_merge( $existing, (array) $brand_terms ) ) );
 			}
 		}
 

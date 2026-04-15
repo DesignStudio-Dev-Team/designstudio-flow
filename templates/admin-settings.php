@@ -21,11 +21,11 @@ if ( isset( $_POST['dsf_save_settings'] ) && isset( $_POST['dsf_settings_nonce']
 	);
 	update_option( 'dsf_default_colors', $default_colors );
 
-	$recaptcha_enabled = isset( $_POST['dsf_recaptcha_enabled'] ) ? 1 : 0;
-	$recaptcha_site_key = isset( $_POST['dsf_recaptcha_site_key'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_recaptcha_site_key'] ) ) : '';
-	$recaptcha_secret_key = isset( $_POST['dsf_recaptcha_secret_key'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_recaptcha_secret_key'] ) ) : '';
+	$recaptcha_enabled         = isset( $_POST['dsf_recaptcha_enabled'] ) ? 1 : 0;
+	$recaptcha_site_key        = isset( $_POST['dsf_recaptcha_site_key'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_recaptcha_site_key'] ) ) : '';
+	$recaptcha_secret_key      = isset( $_POST['dsf_recaptcha_secret_key'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_recaptcha_secret_key'] ) ) : '';
 	$recaptcha_threshold_input = isset( $_POST['dsf_recaptcha_threshold'] ) ? floatval( wp_unslash( $_POST['dsf_recaptcha_threshold'] ) ) : 0.5;
-	$recaptcha_threshold = min( 1, max( 0, $recaptcha_threshold_input ) );
+	$recaptcha_threshold       = min( 1, max( 0, $recaptcha_threshold_input ) );
 
 	update_option( 'dsf_recaptcha_enabled', $recaptcha_enabled );
 	update_option( 'dsf_recaptcha_site_key', $recaptcha_site_key );
@@ -36,8 +36,8 @@ if ( isset( $_POST['dsf_save_settings'] ) && isset( $_POST['dsf_settings_nonce']
 }
 
 // Get current settings
-$enabled_post_types = get_option( 'dsf_enabled_post_types', array( 'page', 'dsf_page' ) );
-$default_colors     = get_option(
+$enabled_post_types   = get_option( 'dsf_enabled_post_types', array( 'page', 'dsf_page' ) );
+$default_colors       = get_option(
 	'dsf_default_colors',
 	array(
 		'primary'    => '#3B82F6',
@@ -46,10 +46,10 @@ $default_colors     = get_option(
 		'background' => '#FFFFFF',
 	)
 );
-$recaptcha_enabled = (bool) get_option( 'dsf_recaptcha_enabled', false );
-$recaptcha_site_key = get_option( 'dsf_recaptcha_site_key', '' );
+$recaptcha_enabled    = (bool) get_option( 'dsf_recaptcha_enabled', false );
+$recaptcha_site_key   = get_option( 'dsf_recaptcha_site_key', '' );
 $recaptcha_secret_key = get_option( 'dsf_recaptcha_secret_key', '' );
-$recaptcha_threshold = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
+$recaptcha_threshold  = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
 ?>
 
 <div class="wrap dsf-admin-settings">

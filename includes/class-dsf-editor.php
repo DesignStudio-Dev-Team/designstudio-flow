@@ -50,9 +50,9 @@ class DSF_Editor {
 	public function handle_editor_redirect() {
 		global $pagenow;
 
-		$post_id = filter_input( INPUT_GET, 'post', FILTER_VALIDATE_INT );
-		$action  = filter_input( INPUT_GET, 'action', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
-		$action  = $action ? sanitize_key( $action ) : '';
+		$post_id   = filter_input( INPUT_GET, 'post', FILTER_VALIDATE_INT );
+		$action    = filter_input( INPUT_GET, 'action', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$action    = $action ? sanitize_key( $action ) : '';
 		$post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		$post_type = $post_type ? sanitize_key( $post_type ) : '';
 
@@ -162,9 +162,9 @@ class DSF_Editor {
 		}
 
 		// Pass data to JavaScript
-		$post_id = filter_input( INPUT_GET, 'post_id', FILTER_VALIDATE_INT );
-		$post_id = $post_id ? intval( $post_id ) : 0;
-		$post    = $post_id ? get_post( $post_id ) : null;
+		$post_id   = filter_input( INPUT_GET, 'post_id', FILTER_VALIDATE_INT );
+		$post_id   = $post_id ? intval( $post_id ) : 0;
+		$post      = $post_id ? get_post( $post_id ) : null;
 		$post_type = $post ? $post->post_type : '';
 		if ( ! $post_type ) {
 			$query_post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
@@ -183,32 +183,32 @@ class DSF_Editor {
 			'dsf-editor',
 			'dsfEditorData',
 			array(
-				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
-				'restUrl'     => rest_url( 'dsf/v1/' ),
-				'nonce'       => wp_create_nonce( 'dsf_editor_nonce' ),
-				'restNonce'   => wp_create_nonce( 'wp_rest' ),
-				'postId'      => $post_id,
-				'postTitle'   => $post ? $post->post_title : '',
-				'postType'    => $post_type,
-				'layoutType'  => $layout_type,
-				'pageData'    => $this->get_page_data( $post_id ),
-				'layoutTemplates' => $this->get_layout_templates(),
+				'ajaxUrl'          => admin_url( 'admin-ajax.php' ),
+				'restUrl'          => rest_url( 'dsf/v1/' ),
+				'nonce'            => wp_create_nonce( 'dsf_editor_nonce' ),
+				'restNonce'        => wp_create_nonce( 'wp_rest' ),
+				'postId'           => $post_id,
+				'postTitle'        => $post ? $post->post_title : '',
+				'postType'         => $post_type,
+				'layoutType'       => $layout_type,
+				'pageData'         => $this->get_page_data( $post_id ),
+				'layoutTemplates'  => $this->get_layout_templates(),
 				'layoutCreateUrls' => array(
 					'header' => admin_url( 'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=header' ),
 					'footer' => admin_url( 'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=footer' ),
 				),
-				'blocks'      => DSF_Blocks::get_instance()->get_registered_blocks(),
-				'forms'       => $this->get_available_forms(),
-				'categories'  => $this->get_wc_categories(),
-				'themeFonts'  => $this->get_theme_fonts(),
-				'pluginUrl'   => DSF_PLUGIN_URL,
-				'homeUrl'     => home_url(),
-				'adminUrl'    => admin_url(),
-				'previewUrl'  => $preview_url,
-				'viewUrl'     => $view_url,
-				'postStatus'  => $post_status,
-				'isWooActive' => class_exists( 'WooCommerce' ),
-				'wcAjaxUrl'   => class_exists( 'WooCommerce' ) ? \WC_AJAX::get_endpoint( 'add_to_cart' ) : '',
+				'blocks'           => DSF_Blocks::get_instance()->get_registered_blocks(),
+				'forms'            => $this->get_available_forms(),
+				'categories'       => $this->get_wc_categories(),
+				'themeFonts'       => $this->get_theme_fonts(),
+				'pluginUrl'        => DSF_PLUGIN_URL,
+				'homeUrl'          => home_url(),
+				'adminUrl'         => admin_url(),
+				'previewUrl'       => $preview_url,
+				'viewUrl'          => $view_url,
+				'postStatus'       => $post_status,
+				'isWooActive'      => class_exists( 'WooCommerce' ),
+				'wcAjaxUrl'        => class_exists( 'WooCommerce' ) ? \WC_AJAX::get_endpoint( 'add_to_cart' ) : '',
 			)
 		);
 	}
@@ -384,13 +384,13 @@ class DSF_Editor {
 				'bodyFont'        => '',
 			),
 			'layout' => array(
-				'containerWidth' => 1800,
-				'contentPadding' => 10,
-				'showHeader'     => true,
-				'showFooter'     => true,
+				'containerWidth'   => 1800,
+				'contentPadding'   => 10,
+				'showHeader'       => true,
+				'showFooter'       => true,
 				'headerTemplateId' => 0,
 				'footerTemplateId' => 0,
-				'template'       => 'default',
+				'template'         => 'default',
 			),
 		);
 	}

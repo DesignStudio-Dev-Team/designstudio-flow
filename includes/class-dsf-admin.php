@@ -156,7 +156,7 @@ class DSF_Admin {
 	 * Render dashboard page
 	 */
 	public function render_dashboard_page() {
-		$pages = get_posts(
+		$pages   = get_posts(
 			array(
 				'post_type'      => 'dsf_page',
 				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
@@ -202,7 +202,7 @@ class DSF_Admin {
 				),
 			)
 		);
-		$forms = get_posts(
+		$forms   = get_posts(
 			array(
 				'post_type'      => 'dsf_form',
 				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
