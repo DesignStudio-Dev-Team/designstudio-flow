@@ -83,21 +83,30 @@
 
       <!-- Form column -->
       <div class="dsf-form-with-content__col dsf-form-with-content__col--form" :style="formColStyle">
-        <!-- Editor: show badge placeholder -->
-        <div v-if="isEditor" class="dsf-form-with-content__form-placeholder">
-          <div class="dsf-form-with-content__badge">DesignStudio Flow Form</div>
-          <div class="dsf-form-with-content__form-name">{{ selectedFormTitle }}</div>
-          <p class="dsf-form-with-content__hint">
-            The live form will render here on the frontend.
-          </p>
-          <code class="dsf-form-with-content__code">{{ shortcodeLabel }}</code>
-        </div>
+        <template v-if="isDsfFormSource">
+          <!-- Editor: show badge placeholder -->
+          <div v-if="isEditor" class="dsf-form-with-content__form-placeholder">
+            <div class="dsf-form-with-content__badge">DesignStudio Flow Form</div>
+            <div class="dsf-form-with-content__form-name">{{ selectedFormTitle }}</div>
+            <p class="dsf-form-with-content__hint">
+              The live form will render here on the frontend.
+            </p>
+            <code class="dsf-form-with-content__code">{{ shortcodeLabel }}</code>
+          </div>
 
-        <!-- Frontend: render the form HTML -->
+          <!-- Frontend: render the form HTML -->
+          <div v-else ref="frontendRoot" class="dsf-form-with-content__form-frontend">
+            <div v-if="renderedHtml" v-html="renderedHtml" />
+            <div v-else class="dsf-form-with-content__empty">
+              {{ normalizedFormId ? 'Form preview is loading.' : 'Select a form in the block settings.' }}
+            </div>
+          </div>
+        </template>
+
         <div v-else ref="frontendRoot" class="dsf-form-with-content__form-frontend">
-          <div v-if="renderedHtml" v-html="renderedHtml" />
+          <div v-if="customFormHtml" v-html="customFormHtml" />
           <div v-else class="dsf-form-with-content__empty">
-            {{ normalizedFormId ? 'Form preview is loading.' : 'Select a form in the block settings.' }}
+            Add a shortcode or embed code in the block settings.
           </div>
         </div>
       </div>
@@ -119,6 +128,10 @@ const frontendRoot = ref(null)
 const defaultContent = "<p><b>Your dream backyard starts here!</b></p><p>Fill out the form and we'll be in touch as soon as possible.</p>"
 
 const formSide = computed(() => props.settings?.formSide || 'right')
+
+const formSource = computed(() => props.settings?.formSource || 'dsf')
+
+const isDsfFormSource = computed(() => formSource.value !== 'embed')
 
 const blockStyle = computed(() => ({
   backgroundColor: props.settings?.backgroundColor || '#FFFFFF',
@@ -197,8 +210,13 @@ const shortcodeLabel = computed(() =>
 
 const renderedHtml = computed(() => props.settings?.renderedFormHtml || '')
 
+const customFormHtml = computed(() => {
+  if (isDsfFormSource.value) return ''
+  return props.settings?.renderedEmbedHtml || props.settings?.embedCode || ''
+})
+
 function mountEmbeddedForms() {
-  if (props.isEditor || !renderedHtml.value || !frontendRoot.value) return
+  if (props.isEditor || (!renderedHtml.value && !customFormHtml.value) || !frontendRoot.value) return
   if (typeof window?.dsfInitForms === 'function') {
     window.dsfInitForms(frontendRoot.value)
   }
@@ -293,24 +311,34 @@ onUpdated(() => nextTick(mountEmbeddedForms))
 /* ── Shared media wrapper (image or video) ──────────── */
 .dsf-form-with-content__media-wrap {
   position: relative;
+  isolation: isolate;
   width: 100%;
   margin-top: 4rem;
 }
 
 /* ── Logo (absolute, centred above media) ───────────── */
 .dsf-form-with-content__logo {
-  transition: opacity 1s ease-out;
   position: absolute;
+  z-index: 3;
   left: 50%;
   transform: translateX(-50%);
   top: -35px;
   width: 50%;
   height: 120px;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-radius: var(--dsf-radius-md);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  box-sizing: border-box;
   object-fit: contain;
+  pointer-events: none;
+  transition: opacity 1s ease-out;
 }
 
 /* ── Image ──────────────────────────────────────────── */
 .dsf-form-with-content__image {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: auto;
   display: block;
@@ -321,8 +349,10 @@ onUpdated(() => nextTick(mountEmbeddedForms))
 /* ── Video inner wrap ───────────────────────────────── */
 .dsf-form-with-content__video-wrap {
   position: relative;
+  z-index: 1;
   width: 100%;
   border-radius: var(--dsf-radius-lg);
+  overflow: hidden;
 }
 
 /* iframe embeds need the 16:9 padding trick */
@@ -410,6 +440,10 @@ onUpdated(() => nextTick(mountEmbeddedForms))
   font-size: 0.875rem;
   padding: 1.5rem;
   text-align: center;
+}
+
+.dsf-form-with-content__form-frontend :deep(iframe) {
+  max-width: 100%;
 }
 
 /* ── Responsive: stack below 680px ─────────────────── */

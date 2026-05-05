@@ -309,7 +309,7 @@
                     </div>
                   </div>
                   <button
-                    v-if="settings.showButton !== false"
+                    v-if="settings.showButton !== false && product.price_num"
                     class="dsf-product-card-preview__btn"
                     :class="cartButtonClass(product)"
                     :disabled="cartState[product.id] === 'loading'"
@@ -328,7 +328,7 @@
                       <Eye :size="16" />
                     </a>
                     <button
-                      v-if="settings.showButton !== false"
+                      v-if="settings.showButton !== false && product.price_num"
                       class="dsf-product-card-preview__icon-btn dsf-product-card-preview__icon-btn--cart"
                       :class="{ 'dsf-product-card-preview__icon-btn--added': cartState[product.id] === 'added' }"
                       :disabled="cartState[product.id] === 'loading'"
@@ -384,7 +384,7 @@
                         </div>
                       </div>
                       <button
-                        v-if="settings.showButton !== false"
+                        v-if="settings.showButton !== false && product.price_num"
                         class="dsf-product-card-preview__btn"
                         :class="cartButtonClass(product)"
                         :disabled="cartState[product.id] === 'loading'"
@@ -699,8 +699,11 @@ function applySelectedFilters(items, exclude = '') {
 
   if (filterVisibility.value.price && exclude !== 'price') {
     result = result.filter((product) => {
-      const price = product.price_num || 0
-      return price >= priceFilter.value[0] && price <= priceFilter.value[1]
+      const numPrice = parseFloat(product.price_num)
+      // Products with no price (price_num = 0 / NaN) always pass the price filter
+      if (!numPrice) return true
+      // Upper bound is open: slider value $99 includes products up to $99.99
+      return numPrice >= priceFilter.value[0] && numPrice < priceFilter.value[1] + 1
     })
   }
 

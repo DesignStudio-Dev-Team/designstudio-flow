@@ -1684,13 +1684,30 @@ class DSF_Blocks {
 						'showWhen' => array( 'showDivider' => true ),
 					),
 					// Form settings
-					'formId'          => array(
+					'formSource'      => array(
 						'type'    => 'select',
-						'label'   => 'Form',
-						'default' => '',
+						'label'   => 'Form Source',
+						'default' => 'dsf',
+						'options' => array(
+							'DSF Form'               => 'dsf',
+							'Shortcode / Embed Code' => 'embed',
+						),
+					),
+					'formId'          => array(
+						'type'     => 'select',
+						'label'    => 'Form',
+						'default'  => '',
 						'options' => array(
 							'Select a form' => '',
 						),
+						'showWhen' => array( 'formSource' => 'dsf' ),
+					),
+					'embedCode'       => array(
+						'type'         => 'wysiwyg',
+						'label'        => 'Shortcode / Embed Code',
+						'default'      => '',
+						'allowRawHtml' => true,
+						'showWhen'     => array( 'formSource' => 'embed' ),
 					),
 					'formSide'        => array(
 						'type'    => 'select',
