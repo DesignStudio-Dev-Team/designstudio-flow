@@ -204,6 +204,18 @@ class DSF_Frontend {
 		}
 
 		$settings = isset( $block['settings'] ) && is_array( $block['settings'] ) ? $block['settings'] : array();
+		$form_source = isset( $settings['formSource'] ) ? sanitize_key( $settings['formSource'] ) : 'dsf';
+
+		if ( 'form-with-content' === $type && 'embed' === $form_source ) {
+			$embed_code                     = isset( $settings['embedCode'] ) ? (string) $settings['embedCode'] : '';
+			$settings['formSource']        = 'embed';
+			$settings['renderedFormHtml']  = '';
+			$settings['renderedEmbedHtml'] = $this->render_embed_code( $embed_code );
+			$block['settings']             = $settings;
+
+			return $block;
+		}
+
 		$form_id  = isset( $settings['formId'] ) ? absint( $settings['formId'] ) : 0;
 		$form     = $form_id ? get_post( $form_id ) : null;
 
@@ -217,6 +229,36 @@ class DSF_Frontend {
 		$block['settings']            = $settings;
 
 		return $block;
+	}
+
+	/**
+	 * Render shortcode/embed content for frontend block output.
+	 */
+	private function render_embed_code( $embed_code ) {
+		if ( '' === trim( $embed_code ) ) {
+			return '';
+		}
+
+		$html = do_shortcode( $embed_code );
+
+		$allowed = wp_kses_allowed_html( 'post' );
+		$allowed['iframe'] = array(
+			'src'             => true,
+			'title'           => true,
+			'width'           => true,
+			'height'          => true,
+			'class'           => true,
+			'style'           => true,
+			'loading'         => true,
+			'frameborder'     => true,
+			'allow'           => true,
+			'allowfullscreen' => true,
+			'referrerpolicy'  => true,
+			'sandbox'         => true,
+			'data-*'          => true,
+		);
+
+		return wp_kses( $html, $allowed );
 	}
 
 	/**

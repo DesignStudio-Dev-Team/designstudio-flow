@@ -1,6 +1,6 @@
 {
-  "_main-D5j-oqV4.js": {
-    "file": "js/main-D5j-oqV4.js",
+  "_main-D-3QdAyW.js": {
+    "file": "js/main-D-3QdAyW.js",
     "name": "main",
     "css": [
       "css/main.css"
@@ -16,7 +16,7 @@
     "src": "src/frontend/main.js",
     "isEntry": true,
     "imports": [
-      "_main-D5j-oqV4.js"
+      "_main-D-3QdAyW.js"
     ]
   },
   "src/main.js": {
@@ -25,7 +25,7 @@
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
-      "_main-D5j-oqV4.js"
+      "_main-D-3QdAyW.js"
     ],
     "css": [
       "css/editor.css"

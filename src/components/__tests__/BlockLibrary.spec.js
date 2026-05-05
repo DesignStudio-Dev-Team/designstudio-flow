@@ -35,6 +35,17 @@ describe('BlockLibrary', () => {
     expect(wrapper.text()).toContain('Content')
   })
 
+  it('starts with every category collapsed', () => {
+    const wrapper = mount(BlockLibrary, {
+      props: {
+        categories: mockCategories
+      }
+    })
+
+    expect(wrapper.findAll('.dsf-library-category__chevron--open')).toHaveLength(0)
+    expect(wrapper.find('.dsf-library-block').isVisible()).toBe(false)
+  })
+
   it('filters blocks when searching', async () => {
     const wrapper = mount(BlockLibrary, {
       props: {

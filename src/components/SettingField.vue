@@ -25,6 +25,7 @@
     <WysiwygField
       v-else-if="config.type === 'wysiwyg'"
       :modelValue="value"
+      :allow-raw-html="config.allowRawHtml === true"
       @update:modelValue="$emit('update', $event)"
     />
     

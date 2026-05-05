@@ -28,4 +28,28 @@ describe('WysiwygField', () => {
     expect(emitted).toBeTruthy()
     expect(emitted[0][0]).toContain('Updated')
   })
+
+  it('allows raw HTML editing when enabled', async () => {
+    const wrapper = mount(WysiwygField, {
+      props: {
+        allowRawHtml: true,
+        modelValue: '<iframe src="https://example.com/embed"></iframe>',
+      },
+    })
+
+    await wrapper.find('.dsf-wysiwyg__btn:last-child').trigger('click')
+
+    const source = wrapper.find('.dsf-wysiwyg__source')
+    expect(source.exists()).toBe(true)
+    expect(source.element.value).toContain('<iframe')
+
+    await source.setValue('<iframe src="https://example.com/updated"></iframe>')
+
+    const emitted = wrapper.emitted('update:modelValue')
+    expect(emitted.at(-1)[0]).toContain('https://example.com/updated')
+
+    await wrapper.setProps({ modelValue: '<iframe src="https://example.com/updated"></iframe>' })
+    await wrapper.find('.dsf-wysiwyg__btn:last-child').trigger('click')
+    expect(wrapper.find('.dsf-wysiwyg__editor').html()).toContain('https://example.com/updated')
+  })
 })
