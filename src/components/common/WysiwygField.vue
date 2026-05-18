@@ -1,6 +1,23 @@
 <template>
   <div class="dsf-wysiwyg">
     <div class="dsf-wysiwyg__toolbar">
+      <button
+        type="button"
+        class="dsf-wysiwyg__btn"
+        title="Heading 2"
+        @click="formatBlock('H2')"
+      >
+        H2
+      </button>
+      <button
+        type="button"
+        class="dsf-wysiwyg__btn"
+        title="Paragraph"
+        @click="formatBlock('P')"
+      >
+        P
+      </button>
+      <span class="dsf-wysiwyg__sep" aria-hidden="true"></span>
       <button type="button" class="dsf-wysiwyg__btn" @click="exec('bold')"><b>B</b></button>
       <button type="button" class="dsf-wysiwyg__btn" @click="exec('italic')"><i>I</i></button>
       <button type="button" class="dsf-wysiwyg__btn" @click="addLink">Link</button>
@@ -51,6 +68,16 @@ const sourceMode = ref(false)
 
 function exec(command) {
   document.execCommand(command, false, null)
+  emitUpdate()
+}
+
+function formatBlock(tag) {
+  if (sourceMode.value) return
+  if (editor.value && document.activeElement !== editor.value) {
+    editor.value.focus()
+  }
+  // Some browsers expect the tag wrapped in angle brackets for formatBlock.
+  document.execCommand('formatBlock', false, `<${tag.toLowerCase()}>`)
   emitUpdate()
 }
 
@@ -131,6 +158,12 @@ watch(
   color: #fff;
   background: var(--dsf-primary-600, #2563eb);
   border-color: var(--dsf-primary-600, #2563eb);
+}
+
+.dsf-wysiwyg__sep {
+  width: 1px;
+  background: var(--dsf-gray-200);
+  margin: 0 0.25rem;
 }
 
 .dsf-wysiwyg__editor,

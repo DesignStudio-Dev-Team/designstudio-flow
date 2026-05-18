@@ -79,6 +79,20 @@ class DSF_Frontend {
 		$frontend_theme_version = $this->get_asset_version( 'assets/css/frontend.css' );
 		$frontend_js_version    = $this->get_asset_version( 'assets/js/frontend.js' );
 
+		$blocks_meta = get_post_meta( $post_id, '_dsf_blocks', true );
+		if ( is_array( $blocks_meta ) ) {
+			$blocks = $blocks_meta;
+		} else {
+			$blocks = $blocks_meta ? json_decode( $blocks_meta, true ) : array();
+			if ( ! is_array( $blocks ) ) {
+				$blocks = array();
+			}
+		}
+		$blocks = $this->prepare_blocks_for_frontend( $blocks );
+
+		$layout_templates = $this->get_assigned_layout_templates_data( $post_id );
+		$layout_templates = $this->prepare_layout_templates_for_frontend( $layout_templates );
+
 		wp_enqueue_style(
 			'dsf-main',
 			DSF_PLUGIN_URL . 'assets/css/main.css',
@@ -117,20 +131,6 @@ class DSF_Frontend {
 				true
 			);
 		}
-
-		$blocks_meta = get_post_meta( $post_id, '_dsf_blocks', true );
-		if ( is_array( $blocks_meta ) ) {
-			$blocks = $blocks_meta;
-		} else {
-			$blocks = $blocks_meta ? json_decode( $blocks_meta, true ) : array();
-			if ( ! is_array( $blocks ) ) {
-				$blocks = array();
-			}
-		}
-		$blocks = $this->prepare_blocks_for_frontend( $blocks );
-
-		$layout_templates = $this->get_assigned_layout_templates_data( $post_id );
-		$layout_templates = $this->prepare_layout_templates_for_frontend( $layout_templates );
 
 		wp_localize_script(
 			'dsf-frontend-app',
@@ -207,11 +207,13 @@ class DSF_Frontend {
 		$form_source = isset( $settings['formSource'] ) ? sanitize_key( $settings['formSource'] ) : 'dsf';
 
 		if ( 'form-with-content' === $type && 'embed' === $form_source ) {
-			$embed_code                     = isset( $settings['embedCode'] ) ? (string) $settings['embedCode'] : '';
-			$settings['formSource']        = 'embed';
-			$settings['renderedFormHtml']  = '';
-			$settings['renderedEmbedHtml'] = $this->render_embed_code( $embed_code );
-			$block['settings']             = $settings;
+			$embed_code                       = isset( $settings['embedCode'] ) ? (string) $settings['embedCode'] : '';
+			$embed_payload                    = $this->render_embed_code( $embed_code );
+			$settings['formSource']          = 'embed';
+			$settings['renderedFormHtml']    = '';
+			$settings['renderedEmbedHtml']   = $embed_payload['html'];
+			$settings['renderedEmbedScripts'] = $embed_payload['scripts'];
+			$block['settings']               = $settings;
 
 			return $block;
 		}
@@ -236,14 +238,196 @@ class DSF_Frontend {
 	 */
 	private function render_embed_code( $embed_code ) {
 		if ( '' === trim( $embed_code ) ) {
-			return '';
+			return array(
+				'html'    => '',
+				'scripts' => array(),
+			);
 		}
 
+		$this->enqueue_gravity_form_assets_from_embed_code( $embed_code );
+
 		$html = do_shortcode( $embed_code );
+		$scripts = array();
+		$html = $this->mark_hidden_gravity_form_pages( $html );
+		$html = $this->mark_gravity_form_ajax_iframes( $html );
+		$html = preg_replace_callback(
+			'#<script\b([^>]*)>(.*?)</script>#is',
+			function ( $matches ) use ( &$scripts ) {
+				$code  = isset( $matches[2] ) ? trim( $matches[2] ) : '';
+
+				if ( '' !== $code ) {
+					$scripts[] = array(
+						'code' => $code,
+					);
+				}
+
+				return '';
+			},
+			$html
+		);
+		$html = preg_replace( '#<style\b[^>]*>.*?</style>#is', '', $html );
 
 		$allowed = wp_kses_allowed_html( 'post' );
+		$common_attrs = array(
+			'class'  => true,
+			'id'     => true,
+			'style'  => true,
+			'title'  => true,
+			'role'   => true,
+			'hidden' => true,
+			'data-*' => true,
+			'aria-*' => true,
+		);
+		foreach ( array( 'div', 'section', 'span', 'p', 'ul', 'ol', 'li', 'strong', 'em', 'small' ) as $tag ) {
+			$allowed[ $tag ] = isset( $allowed[ $tag ] ) ? array_merge( $allowed[ $tag ], $common_attrs ) : $common_attrs;
+		}
+		$allowed['a'] = isset( $allowed['a'] ) ? array_merge(
+			$allowed['a'],
+			$common_attrs,
+			array(
+				'href'       => true,
+				'target'     => true,
+				'rel'        => true,
+				'onclick'    => true,
+				'onkeypress' => true,
+			)
+		) : array_merge(
+			$common_attrs,
+			array(
+				'href'       => true,
+				'target'     => true,
+				'rel'        => true,
+				'onclick'    => true,
+				'onkeypress' => true,
+			)
+		);
+		$allowed['form'] = array(
+			'action'         => true,
+			'method'         => true,
+			'enctype'        => true,
+			'target'         => true,
+			'class'          => true,
+			'id'             => true,
+			'name'           => true,
+			'novalidate'     => true,
+			'data-*'         => true,
+			'aria-*'         => true,
+		);
+		$allowed['fieldset'] = array(
+			'class'  => true,
+			'id'     => true,
+			'data-*' => true,
+			'aria-*' => true,
+		);
+		$allowed['legend'] = array(
+			'class'  => true,
+			'id'     => true,
+			'data-*' => true,
+			'aria-*' => true,
+		);
+		$allowed['label'] = array(
+			'for'    => true,
+			'class'  => true,
+			'id'     => true,
+			'style'  => true,
+			'data-*' => true,
+			'aria-*' => true,
+		);
+		$allowed['input'] = array(
+			'type'         => true,
+			'name'         => true,
+			'value'        => true,
+			'id'           => true,
+			'class'        => true,
+			'style'        => true,
+			'placeholder'  => true,
+			'checked'      => true,
+			'disabled'     => true,
+			'readonly'     => true,
+			'required'     => true,
+			'autocomplete' => true,
+			'min'          => true,
+			'max'          => true,
+			'step'         => true,
+			'maxlength'    => true,
+			'tabindex'     => true,
+			'onclick'      => true,
+			'onkeypress'   => true,
+			'data-*'       => true,
+			'aria-*'       => true,
+		);
+		$allowed['select'] = array(
+			'name'     => true,
+			'id'       => true,
+			'class'    => true,
+			'style'    => true,
+			'multiple' => true,
+			'disabled' => true,
+			'required' => true,
+			'tabindex' => true,
+			'data-*'   => true,
+			'aria-*'   => true,
+		);
+		$allowed['option'] = array(
+			'value'    => true,
+			'selected' => true,
+			'disabled' => true,
+			'class'    => true,
+			'data-*'   => true,
+		);
+		$allowed['textarea'] = array(
+			'name'        => true,
+			'id'          => true,
+			'class'       => true,
+			'style'       => true,
+			'placeholder' => true,
+			'rows'        => true,
+			'cols'        => true,
+			'disabled'    => true,
+			'readonly'    => true,
+			'required'    => true,
+			'maxlength'   => true,
+			'tabindex'    => true,
+			'data-*'      => true,
+			'aria-*'      => true,
+		);
+		$allowed['button'] = array(
+			'type'          => true,
+			'name'          => true,
+			'value'         => true,
+			'id'            => true,
+			'class'         => true,
+			'style'         => true,
+			'disabled'      => true,
+			'aria-label'    => true,
+			'onclick'       => true,
+			'onkeypress'    => true,
+			'data-*'        => true,
+			'aria-*'        => true,
+		);
+		$allowed['svg'] = array(
+			'class'       => true,
+			'viewBox'     => true,
+			'xmlns'       => true,
+			'width'       => true,
+			'height'      => true,
+			'fill'        => true,
+			'focusable'   => true,
+			'aria-hidden' => true,
+			'role'        => true,
+			'data-*'      => true,
+		);
+		$allowed['path'] = array(
+			'd'         => true,
+			'fill'      => true,
+			'fill-rule' => true,
+			'clip-rule' => true,
+			'data-*'    => true,
+		);
 		$allowed['iframe'] = array(
 			'src'             => true,
+			'id'              => true,
+			'name'            => true,
 			'title'           => true,
 			'width'           => true,
 			'height'          => true,
@@ -258,7 +442,87 @@ class DSF_Frontend {
 			'data-*'          => true,
 		);
 
-		return wp_kses( $html, $allowed );
+		$sanitized_html = wp_kses( $html, $allowed );
+		$sanitized_html = str_replace(
+			'data-dsf-gform-page-hidden="1"',
+			'data-dsf-gform-page-hidden="1" style="display:none;"',
+			$sanitized_html
+		);
+		$sanitized_html = preg_replace_callback(
+			'#<iframe\b[^>]*\bdata-dsf-gform-ajax-frame="([^"]+)"[^>]*>#i',
+			function ( $matches ) {
+				$frame_id = esc_attr( $matches[1] );
+				return '<iframe name="' . $frame_id . '" id="' . $frame_id . '" src="about:blank" style="display:none;width:0px;height:0px;" title="This iframe contains the logic required to handle Ajax powered Gravity Forms.">';
+			},
+			$sanitized_html
+		);
+
+		return array(
+			'html'    => $sanitized_html,
+			'scripts' => $scripts,
+		);
+	}
+
+	/**
+	 * Preserve Gravity Forms multipage hidden state through wp_kses style filtering.
+	 */
+	private function mark_hidden_gravity_form_pages( $html ) {
+		return preg_replace_callback(
+			'#<div\b[^>]*class=(["\'])(?=[^"\']*\bgform_page\b)[^"\']*\1[^>]*style=(["\'])(?=[^"\']*display\s*:\s*none)[^"\']*\2[^>]*>#i',
+			function ( $matches ) {
+				$tag = $matches[0];
+				if ( false !== strpos( $tag, 'data-dsf-gform-page-hidden' ) ) {
+					return $tag;
+				}
+				return preg_replace( '/>$/', ' data-dsf-gform-page-hidden="1">', $tag );
+			},
+			$html
+		);
+	}
+
+	/**
+	 * Preserve Gravity Forms AJAX target iframes through wp_kses protocol/style filtering.
+	 */
+	private function mark_gravity_form_ajax_iframes( $html ) {
+		return preg_replace_callback(
+			'#<iframe\b[^>]*(?:name|id)=(["\'])(gform_ajax_frame_\d+)\1[^>]*>#i',
+			function ( $matches ) {
+				$tag = $matches[0];
+				if ( false !== strpos( $tag, 'data-dsf-gform-ajax-frame' ) ) {
+					return $tag;
+				}
+				return preg_replace( '/>$/', ' data-dsf-gform-ajax-frame="' . esc_attr( $matches[2] ) . '">', $tag );
+			},
+			$html
+		);
+	}
+
+	/**
+	 * Ask Gravity Forms to enqueue frontend assets for embedded shortcodes.
+	 */
+	private function enqueue_gravity_form_assets_from_embed_code( $embed_code ) {
+		if ( ! function_exists( 'gravity_form_enqueue_scripts' ) || ! function_exists( 'shortcode_parse_atts' ) ) {
+			return;
+		}
+
+		if ( ! preg_match_all( '/\[gravityforms?\b([^\]]*)\]/i', $embed_code, $matches ) ) {
+			return;
+		}
+
+		foreach ( $matches[1] as $attributes ) {
+			$atts = shortcode_parse_atts( $attributes );
+			if ( ! is_array( $atts ) ) {
+				continue;
+			}
+
+			$form_id = isset( $atts['id'] ) ? absint( $atts['id'] ) : 0;
+			if ( ! $form_id ) {
+				continue;
+			}
+
+			$ajax = isset( $atts['ajax'] ) && in_array( strtolower( (string) $atts['ajax'] ), array( 'true', '1', 'yes' ), true );
+			gravity_form_enqueue_scripts( $form_id, $ajax );
+		}
 	}
 
 	/**

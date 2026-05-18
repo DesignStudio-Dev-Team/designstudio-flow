@@ -666,22 +666,40 @@ async function generateHtmlSnapshot() {
   mount.style.top = '0'
   mount.style.width = '1200px'
   mount.style.pointerEvents = 'none'
+  mount.setAttribute('aria-hidden', 'true')
   document.body.appendChild(mount)
 
   let app = null
   try {
     const snapshotBlocks = JSON.parse(JSON.stringify(blocks.value || []))
     app = createApp(FrontendApp, { blocks: snapshotBlocks })
+    // Blocks read this via inject('dsfRenderMode') to skip side effects
+    // (Gravity Forms init scripts, document.body appends) that would otherwise
+    // leak from the offscreen snapshot mount into the live editor DOM.
+    app.provide('dsfRenderMode', 'snapshot')
     app.mount(mount)
 
     await nextTick()
-    return mount.innerHTML
+    return stripHtmlComments(mount.innerHTML)
   } finally {
     if (app) {
       app.unmount()
     }
     mount.remove()
   }
+}
+
+// Vue's runtime serializes v-if placeholders and some fragment markers as
+// HTML comments. When the captured innerHTML is later echoed verbatim by
+// PHP, a stray "-->" inside user-supplied WYSIWYG content (e.g. pasted
+// marketing HTML) can prematurely close one of those comments, swallowing
+// closing tags and corrupting the DOM tree on the live page — which shows
+// up as duplicate, unstyled blocks at the bottom because they escape the
+// #dsf-frontend-app container that Vue clears on mount.
+// The snapshot is only a first-paint placeholder; Vue replaces it on
+// hydration, so dropping comments is safe.
+function stripHtmlComments(html) {
+  return (html || '').replace(/<!--[\s\S]*?-->/g, '')
 }
 
 async function openPreview() {
