@@ -151,6 +151,14 @@ class DSF_Ajax {
 	}
 
 	private function sanitize_snapshot_html( $html ) {
+		// Strip every HTML comment before sanitization. The snapshot is a
+		// first-paint placeholder that Vue replaces on mount, so comments serve
+		// no purpose — and a stray "-->" inside user WYSIWYG content can
+		// prematurely close a Vue placeholder comment, leaking unclosed tags
+		// that corrupt the DOM tree and produce phantom unstyled duplicates
+		// of the last blocks after #dsf-frontend-app is closed early.
+		$html = preg_replace( '/<!--[\s\S]*?-->/', '', (string) $html );
+
 		$allowed = wp_kses_allowed_html( 'post' );
 		$extra   = array(
 			'svg'      => array(
