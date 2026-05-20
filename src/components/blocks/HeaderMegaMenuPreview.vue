@@ -897,7 +897,7 @@ function closeFindPopup() {
 
 .dsf-header-mega__utility-link {
   text-decoration: none;
-  font-size: 1rem;
+  font-size: var(--dsf-theme-text-base, 1rem);
   font-weight: 500;
   opacity: 0.88;
 }
@@ -1019,7 +1019,7 @@ function closeFindPopup() {
 .dsf-header-mega__column :deep(h4) {
   margin: 0 0 0.75rem;
   color: var(--panel-heading);
-  font-size: 1.08rem;
+  font-size: var(--dsf-theme-h6, 1.08rem);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.01em;
@@ -1041,7 +1041,7 @@ function closeFindPopup() {
   display: block;
   text-decoration: none;
   color: var(--panel-link);
-  font-size: 1.06rem;
+  font-size: var(--dsf-theme-text-base, 1.06rem);
   line-height: 1.35;
   padding: 0.05rem 0;
 }
@@ -1155,7 +1155,7 @@ function closeFindPopup() {
   background: transparent;
   color: inherit;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: var(--dsf-theme-text-sm, 0.95rem);
   cursor: pointer;
   text-decoration: none;
 }
@@ -1192,7 +1192,7 @@ function closeFindPopup() {
   color: inherit;
   text-decoration: none;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: var(--dsf-theme-text-base, 1rem);
   flex: 1;
 }
 
@@ -1223,7 +1223,7 @@ function closeFindPopup() {
 
 .dsf-header-mega__mobile-group-title {
   font-weight: 700;
-  font-size: 0.92rem;
+  font-size: var(--dsf-theme-text-sm, 0.92rem);
   text-transform: uppercase;
   letter-spacing: 0.02em;
   margin-bottom: 0.35rem;
@@ -1238,7 +1238,7 @@ function closeFindPopup() {
   display: block;
   color: inherit;
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: var(--dsf-theme-text-sm, 0.95rem);
   padding: 0.35rem 0;
 }
 
@@ -1284,7 +1284,7 @@ function closeFindPopup() {
 }
 
 .dsf-header-mega__find-header h3 {
-  font-size: 1.35rem;
+  font-size: var(--dsf-theme-h4, 1.35rem);
   margin: 0;
 }
 
@@ -1327,7 +1327,7 @@ function closeFindPopup() {
 
 .dsf-header-mega__find-card h4 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--dsf-theme-h6, 1rem);
 }
 
 .dsf-header-mega__find-address {

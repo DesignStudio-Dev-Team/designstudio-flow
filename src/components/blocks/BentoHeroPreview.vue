@@ -568,7 +568,7 @@ function handleCtaClick(event) {
 
 .dsf-bento-hero__hero-title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 42px;
+  font-size: var(--dsf-theme-h1, 42px);
   font-weight: 700;
   color: white;
   margin: 0 0 1rem 0;
@@ -592,7 +592,7 @@ function handleCtaClick(event) {
   transition: all 0.2s;
   cursor: pointer;
   border: none;
-  font-size: 20px;
+  font-size: var(--dsf-theme-text-lg, 20px);
   line-height: 1.25;
   white-space: nowrap;
 }
@@ -615,7 +615,7 @@ function handleCtaClick(event) {
   padding: 0.625rem 2.5rem 0.625rem 0.875rem;
   border: none;
   border-radius: 4px;
-  font-size: 20px; /* Updated font size */
+  font-size: var(--dsf-theme-text-lg, 20px); /* Updated font size */
   background: white;
   outline: none;
 }
@@ -644,7 +644,7 @@ function handleCtaClick(event) {
 
 .dsf-bento-hero__section-bar-text {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   font-weight: 600;
   line-height: 1.2;
   word-wrap: break-word;
@@ -707,7 +707,7 @@ function handleCtaClick(event) {
   position: relative;
   z-index: 1;
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 24px;
+  font-size: var(--dsf-theme-h3, 24px);
   font-weight: 600;
   text-align: center;
   width: 100%;
@@ -742,7 +742,7 @@ function handleCtaClick(event) {
 
 .dsf-bento-hero__cta-text {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   font-weight: 600;
   text-align: center;
   line-height: 1.3;
@@ -766,10 +766,10 @@ function handleCtaClick(event) {
 }
 
 @container (max-width: 1024px) {
-  .dsf-bento-hero__hero-title { font-size: 34px; }
+  .dsf-bento-hero__hero-title { font-size: var(--dsf-theme-h2, 34px); }
   .dsf-bento-hero__box-title,
-  .dsf-bento-hero__cta-text { font-size: 20px; }
-  .dsf-bento-hero__section-bar-text { font-size: 20px; }
+  .dsf-bento-hero__cta-text { font-size: var(--dsf-theme-h4, 20px); }
+  .dsf-bento-hero__section-bar-text { font-size: var(--dsf-theme-text-xl, 20px); }
 }
 
 /* Mobile Responsive using Container Queries */

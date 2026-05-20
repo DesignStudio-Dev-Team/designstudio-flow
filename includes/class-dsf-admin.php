@@ -70,15 +70,6 @@ class DSF_Admin {
 			'edit.php?post_type=dsf_page'
 		);
 
-		// Add New Page.
-		add_submenu_page(
-			'designstudio-flow',
-			__( 'Add New Page', 'designstudio-flow' ),
-			__( 'Add New Page', 'designstudio-flow' ),
-			'edit_pages',
-			'admin.php?page=dsf-editor&post_type=dsf_page'
-		);
-
 		// Headers.
 		add_submenu_page(
 			'designstudio-flow',
@@ -88,15 +79,6 @@ class DSF_Admin {
 			'edit.php?post_type=dsf_layout&dsf_layout_type=header'
 		);
 
-		// Add New Header.
-		add_submenu_page(
-			'designstudio-flow',
-			__( 'Add New DSFlow Header', 'designstudio-flow' ),
-			__( 'Add New DSFlow Header', 'designstudio-flow' ),
-			'edit_pages',
-			'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=header'
-		);
-
 		// Footers.
 		add_submenu_page(
 			'designstudio-flow',
@@ -104,15 +86,6 @@ class DSF_Admin {
 			__( 'Footers', 'designstudio-flow' ),
 			'edit_pages',
 			'edit.php?post_type=dsf_layout&dsf_layout_type=footer'
-		);
-
-		// Add New Footer.
-		add_submenu_page(
-			'designstudio-flow',
-			__( 'Add New DSFlow Footer', 'designstudio-flow' ),
-			__( 'Add New DSFlow Footer', 'designstudio-flow' ),
-			'edit_pages',
-			'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=footer'
 		);
 	}
 
@@ -156,19 +129,24 @@ class DSF_Admin {
 	 * Render dashboard page
 	 */
 	public function render_dashboard_page() {
-		$pages   = get_posts(
+		$statuses = array( 'publish', 'draft', 'pending', 'private' );
+
+		$pages_query   = new WP_Query(
 			array(
 				'post_type'      => 'dsf_page',
-				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+				'post_status'    => $statuses,
 				'posts_per_page' => 6,
 				'orderby'        => 'modified',
 				'order'          => 'DESC',
 			)
 		);
-		$headers = get_posts(
+		$pages         = $pages_query->posts;
+		$pages_total   = (int) $pages_query->found_posts;
+
+		$headers_query = new WP_Query(
 			array(
 				'post_type'      => 'dsf_layout',
-				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+				'post_status'    => $statuses,
 				'posts_per_page' => 6,
 				'orderby'        => 'modified',
 				'order'          => 'DESC',
@@ -186,10 +164,13 @@ class DSF_Admin {
 				),
 			)
 		);
-		$footers = get_posts(
+		$headers       = $headers_query->posts;
+		$headers_total = (int) $headers_query->found_posts;
+
+		$footers_query = new WP_Query(
 			array(
 				'post_type'      => 'dsf_layout',
-				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+				'post_status'    => $statuses,
 				'posts_per_page' => 6,
 				'orderby'        => 'modified',
 				'order'          => 'DESC',
@@ -202,15 +183,20 @@ class DSF_Admin {
 				),
 			)
 		);
-		$forms   = get_posts(
+		$footers       = $footers_query->posts;
+		$footers_total = (int) $footers_query->found_posts;
+
+		$forms_query = new WP_Query(
 			array(
 				'post_type'      => 'dsf_form',
-				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+				'post_status'    => $statuses,
 				'posts_per_page' => 6,
 				'orderby'        => 'modified',
 				'order'          => 'DESC',
 			)
 		);
+		$forms       = $forms_query->posts;
+		$forms_total = (int) $forms_query->found_posts;
 
 		include DSF_PLUGIN_DIR . 'templates/admin-dashboard.php';
 	}

@@ -111,7 +111,7 @@ onUpdated(() => {
 
 .dsf-form-embed-preview__title {
   margin: 0 0 0.875rem 0;
-  font-size: 1.125rem;
+  font-size: var(--dsf-theme-h5, 1.125rem);
   font-weight: 700;
   color: var(--dsf-gray-900);
 }

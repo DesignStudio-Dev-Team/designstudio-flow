@@ -129,6 +129,31 @@ class DSF_Post_Type {
 		);
 
 		register_post_type( 'dsf_form', $form_args );
+
+		// Entries — private records of form submissions. No public UI, no admin
+		// list view (admin pages handle this themselves via WP_List_Table).
+		register_post_type(
+			'dsf_entry',
+			array(
+				'labels'              => array(
+					'name'          => _x( 'Form Entries', 'Post type general name', 'designstudio-flow' ),
+					'singular_name' => _x( 'Form Entry', 'Post type singular name', 'designstudio-flow' ),
+				),
+				'public'              => false,
+				'publicly_queryable'  => false,
+				'show_ui'             => false,
+				'show_in_menu'        => false,
+				'show_in_admin_bar'   => false,
+				'show_in_nav_menus'   => false,
+				'exclude_from_search' => true,
+				'query_var'           => false,
+				'rewrite'             => false,
+				'capability_type'     => 'page',
+				'has_archive'         => false,
+				'supports'            => array( 'title' ),
+				'show_in_rest'        => false,
+			)
+		);
 	}
 
 	/**

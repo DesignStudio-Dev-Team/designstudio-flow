@@ -321,7 +321,7 @@ const wrapperStyle = computed(() => ({
 
 .dsf-duo-hero__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 2.5rem;
+  font-size: var(--dsf-theme-h1, 2.5rem);
   font-weight: 700;
   margin-bottom: 24px;
   line-height: 1.15;
@@ -349,7 +349,7 @@ const wrapperStyle = computed(() => ({
   text-decoration: none;
   border-radius: 4px;
   transition: all 0.2s;
-  font-size: 20px;
+  font-size: var(--dsf-theme-text-lg, 20px);
   line-height: 1.25;
   white-space: nowrap;
 }
@@ -376,7 +376,7 @@ const wrapperStyle = computed(() => ({
   width: 100%;
   border: none;
   padding: 10px 44px 10px 16px;
-  font-size: 20px; /* Updated font size */
+  font-size: var(--dsf-theme-text-lg, 20px); /* Updated font size */
   outline: none;
   color: #374151;
 }
@@ -415,7 +415,7 @@ const wrapperStyle = computed(() => ({
   }
   
   .dsf-duo-hero__title {
-    font-size: 2rem;
+    font-size: var(--dsf-theme-h2, 2rem);
   }
 }
 
@@ -431,7 +431,7 @@ const wrapperStyle = computed(() => ({
   }
 
   .dsf-duo-hero__title {
-    font-size: 2rem;
+    font-size: var(--dsf-theme-h2, 2rem);
   }
 }
 </style>

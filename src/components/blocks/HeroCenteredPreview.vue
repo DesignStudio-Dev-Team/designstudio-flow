@@ -156,7 +156,7 @@ const contentStyle = computed(() => {
 
 .dsf-hero-centered-preview__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 2.5rem;
+  font-size: var(--dsf-theme-h1, 2.5rem);
   font-weight: 700;
   margin-bottom: 1rem;
   color: inherit;
@@ -168,7 +168,7 @@ const contentStyle = computed(() => {
 
 .dsf-hero-centered-preview__subtitle {
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: 1.125rem;
+  font-size: var(--dsf-theme-text-lg, 1.125rem);
   opacity: 0.9;
   margin-bottom: 2rem;
   color: inherit;
@@ -187,7 +187,7 @@ const contentStyle = computed(() => {
   border-radius: var(--dsf-radius-md);
   font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--dsf-theme-text-base, 1rem);
   cursor: pointer;
   text-decoration: none;
   line-height: 1.25;
@@ -195,8 +195,8 @@ const contentStyle = computed(() => {
 }
 
 @container (max-width: 1024px) {
-  .dsf-hero-centered-preview__title { font-size: 2.1rem; }
-  .dsf-hero-centered-preview__subtitle { font-size: 1rem; }
+  .dsf-hero-centered-preview__title { font-size: var(--dsf-theme-h2, 2.1rem); }
+  .dsf-hero-centered-preview__subtitle { font-size: var(--dsf-theme-text-base, 1rem); }
 }
 
 @container (max-width: 768px) {
@@ -205,7 +205,7 @@ const contentStyle = computed(() => {
     min-height: 360px !important;
   }
 
-  .dsf-hero-centered-preview__title { font-size: 1.75rem; }
-  .dsf-hero-centered-preview__subtitle { font-size: 0.95rem; }
+  .dsf-hero-centered-preview__title { font-size: var(--dsf-theme-h3, 1.75rem); }
+  .dsf-hero-centered-preview__subtitle { font-size: var(--dsf-theme-text-sm, 0.95rem); }
 }
 </style>

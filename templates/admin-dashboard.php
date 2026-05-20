@@ -7,10 +7,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$render_recent_items = static function ( $title, $items, $all_url, $edit_url_callback, $view_url_callback, $empty_text ) {
+$render_recent_items = static function ( $title, $items, $all_url, $edit_url_callback, $view_url_callback, $empty_text, $total = null ) {
+	$count_label = '';
+	if ( null !== $total ) {
+		$count_label = ' (' . number_format_i18n( $total ) . ')';
+	}
 	?>
 	<div style="border: 1px solid #d9dee8; border-radius: 8px; background: #fff; padding: 14px;">
-		<h3 style="margin: 0 0 10px; font-size: 16px;"><?php echo esc_html( $title ); ?></h3>
+		<h3 style="margin: 0 0 10px; font-size: 16px;"><?php echo esc_html( $title . $count_label ); ?></h3>
 
 		<?php if ( empty( $items ) ) : ?>
 			<p style="margin: 0; color: #646970;"><?php echo esc_html( $empty_text ); ?></p>
@@ -54,9 +58,11 @@ $render_recent_items = static function ( $title, $items, $all_url, $edit_url_cal
 				<?php endforeach; ?>
 			</ul>
 
-			<p style="margin: 10px 0 0;">
-				<a href="<?php echo esc_url( $all_url ); ?>"><?php esc_html_e( 'View all →', 'designstudio-flow' ); ?></a>
-			</p>
+			<?php if ( null === $total || $total > count( $items ) ) : ?>
+				<p style="margin: 10px 0 0;">
+					<a href="<?php echo esc_url( $all_url ); ?>"><?php esc_html_e( 'View all →', 'designstudio-flow' ); ?></a>
+				</p>
+			<?php endif; ?>
 		<?php endif; ?>
 	</div>
 	<?php
@@ -91,7 +97,8 @@ $render_recent_items = static function ( $title, $items, $all_url, $edit_url_cal
 					static function ( $item ) {
 						return get_permalink( $item->ID );
 					},
-					__( 'No pages yet.', 'designstudio-flow' )
+					__( 'No pages yet.', 'designstudio-flow' ),
+					$pages_total
 				);
 				$render_recent_items(
 					__( 'Headers', 'designstudio-flow' ),
@@ -104,7 +111,8 @@ $render_recent_items = static function ( $title, $items, $all_url, $edit_url_cal
 						unset( $item );
 						return '';
 					},
-					__( 'No headers yet.', 'designstudio-flow' )
+					__( 'No headers yet.', 'designstudio-flow' ),
+					$headers_total
 				);
 				$render_recent_items(
 					__( 'Footers', 'designstudio-flow' ),
@@ -117,7 +125,8 @@ $render_recent_items = static function ( $title, $items, $all_url, $edit_url_cal
 						unset( $item );
 						return '';
 					},
-					__( 'No footers yet.', 'designstudio-flow' )
+					__( 'No footers yet.', 'designstudio-flow' ),
+					$footers_total
 				);
 				$render_recent_items(
 					__( 'Forms', 'designstudio-flow' ),
@@ -130,7 +139,8 @@ $render_recent_items = static function ( $title, $items, $all_url, $edit_url_cal
 						unset( $item );
 						return '';
 					},
-					__( 'No forms yet.', 'designstudio-flow' )
+					__( 'No forms yet.', 'designstudio-flow' ),
+					$forms_total
 				);
 				?>
 			</div>

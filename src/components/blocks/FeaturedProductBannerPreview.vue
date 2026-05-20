@@ -227,14 +227,14 @@ const backgroundStyle = computed(() => {
 
 .dsf-fpb__ribbon-text {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 42px;
+  font-size: var(--dsf-theme-h1, 42px);
   font-weight: 700;
   line-height: 1;
 }
 
 .dsf-fpb__ribbon-subtext {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 42px;
+  font-size: var(--dsf-theme-h1, 42px);
   font-weight: 700;
   line-height: 1.1;
 }
@@ -297,7 +297,7 @@ const backgroundStyle = computed(() => {
 
 .dsf-fpb__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 42px;
+  font-size: var(--dsf-theme-h1, 42px);
   font-weight: 700;
   font-style: italic;
   margin: 0;
@@ -308,7 +308,7 @@ const backgroundStyle = computed(() => {
 
 .dsf-fpb__promo {
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   font-weight: 700;
   margin-top: 0.25rem;
   line-height: 1.2;
@@ -316,7 +316,7 @@ const backgroundStyle = computed(() => {
 
 .dsf-fpb__desc {
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: 18px;
+  font-size: var(--dsf-theme-text-lg, 18px);
   font-style: italic;
   margin: 0.25rem 0;
   opacity: 0.9;
@@ -327,7 +327,7 @@ const backgroundStyle = computed(() => {
   font-family: var(--dsf-theme-body-font, inherit);
   margin-top: 0.75rem;
   padding: 0.625rem 1.5rem;
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   font-weight: 600;
   text-decoration: none;
   border-radius: 4px;
@@ -345,9 +345,9 @@ const backgroundStyle = computed(() => {
 @container (max-width: 1024px) {
   .dsf-fpb__product { width: 260px; height: 260px; }
   .dsf-fpb__content { right: 2rem; }
-  .dsf-fpb__title { font-size: 32px; }
-  .dsf-fpb__promo { font-size: 20px; }
-  .dsf-fpb__btn { font-size: 18px; }
+  .dsf-fpb__title { font-size: var(--dsf-theme-h2, 32px); }
+  .dsf-fpb__promo { font-size: var(--dsf-theme-text-xl, 20px); }
+  .dsf-fpb__btn { font-size: var(--dsf-theme-text-lg, 18px); }
 }
 
 @container (max-width: 768px) {
@@ -386,8 +386,8 @@ const backgroundStyle = computed(() => {
     padding: 0 16px 16px;
   }
 
-  .dsf-fpb__title { font-size: 28px; }
-  .dsf-fpb__promo { font-size: 18px; }
-  .dsf-fpb__btn { font-size: 18px; }
+  .dsf-fpb__title { font-size: var(--dsf-theme-h3, 28px); }
+  .dsf-fpb__promo { font-size: var(--dsf-theme-text-lg, 18px); }
+  .dsf-fpb__btn { font-size: var(--dsf-theme-text-lg, 18px); }
 }
 </style>

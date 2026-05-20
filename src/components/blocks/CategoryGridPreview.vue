@@ -127,7 +127,7 @@ const displayCategories = computed(() => {
 <style scoped>
 .dsf-category-grid-preview__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 1.875rem;
+  font-size: var(--dsf-theme-h3, 1.875rem);
   font-weight: 700;
   margin-bottom: 2rem;
   line-height: 1.2;
@@ -215,7 +215,7 @@ const displayCategories = computed(() => {
 .dsf-shop-all-text {
   font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 600;
-  font-size: 1.125rem;
+  font-size: var(--dsf-theme-text-lg, 1.125rem);
   line-height: 1.3;
 }
 
@@ -246,7 +246,7 @@ const displayCategories = computed(() => {
 }
 
 .dsf-pagination-text {
-  font-size: 0.875rem;
+  font-size: var(--dsf-theme-text-sm, 0.875rem);
   font-weight: 500;
 }
 
@@ -259,7 +259,7 @@ const displayCategories = computed(() => {
   font-family: var(--dsf-theme-body-font, inherit);
   text-align: center;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--dsf-theme-text-base, 1rem);
   color: #1F2937;
   line-height: 1.2;
   display: -webkit-box;

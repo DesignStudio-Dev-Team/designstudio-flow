@@ -880,6 +880,15 @@ class DSF_Frontend {
 		$container_width = intval( $layout['containerWidth'] ?? $defaults['layout']['containerWidth'] );
 		$content_padding = intval( $layout['contentPadding'] ?? $defaults['layout']['contentPadding'] );
 
+		// Fall back to admin Typography option when per-page font is empty.
+		$typography_option = self::get_typography_option();
+		if ( '' === $heading_font && '' !== $typography_option['heading_font'] ) {
+			$heading_font = $typography_option['heading_font'];
+		}
+		if ( '' === $body_font && '' !== $typography_option['body_font'] ) {
+			$body_font = $typography_option['body_font'];
+		}
+
 		$style = sprintf(
 			'--dsf-theme-primary:%s; --dsf-theme-secondary:%s; --dsf-theme-text:%s; --dsf-theme-background:%s; --dsf-theme-container-width:%dpx; --dsf-theme-content-padding:%dpx; --dsf-primary-500:%s; --dsf-primary-600:%s; --dsf-primary-700:%s;',
 			esc_attr( $primary ),
@@ -901,7 +910,139 @@ class DSF_Frontend {
 			$style .= sprintf( ' --dsf-theme-body-font:%s;', esc_attr( $body_font ) );
 		}
 
+		// Typography scale: base size + modular scale → 7 size tokens + 6 heading aliases.
+		$typography = self::get_default_typography();
+		foreach ( self::compute_typography_tokens( $typography['base'], $typography['scale'] ) as $name => $value ) {
+			$style .= sprintf( ' %s:%s;', $name, esc_attr( $value ) );
+		}
+
 		return $style;
+	}
+
+	/**
+	 * Resolve the active typography defaults.
+	 * Admin override wins when configured; otherwise reads the base body size from
+	 * theme.json (block themes) when available; otherwise hard defaults.
+	 *
+	 * @return array{base:float,scale:float}
+	 */
+	public static function get_default_typography() {
+		$option = self::get_typography_option();
+
+		if ( 'override' === $option['mode'] ) {
+			return array(
+				'base'  => $option['base'],
+				'scale' => $option['scale'],
+			);
+		}
+
+		$base  = 16.0;
+		$scale = 1.25;
+
+		if ( function_exists( 'wp_get_global_styles' ) ) {
+			$styles = wp_get_global_styles( array( 'typography' ) );
+			if ( ! empty( $styles['fontSize'] ) ) {
+				$parsed = self::parse_css_length_to_px( $styles['fontSize'] );
+				if ( $parsed > 0 ) {
+					$base = $parsed;
+				}
+			}
+		}
+
+		return array(
+			'base'  => $base,
+			'scale' => $scale,
+		);
+	}
+
+	/**
+	 * Read and normalize the admin Typography option.
+	 * Returns a stable shape so callers can rely on all keys being present.
+	 *
+	 * @return array{mode:string,heading_font:string,body_font:string,base:float,scale:float}
+	 */
+	public static function get_typography_option() {
+		$option = get_option( 'dsf_typography', array() );
+		if ( ! is_array( $option ) ) {
+			$option = array();
+		}
+		return array(
+			'mode'         => ( ( $option['mode'] ?? '' ) === 'override' ) ? 'override' : 'theme',
+			'heading_font' => isset( $option['heading_font'] ) ? (string) $option['heading_font'] : '',
+			'body_font'    => isset( $option['body_font'] ) ? (string) $option['body_font'] : '',
+			'base'         => isset( $option['base'] ) ? floatval( $option['base'] ) : 16.0,
+			'scale'        => isset( $option['scale'] ) ? floatval( $option['scale'] ) : 1.25,
+		);
+	}
+
+	/**
+	 * Compute the CSS variable map for a given base size + modular scale ratio.
+	 * Returns an ordered associative array of var name => CSS value (with units).
+	 */
+	public static function compute_typography_tokens( $base_px, $scale ) {
+		$base  = max( 8.0, (float) $base_px );
+		$scale = max( 1.05, (float) $scale );
+
+		$sizes = array(
+			'xs'   => $base / ( $scale * $scale ),
+			'sm'   => $base / $scale,
+			'base' => $base,
+			'lg'   => $base * $scale,
+			'xl'   => $base * pow( $scale, 2 ),
+			'2xl'  => $base * pow( $scale, 3 ),
+			'3xl'  => $base * pow( $scale, 4 ),
+			'4xl'  => $base * pow( $scale, 5 ),
+		);
+
+		$tokens = array(
+			'--dsf-theme-text-base'  => sprintf( '%.4gpx', $base ),
+			'--dsf-theme-text-scale' => sprintf( '%.4g', $scale ),
+		);
+		foreach ( $sizes as $key => $px ) {
+			$tokens[ '--dsf-theme-text-' . $key ] = sprintf( '%.4gpx', $px );
+		}
+
+		// Heading aliases — semantic shortcuts for block CSS.
+		$headings = array(
+			'h1' => $sizes['4xl'],
+			'h2' => $sizes['3xl'],
+			'h3' => $sizes['2xl'],
+			'h4' => $sizes['xl'],
+			'h5' => $sizes['lg'],
+			'h6' => $sizes['base'],
+		);
+		foreach ( $headings as $key => $px ) {
+			$tokens[ '--dsf-theme-' . $key ] = sprintf( '%.4gpx', $px );
+		}
+
+		return $tokens;
+	}
+
+	/**
+	 * Convert a CSS length string (px/rem/em) to a pixel float. Returns 0 if unparseable.
+	 * Assumes 1rem = 16px (the browser default and what theme.json authors target).
+	 */
+	private static function parse_css_length_to_px( $value ) {
+		if ( ! is_string( $value ) ) {
+			return 0.0;
+		}
+		$value = trim( $value );
+		if ( '' === $value ) {
+			return 0.0;
+		}
+		if ( ! preg_match( '/^(-?\d*\.?\d+)\s*(px|rem|em)?$/i', $value, $m ) ) {
+			return 0.0;
+		}
+		$num  = (float) $m[1];
+		$unit = strtolower( $m[2] ?? 'px' );
+		switch ( $unit ) {
+			case 'rem':
+			case 'em':
+				return $num * 16.0;
+			case 'px':
+			default:
+				return $num;
+		}
 	}
 
 	private function get_wc_categories() {

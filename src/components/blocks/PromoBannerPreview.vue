@@ -209,7 +209,7 @@ const buttonStyle = computed(() => ({
 
 .dsf-promo-banner__pretext {
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   font-weight: 500;
   letter-spacing: 0.05em;
   opacity: 0.9;
@@ -249,7 +249,7 @@ const buttonStyle = computed(() => ({
 
 .dsf-promo-banner__suffix {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 34px;
+  font-size: var(--dsf-theme-h2, 34px);
   font-weight: 500;
   line-height: 1;
 }
@@ -265,7 +265,7 @@ const buttonStyle = computed(() => ({
   font-family: var(--dsf-theme-body-font, inherit);
   display: flex;
   flex-direction: column;
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   line-height: 1.4;
 }
 
@@ -277,7 +277,7 @@ const buttonStyle = computed(() => ({
   font-family: var(--dsf-theme-body-font, inherit);
   margin-top: 1rem;
   padding: 0.625rem 1.5rem;
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   font-weight: 600;
   text-decoration: none;
   border-radius: 4px;
@@ -295,7 +295,7 @@ const buttonStyle = computed(() => ({
 @container (max-width: 1024px) {
   .dsf-promo-banner__amount { font-size: 110px; }
   .dsf-promo-banner__percent { font-size: 68px; }
-  .dsf-promo-banner__suffix { font-size: 28px; }
+  .dsf-promo-banner__suffix { font-size: var(--dsf-theme-h3, 28px); }
   .dsf-promo-banner__panel { width: min(420px, 45%) !important; }
 }
 
@@ -304,7 +304,7 @@ const buttonStyle = computed(() => ({
   .dsf-promo-banner__panel { width: 100% !important; padding: 1.5rem; }
   .dsf-promo-banner__amount { font-size: 96px; }
   .dsf-promo-banner__percent { font-size: 56px; }
-  .dsf-promo-banner__suffix { font-size: 24px; }
+  .dsf-promo-banner__suffix { font-size: var(--dsf-theme-h3, 24px); }
   .dsf-promo-banner__btn { width: 100%; text-align: center; }
 }
 </style>

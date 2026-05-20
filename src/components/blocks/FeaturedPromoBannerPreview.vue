@@ -256,7 +256,7 @@ function handleButtonClick(event) {
 
 .dsf-featured-promo__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 42px;
+  font-size: var(--dsf-theme-h1, 42px);
   font-weight: 700;
   margin-bottom: 24px;
   line-height: 1.15;
@@ -274,7 +274,7 @@ function handleButtonClick(event) {
 
 .dsf-featured-promo__description {
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   margin-bottom: 32px;
   line-height: 1.4;
   max-width: 80%;
@@ -307,7 +307,7 @@ function handleButtonClick(event) {
   font-family: var(--dsf-theme-body-font, inherit);
   color: white;
   font-weight: 600;
-  font-size: 16px;
+  font-size: var(--dsf-theme-text-base, 16px);
   max-width: 0;
   opacity: 0;
   white-space: nowrap;
@@ -401,19 +401,19 @@ function handleButtonClick(event) {
 
 /* Font Sizes */
 .dsf-badge-lg {
-  font-size: 36px;
+  font-size: var(--dsf-theme-h2, 36px);
   font-weight: 700;
   display: block;
 }
 
 .dsf-badge-md {
-  font-size: 26px;
+  font-size: var(--dsf-theme-h3, 26px);
   font-weight: 600;
   display: block;
 }
 
 .dsf-badge-sm {
-  font-size: 19px;
+  font-size: var(--dsf-theme-text-lg, 19px);
   font-weight: 500;
   display: block;
 }
@@ -446,14 +446,14 @@ function handleButtonClick(event) {
     height: 100px;
   }
   
-  .dsf-badge-lg { font-size: 24px; }
-  .dsf-badge-md { font-size: 18px; }
-  .dsf-badge-sm { font-size: 14px; }
+  .dsf-badge-lg { font-size: var(--dsf-theme-h3, 24px); }
+  .dsf-badge-md { font-size: var(--dsf-theme-text-lg, 18px); }
+  .dsf-badge-sm { font-size: var(--dsf-theme-text-sm, 14px); }
 }
 
 @container (max-width: 1024px) {
-  .dsf-featured-promo__title { font-size: 34px; }
-  .dsf-featured-promo__description { font-size: 18px; }
+  .dsf-featured-promo__title { font-size: var(--dsf-theme-h2, 34px); }
+  .dsf-featured-promo__description { font-size: var(--dsf-theme-text-lg, 18px); }
 }
 
 @container (max-width: 768px) {
@@ -476,7 +476,7 @@ function handleButtonClick(event) {
     padding: 24px;
   }
 
-  .dsf-featured-promo__title { font-size: 28px; }
-  .dsf-featured-promo__description { font-size: 16px; }
+  .dsf-featured-promo__title { font-size: var(--dsf-theme-h3, 28px); }
+  .dsf-featured-promo__description { font-size: var(--dsf-theme-text-base, 16px); }
 }
 </style>

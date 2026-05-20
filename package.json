@@ -1,13 +1,14 @@
 {
   "name": "designstudio-flow",
-  "version": "1.3.6",
+  "version": "1.3.7",
   "description": "Build your WordPress Page with Artisanal Content Blocks",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "release": "bash scripts/build-release.sh",
+    "release": "node scripts/release.mjs",
+    "release:zip": "bash scripts/build-release.sh",
     "test": "vitest",
     "test:run": "vitest run",
     "test:php": "vendor/bin/phpunit",

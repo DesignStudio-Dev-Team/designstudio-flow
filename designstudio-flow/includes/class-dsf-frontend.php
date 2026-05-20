@@ -1,0 +1,972 @@
+<?php
+/**
+ * Frontend rendering for DesignStudio Flow
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+class DSF_Frontend {
+
+	private static $instance = null;
+
+	/**
+	 * Track which posts have had their Flow blocks rendered,
+	 * so the_content filter does not output native content a second time.
+	 */
+	private $rendered_posts = array();
+
+	/** Per-request cache for get_page_settings() results. */
+	private $settings_cache = array();
+
+	public static function get_instance() {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	private function __construct() {
+		add_filter( 'the_content', array( $this, 'render_flow_content' ), 20 );
+		// Use priority 20 to ensure the main query is fully set up before we check for Flow pages.
+		// This fixes asset loading for non-logged-in users where get_queried_object_id() may return 0
+		// at the default priority (10) due to the query not being initialized yet.
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ), 20 );
+		add_filter( 'template_include', array( $this, 'load_flow_template' ), 99 );
+		add_filter( 'script_loader_tag', array( $this, 'add_module_type_to_scripts' ), 10, 3 );
+		add_filter( 'dsf_flow_show_header', array( $this, 'filter_show_header' ), 10, 2 );
+		add_filter( 'dsf_flow_show_footer', array( $this, 'filter_show_footer' ), 10, 2 );
+	}
+
+	/**
+	 * Enqueue frontend assets
+	 */
+	public function enqueue_frontend_assets() {
+		// Try get_queried_object_id() first, then fall back to global $post.
+		// This ensures we load assets correctly for all users, including when
+		// caching plugins or certain themes don't initialize the query fully.
+		$post_id = get_queried_object_id();
+
+		// Fallback to global $post if get_queried_object_id() returns 0
+		if ( ! $post_id ) {
+			global $post;
+			if ( $post instanceof WP_Post ) {
+				$post_id = $post->ID;
+			}
+		}
+
+		if ( ! $post_id ) {
+			return;
+		}
+
+		$current_post = get_post( $post_id );
+		if ( ! $current_post ) {
+			return;
+		}
+
+		// Check if this is a Flow page or has Flow blocks
+		$is_flow = 'dsf_page' === $current_post->post_type || get_post_meta( $post_id, '_dsf_enabled', true );
+
+		if ( ! $is_flow ) {
+			return;
+		}
+
+		// Production or development mode
+		$is_dev = defined( 'DSF_DEV_MODE' ) && DSF_DEV_MODE;
+
+		$main_css_version       = $this->get_asset_version( 'assets/css/main.css' );
+		$frontend_theme_version = $this->get_asset_version( 'assets/css/frontend.css' );
+		$frontend_js_version    = $this->get_asset_version( 'assets/js/frontend.js' );
+
+		$blocks_meta = get_post_meta( $post_id, '_dsf_blocks', true );
+		if ( is_array( $blocks_meta ) ) {
+			$blocks = $blocks_meta;
+		} else {
+			$blocks = $blocks_meta ? json_decode( $blocks_meta, true ) : array();
+			if ( ! is_array( $blocks ) ) {
+				$blocks = array();
+			}
+		}
+		$blocks = $this->prepare_blocks_for_frontend( $blocks );
+
+		$layout_templates = $this->get_assigned_layout_templates_data( $post_id );
+		$layout_templates = $this->prepare_layout_templates_for_frontend( $layout_templates );
+
+		wp_enqueue_style(
+			'dsf-main',
+			DSF_PLUGIN_URL . 'assets/css/main.css',
+			array(),
+			$main_css_version
+		);
+
+		wp_enqueue_style(
+			'dsf-frontend',
+			DSF_PLUGIN_URL . 'assets/css/frontend.css',
+			array( 'dsf-main' ),
+			$frontend_theme_version
+		);
+
+		if ( $is_dev ) {
+			wp_enqueue_script(
+				'dsf-frontend-vite',
+				'http://localhost:5173/@vite/client',
+				array(),
+				DSF_VERSION,
+				true
+			);
+			wp_enqueue_script(
+				'dsf-frontend-app',
+				'http://localhost:5173/src/frontend/main.js',
+				array( 'dsf-frontend-vite' ),
+				DSF_VERSION,
+				true
+			);
+		} else {
+			wp_enqueue_script(
+				'dsf-frontend-app',
+				DSF_PLUGIN_URL . 'assets/js/frontend.js',
+				array(),
+				$frontend_js_version,
+				true
+			);
+		}
+
+		wp_localize_script(
+			'dsf-frontend-app',
+			'dsfFrontendData',
+			array(
+				'postId'          => $post_id,
+				'blocks'          => $blocks,
+				'layoutTemplates' => $layout_templates,
+				'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
+				'nonce'           => wp_create_nonce( 'dsf_frontend_nonce' ),
+				'categories'      => $this->get_wc_categories(),
+				'isWooActive'     => class_exists( 'WooCommerce' ),
+				'wcAjaxUrl'       => class_exists( 'WooCommerce' ) ? \WC_AJAX::get_endpoint( 'add_to_cart' ) : '',
+				'wcCartNonce'     => class_exists( 'WooCommerce' ) ? wp_create_nonce( 'woocommerce-process_checkout' ) : '',
+			)
+		);
+
+		wp_add_inline_script(
+			'dsf-frontend-app',
+			'window.dsfEditorData = window.dsfEditorData || window.dsfFrontendData || {};',
+			'before'
+		);
+
+		// Enqueue Google Fonts if custom fonts are set
+		$this->enqueue_google_fonts( $post_id );
+	}
+
+	/**
+	 * Prepare registered blocks for frontend runtime.
+	 */
+	private function prepare_blocks_for_frontend( $blocks ) {
+		if ( ! is_array( $blocks ) ) {
+			return array();
+		}
+
+		return array_map(
+			array( $this, 'prepare_single_block_for_frontend' ),
+			$blocks
+		);
+	}
+
+	/**
+	 * Prepare layout templates payload for frontend runtime.
+	 */
+	private function prepare_layout_templates_for_frontend( $layout_templates ) {
+		if ( ! is_array( $layout_templates ) ) {
+			return array();
+		}
+
+		foreach ( array( 'header', 'footer' ) as $type ) {
+			if ( empty( $layout_templates[ $type ]['blocks'] ) || ! is_array( $layout_templates[ $type ]['blocks'] ) ) {
+				continue;
+			}
+			$layout_templates[ $type ]['blocks'] = $this->prepare_blocks_for_frontend( $layout_templates[ $type ]['blocks'] );
+		}
+
+		return $layout_templates;
+	}
+
+	/**
+	 * Prepare one block payload for frontend rendering.
+	 */
+	private function prepare_single_block_for_frontend( $block ) {
+		if ( ! is_array( $block ) ) {
+			return array();
+		}
+
+		$type = isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
+		if ( ! in_array( $type, array( 'form-embed', 'form-with-content' ), true ) ) {
+			return $block;
+		}
+
+		$settings = isset( $block['settings'] ) && is_array( $block['settings'] ) ? $block['settings'] : array();
+		$form_source = isset( $settings['formSource'] ) ? sanitize_key( $settings['formSource'] ) : 'dsf';
+
+		if ( 'form-with-content' === $type && 'embed' === $form_source ) {
+			$embed_code                       = isset( $settings['embedCode'] ) ? (string) $settings['embedCode'] : '';
+			$embed_payload                    = $this->render_embed_code( $embed_code );
+			$settings['formSource']          = 'embed';
+			$settings['renderedFormHtml']    = '';
+			$settings['renderedEmbedHtml']   = $embed_payload['html'];
+			$settings['renderedEmbedScripts'] = $embed_payload['scripts'];
+			$block['settings']               = $settings;
+
+			return $block;
+		}
+
+		$form_id  = isset( $settings['formId'] ) ? absint( $settings['formId'] ) : 0;
+		$form     = $form_id ? get_post( $form_id ) : null;
+
+		if ( ! $form || 'dsf_form' !== $form->post_type ) {
+			$form_id = 0;
+		}
+
+		$settings['formId']           = $form_id ? (string) $form_id : '';
+		$settings['formTitle']        = ( $form_id && $form && $form->post_title ) ? $form->post_title : '';
+		$settings['renderedFormHtml'] = $form_id ? DSF_Forms::get_instance()->render_form_shortcode( array( 'id' => $form_id ) ) : '';
+		$block['settings']            = $settings;
+
+		return $block;
+	}
+
+	/**
+	 * Render shortcode/embed content for frontend block output.
+	 */
+	private function render_embed_code( $embed_code ) {
+		if ( '' === trim( $embed_code ) ) {
+			return array(
+				'html'    => '',
+				'scripts' => array(),
+			);
+		}
+
+		$this->enqueue_gravity_form_assets_from_embed_code( $embed_code );
+
+		$html = do_shortcode( $embed_code );
+		$scripts = array();
+		$html = $this->mark_hidden_gravity_form_pages( $html );
+		$html = $this->mark_gravity_form_ajax_iframes( $html );
+		$html = preg_replace_callback(
+			'#<script\b([^>]*)>(.*?)</script>#is',
+			function ( $matches ) use ( &$scripts ) {
+				$code  = isset( $matches[2] ) ? trim( $matches[2] ) : '';
+
+				if ( '' !== $code ) {
+					$scripts[] = array(
+						'code' => $code,
+					);
+				}
+
+				return '';
+			},
+			$html
+		);
+		$html = preg_replace( '#<style\b[^>]*>.*?</style>#is', '', $html );
+
+		$allowed = wp_kses_allowed_html( 'post' );
+		$common_attrs = array(
+			'class'  => true,
+			'id'     => true,
+			'style'  => true,
+			'title'  => true,
+			'role'   => true,
+			'hidden' => true,
+			'data-*' => true,
+			'aria-*' => true,
+		);
+		foreach ( array( 'div', 'section', 'span', 'p', 'ul', 'ol', 'li', 'strong', 'em', 'small' ) as $tag ) {
+			$allowed[ $tag ] = isset( $allowed[ $tag ] ) ? array_merge( $allowed[ $tag ], $common_attrs ) : $common_attrs;
+		}
+		$allowed['a'] = isset( $allowed['a'] ) ? array_merge(
+			$allowed['a'],
+			$common_attrs,
+			array(
+				'href'       => true,
+				'target'     => true,
+				'rel'        => true,
+				'onclick'    => true,
+				'onkeypress' => true,
+			)
+		) : array_merge(
+			$common_attrs,
+			array(
+				'href'       => true,
+				'target'     => true,
+				'rel'        => true,
+				'onclick'    => true,
+				'onkeypress' => true,
+			)
+		);
+		$allowed['form'] = array(
+			'action'         => true,
+			'method'         => true,
+			'enctype'        => true,
+			'target'         => true,
+			'class'          => true,
+			'id'             => true,
+			'name'           => true,
+			'novalidate'     => true,
+			'data-*'         => true,
+			'aria-*'         => true,
+		);
+		$allowed['fieldset'] = array(
+			'class'  => true,
+			'id'     => true,
+			'data-*' => true,
+			'aria-*' => true,
+		);
+		$allowed['legend'] = array(
+			'class'  => true,
+			'id'     => true,
+			'data-*' => true,
+			'aria-*' => true,
+		);
+		$allowed['label'] = array(
+			'for'    => true,
+			'class'  => true,
+			'id'     => true,
+			'style'  => true,
+			'data-*' => true,
+			'aria-*' => true,
+		);
+		$allowed['input'] = array(
+			'type'         => true,
+			'name'         => true,
+			'value'        => true,
+			'id'           => true,
+			'class'        => true,
+			'style'        => true,
+			'placeholder'  => true,
+			'checked'      => true,
+			'disabled'     => true,
+			'readonly'     => true,
+			'required'     => true,
+			'autocomplete' => true,
+			'min'          => true,
+			'max'          => true,
+			'step'         => true,
+			'maxlength'    => true,
+			'tabindex'     => true,
+			'onclick'      => true,
+			'onkeypress'   => true,
+			'data-*'       => true,
+			'aria-*'       => true,
+		);
+		$allowed['select'] = array(
+			'name'     => true,
+			'id'       => true,
+			'class'    => true,
+			'style'    => true,
+			'multiple' => true,
+			'disabled' => true,
+			'required' => true,
+			'tabindex' => true,
+			'data-*'   => true,
+			'aria-*'   => true,
+		);
+		$allowed['option'] = array(
+			'value'    => true,
+			'selected' => true,
+			'disabled' => true,
+			'class'    => true,
+			'data-*'   => true,
+		);
+		$allowed['textarea'] = array(
+			'name'        => true,
+			'id'          => true,
+			'class'       => true,
+			'style'       => true,
+			'placeholder' => true,
+			'rows'        => true,
+			'cols'        => true,
+			'disabled'    => true,
+			'readonly'    => true,
+			'required'    => true,
+			'maxlength'   => true,
+			'tabindex'    => true,
+			'data-*'      => true,
+			'aria-*'      => true,
+		);
+		$allowed['button'] = array(
+			'type'          => true,
+			'name'          => true,
+			'value'         => true,
+			'id'            => true,
+			'class'         => true,
+			'style'         => true,
+			'disabled'      => true,
+			'aria-label'    => true,
+			'onclick'       => true,
+			'onkeypress'    => true,
+			'data-*'        => true,
+			'aria-*'        => true,
+		);
+		$allowed['svg'] = array(
+			'class'       => true,
+			'viewBox'     => true,
+			'xmlns'       => true,
+			'width'       => true,
+			'height'      => true,
+			'fill'        => true,
+			'focusable'   => true,
+			'aria-hidden' => true,
+			'role'        => true,
+			'data-*'      => true,
+		);
+		$allowed['path'] = array(
+			'd'         => true,
+			'fill'      => true,
+			'fill-rule' => true,
+			'clip-rule' => true,
+			'data-*'    => true,
+		);
+		$allowed['iframe'] = array(
+			'src'             => true,
+			'id'              => true,
+			'name'            => true,
+			'title'           => true,
+			'width'           => true,
+			'height'          => true,
+			'class'           => true,
+			'style'           => true,
+			'loading'         => true,
+			'frameborder'     => true,
+			'allow'           => true,
+			'allowfullscreen' => true,
+			'referrerpolicy'  => true,
+			'sandbox'         => true,
+			'data-*'          => true,
+		);
+
+		$sanitized_html = wp_kses( $html, $allowed );
+		$sanitized_html = str_replace(
+			'data-dsf-gform-page-hidden="1"',
+			'data-dsf-gform-page-hidden="1" style="display:none;"',
+			$sanitized_html
+		);
+		$sanitized_html = preg_replace_callback(
+			'#<iframe\b[^>]*\bdata-dsf-gform-ajax-frame="([^"]+)"[^>]*>#i',
+			function ( $matches ) {
+				$frame_id = esc_attr( $matches[1] );
+				return '<iframe name="' . $frame_id . '" id="' . $frame_id . '" src="about:blank" style="display:none;width:0px;height:0px;" title="This iframe contains the logic required to handle Ajax powered Gravity Forms.">';
+			},
+			$sanitized_html
+		);
+
+		return array(
+			'html'    => $sanitized_html,
+			'scripts' => $scripts,
+		);
+	}
+
+	/**
+	 * Preserve Gravity Forms multipage hidden state through wp_kses style filtering.
+	 */
+	private function mark_hidden_gravity_form_pages( $html ) {
+		return preg_replace_callback(
+			'#<div\b[^>]*class=(["\'])(?=[^"\']*\bgform_page\b)[^"\']*\1[^>]*style=(["\'])(?=[^"\']*display\s*:\s*none)[^"\']*\2[^>]*>#i',
+			function ( $matches ) {
+				$tag = $matches[0];
+				if ( false !== strpos( $tag, 'data-dsf-gform-page-hidden' ) ) {
+					return $tag;
+				}
+				return preg_replace( '/>$/', ' data-dsf-gform-page-hidden="1">', $tag );
+			},
+			$html
+		);
+	}
+
+	/**
+	 * Preserve Gravity Forms AJAX target iframes through wp_kses protocol/style filtering.
+	 */
+	private function mark_gravity_form_ajax_iframes( $html ) {
+		return preg_replace_callback(
+			'#<iframe\b[^>]*(?:name|id)=(["\'])(gform_ajax_frame_\d+)\1[^>]*>#i',
+			function ( $matches ) {
+				$tag = $matches[0];
+				if ( false !== strpos( $tag, 'data-dsf-gform-ajax-frame' ) ) {
+					return $tag;
+				}
+				return preg_replace( '/>$/', ' data-dsf-gform-ajax-frame="' . esc_attr( $matches[2] ) . '">', $tag );
+			},
+			$html
+		);
+	}
+
+	/**
+	 * Ask Gravity Forms to enqueue frontend assets for embedded shortcodes.
+	 */
+	private function enqueue_gravity_form_assets_from_embed_code( $embed_code ) {
+		if ( ! function_exists( 'gravity_form_enqueue_scripts' ) || ! function_exists( 'shortcode_parse_atts' ) ) {
+			return;
+		}
+
+		if ( ! preg_match_all( '/\[gravityforms?\b([^\]]*)\]/i', $embed_code, $matches ) ) {
+			return;
+		}
+
+		foreach ( $matches[1] as $attributes ) {
+			$atts = shortcode_parse_atts( $attributes );
+			if ( ! is_array( $atts ) ) {
+				continue;
+			}
+
+			$form_id = isset( $atts['id'] ) ? absint( $atts['id'] ) : 0;
+			if ( ! $form_id ) {
+				continue;
+			}
+
+			$ajax = isset( $atts['ajax'] ) && in_array( strtolower( (string) $atts['ajax'] ), array( 'true', '1', 'yes' ), true );
+			gravity_form_enqueue_scripts( $form_id, $ajax );
+		}
+	}
+
+	/**
+	 * Enqueue Google Fonts for custom theme fonts
+	 */
+	private function enqueue_google_fonts( $post_id ) {
+		$settings = $this->get_page_settings( $post_id );
+		$theme    = $settings['theme'] ?? array();
+
+		$fonts_to_load = array();
+
+		// Extract font names from heading and body font settings
+		foreach ( array( 'headingFont', 'bodyFont' ) as $font_key ) {
+			if ( ! empty( $theme[ $font_key ] ) ) {
+				$font_family = $theme[ $font_key ];
+				// Extract font name from font-family string like "'Inter', sans-serif"
+				if ( preg_match( "/'([^']+)'/", $font_family, $matches ) ) {
+					$font_name = $matches[1];
+					// Skip system fonts
+					if ( ! in_array( strtolower( $font_name ), array( 'sans-serif', 'serif', 'monospace', 'cursive', 'fantasy', 'system-ui' ), true ) ) {
+						$fonts_to_load[ $font_name ] = true;
+					}
+				}
+			}
+		}
+
+		if ( empty( $fonts_to_load ) ) {
+			return;
+		}
+
+		// Build Google Fonts URL
+		$font_families = array();
+		foreach ( array_keys( $fonts_to_load ) as $font_name ) {
+			$font_families[] = str_replace( ' ', '+', $font_name ) . ':wght@400;500;600;700';
+		}
+
+		$google_fonts_url = 'https://fonts.googleapis.com/css2?family=' . implode( '&family=', $font_families ) . '&display=swap';
+
+		wp_enqueue_style(
+			'dsf-google-fonts',
+			$google_fonts_url,
+			array(),
+			null // No version for external resource
+		);
+	}
+
+	/**
+	 * Get version string for cache busting based on file mtime.
+	 */
+	private function get_asset_version( $relative_path ) {
+		$relative_path = ltrim( $relative_path, '/' );
+		$path          = DSF_PLUGIN_DIR . $relative_path;
+		if ( file_exists( $path ) ) {
+			return (string) filemtime( $path );
+		}
+		return DSF_VERSION;
+	}
+
+	/**
+	 * Add type="module" to frontend Vite scripts
+	 */
+	public function add_module_type_to_scripts( $tag, $handle, $src ) {
+		unset( $src );
+		if ( in_array( $handle, array( 'dsf-frontend-vite', 'dsf-frontend-app' ), true ) ) {
+			if ( false === strpos( $tag, 'type="module"' ) ) {
+				$tag = str_replace( '<script ', '<script type="module" ', $tag );
+			}
+		}
+		return $tag;
+	}
+
+	/**
+	 * Render Flow page content
+	 */
+	public function render_flow_content( $content ) {
+		global $post;
+
+		if ( ! $post || ! is_singular() ) {
+			return $content;
+		}
+
+		// If the custom flow template already called render_flow_blocks() directly,
+		// suppress this second the_content invocation to avoid a duplicate render.
+		if ( isset( $this->rendered_posts[ $post->ID ] ) ) {
+			return '';
+		}
+
+		// Only for Flow pages or Flow-enabled pages
+		$is_flow = 'dsf_page' === $post->post_type || get_post_meta( $post->ID, '_dsf_enabled', true );
+		if ( ! $is_flow ) {
+			return $content;
+		}
+
+		$rendered = $this->render_flow_blocks( $post->ID );
+		return $rendered ? $rendered : $content;
+	}
+
+	/**
+	 * Use a clean template for Flow pages
+	 */
+	public function load_flow_template( $template ) {
+		if ( is_admin() || ! is_singular() ) {
+			return $template;
+		}
+
+		$post_id = get_queried_object_id();
+		if ( ! $post_id ) {
+			return $template;
+		}
+
+		$post_type = get_post_type( $post_id );
+		$is_flow   = 'dsf_page' === $post_type || get_post_meta( $post_id, '_dsf_enabled', true );
+		if ( ! $is_flow ) {
+			return $template;
+		}
+
+		$settings        = $this->get_page_settings( $post_id );
+		$layout          = $settings['layout'] ?? array();
+		$template_choice = $layout['template'] ?? 'default';
+		$template_choice = apply_filters( 'dsf_flow_template', $template_choice, $post_id );
+		$template_file   = 'fullwidth' === $template_choice ? 'flow-page-fullwidth.php' : 'flow-page.php';
+		$custom_template = DSF_PLUGIN_DIR . 'templates/' . $template_file;
+		if ( file_exists( $custom_template ) ) {
+			// Custom template calls render_flow_blocks() directly.
+			// Remove the_content filter to prevent a second render if any theme/plugin
+			// hook fires the_content before or after the template's direct call.
+			remove_filter( 'the_content', array( $this, 'render_flow_content' ), 20 );
+			return $custom_template;
+		}
+
+		return $template;
+	}
+
+	/**
+	 * Render blocks for a given post
+	 */
+	public function render_flow_blocks( $post_id ) {
+		if ( ! $post_id ) {
+			return '';
+		}
+
+		// Mark that blocks have been rendered so the_content filter skips them.
+		$this->rendered_posts[ $post_id ] = true;
+
+		$blocks_json = get_post_meta( $post_id, '_dsf_blocks', true );
+		if ( ! $blocks_json ) {
+			return '';
+		}
+
+		$page_settings = $this->get_page_settings( $post_id );
+		$theme_style   = $this->build_theme_style( $page_settings );
+
+		$outer_class     = 'dsf-page-content';
+		$inner_class     = 'dsf-page-content__inner';
+		$template_choice = $page_settings['layout']['template'] ?? 'default';
+		$template_choice = apply_filters( 'dsf_flow_template', $template_choice, $post_id );
+		if ( 'fullwidth' === $template_choice ) {
+			$outer_class .= ' dsf-page-content--fullwidth';
+			$inner_class .= ' dsf-page-content__inner--fullwidth';
+		}
+
+		$snapshot = get_post_meta( $post_id, '_dsf_html_snapshot', true );
+
+		$output  = '<div class="' . esc_attr( $outer_class ) . '" style="' . esc_attr( $theme_style ) . '">';
+		$output .= '<div class="' . esc_attr( $inner_class ) . '">';
+		$output .= '<div id="dsf-frontend-app" class="dsf-wrapper" data-post-id="' . intval( $post_id ) . '">';
+		if ( ! empty( $snapshot ) ) {
+			$output .= $snapshot;
+		}
+		$output .= '</div>';
+		$output .= '</div></div>';
+
+		return $output;
+	}
+
+	/**
+	 * Resolve page setting for showing the active theme header.
+	 */
+	public function filter_show_header( $show, $post_id ) {
+		$post_id = intval( $post_id );
+		if ( ! $post_id ) {
+			return $show;
+		}
+
+		$settings = $this->get_page_settings( $post_id );
+		if ( isset( $settings['layout']['showHeader'] ) && false === $settings['layout']['showHeader'] ) {
+			return false;
+		}
+
+		return $show;
+	}
+
+	/**
+	 * Resolve page setting for showing the active theme footer.
+	 */
+	public function filter_show_footer( $show, $post_id ) {
+		$post_id = intval( $post_id );
+		if ( ! $post_id ) {
+			return $show;
+		}
+
+		$settings = $this->get_page_settings( $post_id );
+		if ( isset( $settings['layout']['showFooter'] ) && false === $settings['layout']['showFooter'] ) {
+			return false;
+		}
+
+		return $show;
+	}
+
+	/**
+	 * Render the assigned custom header/footer template for a Flow page.
+	 */
+	public function render_assigned_layout_template( $post_id, $type ) {
+		$layout_data = $this->get_assigned_layout_template_data( $post_id, $type );
+		if ( empty( $layout_data ) || empty( $layout_data['id'] ) ) {
+			return '';
+		}
+
+		$settings    = $this->get_page_settings( $post_id );
+		$type        = 'footer' === sanitize_key( $type ) ? 'footer' : 'header';
+		$template_id = intval( $layout_data['id'] );
+		$snapshot    = $layout_data['snapshot'] ?? '';
+
+		$theme_style = $this->build_theme_style( $settings );
+		$app_id      = 'dsf-layout-' . $type . '-app';
+
+		$output  = '<div class="dsf-layout-template dsf-layout-template--' . esc_attr( $type ) . '" style="' . esc_attr( $theme_style ) . '">';
+		$output .= '<div id="' . esc_attr( $app_id ) . '" class="dsf-wrapper" data-dsf-layout-id="' . intval( $template_id ) . '" data-dsf-layout-type="' . esc_attr( $type ) . '">';
+		if ( ! empty( $snapshot ) ) {
+			$output .= $snapshot;
+		}
+		$output .= '</div>';
+		$output .= '</div>';
+		return $output;
+	}
+
+	/**
+	 * Collect assigned header/footer template data for frontend bootstrapping.
+	 */
+	private function get_assigned_layout_templates_data( $post_id ) {
+		$data = array(
+			'header' => $this->get_assigned_layout_template_data( $post_id, 'header' ),
+			'footer' => $this->get_assigned_layout_template_data( $post_id, 'footer' ),
+		);
+
+		return $data;
+	}
+
+	/**
+	 * Resolve one assigned template and return sanitized data for rendering/mounting.
+	 */
+	private function get_assigned_layout_template_data( $post_id, $type ) {
+		$post_id = intval( $post_id );
+		$type    = sanitize_key( $type );
+		if ( ! $post_id || ! in_array( $type, array( 'header', 'footer' ), true ) ) {
+			return array();
+		}
+
+		$settings    = $this->get_page_settings( $post_id );
+		$layout_key  = 'header' === $type ? 'headerTemplateId' : 'footerTemplateId';
+		$template_id = absint( $settings['layout'][ $layout_key ] ?? 0 );
+		if ( ! $template_id ) {
+			return array();
+		}
+
+		$template_post = get_post( $template_id );
+		if ( ! $template_post || 'dsf_layout' !== $template_post->post_type ) {
+			return array();
+		}
+
+		$template_type = get_post_meta( $template_id, '_dsf_layout_type', true );
+		$template_type = 'footer' === $template_type ? 'footer' : 'header';
+		if ( $type !== $template_type ) {
+			return array();
+		}
+
+		if ( 'publish' !== $template_post->post_status ) {
+			if ( ! is_user_logged_in() || ! current_user_can( 'edit_post', $template_id ) ) {
+				return array();
+			}
+		}
+
+		$blocks_meta = get_post_meta( $template_id, '_dsf_blocks', true );
+		if ( is_array( $blocks_meta ) ) {
+			$blocks = $blocks_meta;
+		} else {
+			$decoded = $blocks_meta ? json_decode( $blocks_meta, true ) : array();
+			$blocks  = is_array( $decoded ) ? $decoded : array();
+		}
+
+		$snapshot = get_post_meta( $template_id, '_dsf_html_snapshot', true );
+
+		return array(
+			'id'       => $template_id,
+			'status'   => $template_post->post_status,
+			'blocks'   => $blocks,
+			'snapshot' => is_string( $snapshot ) ? $snapshot : '',
+		);
+	}
+
+	private function get_default_settings() {
+		return array(
+			'theme'  => array(
+				'primaryColor'    => '#2C5F5D',
+				'secondaryColor'  => '#1E40AF',
+				'textColor'       => '#1F2937',
+				'backgroundColor' => '#FFFFFF',
+				'headingFont'     => '',
+				'bodyFont'        => '',
+			),
+			'layout' => array(
+				'containerWidth'   => 1800,
+				'contentPadding'   => 10,
+				'showHeader'       => true,
+				'showFooter'       => true,
+				'headerTemplateId' => 0,
+				'footerTemplateId' => 0,
+				'template'         => 'default',
+			),
+		);
+	}
+
+	public function get_page_settings( $post_id ) {
+		if ( isset( $this->settings_cache[ $post_id ] ) ) {
+			return $this->settings_cache[ $post_id ];
+		}
+
+		$raw_settings = get_post_meta( $post_id, '_dsf_settings', true );
+		if ( is_array( $raw_settings ) ) {
+			$settings = $raw_settings;
+		} else {
+			$decoded  = $raw_settings ? json_decode( $raw_settings, true ) : array();
+			$settings = is_array( $decoded ) ? $decoded : array();
+		}
+
+		$defaults           = $this->get_default_settings();
+		$settings['theme']  = array_merge( $defaults['theme'], $settings['theme'] ?? array() );
+		$settings['layout'] = array_merge( $defaults['layout'], $settings['layout'] ?? array() );
+
+		$this->settings_cache[ $post_id ] = $settings;
+		return $settings;
+	}
+
+	private function build_theme_style( $page_settings ) {
+		$defaults = $this->get_default_settings();
+		$theme    = array_merge( $defaults['theme'], $page_settings['theme'] ?? array() );
+		$layout   = array_merge( $defaults['layout'], $page_settings['layout'] ?? array() );
+
+		$primary         = $theme['primaryColor'] ?? $defaults['theme']['primaryColor'];
+		$secondary       = $theme['secondaryColor'] ?? $defaults['theme']['secondaryColor'];
+		$text            = $theme['textColor'] ?? $defaults['theme']['textColor'];
+		$background      = $theme['backgroundColor'] ?? $defaults['theme']['backgroundColor'];
+		$heading_font    = $theme['headingFont'] ?? '';
+		$body_font       = $theme['bodyFont'] ?? '';
+		$container_width = intval( $layout['containerWidth'] ?? $defaults['layout']['containerWidth'] );
+		$content_padding = intval( $layout['contentPadding'] ?? $defaults['layout']['contentPadding'] );
+
+		$style = sprintf(
+			'--dsf-theme-primary:%s; --dsf-theme-secondary:%s; --dsf-theme-text:%s; --dsf-theme-background:%s; --dsf-theme-container-width:%dpx; --dsf-theme-content-padding:%dpx; --dsf-primary-500:%s; --dsf-primary-600:%s; --dsf-primary-700:%s;',
+			esc_attr( $primary ),
+			esc_attr( $secondary ),
+			esc_attr( $text ),
+			esc_attr( $background ),
+			$container_width,
+			$content_padding,
+			esc_attr( $primary ),
+			esc_attr( $primary ),
+			esc_attr( $primary )
+		);
+
+		// Add font CSS variables if set
+		if ( ! empty( $heading_font ) ) {
+			$style .= sprintf( ' --dsf-theme-heading-font:%s;', esc_attr( $heading_font ) );
+		}
+		if ( ! empty( $body_font ) ) {
+			$style .= sprintf( ' --dsf-theme-body-font:%s;', esc_attr( $body_font ) );
+		}
+
+		return $style;
+	}
+
+	private function get_wc_categories() {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return array();
+		}
+
+		$categories = get_terms(
+			array(
+				'taxonomy'   => 'product_cat',
+				'hide_empty' => false,
+				'orderby'    => 'name',
+				'order'      => 'ASC',
+			)
+		);
+
+		if ( is_wp_error( $categories ) ) {
+			return array();
+		}
+
+		// Build an id→direct_count map and a parent→children map.
+		$direct_counts = array();
+		$children_map  = array();
+		foreach ( $categories as $cat ) {
+			$direct_counts[ $cat->term_id ] = (int) $cat->count;
+			if ( ! isset( $children_map[ $cat->parent ] ) ) {
+				$children_map[ $cat->parent ] = array();
+			}
+			$children_map[ $cat->parent ][] = $cat->term_id;
+		}
+
+		// Recursively sum a category's count plus all descendants.
+		$get_total = null;
+		$get_total = function ( $id, $visited = array() ) use ( &$get_total, &$direct_counts, &$children_map ) {
+			if ( isset( $visited[ $id ] ) ) {
+				return 0; // Guard against malformed self-referencing terms.
+			}
+			$visited[ $id ] = true;
+			$total          = isset( $direct_counts[ $id ] ) ? $direct_counts[ $id ] : 0;
+			if ( ! empty( $children_map[ $id ] ) ) {
+				foreach ( $children_map[ $id ] as $child_id ) {
+					$total += $get_total( $child_id, $visited );
+				}
+			}
+			return $total;
+		};
+
+		$result = array();
+		foreach ( $categories as $cat ) {
+			$thumbnail_id = get_term_meta( $cat->term_id, 'thumbnail_id', true );
+			$term_link    = get_term_link( $cat );
+
+			$result[] = array(
+				'id'          => $cat->term_id,
+				'name'        => $cat->name,
+				'slug'        => $cat->slug,
+				'parent'      => (int) $cat->parent,
+				'count'       => (int) $cat->count,
+				'total_count' => $get_total( $cat->term_id ),
+				'url'         => is_wp_error( $term_link ) ? '' : $term_link,
+				'image'       => $thumbnail_id ? wp_get_attachment_url( $thumbnail_id ) : '',
+				'imageAlt'    => $thumbnail_id ? get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ) : '',
+			);
+		}
+
+		return $result;
+	}
+}

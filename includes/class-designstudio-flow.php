@@ -48,6 +48,7 @@ final class DesignStudio_Flow {
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-frontend.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-blocks.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-forms.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-entries.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-update-checker.php';
 	}
 
@@ -83,6 +84,10 @@ final class DesignStudio_Flow {
 		// Initialize frontend (always needed for rendering).
 		DSF_Frontend::get_instance();
 		DSF_Forms::get_instance();
+
+		if ( is_admin() ) {
+			DSF_Entries::get_instance();
+		}
 
 		// Initialize blocks.
 		DSF_Blocks::get_instance();
