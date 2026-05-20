@@ -138,7 +138,7 @@ const containerStyle = computed(() => {
 
 .dsf-text-image-preview__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 42px;
+  font-size: var(--dsf-theme-h1, 42px);
   font-weight: 600;
   color: var(--dsf-gray-800);
   margin-bottom: 1rem;
@@ -151,7 +151,7 @@ const containerStyle = computed(() => {
   font-family: var(--dsf-theme-body-font, inherit);
   color: var(--dsf-gray-600);
   line-height: 1.7;
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
@@ -166,7 +166,7 @@ const containerStyle = computed(() => {
   border-radius: var(--dsf-radius-md);
   font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 600;
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   cursor: pointer;
   transition: background 0.2s;
   text-decoration: none;
@@ -195,9 +195,9 @@ const containerStyle = computed(() => {
 
 @container (max-width: 1024px) {
   .dsf-text-image-preview { gap: 2rem; }
-  .dsf-text-image-preview__title { font-size: 34px; }
-  .dsf-text-image-preview__text { font-size: 18px; }
-  .dsf-text-image-preview__btn { font-size: 18px; }
+  .dsf-text-image-preview__title { font-size: var(--dsf-theme-h2, 34px); }
+  .dsf-text-image-preview__text { font-size: var(--dsf-theme-text-lg, 18px); }
+  .dsf-text-image-preview__btn { font-size: var(--dsf-theme-text-lg, 18px); }
 }
 
 @container (max-width: 900px) {

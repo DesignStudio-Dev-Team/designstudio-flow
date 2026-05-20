@@ -320,14 +320,22 @@ const canvasStyle = computed(() => {
     '--dsf-theme-content-padding': `${layout.contentPadding || DEFAULT_LAYOUT.contentPadding}px`,
   }
   
-  // Add font CSS variables if set
-  if (theme.headingFont) {
-    style['--dsf-theme-heading-font'] = theme.headingFont
+  // Font family: per-page wins; otherwise fall back to admin Typography override.
+  const adminTypography = wpData?.themeTypography || {}
+  const headingFont = theme.headingFont || adminTypography.headingFont || ''
+  const bodyFont = theme.bodyFont || adminTypography.bodyFont || ''
+  if (headingFont) {
+    style['--dsf-theme-heading-font'] = headingFont
   }
-  if (theme.bodyFont) {
-    style['--dsf-theme-body-font'] = theme.bodyFont
+  if (bodyFont) {
+    style['--dsf-theme-body-font'] = bodyFont
   }
-  
+
+  // Typography scale tokens (computed server-side from theme.json + admin overrides).
+  if (adminTypography.tokens && typeof adminTypography.tokens === 'object') {
+    Object.assign(style, adminTypography.tokens)
+  }
+
   return style
 })
 

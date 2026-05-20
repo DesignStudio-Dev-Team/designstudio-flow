@@ -56,6 +56,7 @@
             v-if="settings.logo"
             :src="settings.logo"
             class="dsf-form-with-content__logo"
+            :class="{ 'dsf-form-with-content__logo--padded': settings.logoPadding }"
             alt="Logo"
           />
 
@@ -215,7 +216,6 @@ const contentColStyle = computed(() => {
 
 const contentTextStyle = computed(() => ({
   color: props.settings?.textColor || "#1F2937",
-  "--dsf-form-content-font-size": `${props.settings?.contentFontSize ?? 24}px`,
 }));
 
 const formColStyle = computed(() => {
@@ -581,7 +581,7 @@ onBeforeUnmount(() => {
 
 .dsf-form-with-content__section-title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 2rem;
+  font-size: var(--dsf-theme-h2, 2rem);
   font-weight: 700;
   line-height: 1.2;
   margin-bottom: 1rem;
@@ -654,15 +654,15 @@ onBeforeUnmount(() => {
 }
 
 .dsf-form-with-content__content :deep(h2) {
-  font-size: 2rem;
+  font-size: var(--dsf-theme-h2, 2rem);
 }
 .dsf-form-with-content__content :deep(h3) {
-  font-size: 1.5rem;
+  font-size: var(--dsf-theme-h3, 1.5rem);
 }
 
 .dsf-form-with-content__content :deep(p) {
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: var(--dsf-form-content-font-size, 24px);
+  font-size: var(--dsf-theme-text-base, 16px);
   line-height: 1.65;
   margin-bottom: 1rem;
 }
@@ -670,7 +670,7 @@ onBeforeUnmount(() => {
 .dsf-form-with-content__content :deep(ul),
 .dsf-form-with-content__content :deep(ol) {
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: var(--dsf-form-content-font-size, 24px);
+  font-size: var(--dsf-theme-text-base, 16px);
   padding-left: 1.5rem;
   margin-bottom: 1rem;
   line-height: 1.65;
@@ -719,6 +719,10 @@ onBeforeUnmount(() => {
   object-fit: contain;
   pointer-events: none;
   transition: opacity 1s ease-out;
+}
+
+.dsf-form-with-content__logo--padded {
+  padding: 1rem;
 }
 
 /* ── Image ──────────────────────────────────────────── */
@@ -891,7 +895,7 @@ onBeforeUnmount(() => {
 }
 
 .dsf-form-with-content__form-frontend :deep(.gform_title) {
-  font-size: 1.75rem !important;
+  font-size: var(--dsf-theme-h2, 1.75rem) !important;
   line-height: 1.25 !important;
 }
 

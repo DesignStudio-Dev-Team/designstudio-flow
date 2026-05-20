@@ -1724,13 +1724,6 @@ class DSF_Blocks {
 						'label'   => 'Content',
 						'default' => '<p><b>Your dream backyard starts here!</b></p><p>Fill out the form and we\'ll be in touch as soon as possible.</p>',
 					),
-					'contentFontSize' => array(
-						'type'    => 'slider',
-						'label'   => 'Content Font Size',
-						'default' => 24,
-						'min'     => 12,
-						'max'     => 40,
-					),
 					'mediaType'       => array(
 						'type'    => 'select',
 						'label'   => 'Media Type',
@@ -1750,6 +1743,11 @@ class DSF_Blocks {
 						'type'    => 'image',
 						'label'   => 'Logo',
 						'default' => '',
+					),
+					'logoPadding'     => array(
+						'type'    => 'toggle',
+						'label'   => 'Add Padding to Logo',
+						'default' => false,
 					),
 					'video'           => array(
 						'type'     => 'text',

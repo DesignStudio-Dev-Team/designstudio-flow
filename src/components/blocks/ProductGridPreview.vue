@@ -1225,7 +1225,7 @@ async function fetchProducts() {
 .dsf-product-grid-preview__title {
   font-family: var(--dsf-theme-heading-font, inherit);
   text-align: center;
-  font-size: 1.875rem;
+  font-size: var(--dsf-theme-h3, 1.875rem);
   font-weight: 600;
   margin-bottom: 2rem;
   line-height: 1.2;
@@ -1279,7 +1279,7 @@ async function fetchProducts() {
 }
 
 .dsf-filter-sidebar__active-label {
-  font-size: 0.75rem;
+  font-size: var(--dsf-theme-text-xs, 0.75rem);
   font-weight: 600;
   color: var(--dsf-gray-500);
   text-transform: uppercase;
@@ -1290,7 +1290,7 @@ async function fetchProducts() {
   background: none;
   border: none;
   color: var(--dsf-primary-600);
-  font-size: 0.75rem;
+  font-size: var(--dsf-theme-text-xs, 0.75rem);
   font-weight: 500;
   cursor: pointer;
   padding: 0;
@@ -1310,7 +1310,7 @@ async function fetchProducts() {
   color: var(--dsf-primary-700, #2e7d32);
   border-radius: 20px;
   padding: 3px 10px 3px 10px;
-  font-size: 0.75rem;
+  font-size: var(--dsf-theme-text-xs, 0.75rem);
   font-weight: 500;
 }
 
@@ -1319,7 +1319,7 @@ async function fetchProducts() {
   border: none;
   cursor: pointer;
   color: var(--dsf-primary-600, #388e3c);
-  font-size: 1rem;
+  font-size: var(--dsf-theme-text-base, 1rem);
   line-height: 1;
   padding: 0;
   margin-left: 2px;
@@ -1351,7 +1351,7 @@ async function fetchProducts() {
 }
 
 .dsf-filter-group__title {
-  font-size: 0.875rem;
+  font-size: var(--dsf-theme-text-sm, 0.875rem);
   font-weight: 600;
   color: var(--dsf-gray-800);
 }
@@ -1390,7 +1390,7 @@ async function fetchProducts() {
   border: 1px solid var(--dsf-gray-200);
   background: #f9fafb;
   gap: 4px;
-  font-size: 0.8125rem;
+  font-size: var(--dsf-theme-text-sm, 0.8125rem);
   cursor: pointer;
 }
 
@@ -1408,7 +1408,7 @@ async function fetchProducts() {
 }
 
 .dsf-filter-option--tag .dsf-filter-option__count {
-  font-size: 0.7rem;
+  font-size: var(--dsf-theme-text-xs, 0.7rem);
 }
 
 /* Filter options */
@@ -1418,7 +1418,7 @@ async function fetchProducts() {
   gap: 8px;
   padding: 5px 0;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--dsf-theme-text-sm, 0.875rem);
   color: var(--dsf-gray-700);
 }
 
@@ -1441,7 +1441,7 @@ async function fetchProducts() {
 
 .dsf-filter-option__count {
   color: var(--dsf-gray-400);
-  font-size: 0.75rem;
+  font-size: var(--dsf-theme-text-xs, 0.75rem);
 }
 
 /* Color swatch */
@@ -1481,7 +1481,7 @@ async function fetchProducts() {
 .dsf-price-range__labels {
   display: flex;
   justify-content: space-between;
-  font-size: 0.875rem;
+  font-size: var(--dsf-theme-text-sm, 0.875rem);
   color: var(--dsf-gray-700);
   margin-bottom: 12px;
   font-weight: 500;
@@ -1576,7 +1576,7 @@ async function fetchProducts() {
   border: none;
   background: transparent;
   color: var(--dsf-gray-800);
-  font-size: 0.875rem;
+  font-size: var(--dsf-theme-text-sm, 0.875rem);
   padding: 0.875rem 0;
 }
 
@@ -1592,7 +1592,7 @@ async function fetchProducts() {
   border: none;
   background: none;
   color: var(--dsf-primary-600);
-  font-size: 0.75rem;
+  font-size: var(--dsf-theme-text-xs, 0.75rem);
   font-weight: 600;
   cursor: pointer;
   padding: 0;
@@ -1607,7 +1607,7 @@ async function fetchProducts() {
 }
 
 .dsf-product-grid-preview__results-count {
-  font-size: 0.875rem;
+  font-size: var(--dsf-theme-text-sm, 0.875rem);
   color: var(--dsf-gray-500);
 }
 
@@ -1661,7 +1661,7 @@ async function fetchProducts() {
 
 /* Brand label */
 .dsf-product-card-preview__brand {
-  font-size: 0.75rem;
+  font-size: var(--dsf-theme-text-xs, 0.75rem);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1674,7 +1674,7 @@ async function fetchProducts() {
   font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 600;
   margin: 0;
-  font-size: 0.9375rem;
+  font-size: var(--dsf-theme-text-sm, 0.9375rem);
   line-height: 1.45;
   min-height: calc(0.9375rem * 1.45 * 2);
   display: -webkit-box;
@@ -1686,7 +1686,7 @@ async function fetchProducts() {
 
 /* Category / attribute line */
 .dsf-product-card-preview__sub {
-  font-size: 0.75rem;
+  font-size: var(--dsf-theme-text-xs, 0.75rem);
   color: var(--dsf-primary-600);
   margin-top: 0.25rem;
   line-height: 1.4;
@@ -1710,7 +1710,7 @@ async function fetchProducts() {
 .dsf-product-card-preview__price {
   font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 700;
-  font-size: 1.0625rem;
+  font-size: var(--dsf-theme-text-base, 1.0625rem);
   line-height: 1.2;
 }
 
@@ -1725,7 +1725,7 @@ async function fetchProducts() {
   padding: 0.7rem 1rem;
   border: none;
   border-radius: var(--dsf-radius-md);
-  font-size: 0.875rem;
+  font-size: var(--dsf-theme-text-sm, 0.875rem);
   font-weight: 500;
   cursor: pointer;
   margin-top: auto;
@@ -1898,7 +1898,7 @@ async function fetchProducts() {
 
 .dsf-product-card-preview--minimal .dsf-product-card-preview__price {
   color: var(--dsf-gray-900);
-  font-size: 1rem;
+  font-size: var(--dsf-theme-text-base, 1rem);
   margin-top: 0.625rem;
   margin-top: auto;
   padding-top: 0.625rem;
@@ -1943,7 +1943,7 @@ async function fetchProducts() {
 
 .dsf-product-card-preview--modern .dsf-product-card-preview__name {
   color: #fff;
-  font-size: 1rem;
+  font-size: var(--dsf-theme-text-base, 1rem);
   min-height: calc(1rem * 1.45 * 2);
 }
 
@@ -1966,7 +1966,7 @@ async function fetchProducts() {
 
 .dsf-product-card-preview--modern .dsf-product-card-preview__price {
   color: #fff;
-  font-size: 1rem;
+  font-size: var(--dsf-theme-text-base, 1rem);
 }
 
 .dsf-product-card-preview--modern .dsf-product-card-preview__rating .dsf-star--filled,
@@ -2002,7 +2002,7 @@ async function fetchProducts() {
 }
 
 .dsf-product-grid-preview__no-results p {
-  font-size: 0.875rem;
+  font-size: var(--dsf-theme-text-sm, 0.875rem);
   color: var(--dsf-gray-500);
   margin: 0;
 }
@@ -2012,7 +2012,7 @@ async function fetchProducts() {
   border: 1px solid var(--dsf-gray-300);
   border-radius: 6px;
   padding: 6px 16px;
-  font-size: 0.875rem;
+  font-size: var(--dsf-theme-text-sm, 0.875rem);
   color: var(--dsf-gray-600);
   cursor: pointer;
 }
@@ -2145,7 +2145,7 @@ async function fetchProducts() {
   border-radius: 8px;
   background: #fff;
   color: var(--dsf-gray-700);
-  font-size: 0.875rem;
+  font-size: var(--dsf-theme-text-sm, 0.875rem);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;

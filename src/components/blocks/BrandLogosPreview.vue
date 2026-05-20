@@ -144,7 +144,7 @@ const displayBrands = computed(() => {
   font-family: var(--dsf-theme-body-font, inherit);
   color: var(--dsf-gray-700);
   font-weight: 600;
-  font-size: 1.125rem;
+  font-size: var(--dsf-theme-text-lg, 1.125rem);
   line-height: 1.2;
   text-align: center;
 }

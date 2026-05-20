@@ -1,6 +1,6 @@
 {
-  "_main-6wxnu4Gg.js": {
-    "file": "js/main-6wxnu4Gg.js",
+  "_main-DN2JRilX.js": {
+    "file": "js/main-DN2JRilX.js",
     "name": "main",
     "css": [
       "css/main.css"
@@ -16,7 +16,7 @@
     "src": "src/frontend/main.js",
     "isEntry": true,
     "imports": [
-      "_main-6wxnu4Gg.js"
+      "_main-DN2JRilX.js"
     ]
   },
   "src/main.js": {
@@ -25,7 +25,7 @@
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
-      "_main-6wxnu4Gg.js"
+      "_main-DN2JRilX.js"
     ],
     "css": [
       "css/editor.css"

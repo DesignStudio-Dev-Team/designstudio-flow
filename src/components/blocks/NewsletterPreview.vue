@@ -51,7 +51,7 @@ const previewStyle = computed(() => {
 
 .dsf-newsletter-preview__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 1.875rem;
+  font-size: var(--dsf-theme-h3, 1.875rem);
   font-weight: 600;
   color: var(--dsf-gray-800);
   margin-bottom: 0.5rem;
@@ -80,7 +80,7 @@ const previewStyle = computed(() => {
   padding: 0.875rem 1rem;
   border: 1px solid var(--dsf-gray-200);
   border-radius: var(--dsf-radius-md);
-  font-size: 1rem;
+  font-size: var(--dsf-theme-text-base, 1rem);
   line-height: 1.25;
 }
 

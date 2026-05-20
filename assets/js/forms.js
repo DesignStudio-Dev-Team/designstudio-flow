@@ -2,6 +2,7 @@
   const wpData = window.dsfFormsFrontendData || {}
   const TRANSITION_DURATION = 230
   const MOUNTED_FLAG = '1'
+  const CONDITIONAL_HIDDEN_CLASS = 'dsf-conditional-hidden'
 
   function getPages(form) {
     return Array.from(form.querySelectorAll('.dsf-form-page'))
@@ -81,6 +82,7 @@
     const fieldWrappers = Array.from(page.querySelectorAll('.dsf-form-field'))
 
     for (const wrapper of fieldWrappers) {
+      if (wrapper.classList.contains(CONDITIONAL_HIDDEN_CLASS)) continue
       if (wrapper.dataset.requiredGroup === '1' && !validateOptionGroup(wrapper)) {
         return false
       }
@@ -98,6 +100,138 @@
 
     return true
   }
+
+  // ── Conditional Logic ─────────────────────────────────────────────────────
+
+  function readFieldValueByName(form, name) {
+    if (!name) return ''
+
+    const inputs = form.querySelectorAll(
+      `[name="${cssEscape(name)}"], [name="${cssEscape(name)}[]"]`
+    )
+    if (!inputs.length) return ''
+
+    // If the source field's wrapper or page is conditionally hidden, treat its
+    // value as empty (matches behavior of Gravity Forms / Typeform).
+    const first = inputs[0]
+    if (isAncestorConditionallyHidden(first)) return ''
+
+    const isCheckboxGroup = Array.from(inputs).every((el) => el.type === 'checkbox')
+    if (isCheckboxGroup && inputs.length > 1) {
+      return Array.from(inputs)
+        .filter((el) => el.checked)
+        .map((el) => el.value)
+    }
+
+    if (first.type === 'radio') {
+      const checked = Array.from(inputs).find((el) => el.checked)
+      return checked ? checked.value : ''
+    }
+
+    if (first.type === 'checkbox') {
+      return first.checked ? first.value : ''
+    }
+
+    return first.value || ''
+  }
+
+  function isAncestorConditionallyHidden(el) {
+    let node = el
+    while (node && node !== document) {
+      if (node.classList && node.classList.contains(CONDITIONAL_HIDDEN_CLASS)) return true
+      node = node.parentNode
+    }
+    return false
+  }
+
+  function cssEscape(value) {
+    if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(value)
+    return String(value).replace(/[^a-zA-Z0-9_-]/g, (c) => '\\' + c)
+  }
+
+  function evaluateRule(rule, form) {
+    if (!rule || !rule.fieldName) return false
+    const actual = readFieldValueByName(form, rule.fieldName)
+    const expected = rule.value == null ? '' : String(rule.value)
+    const op = rule.operator || 'equals'
+
+    const actualArr = Array.isArray(actual) ? actual : [actual]
+    const actualStr = Array.isArray(actual) ? actual.join(',') : String(actual)
+
+    switch (op) {
+      case 'equals':
+        return Array.isArray(actual) ? actual.includes(expected) : actualStr === expected
+      case 'not_equals':
+        return Array.isArray(actual) ? !actual.includes(expected) : actualStr !== expected
+      case 'contains':
+        return Array.isArray(actual)
+          ? actual.includes(expected)
+          : actualStr.toLowerCase().includes(expected.toLowerCase())
+      case 'not_contains':
+        return Array.isArray(actual)
+          ? !actual.includes(expected)
+          : !actualStr.toLowerCase().includes(expected.toLowerCase())
+      case 'is_empty':
+        return actualArr.every((v) => String(v).trim() === '')
+      case 'is_not_empty':
+        return actualArr.some((v) => String(v).trim() !== '')
+      case 'greater_than':
+        return Number(actualStr) > Number(expected)
+      case 'less_than':
+        return Number(actualStr) < Number(expected)
+      default:
+        return false
+    }
+  }
+
+  function evaluateLogic(logic, form) {
+    if (!logic || !Array.isArray(logic.rules) || !logic.rules.length) return true
+    const results = logic.rules.map((rule) => evaluateRule(rule, form))
+    return logic.logicType === 'any' ? results.some(Boolean) : results.every(Boolean)
+  }
+
+  function applyConditionalVisibility(form) {
+    // Iterate in document order so source values resolve against the latest
+    // visibility state of upstream fields/pages.
+    const nodes = form.querySelectorAll('[data-dsf-conditional]')
+    nodes.forEach((node) => {
+      let logic
+      try {
+        logic = JSON.parse(node.dataset.dsfConditional || 'null')
+      } catch (_) {
+        logic = null
+      }
+      if (!logic) return
+
+      const matches = evaluateLogic(logic, form)
+      const shouldShow = logic.action === 'hide' ? !matches : matches
+      node.classList.toggle(CONDITIONAL_HIDDEN_CLASS, !shouldShow)
+    })
+  }
+
+  function findNextVisiblePageIndex(form, fromIndex, direction) {
+    const pages = getPages(form)
+    const step = direction === 'forward' ? 1 : -1
+    let i = fromIndex + step
+    while (i >= 0 && i < pages.length) {
+      if (!pages[i].classList.contains(CONDITIONAL_HIDDEN_CLASS)) return i
+      i += step
+    }
+    return -1
+  }
+
+  function stripHiddenFieldsFromFormData(form, formData) {
+    const hiddenNames = new Set()
+    form
+      .querySelectorAll(
+        `.${CONDITIONAL_HIDDEN_CLASS} input[name], .${CONDITIONAL_HIDDEN_CLASS} textarea[name], .${CONDITIONAL_HIDDEN_CLASS} select[name]`
+      )
+      .forEach((el) => {
+        if (el.name) hiddenNames.add(el.name)
+      })
+    hiddenNames.forEach((name) => formData.delete(name))
+  }
+
 
   function switchToPage(form, targetIndex, direction) {
     const pages = getPages(form)
@@ -199,6 +333,7 @@
 
     const recaptchaConfig = getRecaptchaConfig()
     const formData = new FormData(form)
+    stripHiddenFieldsFromFormData(form, formData)
     formData.append('action', 'dsf_submit_form')
     formData.append('nonce', wpData.nonce)
 
@@ -258,13 +393,26 @@
 
       if ('next' === direction) {
         if (!validatePage(currentPage)) return
-        switchToPage(form, currentIndex + 1, 'forward')
+        const target = findNextVisiblePageIndex(form, currentIndex, 'forward')
+        if (target !== -1) switchToPage(form, target, 'forward')
       }
 
       if ('prev' === direction) {
-        switchToPage(form, currentIndex - 1, 'backward')
+        const target = findNextVisiblePageIndex(form, currentIndex, 'backward')
+        if (target !== -1) switchToPage(form, target, 'backward')
       }
     })
+
+    form.addEventListener('input', () => applyConditionalVisibility(form))
+    form.addEventListener('change', () => applyConditionalVisibility(form))
+
+    // Initial evaluation after the form mounts. If the first page is hidden,
+    // advance to the next visible page so the user doesn't see an empty form.
+    applyConditionalVisibility(form)
+    if (findActivePage(form)?.classList.contains(CONDITIONAL_HIDDEN_CLASS)) {
+      const firstVisible = findNextVisiblePageIndex(form, -1, 'forward')
+      if (firstVisible !== -1) switchToPage(form, firstVisible, 'forward')
+    }
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault()

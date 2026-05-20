@@ -200,7 +200,7 @@ const displayFeatures = computed(() => {
 
 .dsf-features-grid-preview__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 2rem;
+  font-size: var(--dsf-theme-h2, 2rem);
   font-weight: 600;
   margin-bottom: 0.5rem;
   line-height: 1.2;
@@ -210,7 +210,7 @@ const displayFeatures = computed(() => {
 
 .dsf-features-grid-preview__subtitle {
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: 1rem;
+  font-size: var(--dsf-theme-text-base, 1rem);
   line-height: 1.5;
 }
 
@@ -242,7 +242,7 @@ const displayFeatures = computed(() => {
 
 .dsf-feature-card-preview__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 1.25rem;
+  font-size: var(--dsf-theme-h4, 1.25rem);
   font-weight: 600;
   margin-bottom: 0.25rem;
   line-height: 1.2;
@@ -252,7 +252,7 @@ const displayFeatures = computed(() => {
 
 .dsf-feature-card-preview__desc {
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: 0.875rem;
+  font-size: var(--dsf-theme-text-sm, 0.875rem);
   flex: 1;
   line-height: 1.5;
   display: -webkit-box;
@@ -270,7 +270,7 @@ const displayFeatures = computed(() => {
   color: white;
   border-radius: var(--dsf-radius-md);
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: 0.8125rem;
+  font-size: var(--dsf-theme-text-sm, 0.8125rem);
   font-weight: 500;
   text-decoration: none;
   transition: background 0.15s;

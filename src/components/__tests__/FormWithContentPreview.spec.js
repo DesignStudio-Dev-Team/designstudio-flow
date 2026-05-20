@@ -120,19 +120,6 @@ describe('FormWithContentPreview', () => {
     expect(['0', '0px']).toContain(legend.style.getPropertyValue('margin-block-end'))
   })
 
-  it('sets the rich text column font size from the Form with Content setting', () => {
-    const wrapper = mount(FormWithContentPreview, {
-      props: {
-        settings: {
-          contentFontSize: 24,
-          content: '<p>Your dream backyard starts here.</p>',
-        },
-      },
-    })
-
-    expect(wrapper.find('.dsf-form-with-content__content').attributes('style')).toContain('--dsf-form-content-font-size: 24px')
-  })
-
   it('keeps bold markup in the rich text column', () => {
     const wrapper = mount(FormWithContentPreview, {
       props: {

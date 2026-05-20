@@ -201,6 +201,7 @@ class DSF_Editor {
 				'forms'            => $this->get_available_forms(),
 				'categories'       => $this->get_wc_categories(),
 				'themeFonts'       => $this->get_theme_fonts(),
+				'themeTypography'  => $this->get_theme_typography_payload(),
 				'pluginUrl'        => DSF_PLUGIN_URL,
 				'homeUrl'          => home_url(),
 				'adminUrl'         => admin_url(),
@@ -540,6 +541,25 @@ class DSF_Editor {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Build the typography payload exposed to the editor:
+	 *   { base, scale, tokens, mode, headingFont, bodyFont }
+	 * The editor uses tokens for the canvas CSS vars, and the font names as
+	 * fallbacks when per-page settings don't specify a font.
+	 */
+	private function get_theme_typography_payload() {
+		$defaults = DSF_Frontend::get_default_typography();
+		$option   = DSF_Frontend::get_typography_option();
+		return array(
+			'base'        => $defaults['base'],
+			'scale'       => $defaults['scale'],
+			'tokens'      => DSF_Frontend::compute_typography_tokens( $defaults['base'], $defaults['scale'] ),
+			'mode'        => $option['mode'],
+			'headingFont' => $option['heading_font'],
+			'bodyFont'    => $option['body_font'],
+		);
 	}
 
 	/**

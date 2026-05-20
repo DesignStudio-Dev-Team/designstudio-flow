@@ -358,7 +358,7 @@ watch(() => [
 
 .dsf-ecommerce-showcase__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: 42px;
+  font-size: var(--dsf-theme-h1, 42px);
   font-weight: 700;
   margin: 0;
   line-height: 1.2;
@@ -369,7 +369,7 @@ watch(() => [
 .dsf-ecommerce-showcase__shop-all {
   font-family: var(--dsf-theme-body-font, inherit);
   color: #2C5F5D;
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   font-weight: 600;
   text-decoration: none;
   letter-spacing: 0.05em;
@@ -383,7 +383,7 @@ watch(() => [
 .dsf-ecommerce-showcase__pagination {
   margin-left: auto;
   color: var(--dsf-gray-500);
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
 }
 
 .dsf-ecommerce-showcase__container {
@@ -467,7 +467,7 @@ watch(() => [
 .dsf-showcase-category__name {
   font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 600;
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   text-align: center;
   line-height: 1.2;
   display: -webkit-box;
@@ -510,7 +510,7 @@ watch(() => [
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: var(--dsf-theme-text-sm, 13px);
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -551,7 +551,7 @@ watch(() => [
 
 .dsf-showcase-product__price {
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   color: var(--price-color, #6B7280);
   margin-bottom: 0.25rem;
   line-height: 1.2;
@@ -570,7 +570,7 @@ watch(() => [
 
 .dsf-showcase-product__name {
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: 24px;
+  font-size: var(--dsf-theme-text-2xl, 24px);
   font-weight: 500;
   color: var(--dsf-gray-800);
   margin: 0;

@@ -32,6 +32,22 @@ if ( isset( $_POST['dsf_save_settings'] ) && isset( $_POST['dsf_settings_nonce']
 	update_option( 'dsf_recaptcha_secret_key', $recaptcha_secret_key );
 	update_option( 'dsf_recaptcha_threshold', $recaptcha_threshold );
 
+	// Typography defaults
+	$typography_mode  = ( isset( $_POST['dsf_typography_mode'] ) && 'override' === $_POST['dsf_typography_mode'] ) ? 'override' : 'theme';
+	$typography_base  = isset( $_POST['dsf_typography_base'] ) ? floatval( wp_unslash( $_POST['dsf_typography_base'] ) ) : 16.0;
+	$typography_scale = isset( $_POST['dsf_typography_scale'] ) ? floatval( wp_unslash( $_POST['dsf_typography_scale'] ) ) : 1.25;
+	$typography_base  = max( 12.0, min( 22.0, $typography_base ) );
+	$typography_scale = max( 1.05, min( 1.6, $typography_scale ) );
+
+	$typography = array(
+		'mode'         => $typography_mode,
+		'heading_font' => isset( $_POST['dsf_typography_heading_font'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_typography_heading_font'] ) ) : '',
+		'body_font'    => isset( $_POST['dsf_typography_body_font'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_typography_body_font'] ) ) : '',
+		'base'         => $typography_base,
+		'scale'        => $typography_scale,
+	);
+	update_option( 'dsf_typography', $typography );
+
 	echo '<div class="notice notice-success is-dismissible"><p>Settings saved successfully!</p></div>';
 }
 
@@ -50,6 +66,31 @@ $recaptcha_enabled    = (bool) get_option( 'dsf_recaptcha_enabled', false );
 $recaptcha_site_key   = get_option( 'dsf_recaptcha_site_key', '' );
 $recaptcha_secret_key = get_option( 'dsf_recaptcha_secret_key', '' );
 $recaptcha_threshold  = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
+
+$typography_option = get_option(
+	'dsf_typography',
+	array(
+		'mode'         => 'theme',
+		'heading_font' => '',
+		'body_font'    => '',
+		'base'         => 16,
+		'scale'        => 1.25,
+	)
+);
+$typography_mode  = $typography_option['mode'] ?? 'theme';
+$typography_hfont = $typography_option['heading_font'] ?? '';
+$typography_bfont = $typography_option['body_font'] ?? '';
+$typography_base  = floatval( $typography_option['base'] ?? 16 );
+$typography_scale = floatval( $typography_option['scale'] ?? 1.25 );
+
+$scale_options = array(
+	'1.125' => 'Minor Second (1.125)',
+	'1.2'   => 'Minor Third (1.2)',
+	'1.25'  => 'Major Third (1.25)',
+	'1.333' => 'Perfect Fourth (1.333)',
+	'1.414' => 'Augmented Fourth (1.414)',
+	'1.5'   => 'Perfect Fifth (1.5)',
+);
 ?>
 
 <div class="wrap dsf-admin-settings">
@@ -135,6 +176,93 @@ $recaptcha_threshold  = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) )
 						</td>
 					</tr>
 				</table>
+			</div>
+
+			<!-- Typography -->
+			<div class="dsf-card" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
+				<h2 style="margin-top: 0;">Typography</h2>
+				<p class="description">Controls the base body size, modular scale, and font families used by every DesignStudio Flow block.</p>
+
+				<table class="form-table">
+					<tr>
+						<th scope="row">Source</th>
+						<td>
+							<label style="display: block; margin-bottom: 8px;">
+								<input type="radio" name="dsf_typography_mode" value="theme"
+									<?php checked( 'theme', $typography_mode ); ?>>
+								Use active WordPress theme typography
+							</label>
+							<label style="display: block;">
+								<input type="radio" name="dsf_typography_mode" value="override"
+									<?php checked( 'override', $typography_mode ); ?>>
+								Override with plugin settings below
+							</label>
+							<p class="description">When the active theme is a block theme, body size auto-reads from <code>theme.json</code>. Override gives you direct control.</p>
+						</td>
+					</tr>
+				</table>
+
+				<div id="dsf-typography-overrides" style="<?php echo 'override' === $typography_mode ? '' : 'display:none;'; ?>">
+					<table class="form-table">
+						<tr>
+							<th scope="row"><label for="dsf_typography_heading_font">Heading Font</label></th>
+							<td>
+								<input type="text" class="regular-text" id="dsf_typography_heading_font"
+									name="dsf_typography_heading_font"
+									value="<?php echo esc_attr( $typography_hfont ); ?>"
+									placeholder="e.g. 'Inter', sans-serif">
+								<p class="description">Any CSS <code>font-family</code> value. Leave empty to inherit from the active theme.</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="dsf_typography_body_font">Body Font</label></th>
+							<td>
+								<input type="text" class="regular-text" id="dsf_typography_body_font"
+									name="dsf_typography_body_font"
+									value="<?php echo esc_attr( $typography_bfont ); ?>"
+									placeholder="e.g. 'Inter', sans-serif">
+								<p class="description">Used for paragraphs, lists, and body copy.</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="dsf_typography_base">Base Body Size</label></th>
+							<td>
+								<input type="number" id="dsf_typography_base" name="dsf_typography_base"
+									min="12" max="22" step="0.5"
+									value="<?php echo esc_attr( $typography_base ); ?>">
+								<span class="description" style="margin-left: 8px;">px</span>
+								<p class="description">The size of normal body text. All other sizes derive from this × the scale.</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="dsf_typography_scale">Scale Ratio</label></th>
+							<td>
+								<select id="dsf_typography_scale" name="dsf_typography_scale">
+									<?php foreach ( $scale_options as $value => $label ) : ?>
+										<option value="<?php echo esc_attr( $value ); ?>"
+											<?php selected( (float) $value, $typography_scale ); ?>>
+											<?php echo esc_html( $label ); ?>
+										</option>
+									<?php endforeach; ?>
+								</select>
+								<p class="description">Each step up multiplies by this ratio. Larger ratios create more dramatic heading hierarchies.</p>
+							</td>
+						</tr>
+					</table>
+				</div>
+
+				<script>
+				(function () {
+					var radios = document.querySelectorAll('input[name="dsf_typography_mode"]');
+					var panel  = document.getElementById('dsf-typography-overrides');
+					if (!panel || !radios.length) return;
+					radios.forEach(function (r) {
+						r.addEventListener('change', function () {
+							panel.style.display = (this.value === 'override' && this.checked) ? '' : 'none';
+						});
+					});
+				})();
+				</script>
 			</div>
 
 			<div class="dsf-card" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">

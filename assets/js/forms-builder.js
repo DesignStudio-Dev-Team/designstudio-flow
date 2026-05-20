@@ -50,6 +50,34 @@
   const DEFAULT_OPTIONS = ['Option 1', 'Option 2']
   const NON_SPLIT_FIELD_TYPES = new Set(['page_break', 'hidden'])
 
+  // Field types that can NOT be a *source* in a conditional rule.
+  const CONDITIONAL_INELIGIBLE_SOURCE_TYPES = new Set(['page_break', 'html', 'file_upload', 'hidden'])
+
+  // Operators available per source field type. The first entry is the default.
+  const OPERATORS_BY_TYPE = {
+    single_line_text: ['equals', 'not_equals', 'contains', 'not_contains', 'is_empty', 'is_not_empty'],
+    paragraph_text:   ['equals', 'not_equals', 'contains', 'not_contains', 'is_empty', 'is_not_empty'],
+    email:            ['equals', 'not_equals', 'contains', 'not_contains', 'is_empty', 'is_not_empty'],
+    phone:            ['equals', 'not_equals', 'contains', 'not_contains', 'is_empty', 'is_not_empty'],
+    website:          ['equals', 'not_equals', 'contains', 'not_contains', 'is_empty', 'is_not_empty'],
+    date:             ['equals', 'not_equals', 'is_empty', 'is_not_empty'],
+    number:           ['equals', 'not_equals', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'],
+    radio_buttons:    ['equals', 'not_equals', 'is_empty', 'is_not_empty'],
+    drop_down:        ['equals', 'not_equals', 'is_empty', 'is_not_empty'],
+    checkboxes:       ['contains', 'not_contains', 'is_empty', 'is_not_empty']
+  }
+  const OPERATOR_LABELS = {
+    equals:        'is',
+    not_equals:    'is not',
+    contains:      'contains',
+    not_contains:  'does not contain',
+    is_empty:      'is empty',
+    is_not_empty:  'is not empty',
+    greater_than:  'is greater than',
+    less_than:     'is less than'
+  }
+  const VALUELESS_OPERATORS = new Set(['is_empty', 'is_not_empty'])
+
   const state = {
     formId: Number.parseInt(wpData.formId || '0', 10) || 0,
     rows: normalizeRows(wpData.rows || []),
@@ -273,8 +301,35 @@
         ? field.options.map((value) => String(value)).filter((value) => value.trim().length > 0)
         : defaults.options,
       html: typeof field.html === 'string' ? field.html : defaults.html,
-      pageBreakAnimation: normalizePageBreakAnimation(field.pageBreakAnimation)
+      pageBreakAnimation: normalizePageBreakAnimation(field.pageBreakAnimation),
+      conditionalLogic: normalizeConditionalLogic(field.conditionalLogic)
     }
+  }
+
+  function normalizeConditionalLogic(logic) {
+    const fallback = { enabled: false, action: 'show', logicType: 'all', rules: [] }
+    if (!logic || typeof logic !== 'object') return fallback
+    const action = logic.action === 'hide' ? 'hide' : 'show'
+    const logicType = logic.logicType === 'any' ? 'any' : 'all'
+    const rules = Array.isArray(logic.rules)
+      ? logic.rules
+          .map((rule) => normalizeConditionalRule(rule))
+          .filter(Boolean)
+      : []
+    return {
+      enabled: Boolean(logic.enabled) && rules.length > 0,
+      action,
+      logicType,
+      rules
+    }
+  }
+
+  function normalizeConditionalRule(rule) {
+    if (!rule || typeof rule !== 'object') return null
+    const fieldId = typeof rule.fieldId === 'string' ? rule.fieldId : ''
+    const operator = typeof rule.operator === 'string' && rule.operator ? rule.operator : 'equals'
+    const value = rule.value == null ? '' : String(rule.value)
+    return { fieldId, operator, value }
   }
 
   function createField(type) {
@@ -294,7 +349,8 @@
       helpText: '',
       options: OPTION_FIELD_TYPES.has(type) ? [...DEFAULT_OPTIONS] : [],
       html: type === 'html' ? '<p>Custom HTML block</p>' : '',
-      pageBreakAnimation: 'slide-left'
+      pageBreakAnimation: 'slide-left',
+      conditionalLogic: { enabled: false, action: 'show', logicType: 'all', rules: [] }
     }
   }
 
@@ -1287,6 +1343,17 @@
       clonedField.options = [...source.options]
     }
 
+    if (source.conditionalLogic) {
+      clonedField.conditionalLogic = {
+        enabled: source.conditionalLogic.enabled,
+        action: source.conditionalLogic.action,
+        logicType: source.conditionalLogic.logicType,
+        rules: Array.isArray(source.conditionalLogic.rules)
+          ? source.conditionalLogic.rules.map((rule) => ({ ...rule }))
+          : []
+      }
+    }
+
     clonedField.width = isSplitFieldType(clonedField.type) ? source.width : 'full'
 
     state.rows.splice(rowIndex + 1, 0, {
@@ -1395,6 +1462,10 @@
       `
     }
 
+    if (field.type !== 'html' && field.type !== 'hidden') {
+      html += renderConditionalLogicEditor(field)
+    }
+
     html += `
       <div class="dsf-field-setting dsf-field-setting--danger">
         <button type="button" class="dsf-remove-field-btn" data-action="remove-field">Remove Field</button>
@@ -1402,6 +1473,137 @@
     `
 
     refs.drawerBody.innerHTML = html
+  }
+
+  function renderConditionalLogicEditor(field) {
+    const logic = field.conditionalLogic || { enabled: false, action: 'show', logicType: 'all', rules: [] }
+    const eligibleSources = getEligibleConditionalSources(field.id)
+
+    const isPageBreak = field.type === 'page_break'
+    const sectionTitle = 'Conditional Logic'
+    const enableLabel = isPageBreak
+      ? 'Conditionally show the page that follows this break'
+      : 'Show or hide this field based on other answers'
+
+    if (!eligibleSources.length) {
+      return `
+        <div class="dsf-field-setting dsf-field-setting--conditional">
+          <div class="dsf-conditional-header"><strong>${escapeHtml(sectionTitle)}</strong></div>
+          <p class="dsf-conditional-empty">
+            Add at least one other input field (text, choice, number, etc.) before you can build conditional rules.
+          </p>
+        </div>
+      `
+    }
+
+    let rulesHtml = ''
+    if (logic.enabled) {
+      rulesHtml = logic.rules
+        .map((rule, index) => renderConditionalRuleRow(rule, index, eligibleSources))
+        .join('')
+    }
+
+    const actionTargetLabel = isPageBreak ? 'next page' : 'this field'
+
+    return `
+      <div class="dsf-field-setting dsf-field-setting--conditional">
+        <div class="dsf-conditional-header"><strong>${escapeHtml(sectionTitle)}</strong></div>
+        <label class="dsf-field-setting__toggle">
+          <input type="checkbox" data-setting="conditionalEnabled" ${logic.enabled ? 'checked' : ''}>
+          <span>${escapeHtml(enableLabel)}</span>
+        </label>
+        ${logic.enabled ? `
+          <div class="dsf-conditional-summary">
+            <select data-setting="conditionalAction">
+              <option value="show" ${logic.action === 'show' ? 'selected' : ''}>Show</option>
+              <option value="hide" ${logic.action === 'hide' ? 'selected' : ''}>Hide</option>
+            </select>
+            <span>${escapeHtml(actionTargetLabel)} when</span>
+            <select data-setting="conditionalLogicType">
+              <option value="all" ${logic.logicType === 'all' ? 'selected' : ''}>all</option>
+              <option value="any" ${logic.logicType === 'any' ? 'selected' : ''}>any</option>
+            </select>
+            <span>of the following match:</span>
+          </div>
+          <div class="dsf-conditional-rules">
+            ${rulesHtml || '<p class="dsf-conditional-empty">No rules yet. Add one to start.</p>'}
+          </div>
+          <button type="button" class="dsf-link-btn" data-action="add-conditional-rule">+ Add Rule</button>
+        ` : ''}
+      </div>
+    `
+  }
+
+  function renderConditionalRuleRow(rule, index, eligibleSources) {
+    const sourceOptions = eligibleSources
+      .map((source) => `
+        <option value="${escapeHtml(source.id)}" ${rule.fieldId === source.id ? 'selected' : ''}>
+          ${escapeHtml(source.label)}
+        </option>
+      `)
+      .join('')
+
+    const sourceField = eligibleSources.find((source) => source.id === rule.fieldId) || eligibleSources[0]
+    const operators = OPERATORS_BY_TYPE[sourceField?.type] || OPERATORS_BY_TYPE.single_line_text
+    const operator = operators.includes(rule.operator) ? rule.operator : operators[0]
+
+    const operatorOptions = operators
+      .map((op) => `<option value="${op}" ${operator === op ? 'selected' : ''}>${escapeHtml(OPERATOR_LABELS[op] || op)}</option>`)
+      .join('')
+
+    let valueControl = ''
+    if (VALUELESS_OPERATORS.has(operator)) {
+      valueControl = ''
+    } else if (sourceField && OPTION_FIELD_TYPES.has(sourceField.type) && Array.isArray(sourceField.options)) {
+      const choices = sourceField.options
+        .map((opt) => `<option value="${escapeHtml(opt)}" ${rule.value === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>`)
+        .join('')
+      valueControl = `
+        <select data-setting="conditionalRuleValue" data-rule-index="${index}">
+          <option value="">Choose…</option>
+          ${choices}
+        </select>
+      `
+    } else if (sourceField && sourceField.type === 'number') {
+      valueControl = `<input type="number" data-setting="conditionalRuleValue" data-rule-index="${index}" value="${escapeHtml(rule.value || '')}">`
+    } else {
+      valueControl = `<input type="text" data-setting="conditionalRuleValue" data-rule-index="${index}" value="${escapeHtml(rule.value || '')}">`
+    }
+
+    return `
+      <div class="dsf-conditional-rule" data-rule-index="${index}">
+        <select data-setting="conditionalRuleField" data-rule-index="${index}">
+          ${sourceOptions}
+        </select>
+        <select data-setting="conditionalRuleOperator" data-rule-index="${index}">
+          ${operatorOptions}
+        </select>
+        ${valueControl}
+        <button type="button" class="dsf-canvas-icon-btn dsf-canvas-icon-btn--danger"
+          data-action="remove-conditional-rule" data-rule-index="${index}" title="Remove rule">
+          <span class="dashicons dashicons-no-alt"></span>
+        </button>
+      </div>
+    `
+  }
+
+  function getEligibleConditionalSources(selfFieldId) {
+    const sources = []
+    for (const row of state.rows) {
+      for (const field of row.fields) {
+        if (field.id === selfFieldId) continue
+        if (CONDITIONAL_INELIGIBLE_SOURCE_TYPES.has(field.type)) continue
+        if (!field.name) continue
+        sources.push({
+          id: field.id,
+          name: field.name,
+          type: field.type,
+          label: field.label || field.name,
+          options: Array.isArray(field.options) ? field.options : []
+        })
+      }
+    }
+    return sources
   }
 
   function settingInput(label, key, value) {
@@ -1500,6 +1702,63 @@
       return
     }
 
+    if (setting === 'conditionalEnabled') {
+      ensureConditionalLogic(field)
+      field.conditionalLogic.enabled = Boolean(event.target.checked)
+      if (field.conditionalLogic.enabled && field.conditionalLogic.rules.length === 0) {
+        const firstSource = getEligibleConditionalSources(field.id)[0]
+        if (firstSource) {
+          field.conditionalLogic.rules.push({
+            fieldId: firstSource.id,
+            operator: (OPERATORS_BY_TYPE[firstSource.type] || OPERATORS_BY_TYPE.single_line_text)[0],
+            value: ''
+          })
+        } else {
+          field.conditionalLogic.enabled = false
+        }
+      }
+      renderDrawer()
+      renderCanvas()
+      return
+    }
+
+    if (setting === 'conditionalAction') {
+      ensureConditionalLogic(field)
+      field.conditionalLogic.action = event.target.value === 'hide' ? 'hide' : 'show'
+      return
+    }
+
+    if (setting === 'conditionalLogicType') {
+      ensureConditionalLogic(field)
+      field.conditionalLogic.logicType = event.target.value === 'any' ? 'any' : 'all'
+      return
+    }
+
+    if (setting === 'conditionalRuleField' || setting === 'conditionalRuleOperator' || setting === 'conditionalRuleValue') {
+      const ruleIndex = Number.parseInt(event.target.dataset.ruleIndex || '-1', 10)
+      ensureConditionalLogic(field)
+      const rule = field.conditionalLogic.rules[ruleIndex]
+      if (!rule) return
+
+      if (setting === 'conditionalRuleField') {
+        rule.fieldId = event.target.value
+        const newSource = getEligibleConditionalSources(field.id).find((s) => s.id === rule.fieldId)
+        const allowedOps = OPERATORS_BY_TYPE[newSource?.type] || OPERATORS_BY_TYPE.single_line_text
+        if (!allowedOps.includes(rule.operator)) {
+          rule.operator = allowedOps[0]
+        }
+        rule.value = ''
+        renderDrawer()
+      } else if (setting === 'conditionalRuleOperator') {
+        rule.operator = event.target.value
+        if (VALUELESS_OPERATORS.has(rule.operator)) rule.value = ''
+        renderDrawer()
+      } else {
+        rule.value = event.target.value
+      }
+      return
+    }
+
     if (setting === 'name') {
       field.name = toFieldName(event.target.value)
       event.target.value = field.name
@@ -1540,6 +1799,40 @@
       }
       renderDrawer()
       renderCanvas()
+      return
+    }
+
+    if (action === 'add-conditional-rule') {
+      ensureConditionalLogic(field)
+      const firstSource = getEligibleConditionalSources(field.id)[0]
+      if (!firstSource) return
+      field.conditionalLogic.rules.push({
+        fieldId: firstSource.id,
+        operator: (OPERATORS_BY_TYPE[firstSource.type] || OPERATORS_BY_TYPE.single_line_text)[0],
+        value: ''
+      })
+      renderDrawer()
+      return
+    }
+
+    if (action === 'remove-conditional-rule') {
+      const ruleIndex = Number.parseInt(actionButton.dataset.ruleIndex || '-1', 10)
+      ensureConditionalLogic(field)
+      if (ruleIndex < 0 || ruleIndex >= field.conditionalLogic.rules.length) return
+      field.conditionalLogic.rules.splice(ruleIndex, 1)
+      if (field.conditionalLogic.rules.length === 0) {
+        field.conditionalLogic.enabled = false
+      }
+      renderDrawer()
+    }
+  }
+
+  function ensureConditionalLogic(field) {
+    if (!field.conditionalLogic || typeof field.conditionalLogic !== 'object') {
+      field.conditionalLogic = { enabled: false, action: 'show', logicType: 'all', rules: [] }
+    }
+    if (!Array.isArray(field.conditionalLogic.rules)) {
+      field.conditionalLogic.rules = []
     }
   }
 

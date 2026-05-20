@@ -45,10 +45,12 @@ class DSF_Forms {
 			'edit.php?post_type=dsf_form'
 		);
 
+		// Form builder page — kept registered (the dsform redirect targets it),
+		// but hidden from the menu (parent = null).
 		add_submenu_page(
-			'designstudio-flow',
-			__( 'Add New DSFlow Form', 'designstudio-flow' ),
-			__( 'Add New DSFlow Form', 'designstudio-flow' ),
+			null,
+			__( 'Form Builder', 'designstudio-flow' ),
+			__( 'Form Builder', 'designstudio-flow' ),
 			'edit_pages',
 			'dsf-form-builder',
 			array( $this, 'render_form_builder_page' )
@@ -325,15 +327,19 @@ class DSF_Forms {
 		}
 
 		$submission = $this->sanitize_submission_payload( $_POST );
+		$submission = $this->strip_conditionally_hidden_values( $form_id, $submission );
 		$settings   = $this->get_form_settings( $form_id );
+
+		$entry_id = $this->persist_entry( $form_id, $submission );
 
 		/**
 		 * Fires after a DSF form passes validation and reCAPTCHA checks.
 		 *
 		 * @param int   $form_id    Form post ID.
 		 * @param array $submission Sanitized payload.
+		 * @param int   $entry_id   ID of the persisted dsf_entry post (0 if persistence failed).
 		 */
-		do_action( 'dsf_form_submitted', $form_id, $submission );
+		do_action( 'dsf_form_submitted', $form_id, $submission, $entry_id );
 
 		$this->increment_form_entries_count( $form_id );
 		$this->maybe_send_form_notifications( $form, $settings, $submission );
@@ -478,6 +484,9 @@ class DSF_Forms {
 			return '';
 		}
 
+		// Build a fieldId → fieldName map for translating conditional rule references.
+		$field_id_to_name = $this->build_field_id_name_map( $rows );
+
 		$submit_label    = $settings['submitLabel'] ?? __( 'Submit', 'designstudio-flow' );
 		$next_label      = $settings['nextLabel'] ?? __( 'Next', 'designstudio-flow' );
 		$previous_label  = $settings['previousLabel'] ?? __( 'Previous', 'designstudio-flow' );
@@ -496,7 +505,16 @@ class DSF_Forms {
 			$page_class      = 'dsf-form-page' . ( $is_active ? ' is-active' : '' );
 			$next_transition = $page['nextTransition'] ?? 'slide-left';
 
-			$output .= '<div class="' . esc_attr( $page_class ) . '" data-dsf-page-index="' . intval( $page_index ) . '" data-dsf-next-transition="' . esc_attr( $next_transition ) . '"' . ( $is_active ? '' : ' hidden' ) . '>';
+			$page_conditional_attr = '';
+			$page_logic            = $page['conditionalLogic'] ?? null;
+			if ( $page_logic && ! empty( $page_logic['enabled'] ) ) {
+				$translated = $this->translate_conditional_logic_for_frontend( $page_logic, $field_id_to_name );
+				if ( $translated ) {
+					$page_conditional_attr = ' data-dsf-conditional="' . esc_attr( wp_json_encode( $translated ) ) . '"';
+				}
+			}
+
+			$output .= '<div class="' . esc_attr( $page_class ) . '" data-dsf-page-index="' . intval( $page_index ) . '" data-dsf-next-transition="' . esc_attr( $next_transition ) . '"' . $page_conditional_attr . ( $is_active ? '' : ' hidden' ) . '>';
 
 			foreach ( $page['rows'] as $row ) {
 				$fields = isset( $row['fields'] ) && is_array( $row['fields'] ) ? $row['fields'] : array();
@@ -505,7 +523,7 @@ class DSF_Forms {
 				}
 
 				if ( 1 === count( $fields ) && 'hidden' === ( $fields[0]['type'] ?? '' ) ) {
-					$output .= $this->render_field_markup( $fields[0], $form_id, $page_index, 0 );
+					$output .= $this->render_field_markup( $fields[0], $form_id, $page_index, 0, $field_id_to_name );
 					continue;
 				}
 
@@ -520,7 +538,7 @@ class DSF_Forms {
 				}
 				$output .= '<div class="dsf-form-row dsf-form-row--cols-' . intval( $columns ) . '">';
 				foreach ( $fields as $field_index => $field ) {
-					$output .= $this->render_field_markup( $field, $form_id, $page_index, $field_index );
+					$output .= $this->render_field_markup( $field, $form_id, $page_index, $field_index, $field_id_to_name );
 				}
 				$output .= '</div>';
 			}
@@ -561,12 +579,15 @@ class DSF_Forms {
 
 	/**
 	 * Split rows into pages using page break fields.
+	 * A page_break's conditionalLogic transfers to the page it precedes — that is,
+	 * "skip the upcoming page when these rules match".
 	 */
 	private function split_rows_into_pages( $rows ) {
 		$pages = array(
 			array(
-				'rows'           => array(),
-				'nextTransition' => 'slide-left',
+				'rows'             => array(),
+				'nextTransition'   => 'slide-left',
+				'conditionalLogic' => null,
 			),
 		);
 
@@ -578,8 +599,9 @@ class DSF_Forms {
 			if ( 1 === count( $fields ) && $field && 'page_break' === ( $field['type'] ?? '' ) ) {
 				$pages[ $current_page ]['nextTransition'] = $field['pageBreakAnimation'] ?? 'slide-left';
 				$pages[]                                  = array(
-					'rows'           => array(),
-					'nextTransition' => 'slide-left',
+					'rows'             => array(),
+					'nextTransition'   => 'slide-left',
+					'conditionalLogic' => isset( $field['conditionalLogic'] ) ? $field['conditionalLogic'] : null,
 				);
 				++$current_page;
 				continue;
@@ -597,9 +619,57 @@ class DSF_Forms {
 	}
 
 	/**
+	 * Walk rows and build [ fieldId => fieldName ].
+	 */
+	private function build_field_id_name_map( $rows ) {
+		$map = array();
+		foreach ( $rows as $row ) {
+			$fields = isset( $row['fields'] ) && is_array( $row['fields'] ) ? $row['fields'] : array();
+			foreach ( $fields as $field ) {
+				if ( isset( $field['id'], $field['name'] ) && '' !== $field['name'] ) {
+					$map[ (string) $field['id'] ] = (string) $field['name'];
+				}
+			}
+		}
+		return $map;
+	}
+
+	/**
+	 * Translate stored conditional logic (rules reference field IDs) into the shape
+	 * the frontend JS expects (rules reference field names). Returns null if no
+	 * rule has a resolvable source.
+	 */
+	private function translate_conditional_logic_for_frontend( $logic, $field_id_to_name ) {
+		if ( ! is_array( $logic ) || empty( $logic['rules'] ) || ! is_array( $logic['rules'] ) ) {
+			return null;
+		}
+		$rules = array();
+		foreach ( $logic['rules'] as $rule ) {
+			$source_id = isset( $rule['fieldId'] ) ? (string) $rule['fieldId'] : '';
+			$source_name = $source_id && isset( $field_id_to_name[ $source_id ] ) ? $field_id_to_name[ $source_id ] : '';
+			if ( '' === $source_name ) {
+				continue;
+			}
+			$rules[] = array(
+				'fieldName' => $source_name,
+				'operator'  => isset( $rule['operator'] ) ? (string) $rule['operator'] : 'equals',
+				'value'     => isset( $rule['value'] ) ? (string) $rule['value'] : '',
+			);
+		}
+		if ( ! $rules ) {
+			return null;
+		}
+		return array(
+			'action'    => ( isset( $logic['action'] ) && 'hide' === $logic['action'] ) ? 'hide' : 'show',
+			'logicType' => ( isset( $logic['logicType'] ) && 'any' === $logic['logicType'] ) ? 'any' : 'all',
+			'rules'     => $rules,
+		);
+	}
+
+	/**
 	 * Render one form field.
 	 */
-	private function render_field_markup( $field, $form_id, $page_index, $field_index ) {
+	private function render_field_markup( $field, $form_id, $page_index, $field_index, $field_id_to_name = array() ) {
 		$type = $field['type'] ?? 'single_line_text';
 		if ( 'hidden' === $type ) {
 			$name  = $field['name'] ?? 'hidden_field';
@@ -628,7 +698,16 @@ class DSF_Forms {
 			$group_required_attr = ' data-required-group="1"';
 		}
 
-		$output = '<div class="dsf-form-field dsf-form-field--' . esc_attr( $type ) . '" data-field-type="' . esc_attr( $type ) . '"' . $group_required_attr . '>';
+		$conditional_attr = '';
+		if ( ! empty( $field['conditionalLogic']['enabled'] ) ) {
+			$translated = $this->translate_conditional_logic_for_frontend( $field['conditionalLogic'], $field_id_to_name );
+			if ( $translated ) {
+				$conditional_attr = ' data-dsf-conditional="' . esc_attr( wp_json_encode( $translated ) ) . '"';
+			}
+		}
+		$field_name_attr = isset( $field['name'] ) ? ' data-dsf-field-name="' . esc_attr( $field['name'] ) . '"' : '';
+
+		$output = '<div class="dsf-form-field dsf-form-field--' . esc_attr( $type ) . '" data-field-type="' . esc_attr( $type ) . '"' . $field_name_attr . $group_required_attr . $conditional_attr . '>';
 
 		if ( 'html' === $type ) {
 			$output .= '<div class="dsf-form-html">' . wp_kses_post( $html_value ) . '</div>';
@@ -897,6 +976,163 @@ class DSF_Forms {
 	}
 
 	/**
+	 * Persist a form submission as a dsf_entry post. Returns the new entry's
+	 * post ID, or 0 if persistence failed.
+	 */
+	private function persist_entry( $form_id, $submission ) {
+		if ( ! $form_id ) {
+			return 0;
+		}
+
+		$form         = get_post( $form_id );
+		$form_title   = $form ? $form->post_title : 'Form';
+		$count        = $this->get_form_entries_count( $form_id ) + 1;
+		$entry_title  = sprintf( 'Entry #%d — %s', $count, $form_title );
+		$submitted_at = current_time( 'mysql' );
+
+		$context = array(
+			'ip'         => $this->get_anonymized_client_ip(),
+			'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 255 ) : '',
+			'user_id'    => get_current_user_id(),
+			'referer'    => isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '',
+		);
+
+		$entry_id = wp_insert_post(
+			array(
+				'post_type'   => 'dsf_entry',
+				'post_status' => 'publish',
+				'post_title'  => $entry_title,
+				'meta_input'  => array(
+					'_dsf_entry_form_id'      => intval( $form_id ),
+					'_dsf_entry_data'         => $submission,
+					'_dsf_entry_submitted_at' => $submitted_at,
+					'_dsf_entry_context'      => $context,
+				),
+			),
+			false
+		);
+
+		if ( is_wp_error( $entry_id ) || ! $entry_id ) {
+			return 0;
+		}
+
+		return intval( $entry_id );
+	}
+
+	/**
+	 * Truncate the last octet of a v4 client IP for basic privacy.
+	 * Returns '' if no IP could be determined.
+	 */
+	private function get_anonymized_client_ip() {
+		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		if ( '' === $ip ) {
+			return '';
+		}
+		if ( false !== filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
+			$parts = explode( '.', $ip );
+			if ( 4 === count( $parts ) ) {
+				$parts[3] = '0';
+				return implode( '.', $parts );
+			}
+		}
+		return $ip;
+	}
+
+	/**
+	 * Fetch the saved entry data for a single entry, returning a normalized shape.
+	 */
+	public function get_entry( $entry_id ) {
+		$entry_id = intval( $entry_id );
+		if ( ! $entry_id ) {
+			return null;
+		}
+		$post = get_post( $entry_id );
+		if ( ! $post || 'dsf_entry' !== $post->post_type ) {
+			return null;
+		}
+		$data    = get_post_meta( $entry_id, '_dsf_entry_data', true );
+		$context = get_post_meta( $entry_id, '_dsf_entry_context', true );
+		return array(
+			'id'           => $entry_id,
+			'title'        => $post->post_title,
+			'form_id'      => intval( get_post_meta( $entry_id, '_dsf_entry_form_id', true ) ),
+			'submitted_at' => (string) get_post_meta( $entry_id, '_dsf_entry_submitted_at', true ),
+			'data'         => is_array( $data ) ? $data : array(),
+			'context'      => is_array( $context ) ? $context : array(),
+		);
+	}
+
+	/**
+	 * Query entries for a form (or all forms when form_id is 0/empty).
+	 *
+	 * @param array $args { form_id: int, limit: int, offset: int, orderby: string, order: string, search: string }
+	 * @return array{entries:array, total:int}
+	 */
+	public function query_entries( $args = array() ) {
+		$defaults = array(
+			'form_id' => 0,
+			'limit'   => 20,
+			'offset'  => 0,
+			'orderby' => 'date',
+			'order'   => 'DESC',
+			'search'  => '',
+		);
+		$args = array_merge( $defaults, $args );
+
+		$query_args = array(
+			'post_type'      => 'dsf_entry',
+			'post_status'    => 'publish',
+			'posts_per_page' => intval( $args['limit'] ),
+			'offset'         => intval( $args['offset'] ),
+			'orderby'        => $args['orderby'],
+			'order'          => 'ASC' === strtoupper( $args['order'] ) ? 'ASC' : 'DESC',
+		);
+
+		if ( ! empty( $args['form_id'] ) ) {
+			$query_args['meta_query'] = array(
+				array(
+					'key'   => '_dsf_entry_form_id',
+					'value' => intval( $args['form_id'] ),
+				),
+			);
+		}
+
+		if ( ! empty( $args['search'] ) ) {
+			$query_args['s'] = sanitize_text_field( $args['search'] );
+		}
+
+		$query   = new WP_Query( $query_args );
+		$entries = array();
+		foreach ( $query->posts as $post ) {
+			$entry = $this->get_entry( $post->ID );
+			if ( $entry ) {
+				$entries[] = $entry;
+			}
+		}
+
+		return array(
+			'entries' => $entries,
+			'total'   => intval( $query->found_posts ),
+		);
+	}
+
+	/**
+	 * Delete a single entry. Returns true on success.
+	 */
+	public function delete_entry( $entry_id ) {
+		$entry_id = intval( $entry_id );
+		if ( ! $entry_id ) {
+			return false;
+		}
+		$post = get_post( $entry_id );
+		if ( ! $post || 'dsf_entry' !== $post->post_type ) {
+			return false;
+		}
+		$result = wp_delete_post( $entry_id, true );
+		return false !== $result;
+	}
+
+	/**
 	 * Send configured notification emails for a form submission.
 	 */
 	private function maybe_send_form_notifications( $form, $settings, $submission ) {
@@ -1147,6 +1383,59 @@ class DSF_Forms {
 			'options'            => $options,
 			'html'               => isset( $field['html'] ) ? wp_kses_post( $field['html'] ) : '',
 			'pageBreakAnimation' => $page_break_animation,
+			'conditionalLogic'   => $this->sanitize_conditional_logic( $field['conditionalLogic'] ?? null ),
+		);
+	}
+
+	/**
+	 * Sanitize the conditionalLogic config stored on each field.
+	 * Always returns a stable shape so callers can rely on the keys.
+	 */
+	private function sanitize_conditional_logic( $logic ) {
+		$default = array(
+			'enabled'   => false,
+			'action'    => 'show',
+			'logicType' => 'all',
+			'rules'     => array(),
+		);
+
+		if ( ! is_array( $logic ) ) {
+			return $default;
+		}
+
+		$allowed_operators = array( 'equals', 'not_equals', 'contains', 'not_contains', 'is_empty', 'is_not_empty', 'greater_than', 'less_than' );
+		$rules             = array();
+		if ( isset( $logic['rules'] ) && is_array( $logic['rules'] ) ) {
+			foreach ( $logic['rules'] as $rule ) {
+				if ( ! is_array( $rule ) ) {
+					continue;
+				}
+				$source_id = isset( $rule['fieldId'] ) ? sanitize_text_field( $rule['fieldId'] ) : '';
+				$operator  = isset( $rule['operator'] ) ? sanitize_key( $rule['operator'] ) : 'equals';
+				if ( ! in_array( $operator, $allowed_operators, true ) ) {
+					$operator = 'equals';
+				}
+				$value = isset( $rule['value'] ) ? sanitize_text_field( (string) $rule['value'] ) : '';
+
+				if ( '' === $source_id ) {
+					continue;
+				}
+				$rules[] = array(
+					'fieldId'  => $source_id,
+					'operator' => $operator,
+					'value'    => $value,
+				);
+				if ( count( $rules ) >= 20 ) {
+					break;
+				}
+			}
+		}
+
+		return array(
+			'enabled'   => ! empty( $logic['enabled'] ) && count( $rules ) > 0,
+			'action'    => ( isset( $logic['action'] ) && 'hide' === $logic['action'] ) ? 'hide' : 'show',
+			'logicType' => ( isset( $logic['logicType'] ) && 'any' === $logic['logicType'] ) ? 'any' : 'all',
+			'rules'     => $rules,
 		);
 	}
 
@@ -1296,6 +1585,135 @@ class DSF_Forms {
 	/**
 	 * Sanitize frontend submission payload.
 	 */
+	/**
+	 * Re-evaluate conditional logic on the server using the saved form schema
+	 * and the submitted values, then strip any field whose visibility test
+	 * fails. Server-side enforcement: never trust the client to omit hidden
+	 * values, since required validation and storage rely on this.
+	 */
+	private function strip_conditionally_hidden_values( $form_id, $submission ) {
+		$rows = $this->get_form_rows( $form_id );
+		if ( empty( $rows ) ) {
+			return $submission;
+		}
+
+		$pages            = $this->split_rows_into_pages( $rows );
+		$field_id_to_name = $this->build_field_id_name_map( $rows );
+
+		$hidden_field_names = array();
+
+		foreach ( $pages as $page_index => $page ) {
+			$page_is_hidden = false;
+
+			if ( $page_index > 0 && isset( $page['conditionalLogic'] ) && ! empty( $page['conditionalLogic']['enabled'] ) ) {
+				$logic   = $this->translate_conditional_logic_for_frontend( $page['conditionalLogic'], $field_id_to_name );
+				$matched = $this->evaluate_logic_against_submission( $logic, $submission, $hidden_field_names );
+				$visible = ( 'hide' === ( $logic['action'] ?? 'show' ) ) ? ! $matched : $matched;
+				if ( ! $visible ) {
+					$page_is_hidden = true;
+				}
+			}
+
+			$page_rows = isset( $page['rows'] ) && is_array( $page['rows'] ) ? $page['rows'] : array();
+			foreach ( $page_rows as $row ) {
+				$fields = isset( $row['fields'] ) && is_array( $row['fields'] ) ? $row['fields'] : array();
+				foreach ( $fields as $field ) {
+					$type = $field['type'] ?? '';
+					$name = isset( $field['name'] ) ? (string) $field['name'] : '';
+					if ( '' === $name || in_array( $type, array( 'html', 'page_break' ), true ) ) {
+						continue;
+					}
+
+					if ( $page_is_hidden ) {
+						$hidden_field_names[ $name ] = true;
+						continue;
+					}
+
+					if ( ! empty( $field['conditionalLogic']['enabled'] ) ) {
+						$logic   = $this->translate_conditional_logic_for_frontend( $field['conditionalLogic'], $field_id_to_name );
+						$matched = $this->evaluate_logic_against_submission( $logic, $submission, $hidden_field_names );
+						$visible = ( 'hide' === ( $logic['action'] ?? 'show' ) ) ? ! $matched : $matched;
+						if ( ! $visible ) {
+							$hidden_field_names[ $name ] = true;
+						}
+					}
+				}
+			}
+		}
+
+		foreach ( array_keys( $hidden_field_names ) as $name ) {
+			unset( $submission[ $name ] );
+		}
+
+		return $submission;
+	}
+
+	/**
+	 * Evaluate a translated logic block ({ logicType, rules:[{fieldName,operator,value}] })
+	 * against the submission map. Source fields that are themselves hidden are
+	 * treated as having an empty value, matching the JS engine.
+	 */
+	private function evaluate_logic_against_submission( $logic, $submission, $hidden_field_names ) {
+		if ( ! is_array( $logic ) || empty( $logic['rules'] ) || ! is_array( $logic['rules'] ) ) {
+			return true;
+		}
+
+		$results = array();
+		foreach ( $logic['rules'] as $rule ) {
+			$source = isset( $rule['fieldName'] ) ? (string) $rule['fieldName'] : '';
+			if ( '' === $source ) {
+				$results[] = false;
+				continue;
+			}
+
+			$value    = isset( $hidden_field_names[ $source ] ) ? '' : ( $submission[ $source ] ?? '' );
+			$expected = isset( $rule['value'] ) ? (string) $rule['value'] : '';
+			$op       = isset( $rule['operator'] ) ? (string) $rule['operator'] : 'equals';
+
+			$is_array  = is_array( $value );
+			$val_arr   = $is_array ? array_map( 'strval', $value ) : array();
+			$val_str   = $is_array ? implode( ',', $val_arr ) : (string) $value;
+
+			switch ( $op ) {
+				case 'equals':
+					$results[] = $is_array ? in_array( $expected, $val_arr, true ) : ( $val_str === $expected );
+					break;
+				case 'not_equals':
+					$results[] = $is_array ? ! in_array( $expected, $val_arr, true ) : ( $val_str !== $expected );
+					break;
+				case 'contains':
+					$results[] = $is_array
+						? in_array( $expected, $val_arr, true )
+						: ( '' !== $expected && false !== stripos( $val_str, $expected ) );
+					break;
+				case 'not_contains':
+					$results[] = $is_array
+						? ! in_array( $expected, $val_arr, true )
+						: ( '' === $expected || false === stripos( $val_str, $expected ) );
+					break;
+				case 'is_empty':
+					$results[] = $is_array ? 0 === count( $val_arr ) : ( '' === trim( $val_str ) );
+					break;
+				case 'is_not_empty':
+					$results[] = $is_array ? count( $val_arr ) > 0 : ( '' !== trim( $val_str ) );
+					break;
+				case 'greater_than':
+					$results[] = is_numeric( $val_str ) && is_numeric( $expected ) && ( (float) $val_str > (float) $expected );
+					break;
+				case 'less_than':
+					$results[] = is_numeric( $val_str ) && is_numeric( $expected ) && ( (float) $val_str < (float) $expected );
+					break;
+				default:
+					$results[] = false;
+			}
+		}
+
+		if ( ( $logic['logicType'] ?? 'all' ) === 'any' ) {
+			return in_array( true, $results, true );
+		}
+		return ! in_array( false, $results, true );
+	}
+
 	private function sanitize_submission_payload( $payload ) {
 		if ( ! is_array( $payload ) ) {
 			return array();

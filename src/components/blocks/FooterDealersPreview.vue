@@ -376,7 +376,7 @@ function preventInEditor(event) {
 .dsf-footer-dealers__name {
   margin: 0 0 0.7rem;
   color: var(--footer-heading);
-  font-size: 2rem;
+  font-size: var(--dsf-theme-h2, 2rem);
   font-family: var(--dsf-theme-heading-font, inherit);
   font-weight: 700;
   line-height: 1.2;
@@ -384,7 +384,7 @@ function preventInEditor(event) {
 
 .dsf-footer-dealers__line {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: var(--dsf-theme-text-2xl, 1.75rem);
   line-height: 1.45;
 }
 
@@ -395,7 +395,7 @@ function preventInEditor(event) {
   gap: 0.5rem;
   color: var(--footer-accent);
   text-decoration: none;
-  font-size: 1.75rem;
+  font-size: var(--dsf-theme-text-2xl, 1.75rem);
   font-weight: 700;
 }
 
@@ -409,14 +409,14 @@ function preventInEditor(event) {
 
 .dsf-footer-dealers__hours-label {
   margin: 0 0 0.35rem;
-  font-size: 1.75rem;
+  font-size: var(--dsf-theme-text-2xl, 1.75rem);
 }
 
 .dsf-footer-dealers__hours-row {
   display: grid;
   grid-template-columns: 90px 1fr;
   gap: 0.9rem;
-  font-size: 1.65rem;
+  font-size: var(--dsf-theme-text-2xl, 1.65rem);
   line-height: 1.35;
 }
 
@@ -447,7 +447,7 @@ function preventInEditor(event) {
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  font-size: 2rem;
+  font-size: var(--dsf-theme-text-3xl, 2rem);
   font-weight: 700;
   line-height: 1;
 }
@@ -463,7 +463,7 @@ function preventInEditor(event) {
 .dsf-footer-dealers__legal a {
   color: var(--footer-accent);
   text-decoration: none;
-  font-size: 1.45rem;
+  font-size: var(--dsf-theme-text-xl, 1.45rem);
 }
 
 .dsf-footer-dealers__legal a:hover {
@@ -472,7 +472,7 @@ function preventInEditor(event) {
 
 .dsf-footer-dealers__copyright {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--dsf-theme-text-xl, 1.25rem);
   color: #f1f4f8;
   text-align: center;
 }
@@ -483,22 +483,22 @@ function preventInEditor(event) {
 
 @media (max-width: 1280px) {
   .dsf-footer-dealers__name {
-    font-size: 1.35rem;
+    font-size: var(--dsf-theme-h4, 1.35rem);
   }
 
   .dsf-footer-dealers__line,
   .dsf-footer-dealers__contact,
   .dsf-footer-dealers__hours-label,
   .dsf-footer-dealers__hours-row {
-    font-size: 1rem;
+    font-size: var(--dsf-theme-text-base, 1rem);
   }
 
   .dsf-footer-dealers__legal a {
-    font-size: 0.95rem;
+    font-size: var(--dsf-theme-text-sm, 0.95rem);
   }
 
   .dsf-footer-dealers__copyright {
-    font-size: 0.85rem;
+    font-size: var(--dsf-theme-text-sm, 0.85rem);
   }
 }
 

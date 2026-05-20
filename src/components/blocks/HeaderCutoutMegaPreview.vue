@@ -480,7 +480,7 @@ function getImageColumnCount(column) {
 .dsf-header-cutout__top-link {
   text-decoration: none;
   color: inherit;
-  font-size: 0.8rem;
+  font-size: var(--dsf-theme-text-xs, 0.8rem);
   font-weight: 700;
   line-height: 1;
   padding: 0 0.5rem;
@@ -568,7 +568,7 @@ function getImageColumnCount(column) {
   gap: 0.35rem;
   text-decoration: none;
   color: var(--menu-text);
-  font-size: 1.05rem;
+  font-size: var(--dsf-theme-text-base, 1.05rem);
   font-weight: 700;
   text-transform: uppercase;
   border-left: 1px solid var(--menu-divider);
@@ -611,7 +611,7 @@ function getImageColumnCount(column) {
 .dsf-header-cutout__column :deep(h4) {
   margin: 0 0 0.7rem;
   color: var(--panel-heading);
-  font-size: 1.05rem;
+  font-size: var(--dsf-theme-h6, 1.05rem);
   font-weight: 700;
 }
 
@@ -631,7 +631,7 @@ function getImageColumnCount(column) {
   display: block;
   text-decoration: none;
   color: var(--panel-link);
-  font-size: 0.95rem;
+  font-size: var(--dsf-theme-text-sm, 0.95rem);
   line-height: 1.25;
   padding: 0.14rem 0;
 }
@@ -739,7 +739,7 @@ function getImageColumnCount(column) {
   .dsf-header-cutout__menu-item {
     flex: 0 0 auto;
     min-width: 150px;
-    font-size: 0.9rem;
+    font-size: var(--dsf-theme-text-sm, 0.9rem);
   }
 
   .dsf-header-cutout__panel-columns {
