@@ -310,10 +310,11 @@
                   </div>
                   <button
                     v-if="settings.showButton !== false && product.price_num"
+                    type="button"
                     class="dsf-product-card-preview__btn"
                     :class="cartButtonClass(product)"
                     :disabled="cartState[product.id] === 'loading'"
-                    @click.prevent="handleAddToCart(product)"
+                    @click.stop.prevent="handleAddToCart(product)"
                   >{{ cartButtonLabel(product) }}</button>
                 </div>
               </template>
@@ -329,11 +330,12 @@
                     </a>
                     <button
                       v-if="settings.showButton !== false && product.price_num"
+                      type="button"
                       class="dsf-product-card-preview__icon-btn dsf-product-card-preview__icon-btn--cart"
                       :class="{ 'dsf-product-card-preview__icon-btn--added': cartState[product.id] === 'added' }"
                       :disabled="cartState[product.id] === 'loading'"
                       :title="settings.buttonText || 'Add to Cart'"
-                      @click.prevent="handleAddToCart(product)"
+                      @click.stop.prevent="handleAddToCart(product)"
                     >
                       <ShoppingCart :size="16" />
                     </button>
@@ -359,40 +361,45 @@
 
               <!-- ── Modern ── -->
               <template v-else-if="cardStyle === 'modern'">
-                <a :href="product.permalink || '#'" class="dsf-product-card-preview__image-link">
-                  <div class="dsf-product-card-preview__image">
+                <div class="dsf-product-card-preview__image">
+                  <a
+                    :href="product.permalink || '#'"
+                    class="dsf-product-card-preview__image-link dsf-product-card-preview__image-link--modern"
+                    :aria-label="`View ${product.name}`"
+                  >
                     <img v-if="product.image" :src="product.image" :alt="product.name" />
                     <ShoppingBag v-else :size="40" />
-                    <div class="dsf-product-card-preview__overlay">
-                      <div v-if="product.attributes?.brand?.[0]" class="dsf-product-card-preview__brand">{{ product.attributes.brand[0] }}</div>
-                      <a :href="product.permalink || '#'" class="dsf-product-card-preview__name-link">
-                        <h4 class="dsf-product-card-preview__name">{{ product.name }}</h4>
-                      </a>
-                      <div class="dsf-product-card-preview__sub">
-                        <span v-if="product.categories?.[0]">{{ product.categories[0] }}</span>
-                        <template v-for="(vals, key) in product.attributes" :key="key">
-                          <template v-if="key !== 'brand' && vals?.[0]">
-                            <span class="dsf-product-card-preview__sub-sep">·</span>
-                            <span>{{ vals[0] }}</span>
-                          </template>
+                  </a>
+                  <div class="dsf-product-card-preview__overlay">
+                    <div v-if="product.attributes?.brand?.[0]" class="dsf-product-card-preview__brand">{{ product.attributes.brand[0] }}</div>
+                    <a :href="product.permalink || '#'" class="dsf-product-card-preview__name-link">
+                      <h4 class="dsf-product-card-preview__name">{{ product.name }}</h4>
+                    </a>
+                    <div class="dsf-product-card-preview__sub">
+                      <span v-if="product.categories?.[0]">{{ product.categories[0] }}</span>
+                      <template v-for="(vals, key) in product.attributes" :key="key">
+                        <template v-if="key !== 'brand' && vals?.[0]">
+                          <span class="dsf-product-card-preview__sub-sep">·</span>
+                          <span>{{ vals[0] }}</span>
                         </template>
-                      </div>
-                      <div class="dsf-product-card-preview__meta">
-                        <div v-if="settings.showPrice !== false" class="dsf-product-card-preview__price">{{ product.price || '$99.00' }}</div>
-                        <div v-if="product.rating > 0" class="dsf-product-card-preview__rating">
-                          <Star v-for="s in 5" :key="s" :size="11" :class="s <= Math.round(product.rating) ? 'dsf-star--filled' : 'dsf-star--empty'" />
-                        </div>
-                      </div>
-                      <button
-                        v-if="settings.showButton !== false && product.price_num"
-                        class="dsf-product-card-preview__btn"
-                        :class="cartButtonClass(product)"
-                        :disabled="cartState[product.id] === 'loading'"
-                        @click.prevent="handleAddToCart(product)"
-                      >{{ cartButtonLabel(product) }}</button>
+                      </template>
                     </div>
+                    <div class="dsf-product-card-preview__meta">
+                      <div v-if="settings.showPrice !== false" class="dsf-product-card-preview__price">{{ product.price || '$99.00' }}</div>
+                      <div v-if="product.rating > 0" class="dsf-product-card-preview__rating">
+                        <Star v-for="s in 5" :key="s" :size="11" :class="s <= Math.round(product.rating) ? 'dsf-star--filled' : 'dsf-star--empty'" />
+                      </div>
+                    </div>
+                    <button
+                      v-if="settings.showButton !== false && product.price_num"
+                      type="button"
+                      class="dsf-product-card-preview__btn"
+                      :class="cartButtonClass(product)"
+                      :disabled="cartState[product.id] === 'loading'"
+                      @click.stop.prevent="handleAddToCart(product)"
+                    >{{ cartButtonLabel(product) }}</button>
                   </div>
-                </a>
+                </div>
               </template>
             </div>
           </div>
@@ -913,6 +920,10 @@ function isVariableProduct(product) {
   return product.product_type === 'variable' || product.product_type === 'variable-subscription'
 }
 
+function navigateToProduct(product) {
+  navigateToUrl(product?.permalink || '#')
+}
+
 async function handleAddToCart(product) {
   // In editor just show demo feedback
   if (props.isEditor) {
@@ -923,13 +934,13 @@ async function handleAddToCart(product) {
 
   // Variable products → go to product page to pick variants
   if (isVariableProduct(product)) {
-    window.location.href = product.permalink || '#'
+    navigateToProduct(product)
     return
   }
 
   // Out of stock → go to product page
   if (product.stock_status === 'outofstock') {
-    window.location.href = product.permalink || '#'
+    navigateToProduct(product)
     return
   }
 
@@ -946,14 +957,23 @@ async function handleAddToCart(product) {
     const response = await fetch(wcAjaxUrl, {
       method: 'POST',
       body: formData,
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
     })
 
-    const data = await response.json()
+    const rawResponse = await response.text()
+    const data = rawResponse ? JSON.parse(rawResponse) : {}
+
+    if (!response.ok) {
+      throw new Error(`Add to cart request failed with status ${response.status}`)
+    }
 
     if (data.error) {
       // WooCommerce returned an error (e.g. needs variation selection)
-      window.location.href = product.permalink || '#'
+      navigateToProduct(product)
       return
     }
 
@@ -968,6 +988,11 @@ async function handleAddToCart(product) {
     // Reset button label after 2.5s
     setTimeout(() => { cartState[product.id] = 'idle' }, 2500)
   } catch {
+    if (product.add_to_cart_url) {
+      navigateToUrl(product.add_to_cart_url)
+      return
+    }
+
     cartState[product.id] = 'error'
     setTimeout(() => { cartState[product.id] = 'idle' }, 2000)
   }
@@ -1915,6 +1940,16 @@ async function fetchProducts() {
   flex: 1;
 }
 
+.dsf-product-card-preview--modern .dsf-product-card-preview__image-link--modern {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  height: 100%;
+}
+
 .dsf-product-card-preview--modern .dsf-product-card-preview__image {
   aspect-ratio: 3 / 4;
   border-radius: var(--dsf-radius-lg);
@@ -1935,6 +1970,13 @@ async function fetchProducts() {
   justify-content: flex-end;
   padding: 1.25rem;
   gap: 0.3rem;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.dsf-product-card-preview--modern .dsf-product-card-preview__name-link,
+.dsf-product-card-preview--modern .dsf-product-card-preview__btn {
+  pointer-events: auto;
 }
 
 .dsf-product-card-preview--modern .dsf-product-card-preview__brand {

@@ -500,6 +500,29 @@ class DSF_Forms {
 		$output     .= '<div class="dsf-form-wrap" data-dsf-form-id="' . intval( $form_id ) . '">';
 		$output     .= '<form class="dsf-form" method="post" data-dsf-multipage="' . intval( $total_pages > 1 ) . '" data-dsf-success-message="' . esc_attr( $success_message ) . '" novalidate>';
 
+		if ( $total_pages > 1 ) {
+			$initial_percent = (int) round( 100 / $total_pages );
+			$output .= '<div class="dsf-form-progress" data-dsf-progress'
+				. ' role="progressbar"'
+				. ' aria-label="' . esc_attr__( 'Form progress', 'designstudio-flow' ) . '"'
+				. ' aria-valuemin="1"'
+				. ' aria-valuemax="' . intval( $total_pages ) . '"'
+				. ' aria-valuenow="1">';
+			$output .= '<div class="dsf-form-progress__meta">';
+			$output .= '<span class="dsf-form-progress__label">'
+				. esc_html__( 'Step', 'designstudio-flow' )
+				. ' <span class="dsf-form-progress__current" data-dsf-progress-current="1">1</span> '
+				. esc_html__( 'of', 'designstudio-flow' )
+				. ' <span class="dsf-form-progress__total" data-dsf-progress-total="' . intval( $total_pages ) . '">' . intval( $total_pages ) . '</span>'
+				. '</span>';
+			$output .= '<span class="dsf-form-progress__percent" data-dsf-progress-percent>' . intval( $initial_percent ) . '%</span>';
+			$output .= '</div>';
+			$output .= '<div class="dsf-form-progress__track">';
+			$output .= '<div class="dsf-form-progress__bar" data-dsf-progress-bar style="width:' . esc_attr( $initial_percent ) . '%"></div>';
+			$output .= '</div>';
+			$output .= '</div>';
+		}
+
 		foreach ( $pages as $page_index => $page ) {
 			$is_active       = 0 === $page_index;
 			$page_class      = 'dsf-form-page' . ( $is_active ? ' is-active' : '' );
@@ -692,6 +715,10 @@ class DSF_Forms {
 		$html_value    = $field['html'] ?? '';
 		$default_value = $field['defaultValue'] ?? '';
 		$help_text     = $field['helpText'] ?? '';
+		$help_text_position = ( isset( $field['helpTextPosition'] ) && 'top' === $field['helpTextPosition'] ) ? 'top' : 'bottom';
+		$help_text_html = ( '' !== $help_text )
+			? '<p class="dsf-form-help-text dsf-form-help-text--' . esc_attr( $help_text_position ) . '">' . esc_html( $help_text ) . '</p>'
+			: '';
 
 		$group_required_attr = '';
 		if ( $required && in_array( $type, array( 'checkboxes', 'radio_buttons' ), true ) ) {
@@ -716,6 +743,7 @@ class DSF_Forms {
 		}
 
 		$output .= '<label class="dsf-form-label" for="' . esc_attr( $field_id ) . '">' . esc_html( $label ) . $required_mark . '</label>';
+		$output .= $help_text_html;
 
 		switch ( $type ) {
 			case 'paragraph_text':
@@ -773,10 +801,6 @@ class DSF_Forms {
 			default:
 				$output .= '<input type="text" id="' . esc_attr( $field_id ) . '" name="' . esc_attr( $name ) . '" placeholder="' . esc_attr( $placeholder ) . '" value="' . esc_attr( $default_value ) . '"' . $required_attr . '>';
 				break;
-		}
-
-		if ( '' !== $help_text ) {
-			$output .= '<p class="dsf-form-help-text">' . esc_html( $help_text ) . '</p>';
 		}
 
 		$output .= '</div>';
@@ -1380,6 +1404,7 @@ class DSF_Forms {
 			'placeholder'        => isset( $field['placeholder'] ) ? sanitize_text_field( $field['placeholder'] ) : '',
 			'defaultValue'       => isset( $field['defaultValue'] ) ? sanitize_text_field( $field['defaultValue'] ) : '',
 			'helpText'           => isset( $field['helpText'] ) ? sanitize_text_field( $field['helpText'] ) : '',
+			'helpTextPosition'   => ( isset( $field['helpTextPosition'] ) && 'top' === $field['helpTextPosition'] ) ? 'top' : 'bottom',
 			'options'            => $options,
 			'html'               => isset( $field['html'] ) ? wp_kses_post( $field['html'] ) : '',
 			'pageBreakAnimation' => $page_break_animation,

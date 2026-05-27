@@ -991,6 +991,35 @@
   background: #ffffff;
 }
 
+.dsf-connection-test {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.dsf-connection-test__status {
+  font-size: 12px;
+  color: #475569;
+}
+
+.dsf-connection-test__status.is-pending {
+  color: #475569;
+}
+
+.dsf-connection-test__status.is-success {
+  color: #166534;
+  font-weight: 600;
+}
+
+.dsf-connection-test__status.is-error {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
 @media (max-width: 1180px) {
   .dsf-build-layout {
     grid-template-columns: minmax(0, 1fr);

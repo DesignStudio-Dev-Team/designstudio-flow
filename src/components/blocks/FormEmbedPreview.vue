@@ -1,5 +1,5 @@
 <template>
-  <div class="dsf-block-preview dsf-form-embed-preview">
+  <div class="dsf-block-preview dsf-form-embed-preview" :style="blockStyle">
     <h3 v-if="blockTitle" class="dsf-form-embed-preview__title">{{ blockTitle }}</h3>
 
     <div v-if="isEditor" class="dsf-form-embed-preview__editor">
@@ -11,7 +11,12 @@
       <code class="dsf-form-embed-preview__code">{{ shortcodeLabel }}</code>
     </div>
 
-    <div v-else ref="frontendRoot" class="dsf-form-embed-preview__frontend">
+    <div
+      v-else
+      ref="frontendRoot"
+      class="dsf-form-embed-preview__frontend"
+      data-dsf-form-embed-form
+    >
       <div
         v-if="renderedHtml"
         class="dsf-form-embed-preview__rendered"
@@ -25,7 +30,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, onUpdated, ref } from 'vue'
+import { computed, nextTick, onMounted, onUpdated, onBeforeUnmount, ref } from 'vue'
 
 const props = defineProps({
   settings: {
@@ -45,6 +50,26 @@ const props = defineProps({
 const editorData = typeof window !== 'undefined' ? window.dsfEditorData : null
 const editorForms = Array.isArray(editorData?.forms) ? editorData.forms : []
 const frontendRoot = ref(null)
+let pendingScriptTimeoutId = null
+let isUnmounted = false
+
+const blockStyle = computed(() => {
+  const maxWidth = props.settings?.formMaxWidth ?? 600
+  const alignment = props.settings?.formAlignment ?? 'center'
+
+  let margin = '0 auto'
+  if (alignment === 'left') {
+    margin = '0 auto 0 0'
+  } else if (alignment === 'right') {
+    margin = '0 0 0 auto'
+  }
+
+  return {
+    maxWidth: `${maxWidth}px`,
+    width: '100%',
+    margin: margin,
+  }
+})
 
 const normalizedFormId = computed(() => {
   const raw = props.settings?.formId
@@ -87,12 +112,91 @@ const emptyStateMessage = computed(() => (
     : 'Select a form in the block settings.'
 ))
 
+function executeEmbeddedScripts(htmlString, attempt = 0) {
+  if (typeof document === 'undefined' || !htmlString || isUnmounted) return
+
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(htmlString, 'text/html')
+  const scripts = Array.from(doc.querySelectorAll('script'))
+
+  if (!scripts.length) return
+
+  const needsGravityForms = scripts.some((script) =>
+    /\bgform\b|gravity_form|gform_wrapper/.test(script.textContent || '')
+  )
+
+  if (
+    needsGravityForms &&
+    typeof window !== 'undefined' &&
+    !window.gform &&
+    attempt < 80
+  ) {
+    pendingScriptTimeoutId = window.setTimeout(() => {
+      pendingScriptTimeoutId = null
+      executeEmbeddedScripts(htmlString, attempt + 1)
+    }, 50)
+    return
+  }
+
+  scripts.forEach((scriptEl) => {
+    const code = (scriptEl.textContent || '').trim()
+    if (!code) return
+
+    const script = document.createElement('script')
+    script.type = 'text/javascript'
+    script.text = code
+    document.body.appendChild(script)
+    script.remove()
+  })
+
+  triggerGravityPostRender()
+}
+
+function triggerGravityPostRender() {
+  const root = frontendRoot.value
+  if (!root || typeof window === 'undefined') return
+
+  const wrappers = root.querySelectorAll('.gform_wrapper')
+  if (!wrappers.length) return
+
+  wrappers.forEach((wrapper) => {
+    const match = (wrapper.id || '').match(/gform_wrapper_(\d+)/)
+    const formId = match ? Number.parseInt(match[1], 10) : 0
+    if (!formId) return
+
+    const currentPage =
+      Number.parseInt(
+        wrapper.querySelector("input[name^='gform_source_page_number_']")?.value,
+        10,
+      ) || 1
+
+    if (window.jQuery) {
+      try {
+        window.jQuery(document).trigger('gform_post_render', [formId, currentPage])
+      } catch (e) {
+        /* noop */
+      }
+    }
+
+    if (window.gform && typeof window.gform.doAction === 'function') {
+      try {
+        window.gform.doAction('gform_post_render', formId, currentPage)
+      } catch (e) {
+        /* noop */
+      }
+    }
+  })
+}
+
 function mountEmbeddedForms() {
   if (props.isEditor || !renderedHtml.value || !frontendRoot.value) return
   if (typeof window === 'undefined') return
-  if (typeof window.dsfInitForms !== 'function') return
 
-  window.dsfInitForms(frontendRoot.value)
+  if (typeof window.dsfInitForms === 'function') {
+    window.dsfInitForms(frontendRoot.value)
+  }
+
+  executeEmbeddedScripts(renderedHtml.value)
 }
 
 onMounted(() => {
@@ -102,11 +206,20 @@ onMounted(() => {
 onUpdated(() => {
   nextTick(mountEmbeddedForms)
 })
+
+onBeforeUnmount(() => {
+  isUnmounted = true
+  if (pendingScriptTimeoutId !== null) {
+    clearTimeout(pendingScriptTimeoutId)
+    pendingScriptTimeoutId = null
+  }
+})
 </script>
 
 <style scoped>
 .dsf-form-embed-preview {
   padding: 16px;
+  container-type: inline-size;
 }
 
 .dsf-form-embed-preview__title {
@@ -160,6 +273,115 @@ onUpdated(() => {
 
 .dsf-form-embed-preview__rendered {
   width: 100%;
+}
+
+/* ── Gravity Forms inheritance: use the site's body font, not GF's defaults. */
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper *),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper.gravity-theme),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper.gravity-theme *) {
+  font-family: var(--dsf-theme-body-font, inherit);
+}
+
+/* Default inputs stretch full-width UNLESS GF set a size class. */
+.dsf-form-embed-preview__frontend
+  :deep(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not(
+        [type="button"]
+      ):not([type="image"]):not(.small):not(.medium):not(.large)
+  ),
+.dsf-form-embed-preview__frontend :deep(select:not(.small):not(.medium):not(.large)),
+.dsf-form-embed-preview__frontend :deep(textarea:not(.small):not(.medium):not(.large)) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Honor Gravity Forms field size classes. */
+.dsf-form-embed-preview__frontend :deep(input.small),
+.dsf-form-embed-preview__frontend :deep(select.small),
+.dsf-form-embed-preview__frontend :deep(textarea.small) {
+  width: 25%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.dsf-form-embed-preview__frontend :deep(input.medium),
+.dsf-form-embed-preview__frontend :deep(select.medium),
+.dsf-form-embed-preview__frontend :deep(textarea.medium) {
+  width: 50%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.dsf-form-embed-preview__frontend :deep(input.large),
+.dsf-form-embed-preview__frontend :deep(select.large),
+.dsf-form-embed-preview__frontend :deep(textarea.large) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Gravity Forms 2.5+ CSS Grid system — render side-by-side columns. */
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper.gravity-theme .gform_fields),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .gform_fields) {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-column-gap: 16px;
+  row-gap: 1rem;
+}
+
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .gfield) {
+  grid-column: span var(--gf-grid-col-span, 12);
+  min-width: 0;
+}
+
+.dsf-form-embed-preview__frontend :deep(.gfield--width-full) { --gf-grid-col-span: 12; }
+.dsf-form-embed-preview__frontend :deep(.gfield--width-eleven-twelfths) { --gf-grid-col-span: 11; }
+.dsf-form-embed-preview__frontend :deep(.gfield--width-five-sixths) { --gf-grid-col-span: 10; }
+.dsf-form-embed-preview__frontend :deep(.gfield--width-three-quarters) { --gf-grid-col-span: 9; }
+.dsf-form-embed-preview__frontend :deep(.gfield--width-two-thirds) { --gf-grid-col-span: 8; }
+.dsf-form-embed-preview__frontend :deep(.gfield--width-seven-twelfths) { --gf-grid-col-span: 7; }
+.dsf-form-embed-preview__frontend :deep(.gfield--width-half) { --gf-grid-col-span: 6; }
+.dsf-form-embed-preview__frontend :deep(.gfield--width-five-twelfths) { --gf-grid-col-span: 5; }
+.dsf-form-embed-preview__frontend :deep(.gfield--width-third) { --gf-grid-col-span: 4; }
+.dsf-form-embed-preview__frontend :deep(.gfield--width-quarter) { --gf-grid-col-span: 3; }
+.dsf-form-embed-preview__frontend :deep(.gfield--width-sixth) { --gf-grid-col-span: 2; }
+.dsf-form-embed-preview__frontend :deep(.gfield--width-twelfth) { --gf-grid-col-span: 1; }
+
+/* Side-by-side name/address sub-fields. */
+.dsf-form-embed-preview__frontend :deep(.ginput_complex) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  width: 100%;
+}
+
+.dsf-form-embed-preview__frontend :deep(.ginput_complex > span input) {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Inline checkboxes/radios with their labels. */
+.dsf-form-embed-preview__frontend :deep(.gchoice) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dsf-form-embed-preview__frontend :deep(.gchoice > label) {
+  margin: 0 !important;
+  display: inline;
+}
+
+@container (max-width: 600px) {
+  .dsf-form-embed-preview__frontend :deep(.gform_wrapper .gfield) {
+    grid-column: span 12;
+  }
+
+  .dsf-form-embed-preview__frontend :deep(.ginput_complex) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .dsf-form-embed-preview__empty {

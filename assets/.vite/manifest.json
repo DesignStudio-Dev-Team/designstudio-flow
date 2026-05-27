@@ -1,6 +1,6 @@
 {
-  "_main-DN2JRilX.js": {
-    "file": "js/main-DN2JRilX.js",
+  "_main-B3QBKHTY.js": {
+    "file": "js/main-B3QBKHTY.js",
     "name": "main",
     "css": [
       "css/main.css"
@@ -16,7 +16,7 @@
     "src": "src/frontend/main.js",
     "isEntry": true,
     "imports": [
-      "_main-DN2JRilX.js"
+      "_main-B3QBKHTY.js"
     ]
   },
   "src/main.js": {
@@ -25,7 +25,7 @@
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
-      "_main-DN2JRilX.js"
+      "_main-B3QBKHTY.js"
     ],
     "css": [
       "css/editor.css"

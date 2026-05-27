@@ -297,6 +297,7 @@
       placeholder: typeof field.placeholder === 'string' ? field.placeholder : defaults.placeholder,
       defaultValue: typeof field.defaultValue === 'string' ? field.defaultValue : defaults.defaultValue,
       helpText: typeof field.helpText === 'string' ? field.helpText : defaults.helpText,
+      helpTextPosition: field.helpTextPosition === 'top' ? 'top' : 'bottom',
       options: Array.isArray(field.options)
         ? field.options.map((value) => String(value)).filter((value) => value.trim().length > 0)
         : defaults.options,
@@ -347,6 +348,7 @@
       placeholder: '',
       defaultValue: '',
       helpText: '',
+      helpTextPosition: 'bottom',
       options: OPTION_FIELD_TYPES.has(type) ? [...DEFAULT_OPTIONS] : [],
       html: type === 'html' ? '<p>Custom HTML block</p>' : '',
       pageBreakAnimation: 'slide-left',
@@ -576,6 +578,12 @@
         }
         renderConnections()
       }
+
+      if (actionButton.dataset.action === 'test-connection') {
+        const index = Number.parseInt(actionButton.dataset.connectionIndex || '-1', 10)
+        if (index < 0) return
+        runConnectionTest(index, actionButton)
+      }
     })
 
     refs.connectionsList.addEventListener('input', (event) => {
@@ -653,10 +661,88 @@
             <input type="number" min="1" max="120" data-setting="timeout" data-connection-index="${index}" value="${escapeHtml(String(connection.timeout || 8))}">
           </label>
         </div>
+        <div class="dsf-connection-test">
+          <button type="button" class="button" data-action="test-connection" data-connection-index="${index}">Send Test Payload</button>
+          <span class="dsf-connection-test__status" data-connection-test-status data-connection-index="${index}"></span>
+        </div>
       `
 
       refs.connectionsList.appendChild(card)
     })
+  }
+
+  async function runConnectionTest(index, button) {
+    const connection = state.settings.connections[index]
+    if (!connection) return
+
+    const statusEl = refs.connectionsList.querySelector(
+      `[data-connection-test-status][data-connection-index="${index}"]`
+    )
+
+    if (!connection.endpointUrl) {
+      if (statusEl) {
+        statusEl.textContent = 'Add an endpoint URL first.'
+        statusEl.className = 'dsf-connection-test__status is-error'
+      }
+      return
+    }
+
+    const wpData = window.dsfFormsBuilderData || {}
+    if (!wpData.ajaxUrl || !wpData.nonce) {
+      if (statusEl) {
+        statusEl.textContent = 'Builder data missing — reload the page and try again.'
+        statusEl.className = 'dsf-connection-test__status is-error'
+      }
+      return
+    }
+
+    const originalLabel = button.textContent
+    button.disabled = true
+    button.textContent = 'Sending…'
+    if (statusEl) {
+      statusEl.textContent = ''
+      statusEl.className = 'dsf-connection-test__status is-pending'
+    }
+
+    const body = new FormData()
+    body.append('action', 'dsf_test_connection')
+    body.append('nonce', wpData.nonce)
+    body.append('form_id', String(wpData.formId || 0))
+    body.append('endpointUrl', connection.endpointUrl)
+    body.append('secret', connection.secret || '')
+    body.append('timeout', String(connection.timeout || 8))
+
+    try {
+      const response = await fetch(wpData.ajaxUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body
+      })
+      const json = await response.json().catch(() => null)
+
+      if (json && json.success) {
+        const status = json.data && json.data.status ? json.data.status : '200'
+        if (statusEl) {
+          statusEl.textContent = `Success — HTTP ${status}`
+          statusEl.className = 'dsf-connection-test__status is-success'
+        }
+      } else {
+        const message =
+          (json && json.data && json.data.message) || `Request failed with HTTP ${response.status}`
+        if (statusEl) {
+          statusEl.textContent = message
+          statusEl.className = 'dsf-connection-test__status is-error'
+        }
+      }
+    } catch (error) {
+      if (statusEl) {
+        statusEl.textContent = error.message || 'Network error while contacting the endpoint.'
+        statusEl.className = 'dsf-connection-test__status is-error'
+      }
+    } finally {
+      button.disabled = false
+      button.textContent = originalLabel
+    }
   }
 
   function bindDrawerEvents() {
@@ -929,10 +1015,15 @@
         break
     }
 
+    const helpPosition = field.helpTextPosition === 'top' ? 'top' : 'bottom'
+    const helpHtml = safeHelpText
+      ? `<p class="dsf-form-help-text dsf-form-help-text--${helpPosition}">${safeHelpText}</p>`
+      : ''
+
     return `
       <div class="dsf-form-field dsf-form-field--${escapeHtml(field.type)}">
+        ${helpHtml}
         ${control}
-        ${safeHelpText ? `<p class="dsf-form-help-text">${safeHelpText}</p>` : ''}
       </div>
     `
   }
@@ -1435,6 +1526,16 @@
 
     if (field.type !== 'page_break' && field.type !== 'hidden' && field.type !== 'html') {
       html += settingTextarea('Help Text', 'helpText', field.helpText || '')
+      const helpPosition = field.helpTextPosition === 'top' ? 'top' : 'bottom'
+      html += `
+        <div class="dsf-field-setting">
+          <label for="dsf-setting-helpTextPosition">Help Text Position</label>
+          <select id="dsf-setting-helpTextPosition" data-setting="helpTextPosition">
+            <option value="bottom" ${helpPosition === 'bottom' ? 'selected' : ''}>Below field label (above input)</option>
+            <option value="top" ${helpPosition === 'top' ? 'selected' : ''}>Above field label</option>
+          </select>
+        </div>
+      `
     }
 
     if (field.type === 'html') {

@@ -1647,6 +1647,23 @@ class DSF_Blocks {
 							'showTitle' => true,
 						),
 					),
+					'formMaxWidth' => array(
+						'type'    => 'slider',
+						'label'   => 'Form Max Width (px)',
+						'default' => 600,
+						'min'     => 300,
+						'max'     => 1200,
+					),
+					'formAlignment' => array(
+						'type'    => 'select',
+						'label'   => 'Form Alignment',
+						'default' => 'center',
+						'options' => array(
+							'Left'   => 'left',
+							'Center' => 'center',
+							'Right'  => 'right',
+						),
+					),
 					'marginY'   => array(
 						'type'    => 'slider',
 						'label'   => 'Vertical Margin',
@@ -1716,6 +1733,16 @@ class DSF_Blocks {
 						'options' => array(
 							'Form on Left'  => 'left',
 							'Form on Right' => 'right',
+						),
+					),
+					'columnRatio'     => array(
+						'type'    => 'select',
+						'label'   => 'Column Ratio',
+						'default' => '1-1',
+						'options' => array(
+							'50% / 50%' => '1-1',
+							'60% / 40%' => '3-2',
+							'40% / 60%' => '2-3',
 						),
 					),
 					// Content column
