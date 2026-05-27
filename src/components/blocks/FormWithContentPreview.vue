@@ -21,7 +21,6 @@
       />
     </div>
 
-    <!-- Two-column grid -->
     <div
       class="dsf-form-with-content__grid"
       :class="
@@ -29,6 +28,7 @@
           ? 'dsf-form-with-content__grid--form-left'
           : 'dsf-form-with-content__grid--form-right'
       "
+      :style="{ '--grid-cols': gridCols }"
     >
       <!-- Content column -->
       <div
@@ -208,6 +208,23 @@ const blockStyle = computed(() => ({
   backgroundColor: props.settings?.backgroundColor || "#FFFFFF",
   padding: `${props.settings?.padding ?? 60}px ${props.settings?.paddingX ?? 24}px`,
 }));
+
+const gridCols = computed(() => {
+  const ratio = props.settings?.columnRatio || "1-1";
+  let columns = "minmax(0, 1fr) minmax(0, 1fr)";
+
+  if (ratio === "3-2") {
+    columns = formSide.value === "left"
+      ? "minmax(0, 2fr) minmax(0, 3fr)"
+      : "minmax(0, 3fr) minmax(0, 2fr)";
+  } else if (ratio === "2-3") {
+    columns = formSide.value === "left"
+      ? "minmax(0, 3fr) minmax(0, 2fr)"
+      : "minmax(0, 2fr) minmax(0, 3fr)";
+  }
+
+  return columns;
+});
 
 const contentColStyle = computed(() => {
   const bg = props.settings?.contentBg;
@@ -407,15 +424,37 @@ function normalizeEmbeddedFormLegends() {
     });
 }
 
+function executeEmbeddedHtmlScripts(htmlString) {
+  if (typeof document === 'undefined' || !htmlString || isUnmounted) return;
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlString, 'text/html');
+  const scripts = Array.from(doc.querySelectorAll('script'));
+
+  if (!scripts.length) return;
+
+  const scriptSignature = JSON.stringify(scripts.map(s => s.textContent || ''));
+  if (executedEmbedScriptSignature.value === scriptSignature) return;
+  executedEmbedScriptSignature.value = scriptSignature;
+
+  const scriptsToRun = scripts.map(s => ({ code: s.textContent || '' }));
+  executeEmbedScriptsWhenReady(scriptsToRun);
+}
+
 function runEmbeddedScripts() {
-  if (!customFormScripts.value.length || !customFormScriptSignature.value)
-    return;
-  if (executedEmbedScriptSignature.value === customFormScriptSignature.value)
-    return;
+  if (isDsfFormSource.value) {
+    if (!renderedHtml.value) return;
+    executeEmbeddedHtmlScripts(renderedHtml.value);
+  } else {
+    if (!customFormScripts.value.length || !customFormScriptSignature.value)
+      return;
+    if (executedEmbedScriptSignature.value === customFormScriptSignature.value)
+      return;
 
-  executedEmbedScriptSignature.value = customFormScriptSignature.value;
+    executedEmbedScriptSignature.value = customFormScriptSignature.value;
 
-  executeEmbedScriptsWhenReady(customFormScripts.value);
+    executeEmbedScriptsWhenReady(customFormScripts.value);
+  }
 }
 
 function executeEmbedScriptsWhenReady(scripts, attempt = 0) {
@@ -447,6 +486,48 @@ function executeEmbedScriptsWhenReady(scripts, attempt = 0) {
     script.text = code;
     document.body.appendChild(script);
     script.remove();
+  });
+
+  triggerGravityPostRender();
+}
+
+function triggerGravityPostRender() {
+  const root = frontendRoot.value;
+  if (!root || typeof window === "undefined") return;
+
+  const wrappers = root.querySelectorAll(".gform_wrapper");
+  if (!wrappers.length) return;
+
+  wrappers.forEach((wrapper) => {
+    const idAttr = wrapper.id || "";
+    const match = idAttr.match(/gform_wrapper_(\d+)/);
+    const formId = match ? Number.parseInt(match[1], 10) : 0;
+    if (!formId) return;
+
+    const formEl = wrapper.querySelector("form");
+    const currentPage =
+      Number.parseInt(
+        formEl?.querySelector("input[name^='gform_source_page_number_']")?.value,
+        10,
+      ) || 1;
+
+    if (window.jQuery) {
+      try {
+        window
+          .jQuery(document)
+          .trigger("gform_post_render", [formId, currentPage]);
+      } catch (e) {
+        /* noop */
+      }
+    }
+
+    if (window.gform && typeof window.gform.doAction === "function") {
+      try {
+        window.gform.doAction("gform_post_render", formId, currentPage);
+      } catch (e) {
+        /* noop */
+      }
+    }
   });
 }
 
@@ -597,7 +678,7 @@ onBeforeUnmount(() => {
 /* ── Two-column grid ────────────────────────────────── */
 .dsf-form-with-content__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: var(--grid-cols, minmax(0, 1fr) minmax(0, 1fr));
   gap: 3rem;
   max-width: 1200px;
   margin: 0 auto;
@@ -899,18 +980,74 @@ onBeforeUnmount(() => {
   line-height: 1.25 !important;
 }
 
+/* Default inputs inside DSF (non-Gravity) form markup stretch full-width.
+   Gravity Forms inputs are sized by their own size class (.small/.medium/.large)
+   and grid column class (.gfield--width-*), so we scope width:100% to fields
+   that do NOT have a Gravity size class. */
 .dsf-form-with-content__form-frontend
   :deep(
     input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not(
         [type="button"]
-      ):not([type="image"])
+      ):not([type="image"]):not(.small):not(.medium):not(.large)
   ),
-.dsf-form-with-content__form-frontend :deep(select),
-.dsf-form-with-content__form-frontend :deep(textarea) {
+.dsf-form-with-content__form-frontend :deep(select:not(.small):not(.medium):not(.large)),
+.dsf-form-with-content__form-frontend :deep(textarea:not(.small):not(.medium):not(.large)) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 }
+
+/* Honor Gravity Forms native field size classes (legacy + 2.5+). */
+.dsf-form-with-content__form-frontend :deep(input.small),
+.dsf-form-with-content__form-frontend :deep(select.small),
+.dsf-form-with-content__form-frontend :deep(textarea.small) {
+  width: 25%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.dsf-form-with-content__form-frontend :deep(input.medium),
+.dsf-form-with-content__form-frontend :deep(select.medium),
+.dsf-form-with-content__form-frontend :deep(textarea.medium) {
+  width: 50%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.dsf-form-with-content__form-frontend :deep(input.large),
+.dsf-form-with-content__form-frontend :deep(select.large),
+.dsf-form-with-content__form-frontend :deep(textarea.large) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Gravity Forms 2.5+ CSS Grid system — make side-by-side fields actually appear side-by-side.
+   .gform_fields is a 12-column grid; each .gfield spans --gf-grid-col-span columns. */
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper.gravity-theme .gform_fields),
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper .gform_fields) {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-column-gap: 16px;
+  row-gap: 1rem;
+}
+
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper .gfield) {
+  grid-column: span var(--gf-grid-col-span, 12);
+}
+
+.dsf-form-with-content__form-frontend :deep(.gfield--width-full) { --gf-grid-col-span: 12; }
+.dsf-form-with-content__form-frontend :deep(.gfield--width-eleven-twelfths) { --gf-grid-col-span: 11; }
+.dsf-form-with-content__form-frontend :deep(.gfield--width-five-sixths) { --gf-grid-col-span: 10; }
+.dsf-form-with-content__form-frontend :deep(.gfield--width-three-quarters) { --gf-grid-col-span: 9; }
+.dsf-form-with-content__form-frontend :deep(.gfield--width-two-thirds) { --gf-grid-col-span: 8; }
+.dsf-form-with-content__form-frontend :deep(.gfield--width-seven-twelfths) { --gf-grid-col-span: 7; }
+.dsf-form-with-content__form-frontend :deep(.gfield--width-half) { --gf-grid-col-span: 6; }
+.dsf-form-with-content__form-frontend :deep(.gfield--width-five-twelfths) { --gf-grid-col-span: 5; }
+.dsf-form-with-content__form-frontend :deep(.gfield--width-third) { --gf-grid-col-span: 4; }
+.dsf-form-with-content__form-frontend :deep(.gfield--width-quarter) { --gf-grid-col-span: 3; }
+.dsf-form-with-content__form-frontend :deep(.gfield--width-sixth) { --gf-grid-col-span: 2; }
+.dsf-form-with-content__form-frontend :deep(.gfield--width-twelfth) { --gf-grid-col-span: 1; }
 
 .dsf-form-with-content__form-frontend :deep(.ginput_complex) {
   display: grid;
@@ -1000,6 +1137,10 @@ onBeforeUnmount(() => {
 
   .dsf-form-with-content__form-frontend :deep(.ginput_complex) {
     grid-template-columns: 1fr;
+  }
+
+  .dsf-form-with-content__form-frontend :deep(.gform_wrapper .gfield) {
+    grid-column: span 12;
   }
 }
 </style>

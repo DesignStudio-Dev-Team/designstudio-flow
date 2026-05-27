@@ -220,6 +220,38 @@
     return -1
   }
 
+  function updateProgress(form) {
+    const wrap = form.closest('.dsf-form-wrap') || form.parentNode
+    const progress = wrap ? wrap.querySelector('[data-dsf-progress]') : null
+    if (!progress) return
+
+    const pages = getPages(form)
+    const visiblePages = pages.filter((p) => !p.classList.contains(CONDITIONAL_HIDDEN_CLASS))
+    const total = visiblePages.length || pages.length
+    if (!total) return
+
+    const active = findActivePage(form)
+    let currentVisibleIdx = active ? visiblePages.indexOf(active) : -1
+    if (currentVisibleIdx === -1) currentVisibleIdx = 0
+
+    const step = currentVisibleIdx + 1
+    const percent = Math.round((step / total) * 100)
+
+    const bar = progress.querySelector('[data-dsf-progress-bar]')
+    const currentEl = progress.querySelector('[data-dsf-progress-current]')
+    const totalEl = progress.querySelector('[data-dsf-progress-total]')
+    const percentEl = progress.querySelector('[data-dsf-progress-percent]')
+
+    if (bar) bar.style.width = percent + '%'
+    if (currentEl) currentEl.textContent = String(step)
+    if (totalEl) totalEl.textContent = String(total)
+    if (percentEl) percentEl.textContent = percent + '%'
+
+    progress.setAttribute('aria-valuemin', '1')
+    progress.setAttribute('aria-valuemax', String(total))
+    progress.setAttribute('aria-valuenow', String(step))
+  }
+
   function stripHiddenFieldsFromFormData(form, formData) {
     const hiddenNames = new Set()
     form
@@ -259,12 +291,14 @@
       targetPage.classList.add('is-active')
       clearTransitionClasses(currentPage)
       clearTransitionClasses(targetPage)
+      updateProgress(form)
       return
     }
 
     targetPage.hidden = false
     targetPage.classList.add('is-active', 'is-enter', `transition-${transition}`)
     currentPage.classList.add('is-exit', `transition-${transition}`)
+    updateProgress(form)
 
     window.setTimeout(() => {
       currentPage.hidden = true
@@ -289,6 +323,8 @@
         page.classList.remove('is-active')
       }
     })
+
+    updateProgress(form)
   }
 
   function setMessage(form, message, isError) {
@@ -403,8 +439,12 @@
       }
     })
 
-    form.addEventListener('input', () => applyConditionalVisibility(form))
-    form.addEventListener('change', () => applyConditionalVisibility(form))
+    const handleConditionalChange = () => {
+      applyConditionalVisibility(form)
+      updateProgress(form)
+    }
+    form.addEventListener('input', handleConditionalChange)
+    form.addEventListener('change', handleConditionalChange)
 
     // Initial evaluation after the form mounts. If the first page is hidden,
     // advance to the next visible page so the user doesn't see an empty form.
@@ -413,6 +453,7 @@
       const firstVisible = findNextVisiblePageIndex(form, -1, 'forward')
       if (firstVisible !== -1) switchToPage(form, firstVisible, 'forward')
     }
+    updateProgress(form)
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault()

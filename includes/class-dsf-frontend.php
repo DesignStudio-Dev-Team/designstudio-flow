@@ -265,7 +265,17 @@ class DSF_Frontend {
 			},
 			$html
 		);
-		$html = preg_replace( '#<style\b[^>]*>.*?</style>#is', '', $html );
+
+		$preserved_styles = array();
+		$html             = preg_replace_callback(
+			'#<style\b[^>]*>.*?</style>#is',
+			function ( $matches ) use ( &$preserved_styles ) {
+				$placeholder        = '<!--dsf-style-' . count( $preserved_styles ) . '-->';
+				$preserved_styles[] = $matches[0];
+				return $placeholder;
+			},
+			$html
+		);
 
 		$allowed = wp_kses_allowed_html( 'post' );
 		$common_attrs = array(
@@ -443,6 +453,17 @@ class DSF_Frontend {
 		);
 
 		$sanitized_html = wp_kses( $html, $allowed );
+
+		if ( ! empty( $preserved_styles ) ) {
+			foreach ( $preserved_styles as $index => $style_block ) {
+				$sanitized_html = str_replace(
+					'<!--dsf-style-' . $index . '-->',
+					$style_block,
+					$sanitized_html
+				);
+			}
+		}
+
 		$sanitized_html = str_replace(
 			'data-dsf-gform-page-hidden="1"',
 			'data-dsf-gform-page-hidden="1" style="display:none;"',

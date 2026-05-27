@@ -7,8 +7,8 @@
   --dsf-form-primary-dark: #1e40af;
   --dsf-form-surface: #f8fafc;
   color: var(--dsf-form-text);
-  font-family: var(--dsf-theme-body-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
-  font-size: var(--dsf-theme-text-base, 16px);
+  font-family: var(--dsf-theme-body-font, inherit);
+  font-size: var(--dsf-theme-text-base, inherit);
 }
 
 .dsf-form {
@@ -39,7 +39,9 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.dsf-form-field {
+.dsf-form-wrap .dsf-form-field {
+  display: flex !important;
+  flex-direction: column !important;
   min-width: 0;
 }
 
@@ -49,7 +51,7 @@
   gap: 6px;
   margin-bottom: 8px;
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: var(--dsf-theme-text-sm, 13px);
+  font-size: 1em;
   font-weight: 600;
   color: var(--dsf-form-text);
 }
@@ -77,7 +79,7 @@
   background: var(--dsf-form-input-bg);
   color: var(--dsf-form-text);
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: var(--dsf-theme-text-base, 14px);
+  font-size: 1em;
   line-height: 1.4;
   box-sizing: border-box;
 }
@@ -100,12 +102,30 @@
   gap: 10px;
 }
 
-.dsf-form-help-text {
-  margin: 8px 0 0;
-  color: var(--dsf-form-muted);
+.dsf-form-wrap .dsf-form-field .dsf-form-label {
+  order: 1 !important;
+}
+
+.dsf-form-wrap .dsf-form-field .dsf-form-help-text {
+  margin: 0 0 8px;
+  color: var(--dsf-form-text);
   font-family: var(--dsf-theme-body-font, inherit);
   font-size: var(--dsf-theme-text-xs, 12px);
   line-height: 1.4;
+  order: 2 !important;
+}
+
+.dsf-form-wrap .dsf-form-field>input,
+.dsf-form-wrap .dsf-form-field>textarea,
+.dsf-form-wrap .dsf-form-field>select,
+.dsf-form-wrap .dsf-form-field>.dsf-form-options,
+.dsf-form-wrap .dsf-form-field>.dsf-form-html {
+  order: 3 !important;
+}
+
+.dsf-form-wrap .dsf-form-field .dsf-form-help-text--top {
+  margin: 0 0 8px;
+  order: 1 !important;
 }
 
 .dsf-form-option {
@@ -192,6 +212,40 @@
   line-height: 1.45;
 }
 
+.dsf-form-progress {
+  margin: 0 0 20px;
+}
+
+.dsf-form-progress__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  color: var(--dsf-form-muted);
+  font-family: var(--dsf-theme-body-font, inherit);
+  font-size: 0.875em;
+  line-height: 1.3;
+}
+
+.dsf-form-progress__percent {
+  font-variant-numeric: tabular-nums;
+}
+
+.dsf-form-progress__track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--dsf-form-border);
+  overflow: hidden;
+}
+
+.dsf-form-progress__bar {
+  width: 0%;
+  height: 100%;
+  background: var(--dsf-form-primary);
+  border-radius: 999px;
+  transition: width 240ms ease;
+}
+
 .dsf-form-recaptcha-note a {
   color: var(--dsf-form-muted);
 }
@@ -255,6 +309,7 @@
     opacity: 0;
     transform: translateX(18px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -266,6 +321,7 @@
     opacity: 1;
     transform: translateX(0);
   }
+
   to {
     opacity: 0;
     transform: translateX(-18px);
@@ -277,6 +333,7 @@
     opacity: 0;
     transform: translateX(-18px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -288,6 +345,7 @@
     opacity: 1;
     transform: translateX(0);
   }
+
   to {
     opacity: 0;
     transform: translateX(18px);
@@ -299,6 +357,7 @@
     opacity: 0;
     transform: translateY(18px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -310,6 +369,7 @@
     opacity: 1;
     transform: translateY(0);
   }
+
   to {
     opacity: 0;
     transform: translateY(-18px);
@@ -321,6 +381,7 @@
     opacity: 0;
     transform: translateY(-18px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -332,6 +393,7 @@
     opacity: 1;
     transform: translateY(0);
   }
+
   to {
     opacity: 0;
     transform: translateY(18px);
@@ -342,6 +404,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -351,6 +414,7 @@
   from {
     opacity: 1;
   }
+
   to {
     opacity: 0;
   }
@@ -361,6 +425,7 @@
     opacity: 0;
     transform: scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -372,6 +437,7 @@
     opacity: 1;
     transform: scale(1);
   }
+
   to {
     opacity: 0;
     transform: scale(1.03);
