@@ -15,6 +15,13 @@
   width: 100%;
 }
 
+.dsf-form .akismet-fields-container {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
 .dsf-form-page[hidden] {
   display: none !important;
 }

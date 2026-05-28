@@ -342,11 +342,12 @@ function mountEmbeddedForms() {
   )
     return;
   injectGravityFormOverrides();
-  normalizeEmbeddedFormLegends();
+  normalizeEmbeddedFormChrome();
   if (typeof window?.dsfInitForms === "function") {
     window.dsfInitForms(frontendRoot.value);
   }
   runEmbeddedScripts();
+  normalizeEmbeddedFormChrome();
   bindGravityPageScroll();
 }
 
@@ -368,6 +369,29 @@ body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf
   font-family: var(--dsf-theme-body-font, inherit) !important;
   line-height: 1.65 !important;
   margin-bottom: 5px !important; 
+}
+
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper p,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper label,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper legend,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform-field-label,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_label,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_description,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gchoice,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gchoice label,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_checkbox label,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_radio label,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_container input,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_container textarea,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_container select,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_button,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_next_button,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_previous_button,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gf_progressbar_title {
+  font-family: var(--dsf-theme-body-font, inherit) !important;
+  font-size: var(--dsf-theme-text-base, 16px) !important;
+  line-height: 1.65 !important;
 }
 
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] legend,
@@ -406,13 +430,43 @@ body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf
   margin: 0 !important;
   display: inline !important;
 }
+
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .akismet-fields-container {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gf_progressbar_title {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: .75rem !important;
+}
+
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .dsf-gform-required-legend--inline {
+  position: static !important;
+  margin: 0 0 0 auto !important;
+  padding: 0 !important;
+  max-width: 48% !important;
+  flex: 0 1 auto !important;
+  color: var(--dsf-gray-600, #4B5563) !important;
+  font-size: .6875rem !important;
+  line-height: 1.4 !important;
+  text-align: right !important;
+}
 `;
   document.head.appendChild(style);
 }
 
-function normalizeEmbeddedFormLegends() {
+function normalizeEmbeddedFormChrome() {
   const root = frontendRoot.value;
   if (!root) return;
+
+  root.querySelectorAll(".akismet-fields-container").forEach((element) => {
+    element.setAttribute("hidden", "");
+    element.setAttribute("aria-hidden", "true");
+  });
 
   root
     .querySelectorAll(
@@ -422,6 +476,15 @@ function normalizeEmbeddedFormLegends() {
       legend.style.setProperty("margin-bottom", "0", "important");
       legend.style.setProperty("margin-block-end", "0", "important");
     });
+
+  root.querySelectorAll(".gform_wrapper").forEach((wrapper) => {
+    const requiredLegend = wrapper.querySelector(".gform_heading .gform_required_legend");
+    const progressTitle = wrapper.querySelector(".gf_progressbar_title");
+    if (!requiredLegend || !progressTitle || progressTitle.contains(requiredLegend)) return;
+
+    requiredLegend.classList.add("dsf-gform-required-legend--inline");
+    progressTitle.appendChild(requiredLegend);
+  });
 }
 
 function executeEmbeddedHtmlScripts(htmlString) {
@@ -540,12 +603,12 @@ function bindGravityPageScroll() {
     return;
 
   gravityPageLoadedHandler = (_event, formId) => {
-    normalizeEmbeddedFormLegends();
+    normalizeEmbeddedFormChrome();
     scrollToEmbeddedFormTop(formId);
   };
 
   gravityNativePageChangeHandler = (event) => {
-    normalizeEmbeddedFormLegends();
+    normalizeEmbeddedFormChrome();
     scrollToEmbeddedFormTop(event?.detail?.formId);
   };
 
@@ -931,14 +994,24 @@ onBeforeUnmount(() => {
 
 .dsf-form-with-content__form-frontend :deep(.gform-field-label),
 .dsf-form-with-content__form-frontend :deep(.gfield_label),
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper p),
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper label),
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper legend),
 .dsf-form-with-content__form-frontend :deep(.gfield_description),
 .dsf-form-with-content__form-frontend :deep(.gchoice),
 .dsf-form-with-content__form-frontend :deep(.gchoice label),
 .dsf-form-with-content__form-frontend :deep(.gfield_checkbox label),
 .dsf-form-with-content__form-frontend :deep(.gfield_radio label),
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper .ginput_container input),
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper .ginput_container textarea),
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper .ginput_container select),
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper .gform_button),
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper .gform_next_button),
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper .gform_previous_button),
 .dsf-form-with-content__form-frontend :deep(.gform_required_legend),
 .dsf-form-with-content__form-frontend :deep(.gf_progressbar_title) {
   font-family: var(--dsf-theme-body-font, inherit) !important;
+  font-size: var(--dsf-theme-text-base, 16px) !important;
   line-height: 1.65 !important;
 }
 
@@ -958,6 +1031,7 @@ onBeforeUnmount(() => {
   .dsf-form-with-content__form-frontend.dsf-form-with-content__form-frontend
   :deep(.gform_wrapper.gravity-theme .gfield_radio label) {
   font-family: var(--dsf-theme-body-font, inherit) !important;
+  font-size: var(--dsf-theme-text-base, 16px) !important;
   line-height: 1.65 !important;
 }
 
@@ -1074,6 +1148,46 @@ onBeforeUnmount(() => {
 
 .dsf-form-with-content__form-frontend :deep(.gform_fields) {
   row-gap: 1rem;
+}
+
+.dsf-form-with-content__form-frontend :deep(.akismet-fields-container) {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Tuck "* indicates required fields" to the right of the step indicator row
+   so it doesn't claim its own line. */
+.dsf-form-with-content__form-frontend :deep(.gform_heading) {
+  position: relative;
+}
+
+.dsf-form-with-content__form-frontend :deep(.gf_progressbar_title) {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.dsf-form-with-content__form-frontend :deep(.gform_heading .gform_required_legend),
+.dsf-form-with-content__form-frontend :deep(.dsf-gform-required-legend--inline) {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--dsf-gray-600, #4B5563);
+  text-align: right;
+  max-width: 50%;
+}
+
+.dsf-form-with-content__form-frontend :deep(.dsf-gform-required-legend--inline) {
+  position: static;
+  margin-left: auto;
+  flex: 0 1 auto;
+  max-width: 48%;
 }
 
 .dsf-form-with-content__form-frontend :deep(.gform_ajax_spinner),

@@ -109,7 +109,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Search, Check, GripVertical, ShoppingBag, X, Trash2 } from 'lucide-vue-next'
 import draggable from 'vuedraggable'
 
@@ -118,7 +118,11 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  config: Object
+  config: Object,
+  allSettings: {
+    type: Object,
+    default: () => ({}),
+  },
 })
 
 const emit = defineEmits(['update'])
@@ -135,12 +139,38 @@ const placeholderImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWln
 
 let searchTimeout = null
 
-// Load initial selected products
-onMounted(async () => {
-  if (props.value && props.value.length > 0) {
-    await fetchSelectedProducts(props.value)
+function normalizeIdList(value) {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map((item) => Number.parseInt(item, 10)).filter((item) => Number.isFinite(item) && item > 0))]
   }
+
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) && parsed > 0 ? [parsed] : []
+}
+
+const selectedCategoryIds = computed(() => {
+  const categorySettingKey = props.config?.categorySettingKey
+  if (categorySettingKey) {
+    const ids = normalizeIdList(props.allSettings?.[categorySettingKey])
+    if (ids.length > 0) {
+      return ids
+    }
+  }
+
+  const legacyCategoryKey = props.config?.legacyCategoryKey
+  if (legacyCategoryKey) {
+    return normalizeIdList(props.allSettings?.[legacyCategoryKey])
+  }
+
+  return []
 })
+
+function appendScopedCategories(formData) {
+  if (selectedCategoryIds.value.length === 0) return
+
+  formData.append('category_ids', JSON.stringify(selectedCategoryIds.value))
+  formData.append('category_id', String(selectedCategoryIds.value[0]))
+}
 
 async function fetchSelectedProducts(ids) {
   if (!ids.length) return
@@ -185,6 +215,7 @@ async function searchProducts() {
   formData.append('action', 'dsf_search_products')
   formData.append('nonce', wpData.nonce)
   formData.append('search', searchQuery.value)
+  appendScopedCategories(formData)
   
   try {
     const response = await fetch(wpData.ajaxUrl, {
@@ -249,6 +280,33 @@ function moveDown(index) {
 function updateOrder() {
   emit('update', selectedProducts.value.map(p => p.id))
 }
+
+watch(
+  () => props.value,
+  async (ids) => {
+    const normalizedIds = normalizeIdList(ids)
+    if (normalizedIds.length === 0) {
+      selectedProducts.value = []
+      return
+    }
+
+    await fetchSelectedProducts(normalizedIds)
+  },
+  { immediate: true, deep: true }
+)
+
+watch(
+  selectedCategoryIds,
+  () => {
+    if (searchQuery.value.trim().length >= 2) {
+      searchProducts()
+      return
+    }
+
+    searchResults.value = []
+  },
+  { deep: true }
+)
 </script>
 
 <style scoped>

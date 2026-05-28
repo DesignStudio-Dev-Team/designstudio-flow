@@ -52,6 +52,8 @@ const editorForms = Array.isArray(editorData?.forms) ? editorData.forms : []
 const frontendRoot = ref(null)
 let pendingScriptTimeoutId = null
 let isUnmounted = false
+let gravityPageLoadedHandler = null
+let gravityNativePageChangeHandler = null
 
 const blockStyle = computed(() => {
   const maxWidth = props.settings?.formMaxWidth ?? 600
@@ -186,6 +188,27 @@ function triggerGravityPostRender() {
       }
     }
   })
+
+  normalizeEmbeddedFormChrome()
+}
+
+function normalizeEmbeddedFormChrome() {
+  const root = frontendRoot.value
+  if (!root) return
+
+  root.querySelectorAll('.akismet-fields-container').forEach((element) => {
+    element.setAttribute('hidden', '')
+    element.setAttribute('aria-hidden', 'true')
+  })
+
+  root.querySelectorAll('.gform_wrapper').forEach((wrapper) => {
+    const requiredLegend = wrapper.querySelector('.gform_heading .gform_required_legend')
+    const progressTitle = wrapper.querySelector('.gf_progressbar_title')
+    if (!requiredLegend || !progressTitle || progressTitle.contains(requiredLegend)) return
+
+    requiredLegend.classList.add('dsf-gform-required-legend--inline')
+    progressTitle.appendChild(requiredLegend)
+  })
 }
 
 function mountEmbeddedForms() {
@@ -196,7 +219,28 @@ function mountEmbeddedForms() {
     window.dsfInitForms(frontendRoot.value)
   }
 
+  normalizeEmbeddedFormChrome()
   executeEmbeddedScripts(renderedHtml.value)
+  normalizeEmbeddedFormChrome()
+  bindGravityFormEvents()
+}
+
+function bindGravityFormEvents() {
+  if (props.isEditor || gravityPageLoadedHandler || typeof window === 'undefined') return
+
+  gravityPageLoadedHandler = () => {
+    nextTick(normalizeEmbeddedFormChrome)
+  }
+
+  gravityNativePageChangeHandler = () => {
+    nextTick(normalizeEmbeddedFormChrome)
+  }
+
+  if (window.jQuery) {
+    window.jQuery(document).on('gform_page_loaded', gravityPageLoadedHandler)
+  }
+
+  document.addEventListener('gform/ajax/post_page_change', gravityNativePageChangeHandler)
 }
 
 onMounted(() => {
@@ -212,6 +256,12 @@ onBeforeUnmount(() => {
   if (pendingScriptTimeoutId !== null) {
     clearTimeout(pendingScriptTimeoutId)
     pendingScriptTimeoutId = null
+  }
+  if (typeof window !== 'undefined' && window.jQuery && gravityPageLoadedHandler) {
+    window.jQuery(document).off('gform_page_loaded', gravityPageLoadedHandler)
+  }
+  if (typeof document !== 'undefined' && gravityNativePageChangeHandler) {
+    document.removeEventListener('gform/ajax/post_page_change', gravityNativePageChangeHandler)
   }
 })
 </script>
@@ -281,6 +331,69 @@ onBeforeUnmount(() => {
 .dsf-form-embed-preview__frontend :deep(.gform_wrapper.gravity-theme),
 .dsf-form-embed-preview__frontend :deep(.gform_wrapper.gravity-theme *) {
   font-family: var(--dsf-theme-body-font, inherit);
+}
+
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper p),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper label),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper legend),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .gform-field-label),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .gfield_label),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .gfield_description),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .gchoice),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .gchoice label),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .gfield_checkbox label),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .gfield_radio label),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .ginput_container input),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .ginput_container textarea),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .ginput_container select),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .gform_button),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .gform_next_button),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .gform_previous_button),
+.dsf-form-embed-preview__frontend :deep(.gform_wrapper .gf_progressbar_title) {
+  font-family: var(--dsf-theme-body-font, inherit) !important;
+  font-size: var(--dsf-theme-text-base, 16px) !important;
+  line-height: 1.65 !important;
+}
+
+.dsf-form-embed-preview__frontend :deep(.akismet-fields-container) {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Tuck "* indicates required fields" to the right of the step indicator row
+   so it doesn't claim its own line. */
+.dsf-form-embed-preview__frontend :deep(.gform_heading) {
+  position: relative;
+}
+
+.dsf-form-embed-preview__frontend :deep(.gf_progressbar_title) {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.dsf-form-embed-preview__frontend :deep(.gform_heading .gform_required_legend),
+.dsf-form-embed-preview__frontend :deep(.dsf-gform-required-legend--inline) {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--dsf-gray-600, #4B5563);
+  text-align: right;
+  max-width: 50%;
+}
+
+.dsf-form-embed-preview__frontend :deep(.dsf-gform-required-legend--inline) {
+  position: static;
+  margin-left: auto;
+  flex: 0 1 auto;
+  max-width: 48%;
 }
 
 /* Default inputs stretch full-width UNLESS GF set a size class. */

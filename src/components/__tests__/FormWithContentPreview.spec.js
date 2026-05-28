@@ -98,6 +98,11 @@ describe('FormWithContentPreview', () => {
     expect(style.textContent).toContain('.gform_wrapper.gravity-theme legend.gfield_label')
     expect(style.textContent).toContain('margin-bottom: 0 !important')
     expect(style.textContent).toContain('width: 16px !important')
+    expect(style.textContent).toContain('.gform_wrapper p')
+    expect(style.textContent).toContain('.gform_wrapper label')
+    expect(style.textContent).toContain('font-size: var(--dsf-theme-text-base, 16px) !important')
+    expect(style.textContent).toContain('.akismet-fields-container')
+    expect(style.textContent).toContain('.dsf-gform-required-legend--inline')
     expect(style.textContent).not.toContain('font-size: 16px !important')
   })
 
@@ -118,6 +123,37 @@ describe('FormWithContentPreview', () => {
     expect(['0', '0px']).toContain(legend.style.getPropertyValue('margin-bottom'))
     expect(legend.style.getPropertyPriority('margin-bottom')).toBe('important')
     expect(['0', '0px']).toContain(legend.style.getPropertyValue('margin-block-end'))
+  })
+
+  it('hides Akismet fields and moves the required legend into the progress title', async () => {
+    const wrapper = mount(FormWithContentPreview, {
+      props: {
+        isEditor: false,
+        settings: {
+          formSource: 'embed',
+          renderedEmbedHtml: `
+            <div class="gform_wrapper gravity-theme">
+              <div class="gform_heading">
+                <p class="gform_required_legend">* indicates required fields</p>
+              </div>
+              <div class="gf_progressbar_title">Step 1 of 2</div>
+              <div class="akismet-fields-container">fields</div>
+            </div>
+          `,
+        },
+      },
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const progressTitle = wrapper.find('.gf_progressbar_title')
+    const requiredLegend = wrapper.find('.gform_required_legend')
+    const akismetFields = wrapper.find('.akismet-fields-container')
+
+    expect(progressTitle.element.contains(requiredLegend.element)).toBe(true)
+    expect(requiredLegend.classes()).toContain('dsf-gform-required-legend--inline')
+    expect(akismetFields.attributes('hidden')).toBe('')
+    expect(akismetFields.attributes('aria-hidden')).toBe('true')
   })
 
   it('keeps bold markup in the rich text column', () => {

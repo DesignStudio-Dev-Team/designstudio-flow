@@ -523,14 +523,30 @@ const searchEnabled = computed(() => props.settings?.enableSearch === true)
 const filterPosition = computed(() => props.settings?.filterPosition || 'left')
 const normalizedSearchQuery = computed(() => searchQuery.value.trim().toLowerCase())
 const dataReadyForUrlState = computed(() => !isWooActive.value || hasFetchedProducts.value)
-const selectedSourceCategoryId = computed(() => {
-  const value = Number.parseInt(props.settings?.categoryId, 10)
-  return Number.isFinite(value) && value > 0 ? value : 0
-})
 const availableCategories = computed(() => Array.isArray(getWpData().categories) ? getWpData().categories : [])
-const selectedSourceCategory = computed(() =>
-  availableCategories.value.find((category) => Number(category?.id) === selectedSourceCategoryId.value) || null
-)
+const selectedSourceCategoryIds = computed(() => {
+  if (Array.isArray(props.settings?.categoryIds) && props.settings.categoryIds.length > 0) {
+    return [...new Set(
+      props.settings.categoryIds
+        .map((value) => Number.parseInt(value, 10))
+        .filter((value) => Number.isFinite(value) && value > 0)
+    )]
+  }
+
+  const legacyValue = Number.parseInt(props.settings?.categoryId, 10)
+  return Number.isFinite(legacyValue) && legacyValue > 0 ? [legacyValue] : []
+})
+const selectedSourceCategoryNames = computed(() => {
+  if (selectedSourceCategoryIds.value.length === 0) return []
+
+  const namesById = new Map(
+    availableCategories.value.map((category) => [Number(category?.id), category?.name]).filter(([, name]) => typeof name === 'string' && name)
+  )
+
+  return selectedSourceCategoryIds.value
+    .map((categoryId) => namesById.get(categoryId))
+    .filter(Boolean)
+})
 const filterVisibility = computed(() => ({
   price: filtersEnabled.value && props.settings?.filterShowPrice !== false,
   category: filtersEnabled.value && props.settings?.filterShowCategory !== false,
@@ -594,17 +610,17 @@ const gridStyle = computed(() => {
 const sourceProducts = computed(() => {
   const items = products.value.length > 0 ? products.value : (isWooActive.value ? [] : demoProducts)
 
-  if (props.settings?.source !== 'category' || selectedSourceCategoryId.value <= 0) {
+  if (props.settings?.source !== 'category' || selectedSourceCategoryIds.value.length === 0) {
     return items
   }
 
   return items.filter((product) => {
     if (Array.isArray(product.category_ids) && product.category_ids.length > 0) {
-      return product.category_ids.includes(selectedSourceCategoryId.value)
+      return product.category_ids.some((categoryId) => selectedSourceCategoryIds.value.includes(Number(categoryId)))
     }
 
-    if (selectedSourceCategory.value?.name) {
-      return (product.categories || []).includes(selectedSourceCategory.value.name)
+    if (selectedSourceCategoryNames.value.length > 0) {
+      return (product.categories || []).some((categoryName) => selectedSourceCategoryNames.value.includes(categoryName))
     }
 
     return true
@@ -950,17 +966,19 @@ async function handleAddToCart(product) {
   cartState[product.id] = 'loading'
 
   try {
-    const formData = new FormData()
-    formData.append('product_id', product.id)
-    formData.append('quantity', 1)
+    // Match WooCommerce's native add-to-cart form payload for better
+    // compatibility with theme/plugin hooks that inspect "add-to-cart".
+    const requestBody = new URLSearchParams()
+    requestBody.append('product_id', String(product.id))
+    requestBody.append('quantity', '1')
+    requestBody.append('add-to-cart', String(product.id))
 
     const response = await fetch(wcAjaxUrl, {
       method: 'POST',
-      body: formData,
+      body: requestBody.toString(),
       credentials: 'same-origin',
       headers: {
-        Accept: 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
       },
     })
 
@@ -972,9 +990,7 @@ async function handleAddToCart(product) {
     }
 
     if (data.error) {
-      // WooCommerce returned an error (e.g. needs variation selection)
-      navigateToProduct(product)
-      return
+      throw new Error('WooCommerce returned an add-to-cart error')
     }
 
     cartState[product.id] = 'added'
@@ -1182,6 +1198,7 @@ function restorePersistedSearch() {
 watch(
   () => [
     props.settings?.source,
+    props.settings?.categoryIds,
     props.settings?.categoryId,
     props.settings?.productIds,
     props.settings?.pinnedProductIds,
@@ -1220,8 +1237,9 @@ async function fetchProducts() {
     formData.append('product_ids', JSON.stringify(productIds))
   }
 
-  if (props.settings?.categoryId) {
-    formData.append('category_id', props.settings.categoryId)
+  if (props.settings?.source === 'category' && selectedSourceCategoryIds.value.length > 0) {
+    formData.append('category_ids', JSON.stringify(selectedSourceCategoryIds.value))
+    formData.append('category_id', String(selectedSourceCategoryIds.value[0]))
   }
 
   formData.append('source', props.settings?.source || 'category')

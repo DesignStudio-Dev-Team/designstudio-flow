@@ -1,6 +1,6 @@
 <?php
 /**
- * Custom Post Type for DesignStudio Flow Pages
+ * Post type and meta registration for DesignStudio Flow
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -24,44 +24,9 @@ class DSF_Post_Type {
 	}
 
 	/**
-	 * Register the DSF Page post type
+	 * Register DSF internal post types.
 	 */
 	public function register_post_type() {
-		$labels = array(
-			'name'               => _x( 'DesignStudio Flow Pages', 'Post type general name', 'designstudio-flow' ),
-			'singular_name'      => _x( 'DesignStudio Flow Page', 'Post type singular name', 'designstudio-flow' ),
-			'menu_name'          => _x( 'DesignStudio Flow Pages', 'Admin Menu text', 'designstudio-flow' ),
-			'name_admin_bar'     => _x( 'DesignStudio Flow Page', 'Add New on Toolbar', 'designstudio-flow' ),
-			'add_new'            => __( 'Add New', 'designstudio-flow' ),
-			'add_new_item'       => __( 'Add New DesignStudio Flow Page', 'designstudio-flow' ),
-			'new_item'           => __( 'New DesignStudio Flow Page', 'designstudio-flow' ),
-			'edit_item'          => __( 'Edit DesignStudio Flow Page', 'designstudio-flow' ),
-			'view_item'          => __( 'View DesignStudio Flow Page', 'designstudio-flow' ),
-			'all_items'          => __( 'All DesignStudio Flow Pages', 'designstudio-flow' ),
-			'search_items'       => __( 'Search DesignStudio Flow Pages', 'designstudio-flow' ),
-			'parent_item_colon'  => __( 'Parent DesignStudio Flow Pages:', 'designstudio-flow' ),
-			'not_found'          => __( 'No DesignStudio Flow pages found.', 'designstudio-flow' ),
-			'not_found_in_trash' => __( 'No DesignStudio Flow pages found in Trash.', 'designstudio-flow' ),
-		);
-
-		$args = array(
-			'labels'             => $labels,
-			'public'             => true,
-			'publicly_queryable' => true,
-			'show_ui'            => true,
-			'show_in_menu'       => false, // We'll add it to our custom menu
-			'query_var'          => true,
-			'rewrite'            => array( 'slug' => 'flow' ),
-			'capability_type'    => 'page',
-			'has_archive'        => false,
-			'hierarchical'       => true,
-			'menu_position'      => null,
-			'supports'           => array( 'title', 'author', 'thumbnail', 'excerpt', 'revisions' ),
-			'show_in_rest'       => true,
-		);
-
-		register_post_type( 'dsf_page', $args );
-
 		$layout_labels = array(
 			'name'               => _x( 'DesignStudio Flow Layouts', 'Post type general name', 'designstudio-flow' ),
 			'singular_name'      => _x( 'DesignStudio Flow Layout', 'Post type singular name', 'designstudio-flow' ),
@@ -161,48 +126,6 @@ class DSF_Post_Type {
 	 */
 	public function register_meta() {
 		register_post_meta(
-			'dsf_page',
-			'_dsf_blocks',
-			array(
-				'type'          => 'array',
-				'description'   => 'Blocks data',
-				'single'        => true,
-				'show_in_rest'  => true,
-				'auth_callback' => function () {
-					return current_user_can( 'edit_posts' );
-				},
-			)
-		);
-
-		register_post_meta(
-			'dsf_page',
-			'_dsf_settings',
-			array(
-				'type'          => 'array',
-				'description'   => 'Page settings',
-				'single'        => true,
-				'show_in_rest'  => true,
-				'auth_callback' => function () {
-					return current_user_can( 'edit_posts' );
-				},
-			)
-		);
-
-		register_post_meta(
-			'dsf_page',
-			'_dsf_theme_colors',
-			array(
-				'type'          => 'string',
-				'description'   => 'JSON encoded theme colors',
-				'single'        => true,
-				'show_in_rest'  => true,
-				'auth_callback' => function () {
-					return current_user_can( 'edit_posts' );
-				},
-			)
-		);
-
-		register_post_meta(
 			'dsf_layout',
 			'_dsf_blocks',
 			array(
@@ -273,13 +196,40 @@ class DSF_Post_Type {
 			)
 		);
 
-		// Also register for regular pages if enabled
 		register_post_meta(
 			'page',
 			'_dsf_blocks',
 			array(
 				'type'          => 'array',
 				'description'   => 'Blocks data',
+				'single'        => true,
+				'show_in_rest'  => true,
+				'auth_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			)
+		);
+
+		register_post_meta(
+			'page',
+			'_dsf_settings',
+			array(
+				'type'          => 'array',
+				'description'   => 'Page settings',
+				'single'        => true,
+				'show_in_rest'  => true,
+				'auth_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			)
+		);
+
+		register_post_meta(
+			'page',
+			'_dsf_theme_colors',
+			array(
+				'type'          => 'string',
+				'description'   => 'JSON encoded theme colors',
 				'single'        => true,
 				'show_in_rest'  => true,
 				'auth_callback' => function () {

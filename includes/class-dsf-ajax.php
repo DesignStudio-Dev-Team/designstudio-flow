@@ -57,6 +57,37 @@ class DSF_Ajax {
 	}
 
 	/**
+	 * Normalize request payloads that may arrive as scalars, arrays, or JSON strings.
+	 *
+	 * @param mixed $value Raw request value.
+	 * @return int[]
+	 */
+	private function normalize_numeric_id_list( $value ) {
+		if ( is_string( $value ) ) {
+			$decoded = json_decode( wp_unslash( $value ), true );
+			if ( is_array( $decoded ) ) {
+				$value = $decoded;
+			} else {
+				$value = array( $value );
+			}
+		}
+
+		if ( ! is_array( $value ) ) {
+			$value = array( $value );
+		}
+
+		$ids = array();
+		foreach ( $value as $item ) {
+			$id = intval( $item );
+			if ( $id > 0 && ! in_array( $id, $ids, true ) ) {
+				$ids[] = $id;
+			}
+		}
+
+		return $ids;
+	}
+
+	/**
 	 * Save page blocks and settings
 	 */
 	public function save_page() {
@@ -135,8 +166,8 @@ class DSF_Ajax {
 		$post_status = get_post_status( $post_id );
 		$post_title  = get_the_title( $post_id );
 		$post_type   = get_post_type( $post_id );
-		$permalink   = 'dsf_page' === $post_type ? get_permalink( $post_id ) : '';
-		$preview_url = 'dsf_page' === $post_type ? get_preview_post_link( $post_id ) : '';
+		$permalink   = 'dsf_layout' !== $post_type ? get_permalink( $post_id ) : '';
+		$preview_url = 'dsf_layout' !== $post_type ? get_preview_post_link( $post_id ) : '';
 
 		wp_send_json_success(
 			array(
@@ -376,22 +407,14 @@ class DSF_Ajax {
 			wp_send_json_error( array( 'message' => 'WooCommerce not active' ) );
 		}
 
-		$category_id = isset( $_POST['category_id'] ) ? intval( $_POST['category_id'] ) : 0;
-		$source      = isset( $_POST['source'] ) ? sanitize_text_field( $_POST['source'] ) : 'category';
+		$category_ids = isset( $_POST['category_ids'] ) ? $this->normalize_numeric_id_list( $_POST['category_ids'] ) : array();
+		$source       = isset( $_POST['source'] ) ? sanitize_text_field( $_POST['source'] ) : 'category';
 
-		// Handle product_ids sent as JSON string or Array
-		$product_ids = array();
-		if ( isset( $_POST['product_ids'] ) ) {
-			$raw_ids = $_POST['product_ids'];
-			if ( is_string( $raw_ids ) ) {
-				$decoded = json_decode( wp_unslash( $raw_ids ), true );
-				if ( is_array( $decoded ) ) {
-					$product_ids = array_map( 'intval', $decoded );
-				}
-			} elseif ( is_array( $raw_ids ) ) {
-				$product_ids = array_map( 'intval', $raw_ids );
-			}
+		if ( empty( $category_ids ) && isset( $_POST['category_id'] ) ) {
+			$category_ids = $this->normalize_numeric_id_list( $_POST['category_id'] );
 		}
+
+		$product_ids = isset( $_POST['product_ids'] ) ? $this->normalize_numeric_id_list( $_POST['product_ids'] ) : array();
 
 		$products = array();
 
@@ -405,12 +428,12 @@ class DSF_Ajax {
 				'posts_per_page' => -1, // Get all pinned
 			);
 
-			if ( 'manual' !== $source && $category_id ) {
+			if ( 'manual' !== $source && ! empty( $category_ids ) ) {
 				$pinned_args['tax_query'] = array(
 					array(
 						'taxonomy' => 'product_cat',
 						'field'    => 'term_id',
-						'terms'    => $category_id,
+						'terms'    => $category_ids,
 					),
 				);
 			}
@@ -428,25 +451,52 @@ class DSF_Ajax {
 
 		// If Category Source fetch all remaining products
 		if ( 'manual' !== $source ) {
-			$cat_args = array(
-				'post_type'      => 'product',
-				'post_status'    => 'publish',
-				'posts_per_page' => -1,
-				'post__not_in'   => $product_ids, // Exclude pinned to avoid duplicates
-			);
+			$seen_product_ids = array_map( 'intval', wp_list_pluck( $products, 'ID' ) );
 
-			if ( $category_id ) {
-				$cat_args['tax_query'] = array(
+			if ( empty( $category_ids ) ) {
+				$cat_posts = get_posts(
 					array(
-						'taxonomy' => 'product_cat',
-						'field'    => 'term_id',
-						'terms'    => $category_id,
-					),
+						'post_type'      => 'product',
+						'post_status'    => 'publish',
+						'posts_per_page' => -1,
+						'post__not_in'   => $product_ids, // Exclude pinned to avoid duplicates
+					)
 				);
-			}
 
-			$cat_posts = get_posts( $cat_args );
-			$products  = array_merge( $products, $cat_posts );
+				$products = array_merge( $products, $cat_posts );
+			} else {
+				foreach ( $category_ids as $category_id ) {
+					$cat_posts = get_posts(
+						array(
+							'post_type'      => 'product',
+							'post_status'    => 'publish',
+							'posts_per_page' => -1,
+							'post__not_in'   => array_values( array_unique( array_merge( $product_ids, $seen_product_ids ) ) ),
+							'tax_query'      => array(
+								array(
+									'taxonomy' => 'product_cat',
+									'field'    => 'term_id',
+									'terms'    => $category_id,
+								),
+							),
+						)
+					);
+
+					if ( empty( $cat_posts ) ) {
+						continue;
+					}
+
+					$products         = array_merge( $products, $cat_posts );
+					$seen_product_ids = array_values(
+						array_unique(
+							array_merge(
+								$seen_product_ids,
+								array_map( 'intval', wp_list_pluck( $cat_posts, 'ID' ) )
+							)
+						)
+					);
+				}
+			}
 		}
 
 		// Format Result
@@ -551,8 +601,12 @@ class DSF_Ajax {
 			wp_send_json_error( array( 'message' => 'WooCommerce not active' ) );
 		}
 
-		$search      = isset( $_POST['search'] ) ? sanitize_text_field( $_POST['search'] ) : '';
-		$category_id = isset( $_POST['category_id'] ) ? intval( $_POST['category_id'] ) : 0;
+		$search       = isset( $_POST['search'] ) ? sanitize_text_field( $_POST['search'] ) : '';
+		$category_ids = isset( $_POST['category_ids'] ) ? $this->normalize_numeric_id_list( $_POST['category_ids'] ) : array();
+
+		if ( empty( $category_ids ) && isset( $_POST['category_id'] ) ) {
+			$category_ids = $this->normalize_numeric_id_list( $_POST['category_id'] );
+		}
 
 		$args = array(
 			'post_type'      => 'product',
@@ -561,12 +615,12 @@ class DSF_Ajax {
 			's'              => $search,
 		);
 
-		if ( $category_id ) {
+		if ( ! empty( $category_ids ) ) {
 			$args['tax_query'] = array(
 				array(
 					'taxonomy' => 'product_cat',
 					'field'    => 'term_id',
-					'terms'    => $category_id,
+					'terms'    => $category_ids,
 				),
 			);
 		}

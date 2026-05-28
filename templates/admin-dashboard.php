@@ -90,7 +90,7 @@ $render_recent_items = static function ( $title, $items, $all_url, $edit_url_cal
 				$render_recent_items(
 					__( 'Pages', 'designstudio-flow' ),
 					$pages,
-					admin_url( 'edit.php?post_type=dsf_page' ),
+					admin_url( 'edit.php?post_type=page&dsf_flow=1' ),
 					static function ( $item ) {
 						return admin_url( 'admin.php?page=dsf-editor&post_id=' . intval( $item->ID ) );
 					},

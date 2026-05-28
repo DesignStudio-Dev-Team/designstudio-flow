@@ -223,7 +223,7 @@ const props = defineProps({
   settings: Object,
   postType: {
     type: String,
-    default: 'dsf_page',
+    default: 'page',
   },
   layoutTemplates: {
     type: Object,

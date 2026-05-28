@@ -28,9 +28,9 @@ class DSF_Import_Export {
 		add_filter( 'post_row_actions', array( $this, 'add_row_actions' ), 10, 2 );
 		add_filter( 'page_row_actions', array( $this, 'add_row_actions' ), 10, 2 );
 
-		add_filter( 'bulk_actions-edit-dsf_page', array( $this, 'register_bulk_actions' ) );
+		add_filter( 'bulk_actions-edit-page', array( $this, 'register_bulk_actions' ) );
 		add_filter( 'bulk_actions-edit-dsf_layout', array( $this, 'register_bulk_actions' ) );
-		add_filter( 'handle_bulk_actions-edit-dsf_page', array( $this, 'handle_bulk_action' ), 10, 3 );
+		add_filter( 'handle_bulk_actions-edit-page', array( $this, 'handle_bulk_action' ), 10, 3 );
 		add_filter( 'handle_bulk_actions-edit-dsf_layout', array( $this, 'handle_bulk_action' ), 10, 3 );
 
 		add_action( 'admin_post_' . self::SINGLE_ACTION, array( $this, 'handle_single_export' ) );
@@ -41,11 +41,23 @@ class DSF_Import_Export {
 	}
 
 	private function is_supported_post( $post ) {
-		return $post && in_array( $post->post_type, array( 'dsf_page', 'dsf_layout' ), true );
+		if ( ! $post ) {
+			return false;
+		}
+
+		if ( 'dsf_layout' === $post->post_type ) {
+			return true;
+		}
+
+		if ( 'page' !== $post->post_type ) {
+			return false;
+		}
+
+		return (bool) get_post_meta( $post->ID, '_dsf_enabled', true ) || get_post_meta( $post->ID, '_dsf_blocks', true );
 	}
 
 	private function get_meta_keys_for_type( $post_type ) {
-		if ( 'dsf_page' === $post_type ) {
+		if ( in_array( $post_type, array( 'page', 'dsf_page' ), true ) ) {
 			return array( '_dsf_blocks', '_dsf_settings', '_dsf_theme_colors' );
 		}
 		if ( 'dsf_layout' === $post_type ) {
@@ -75,6 +87,14 @@ class DSF_Import_Export {
 	}
 
 	public function register_bulk_actions( $actions ) {
+		$post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$post_type = $post_type ? sanitize_key( $post_type ) : '';
+		$dsf_flow  = filter_input( INPUT_GET, 'dsf_flow', FILTER_VALIDATE_INT );
+
+		if ( 'page' === $post_type && 1 !== intval( $dsf_flow ) ) {
+			return $actions;
+		}
+
 		$actions[ self::BULK_ACTION ] = __( 'Export to JSON', 'designstudio-flow' );
 		return $actions;
 	}
@@ -244,7 +264,7 @@ class DSF_Import_Export {
 					<h2 style="margin-top:0;"><?php esc_html_e( 'Export', 'designstudio-flow' ); ?></h2>
 					<p><?php esc_html_e( 'Use the "Export" row action on a single item, or pick "Export to JSON" from the Bulk Actions dropdown to export multiple at once.', 'designstudio-flow' ); ?></p>
 					<ul style="list-style:disc;margin-left:24px;">
-						<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_page' ) ); ?>"><?php esc_html_e( 'Pages', 'designstudio-flow' ); ?></a></li>
+						<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=page&dsf_flow=1' ) ); ?>"><?php esc_html_e( 'Pages', 'designstudio-flow' ); ?></a></li>
 						<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_layout&dsf_layout_type=header' ) ); ?>"><?php esc_html_e( 'Headers', 'designstudio-flow' ); ?></a></li>
 						<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_layout&dsf_layout_type=footer' ) ); ?>"><?php esc_html_e( 'Footers', 'designstudio-flow' ); ?></a></li>
 					</ul>
@@ -307,8 +327,12 @@ class DSF_Import_Export {
 		}
 
 		$post_type = isset( $item['post_type'] ) ? sanitize_key( $item['post_type'] ) : '';
-		if ( ! in_array( $post_type, array( 'dsf_page', 'dsf_layout' ), true ) ) {
+		if ( ! in_array( $post_type, array( 'page', 'dsf_page', 'dsf_layout' ), true ) ) {
 			return false;
+		}
+
+		if ( 'dsf_page' === $post_type ) {
+			$post_type = 'page';
 		}
 
 		$title   = isset( $item['title'] ) ? sanitize_text_field( $item['title'] ) : '';
@@ -346,6 +370,10 @@ class DSF_Import_Export {
 					: 'header';
 			}
 			update_post_meta( $post_id, '_dsf_layout_type', $layout_type );
+		}
+
+		if ( 'page' === $post_type ) {
+			update_post_meta( $post_id, '_dsf_enabled', true );
 		}
 
 		return $post_id;

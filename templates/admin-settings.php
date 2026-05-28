@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Handle form submission
 if ( isset( $_POST['dsf_save_settings'] ) && isset( $_POST['dsf_settings_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['dsf_settings_nonce'] ) ), 'dsf_save_settings' ) ) {
 	// Save settings
-	$enabled_post_types = isset( $_POST['dsf_enabled_post_types'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['dsf_enabled_post_types'] ) ) : array();
+	$enabled_post_types = array( 'page' );
 	update_option( 'dsf_enabled_post_types', $enabled_post_types );
 
 	$default_colors = array(
@@ -52,7 +52,7 @@ if ( isset( $_POST['dsf_save_settings'] ) && isset( $_POST['dsf_settings_nonce']
 }
 
 // Get current settings
-$enabled_post_types   = get_option( 'dsf_enabled_post_types', array( 'page', 'dsf_page' ) );
+$enabled_post_types   = get_option( 'dsf_enabled_post_types', array( 'page' ) );
 $default_colors       = get_option(
 	'dsf_default_colors',
 	array(
@@ -115,15 +115,11 @@ $scale_options = array(
 						<td>
 							<label style="display: block; margin-bottom: 8px;">
 								<input type="checkbox" name="dsf_enabled_post_types[]" value="page" 
-									<?php checked( in_array( 'page', $enabled_post_types, true ) ); ?>>
+									checked disabled>
 								Pages
 							</label>
-							<label style="display: block; margin-bottom: 8px;">
-								<input type="checkbox" name="dsf_enabled_post_types[]" value="dsf_page" 
-									<?php checked( in_array( 'dsf_page', $enabled_post_types, true ) ); ?>>
-								DesignStudio Flow Pages (Custom Post Type)
-							</label>
-							<p class="description">Select which post types can use the DesignStudio Flow editor.</p>
+							<input type="hidden" name="dsf_enabled_post_types[]" value="page">
+							<p class="description">DesignStudio Flow now works directly on normal WordPress pages.</p>
 						</td>
 					</tr>
 				</table>

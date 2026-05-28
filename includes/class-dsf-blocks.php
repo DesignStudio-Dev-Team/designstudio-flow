@@ -1886,10 +1886,10 @@ class DSF_Blocks {
 						'section'      => 'source',
 						'sectionTitle' => 'Source',
 					),
-					'categoryId'         => array(
-						'type'         => 'category',
-						'label'        => 'Select Category',
-						'default'      => 0,
+					'categoryIds'        => array(
+						'type'         => 'categories',
+						'label'        => 'Select Categories',
+						'default'      => array(),
 						'section'      => 'source',
 						'sectionTitle' => 'Source',
 					),
@@ -1899,6 +1899,8 @@ class DSF_Blocks {
 						'default'             => array(),
 						'searchPlaceholder'   => 'Search category products...',
 						'hideSearchCardTitle' => true,
+						'categorySettingKey'  => 'categoryIds',
+						'legacyCategoryKey'   => 'categoryId',
 						'section'             => 'source',
 						'sectionTitle'        => 'Source',
 					),

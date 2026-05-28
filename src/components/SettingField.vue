@@ -169,6 +169,7 @@
       v-else-if="config.type === 'products'"
       :value="value"
       :config="config"
+      :all-settings="allSettings"
       @update="$emit('update', $event)"
     />
 
