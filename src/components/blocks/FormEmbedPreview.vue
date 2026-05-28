@@ -470,21 +470,73 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
+.dsf-form-embed-preview__frontend :deep(.ginput_complex > span),
+.dsf-form-embed-preview__frontend :deep(.ginput_complex > div:not(.gf_clear)),
+.dsf-form-embed-preview__frontend :deep(.ginput_complex .gform-grid-col) {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.dsf-form-embed-preview__frontend :deep(.ginput_complex .name_first),
+.dsf-form-embed-preview__frontend :deep(.ginput_complex .address_city),
+.dsf-form-embed-preview__frontend :deep(.ginput_complex .address_zip) {
+  grid-column: 1 / span 1 !important;
+}
+
+.dsf-form-embed-preview__frontend :deep(.ginput_complex .name_last),
+.dsf-form-embed-preview__frontend :deep(.ginput_complex .address_state) {
+  grid-column: 2 / span 1 !important;
+}
+
+.dsf-form-embed-preview__frontend :deep(.ginput_complex .ginput_full),
+.dsf-form-embed-preview__frontend :deep(.ginput_complex .address_line_1),
+.dsf-form-embed-preview__frontend :deep(.ginput_complex .address_line_2),
+.dsf-form-embed-preview__frontend :deep(.ginput_complex .address_country) {
+  grid-column: 1 / -1 !important;
+}
+
 .dsf-form-embed-preview__frontend :deep(.ginput_complex > span input) {
-  width: 100%;
-  max-width: 100%;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.dsf-form-embed-preview__frontend :deep(.ginput_complex input),
+.dsf-form-embed-preview__frontend :deep(.ginput_complex select),
+.dsf-form-embed-preview__frontend :deep(.ginput_complex textarea) {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.dsf-form-embed-preview__frontend :deep(.ginput_complex .gf_clear) {
+  display: none !important;
 }
 
 /* Inline checkboxes/radios with their labels. */
 .dsf-form-embed-preview__frontend :deep(.gchoice) {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  display: grid !important;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 0.625rem;
 }
 
 .dsf-form-embed-preview__frontend :deep(.gchoice > label) {
   margin: 0 !important;
-  display: inline;
+  display: block;
+  grid-column: 2;
+  min-width: 0;
+}
+
+.dsf-form-embed-preview__frontend :deep(.gchoice > input[type="checkbox"]),
+.dsf-form-embed-preview__frontend :deep(.gchoice > input[type="radio"]) {
+  grid-column: 1;
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0.25em 0 0 !important;
+  flex: 0 0 16px !important;
 }
 
 @container (max-width: 600px) {
@@ -494,6 +546,12 @@ onBeforeUnmount(() => {
 
   .dsf-form-embed-preview__frontend :deep(.ginput_complex) {
     grid-template-columns: 1fr;
+  }
+
+  .dsf-form-embed-preview__frontend :deep(.ginput_complex > span),
+  .dsf-form-embed-preview__frontend :deep(.ginput_complex > div:not(.gf_clear)),
+  .dsf-form-embed-preview__frontend :deep(.ginput_complex .gform-grid-col) {
+    grid-column: 1 / -1 !important;
   }
 }
 
