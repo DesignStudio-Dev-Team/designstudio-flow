@@ -517,25 +517,29 @@ onBeforeUnmount(() => {
 
 /* Inline checkboxes/radios with their labels. */
 .dsf-form-embed-preview__frontend :deep(.gchoice) {
-  display: grid !important;
-  grid-template-columns: 16px minmax(0, 1fr);
-  align-items: start;
-  column-gap: 0.625rem;
+  display: flex !important;
+  align-items: center;
+  gap: 0.625rem;
+  line-height: 1.35;
 }
 
 .dsf-form-embed-preview__frontend :deep(.gchoice > label) {
   margin: 0 !important;
-  display: block;
-  grid-column: 2;
+  display: inline-flex;
+  align-items: center;
   min-width: 0;
+  line-height: 1.35 !important;
 }
 
 .dsf-form-embed-preview__frontend :deep(.gchoice > input[type="checkbox"]),
 .dsf-form-embed-preview__frontend :deep(.gchoice > input[type="radio"]) {
-  grid-column: 1;
+  position: static !important;
+  display: inline-block !important;
   width: 16px !important;
   height: 16px !important;
-  margin: 0.25em 0 0 !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  margin: 0 !important;
   flex: 0 0 16px !important;
 }
 
