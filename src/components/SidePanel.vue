@@ -82,7 +82,7 @@
               <SettingField
                 :config="contentSettings[fieldKey]"
                 :field-key="fieldKey"
-                :value="block.settings[fieldKey]"
+                :value="getSettingValue(fieldKey)"
                 :all-settings="block.settings"
                 @update="(val) => updateSetting(fieldKey, val)"
               />
@@ -115,7 +115,7 @@
               <SettingField
                 :config="mobileSettings[fieldKey]"
                 :field-key="fieldKey"
-                :value="block.settings[fieldKey]"
+                :value="getSettingValue(fieldKey)"
                 :all-settings="block.settings"
                 @update="(val) => updateSetting(fieldKey, val)"
               />
@@ -189,7 +189,7 @@
                 <SettingField
                   :config="styleSettings[fieldKey]"
                   :field-key="fieldKey"
-                  :value="block.settings[fieldKey]"
+                  :value="getSettingValue(fieldKey)"
                   :all-settings="block.settings"
                   @update="(val) => updateSetting(fieldKey, val)"
                 />
@@ -206,7 +206,7 @@
             v-if="shouldShowField(key, block.settings)"
             :config="config"
             :field-key="key"
-            :value="block.settings[key]"
+            :value="getSettingValue(key)"
             :all-settings="block.settings"
             @update="(val) => updateSetting(key, val)"
           />
@@ -470,11 +470,45 @@ watch(blockId, () => {
   expandedMobileSections.value = {}
 })
 
+function normalizeIdList(value) {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map((item) => Number.parseInt(item, 10)).filter((item) => Number.isFinite(item) && item > 0))]
+  }
+
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) && parsed > 0 ? [parsed] : []
+}
+
+function getSettingValue(key) {
+  const settings = props.block?.settings || {}
+
+  if (blockId.value === 'product-grid' && key === 'categoryIds') {
+    const categoryIds = normalizeIdList(settings.categoryIds)
+    if (categoryIds.length > 0) {
+      return categoryIds
+    }
+
+    return normalizeIdList(settings.categoryId)
+  }
+
+  return settings[key]
+}
+
 function updateSetting(key, value) {
   if (value && typeof value === 'object' && value.__dsfBatch && value.updates) {
     emit('update:settings', value.updates)
     return
   }
+
+  if (blockId.value === 'product-grid' && key === 'categoryIds') {
+    const categoryIds = normalizeIdList(value)
+    emit('update:settings', {
+      categoryIds,
+      categoryId: categoryIds[0] || 0,
+    })
+    return
+  }
+
   emit('update:settings', { [key]: value })
 }
 
@@ -544,7 +578,7 @@ function shouldShowField(key, settings) {
   
   // Legacy logic for Product Grid source
   if (settings.source) {
-    if (key === 'categoryId') return settings.source === 'category'
+    if (key === 'categoryIds' || key === 'categoryId') return settings.source === 'category'
     if (key === 'pinnedProductIds') return settings.source === 'category'
     if (key === 'productIds') return settings.source === 'manual'
   }

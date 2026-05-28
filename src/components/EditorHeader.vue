@@ -91,7 +91,7 @@ const props = defineProps({
   previewMode: String,
   postType: {
     type: String,
-    default: 'dsf_page',
+    default: 'page',
   },
   layoutType: {
     type: String,
@@ -109,8 +109,8 @@ const logoUrl = computed(() => {
 const subtitleText = computed(() => {
   if (props.postType === 'dsf_layout') {
     return props.layoutType === 'footer'
-      ? 'Build reusable footer templates for Flow pages'
-      : 'Build reusable header templates for Flow pages'
+      ? 'Build reusable footer templates for your Flow-built pages'
+      : 'Build reusable header templates for your Flow-built pages'
   }
   return 'Build your WordPress Page with Artisanal Content Blocks'
 })

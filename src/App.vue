@@ -133,7 +133,7 @@ import { applyThemeToBlocks, resolveThemeKey } from './utils/themeSync'
 
 // Get WordPress data
 const wpData = window.dsfEditorData || {}
-const postType = wpData.postType === 'dsf_layout' ? 'dsf_layout' : 'dsf_page'
+const postType = wpData.postType === 'dsf_layout' ? 'dsf_layout' : 'page'
 const layoutType = wpData.layoutType === 'footer' ? 'footer' : 'header'
 const isTemplateEditor = postType === 'dsf_layout'
 const layoutTemplates = computed(() => wpData.layoutTemplates || { headers: [], footers: [] })

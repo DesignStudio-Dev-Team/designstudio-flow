@@ -67,6 +67,7 @@ final class DesignStudio_Flow {
 
 		// Load text domain.
 		add_action( 'init', array( $this, 'load_textdomain' ) );
+		add_action( 'init', array( $this, 'handle_pending_rewrite_flush' ), 99 );
 	}
 
 	/**
@@ -75,6 +76,7 @@ final class DesignStudio_Flow {
 	public function init_components() {
 		// Initialize post type.
 		DSF_Post_Type::get_instance();
+		$this->migrate_legacy_flow_pages();
 
 		// Initialize admin.
 		if ( is_admin() ) {
@@ -103,6 +105,8 @@ final class DesignStudio_Flow {
 	public function activate() {
 		// Create custom tables if needed.
 		$this->create_tables();
+
+		update_option( 'dsf_needs_rewrite_flush', 1 );
 
 		// Flush rewrite rules.
 		flush_rewrite_rules();
@@ -156,7 +160,7 @@ final class DesignStudio_Flow {
 				'text'       => '#1F2937',
 				'background' => '#FFFFFF',
 			),
-			'dsf_enabled_post_types'   => array( 'page', 'dsf_page' ),
+			'dsf_enabled_post_types'   => array( 'page' ),
 			'dsf_recaptcha_enabled'    => false,
 			'dsf_recaptcha_site_key'   => '',
 			'dsf_recaptcha_secret_key' => '',
@@ -168,6 +172,116 @@ final class DesignStudio_Flow {
 				add_option( $key, $value );
 			}
 		}
+	}
+
+	/**
+	 * Convert legacy Flow CPT pages into normal WordPress pages once.
+	 */
+	private function migrate_legacy_flow_pages() {
+		if ( get_option( 'dsf_legacy_flow_pages_migrated' ) ) {
+			return;
+		}
+
+		global $wpdb;
+
+		$post_ids = $wpdb->get_col(
+			"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'dsf_page'"
+		);
+
+		if ( empty( $post_ids ) ) {
+			update_option( 'dsf_legacy_flow_pages_migrated', 1, false );
+			update_option( 'dsf_needs_rewrite_flush', 1, false );
+			return;
+		}
+
+		$legacy_paths = array();
+		foreach ( array_map( 'intval', $post_ids ) as $post_id ) {
+			if ( $post_id <= 0 ) {
+				continue;
+			}
+			$legacy_paths[ $post_id ] = $this->build_legacy_flow_path( $post_id );
+		}
+
+		foreach ( array_map( 'intval', $post_ids ) as $post_id ) {
+			if ( $post_id <= 0 ) {
+				continue;
+			}
+
+			$legacy_path = $legacy_paths[ $post_id ] ?? '';
+			if ( $legacy_path ) {
+				update_post_meta( $post_id, '_dsf_legacy_flow_path', $legacy_path );
+			}
+
+			update_post_meta( $post_id, '_dsf_enabled', true );
+			wp_update_post(
+				array(
+					'ID'        => $post_id,
+					'post_type' => 'page',
+				)
+			);
+		}
+
+		update_option( 'dsf_legacy_flow_pages_migrated', 1, false );
+		update_option( 'dsf_needs_rewrite_flush', 1, false );
+	}
+
+	/**
+	 * Flush rewrite rules after WordPress has finished registering routes.
+	 */
+	public function handle_pending_rewrite_flush() {
+		$this->maybe_flush_rewrite_rules();
+	}
+
+	/**
+	 * Build the old /flow/... request path for migrated pages.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return string
+	 */
+	private function build_legacy_flow_path( $post_id ) {
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return '';
+		}
+
+		$segments = array();
+		$current  = $post;
+
+		while ( $current instanceof WP_Post && 'dsf_page' === $current->post_type ) {
+			if ( $current->post_name ) {
+				array_unshift( $segments, $current->post_name );
+			}
+
+			if ( empty( $current->post_parent ) ) {
+				break;
+			}
+
+			$current = get_post( $current->post_parent );
+		}
+
+		if ( empty( $segments ) ) {
+			return '';
+		}
+
+		return wp_parse_url( home_url( trailingslashit( 'flow/' . implode( '/', $segments ) ) ), PHP_URL_PATH );
+	}
+
+	/**
+	 * Flush rewrite rules once after route changes.
+	 *
+	 * @param bool $set_flag Whether to set the pending-flush flag first.
+	 */
+	private function maybe_flush_rewrite_rules( $set_flag = false ) {
+		if ( $set_flag ) {
+			update_option( 'dsf_needs_rewrite_flush', 1, false );
+		}
+
+		if ( ! get_option( 'dsf_needs_rewrite_flush' ) ) {
+			return;
+		}
+
+		flush_rewrite_rules( false );
+		delete_option( 'dsf_needs_rewrite_flush' );
 	}
 
 	/**

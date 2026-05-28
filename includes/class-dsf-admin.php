@@ -67,7 +67,7 @@ class DSF_Admin {
 			__( 'Pages', 'designstudio-flow' ),
 			__( 'Pages', 'designstudio-flow' ),
 			'edit_pages',
-			'edit.php?post_type=dsf_page'
+			$this->get_flow_pages_admin_url()
 		);
 
 		// Headers.
@@ -108,7 +108,7 @@ class DSF_Admin {
 	 */
 	public function enqueue_admin_scripts( $hook ) {
 		// Only on our pages or page editor screens
-		$is_flow_admin  = ( false !== strpos( $hook, 'designstudio-flow' ) ) || ( false !== strpos( $hook, 'dsf_page' ) );
+		$is_flow_admin  = ( false !== strpos( $hook, 'designstudio-flow' ) ) || $this->is_flow_pages_screen();
 		$is_page_editor = in_array( $hook, array( 'post.php', 'post-new.php' ), true );
 		$screen         = $is_page_editor ? get_current_screen() : null;
 		$post_type      = $screen ? $screen->post_type : '';
@@ -133,11 +133,18 @@ class DSF_Admin {
 
 		$pages_query   = new WP_Query(
 			array(
-				'post_type'      => 'dsf_page',
+				'post_type'      => 'page',
 				'post_status'    => $statuses,
 				'posts_per_page' => 6,
 				'orderby'        => 'modified',
 				'order'          => 'DESC',
+				'meta_query'     => array(
+					array(
+						'key'     => '_dsf_enabled',
+						'value'   => '1',
+						'compare' => '=',
+					),
+				),
 			)
 		);
 		$pages         = $pages_query->posts;
@@ -215,6 +222,20 @@ class DSF_Admin {
 		}
 
 		$post_type = $query->get( 'post_type' );
+		if ( 'page' === $post_type && $this->is_flow_pages_screen() ) {
+			$query->set(
+				'meta_query',
+				array(
+					array(
+						'key'     => '_dsf_enabled',
+						'value'   => '1',
+						'compare' => '=',
+					),
+				)
+			);
+			return;
+		}
+
 		if ( 'dsf_layout' !== $post_type ) {
 			return;
 		}
@@ -329,6 +350,14 @@ class DSF_Admin {
 	 * Keep DSF parent menu highlighted on Header/Footer routes.
 	 */
 	public function set_flow_parent_menu( $parent_file ) {
+		if ( $this->is_flow_pages_screen() ) {
+			return 'designstudio-flow';
+		}
+
+		if ( $this->is_flow_page_editor_context() ) {
+			return 'designstudio-flow';
+		}
+
 		if ( $this->get_layout_submenu_slug() ) {
 			return 'designstudio-flow';
 		}
@@ -340,6 +369,14 @@ class DSF_Admin {
 	 * Keep Header/Footer submenu item selected on DSF layout screens.
 	 */
 	public function set_flow_submenu( $submenu_file ) {
+		if ( $this->is_flow_pages_screen() ) {
+			return $this->get_flow_pages_admin_url();
+		}
+
+		if ( $this->is_flow_page_editor_context() ) {
+			return $this->get_flow_pages_admin_url();
+		}
+
 		$layout_submenu = $this->get_layout_submenu_slug();
 		if ( $layout_submenu ) {
 			return $layout_submenu;
@@ -421,6 +458,55 @@ class DSF_Admin {
 	 */
 	public function render_settings_page() {
 		include DSF_PLUGIN_DIR . 'templates/admin-settings.php';
+	}
+
+	/**
+	 * Build the DSF pages list URL on the native page post type.
+	 *
+	 * @return string
+	 */
+	private function get_flow_pages_admin_url() {
+		return 'edit.php?post_type=page&dsf_flow=1';
+	}
+
+	/**
+	 * Detect whether the current request is the filtered Flow pages list.
+	 *
+	 * @return bool
+	 */
+	private function is_flow_pages_screen() {
+		global $pagenow;
+
+		$post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$post_type = $post_type ? sanitize_key( $post_type ) : '';
+		$dsf_flow  = filter_input( INPUT_GET, 'dsf_flow', FILTER_VALIDATE_INT );
+
+		return 'edit.php' === $pagenow && 'page' === $post_type && 1 === intval( $dsf_flow );
+	}
+
+	/**
+	 * Detect whether the hidden DSF editor is editing a normal page.
+	 *
+	 * @return bool
+	 */
+	private function is_flow_page_editor_context() {
+		global $pagenow;
+
+		$page = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$page = $page ? sanitize_key( $page ) : '';
+		if ( 'admin.php' !== $pagenow || 'dsf-editor' !== $page ) {
+			return false;
+		}
+
+		$post_id = filter_input( INPUT_GET, 'post_id', FILTER_VALIDATE_INT );
+		$post_id = $post_id ? intval( $post_id ) : 0;
+		if ( $post_id > 0 ) {
+			return 'page' === get_post_type( $post_id );
+		}
+
+		$post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$post_type = $post_type ? sanitize_key( $post_type ) : 'page';
+		return 'page' === $post_type;
 	}
 
 	/**

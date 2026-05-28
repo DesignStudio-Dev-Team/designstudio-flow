@@ -34,6 +34,7 @@ class DSF_Frontend {
 		// at the default priority (10) due to the query not being initialized yet.
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ), 20 );
 		add_filter( 'template_include', array( $this, 'load_flow_template' ), 99 );
+		add_action( 'template_redirect', array( $this, 'redirect_legacy_flow_urls' ), 1 );
 		add_filter( 'script_loader_tag', array( $this, 'add_module_type_to_scripts' ), 10, 3 );
 		add_filter( 'dsf_flow_show_header', array( $this, 'filter_show_header' ), 10, 2 );
 		add_filter( 'dsf_flow_show_footer', array( $this, 'filter_show_footer' ), 10, 2 );
@@ -66,7 +67,7 @@ class DSF_Frontend {
 		}
 
 		// Check if this is a Flow page or has Flow blocks
-		$is_flow = 'dsf_page' === $current_post->post_type || get_post_meta( $post_id, '_dsf_enabled', true );
+		$is_flow = ( 'page' === $current_post->post_type ) && get_post_meta( $post_id, '_dsf_enabled', true );
 
 		if ( ! $is_flow ) {
 			return;
@@ -632,7 +633,7 @@ class DSF_Frontend {
 		}
 
 		// Only for Flow pages or Flow-enabled pages
-		$is_flow = 'dsf_page' === $post->post_type || get_post_meta( $post->ID, '_dsf_enabled', true );
+		$is_flow = ( 'page' === $post->post_type ) && get_post_meta( $post->ID, '_dsf_enabled', true );
 		if ( ! $is_flow ) {
 			return $content;
 		}
@@ -655,7 +656,7 @@ class DSF_Frontend {
 		}
 
 		$post_type = get_post_type( $post_id );
-		$is_flow   = 'dsf_page' === $post_type || get_post_meta( $post_id, '_dsf_enabled', true );
+		$is_flow   = ( 'page' === $post_type ) && get_post_meta( $post_id, '_dsf_enabled', true );
 		if ( ! $is_flow ) {
 			return $template;
 		}
@@ -675,6 +676,44 @@ class DSF_Frontend {
 		}
 
 		return $template;
+	}
+
+	/**
+	 * Redirect legacy /flow/... URLs to the migrated WordPress page permalink.
+	 */
+	public function redirect_legacy_flow_urls() {
+		if ( is_admin() || ! is_404() ) {
+			return;
+		}
+
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		$path        = wp_parse_url( $request_uri, PHP_URL_PATH );
+		$path        = $path ? trailingslashit( $path ) : '';
+		if ( '' === $path ) {
+			return;
+		}
+
+		$posts = get_posts(
+			array(
+				'post_type'      => 'page',
+				'post_status'    => 'publish',
+				'posts_per_page' => 1,
+				'meta_key'       => '_dsf_legacy_flow_path',
+				'meta_value'     => $path,
+			)
+		);
+
+		if ( empty( $posts ) ) {
+			return;
+		}
+
+		$target_url = get_permalink( $posts[0]->ID );
+		if ( ! $target_url ) {
+			return;
+		}
+
+		wp_safe_redirect( $target_url, 301 );
+		exit;
 	}
 
 	/**
