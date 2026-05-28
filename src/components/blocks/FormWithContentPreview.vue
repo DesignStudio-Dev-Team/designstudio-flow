@@ -414,30 +414,31 @@ body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf
 }
 
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice {
-  display: grid !important;
-  grid-template-columns: 16px minmax(0, 1fr) !important;
-  align-items: start !important;
-  column-gap: .625rem !important;
-  row-gap: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: .625rem !important;
+  line-height: 1.35 !important;
   margin-bottom: 0 !important;
 }
 
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > input[type="checkbox"],
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > input[type="radio"] {
-  grid-column: 1 !important;
+  position: static !important;
+  display: inline-block !important;
   width: 16px !important;
   height: 16px !important;
   min-width: 16px !important;
   min-height: 16px !important;
   flex: 0 0 16px !important;
-  margin: .25em 0 0 !important;
+  margin: 0 !important;
 }
 
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > label {
   margin: 0 !important;
-  display: block !important;
-  grid-column: 2 !important;
+  display: inline-flex !important;
+  align-items: center !important;
   min-width: 0 !important;
+  line-height: 1.35 !important;
 }
 
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .akismet-fields-container {
@@ -1313,7 +1314,7 @@ onBeforeUnmount(() => {
   display: inline-block;
   width: 16px !important;
   height: 16px !important;
-  margin: 0.25em 0 0 !important;
+  margin: 0 !important;
   opacity: 1;
   appearance: auto;
   vertical-align: middle;
@@ -1322,18 +1323,19 @@ onBeforeUnmount(() => {
 
 /* Keep the checkbox/radio inline with its label inside Gravity Forms choices. */
 .dsf-form-with-content__form-frontend :deep(.gchoice) {
-  display: grid !important;
-  grid-template-columns: 16px minmax(0, 1fr);
-  align-items: start;
-  column-gap: 0.625rem;
+  display: flex !important;
+  align-items: center;
+  gap: 0.625rem;
+  line-height: 1.35;
 }
 
 .dsf-form-with-content__form-frontend :deep(.gchoice > label),
 .dsf-form-with-content__form-frontend :deep(.gchoice > input + label) {
   margin: 0 !important;
-  display: block;
-  grid-column: 2;
+  display: inline-flex;
+  align-items: center;
   min-width: 0;
+  line-height: 1.35 !important;
 }
 
 /* ── Responsive: stack below 680px ─────────────────── */
