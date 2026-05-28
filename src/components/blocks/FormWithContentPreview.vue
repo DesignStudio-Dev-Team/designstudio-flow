@@ -414,21 +414,30 @@ body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf
 }
 
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice {
-  display: flex !important;
-  align-items: center !important;
-  gap: 0.5rem !important;
+  display: grid !important;
+  grid-template-columns: 16px minmax(0, 1fr) !important;
+  align-items: start !important;
+  column-gap: .625rem !important;
+  row-gap: 0 !important;
   margin-bottom: 0 !important;
 }
 
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > input[type="checkbox"],
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > input[type="radio"] {
-  flex-shrink: 0 !important;
-  margin: 0 !important;
+  grid-column: 1 !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  flex: 0 0 16px !important;
+  margin: .25em 0 0 !important;
 }
 
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > label {
   margin: 0 !important;
-  display: inline !important;
+  display: block !important;
+  grid-column: 2 !important;
+  min-width: 0 !important;
 }
 
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .akismet-fields-container {
@@ -454,6 +463,66 @@ body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf
   font-size: .6875rem !important;
   line-height: 1.4 !important;
   text-align: right !important;
+}
+
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  column-gap: 16px !important;
+  row-gap: .75rem !important;
+  width: 100% !important;
+}
+
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex > span,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex > div:not(.gf_clear),
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .gform-grid-col {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .name_first,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_city,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_zip {
+  grid-column: 1 / span 1 !important;
+}
+
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .name_last,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_state {
+  grid-column: 2 / span 1 !important;
+}
+
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .ginput_full,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_line_1,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_line_2,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_country {
+  grid-column: 1 / -1 !important;
+}
+
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex input,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex select,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex textarea {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .gf_clear {
+  display: none !important;
+}
+
+@media (max-width: 700px) {
+  body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex {
+    grid-template-columns: 1fr !important;
+  }
+
+  body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex > span,
+  body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex > div:not(.gf_clear),
+  body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .gform-grid-col {
+    grid-column: 1 / -1 !important;
+  }
 }
 `;
   document.head.appendChild(style);
@@ -1131,19 +1200,52 @@ onBeforeUnmount(() => {
 }
 
 .dsf-form-with-content__form-frontend :deep(.ginput_complex > span),
+.dsf-form-with-content__form-frontend :deep(.ginput_complex > div:not(.gf_clear)),
+.dsf-form-with-content__form-frontend :deep(.ginput_complex .gform-grid-col),
 .dsf-form-with-content__form-frontend :deep(.ginput_complex .name_first),
 .dsf-form-with-content__form-frontend :deep(.ginput_complex .name_last) {
-  display: block;
-  width: auto;
-  max-width: none;
-  margin: 0;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.dsf-form-with-content__form-frontend :deep(.ginput_complex .name_first),
+.dsf-form-with-content__form-frontend :deep(.ginput_complex .address_city),
+.dsf-form-with-content__form-frontend :deep(.ginput_complex .address_zip) {
+  grid-column: 1 / span 1 !important;
+}
+
+.dsf-form-with-content__form-frontend :deep(.ginput_complex .name_last),
+.dsf-form-with-content__form-frontend :deep(.ginput_complex .address_state) {
+  grid-column: 2 / span 1 !important;
+}
+
+.dsf-form-with-content__form-frontend :deep(.ginput_complex .ginput_full),
+.dsf-form-with-content__form-frontend :deep(.ginput_complex .address_line_1),
+.dsf-form-with-content__form-frontend :deep(.ginput_complex .address_line_2),
+.dsf-form-with-content__form-frontend :deep(.ginput_complex .address_country) {
+  grid-column: 1 / -1 !important;
 }
 
 .dsf-form-with-content__form-frontend :deep(.ginput_complex > span input),
 .dsf-form-with-content__form-frontend :deep(.ginput_complex .name_first input),
 .dsf-form-with-content__form-frontend :deep(.ginput_complex .name_last input) {
-  width: 100%;
-  max-width: 100%;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.dsf-form-with-content__form-frontend :deep(.ginput_complex input),
+.dsf-form-with-content__form-frontend :deep(.ginput_complex select),
+.dsf-form-with-content__form-frontend :deep(.ginput_complex textarea) {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.dsf-form-with-content__form-frontend :deep(.ginput_complex .gf_clear) {
+  display: none !important;
 }
 
 .dsf-form-with-content__form-frontend :deep(.gform_fields) {
@@ -1209,26 +1311,29 @@ onBeforeUnmount(() => {
 .dsf-form-with-content__form-frontend :deep(input[type="radio"]) {
   position: static;
   display: inline-block;
-  width: auto;
-  height: auto;
-  margin: 0 0.5rem 0 0;
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0.25em 0 0 !important;
   opacity: 1;
   appearance: auto;
   vertical-align: middle;
-  flex-shrink: 0;
+  flex: 0 0 16px !important;
 }
 
 /* Keep the checkbox/radio inline with its label inside Gravity Forms choices. */
 .dsf-form-with-content__form-frontend :deep(.gchoice) {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  display: grid !important;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 0.625rem;
 }
 
 .dsf-form-with-content__form-frontend :deep(.gchoice > label),
 .dsf-form-with-content__form-frontend :deep(.gchoice > input + label) {
   margin: 0 !important;
-  display: inline;
+  display: block;
+  grid-column: 2;
+  min-width: 0;
 }
 
 /* ── Responsive: stack below 680px ─────────────────── */
@@ -1251,6 +1356,12 @@ onBeforeUnmount(() => {
 
   .dsf-form-with-content__form-frontend :deep(.ginput_complex) {
     grid-template-columns: 1fr;
+  }
+
+  .dsf-form-with-content__form-frontend :deep(.ginput_complex > span),
+  .dsf-form-with-content__form-frontend :deep(.ginput_complex > div:not(.gf_clear)),
+  .dsf-form-with-content__form-frontend :deep(.ginput_complex .gform-grid-col) {
+    grid-column: 1 / -1 !important;
   }
 
   .dsf-form-with-content__form-frontend :deep(.gform_wrapper .gfield) {

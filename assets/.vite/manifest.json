@@ -1,6 +1,6 @@
 {
-  "_main-DunHkHA6.js": {
-    "file": "js/main-DunHkHA6.js",
+  "_main-CxhysyKd.js": {
+    "file": "js/main-CxhysyKd.js",
     "name": "main",
     "css": [
       "css/main.css"
@@ -16,7 +16,7 @@
     "src": "src/frontend/main.js",
     "isEntry": true,
     "imports": [
-      "_main-DunHkHA6.js"
+      "_main-CxhysyKd.js"
     ]
   },
   "src/main.js": {
@@ -25,7 +25,7 @@
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
-      "_main-DunHkHA6.js"
+      "_main-CxhysyKd.js"
     ],
     "css": [
       "css/editor.css"
