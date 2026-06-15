@@ -55,6 +55,19 @@ const bentoDefinition = {
   },
 }
 
+const simpleDefinition = {
+  id: 'features-grid',
+  name: 'Features Grid',
+  settings: {
+    bottomButtonText: { type: 'text', label: 'Bottom Button Text' },
+    bottomButtonAction: {
+      type: 'select',
+      label: 'Bottom Button Action',
+      showWhenNotEmpty: ['bottomButtonText'],
+    },
+  },
+}
+
 function mountSidePanel(blockSettings = {}) {
   return mount(SidePanel, {
     props: {
@@ -68,6 +81,23 @@ function mountSidePanel(blockSettings = {}) {
         },
       },
       blockDefinition: bentoDefinition,
+    },
+    global: {
+      stubs: {
+        SettingField: settingFieldStub,
+      },
+    },
+  })
+}
+
+function mountSimpleSidePanel(blockSettings = {}) {
+  return mount(SidePanel, {
+    props: {
+      block: {
+        type: 'features-grid',
+        settings: blockSettings,
+      },
+      blockDefinition: simpleDefinition,
     },
     global: {
       stubs: {
@@ -118,5 +148,19 @@ describe('SidePanel', () => {
     await wrapper.findAll('.dsf-segmented-btn').find((node) => node.text().includes('Style')).trigger('click')
 
     expect(wrapper.find('[data-style-section="lastTile"]').exists()).toBe(false)
+  })
+
+  it('supports showing fields only after a dependency has content', async () => {
+    const emptyWrapper = mountSimpleSidePanel({ bottomButtonText: '' })
+
+    await emptyWrapper.find('.dsf-settings-expander__trigger').trigger('click')
+
+    expect(emptyWrapper.findAll('.setting-stub').map((node) => node.text())).toEqual(['bottomButtonText'])
+
+    const filledWrapper = mountSimpleSidePanel({ bottomButtonText: 'Start Project' })
+
+    await filledWrapper.find('.dsf-settings-expander__trigger').trigger('click')
+
+    expect(filledWrapper.findAll('.setting-stub').map((node) => node.text())).toContain('bottomButtonAction')
   })
 })

@@ -102,6 +102,8 @@ class DSF_Ajax {
 		$html_snapshot = isset( $_POST['html_snapshot'] ) ? wp_unslash( $_POST['html_snapshot'] ) : '';
 		$status        = isset( $_POST['status'] ) ? sanitize_key( $_POST['status'] ) : '';
 		$title         = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+		$slug          = isset( $_POST['slug'] ) ? sanitize_title( wp_unslash( $_POST['slug'] ) ) : '';
+		$parent_id     = isset( $_POST['parent_id'] ) ? intval( $_POST['parent_id'] ) : 0;
 		$layout_type   = isset( $_POST['layout_type'] ) ? sanitize_key( wp_unslash( $_POST['layout_type'] ) ) : '';
 
 		if ( ! $post_id ) {
@@ -152,11 +154,13 @@ class DSF_Ajax {
 			$post_update['post_title'] = $title;
 		}
 
+		if ( 'page' === $post_type ) {
+			$post_update['post_name']   = '' !== $slug ? $slug : sanitize_title( $title );
+			$post_update['post_parent'] = $this->get_valid_page_parent_id( $parent_id, $post_id );
+		}
+
 		if ( 'draft' === $status ) {
-			$current_status = get_post_status( $post_id );
-			if ( $current_status && 'publish' !== $current_status ) {
-				$post_update['post_status'] = 'draft';
-			}
+			$post_update['post_status'] = 'draft';
 		} elseif ( 'publish' === $status ) {
 			$post_update['post_status'] = 'publish';
 		}
@@ -164,8 +168,9 @@ class DSF_Ajax {
 		wp_update_post( $post_update );
 
 		$post_status = get_post_status( $post_id );
+		$post        = get_post( $post_id );
 		$post_title  = get_the_title( $post_id );
-		$post_type   = get_post_type( $post_id );
+		$post_type   = $post ? $post->post_type : get_post_type( $post_id );
 		$permalink   = 'dsf_layout' !== $post_type ? get_permalink( $post_id ) : '';
 		$preview_url = 'dsf_layout' !== $post_type ? get_preview_post_link( $post_id ) : '';
 
@@ -175,10 +180,32 @@ class DSF_Ajax {
 				'post_id'     => $post_id,
 				'post_status' => $post_status,
 				'post_title'  => $post_title,
+				'post_name'   => $post ? $post->post_name : '',
+				'post_parent' => $post ? (int) $post->post_parent : 0,
 				'permalink'   => $permalink,
 				'preview_url' => $preview_url,
 			)
 		);
+	}
+
+	private function get_valid_page_parent_id( $parent_id, $post_id ) {
+		$parent_id = (int) $parent_id;
+		$post_id   = (int) $post_id;
+
+		if ( $parent_id <= 0 || $parent_id === $post_id ) {
+			return 0;
+		}
+
+		if ( 'page' !== get_post_type( $parent_id ) ) {
+			return 0;
+		}
+
+		$ancestor_ids = get_post_ancestors( $parent_id );
+		if ( in_array( $post_id, array_map( 'intval', $ancestor_ids ), true ) ) {
+			return 0;
+		}
+
+		return $parent_id;
 	}
 
 	private function sanitize_snapshot_html( $html ) {
@@ -431,9 +458,10 @@ class DSF_Ajax {
 			if ( 'manual' !== $source && ! empty( $category_ids ) ) {
 				$pinned_args['tax_query'] = array(
 					array(
-						'taxonomy' => 'product_cat',
-						'field'    => 'term_id',
-						'terms'    => $category_ids,
+						'taxonomy'         => 'product_cat',
+						'field'            => 'term_id',
+						'terms'            => $category_ids,
+						'include_children' => true,
 					),
 				);
 			}
@@ -474,9 +502,10 @@ class DSF_Ajax {
 							'post__not_in'   => array_values( array_unique( array_merge( $product_ids, $seen_product_ids ) ) ),
 							'tax_query'      => array(
 								array(
-									'taxonomy' => 'product_cat',
-									'field'    => 'term_id',
-									'terms'    => $category_id,
+									'taxonomy'         => 'product_cat',
+									'field'            => 'term_id',
+									'terms'            => $category_id,
+									'include_children' => true,
 								),
 							),
 						)
@@ -618,9 +647,10 @@ class DSF_Ajax {
 		if ( ! empty( $category_ids ) ) {
 			$args['tax_query'] = array(
 				array(
-					'taxonomy' => 'product_cat',
-					'field'    => 'term_id',
-					'terms'    => $category_ids,
+					'taxonomy'         => 'product_cat',
+					'field'            => 'term_id',
+					'terms'            => $category_ids,
+					'include_children' => true,
 				),
 			);
 		}

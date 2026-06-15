@@ -38,6 +38,34 @@ class DSF_Frontend {
 		add_filter( 'script_loader_tag', array( $this, 'add_module_type_to_scripts' ), 10, 3 );
 		add_filter( 'dsf_flow_show_header', array( $this, 'filter_show_header' ), 10, 2 );
 		add_filter( 'dsf_flow_show_footer', array( $this, 'filter_show_footer' ), 10, 2 );
+		add_action( 'admin_bar_menu', array( $this, 'add_admin_bar_edit_link' ), 80 );
+	}
+
+	/**
+	 * Add a frontend admin bar shortcut into the DS Flow editor.
+	 *
+	 * @param WP_Admin_Bar $wp_admin_bar WordPress admin bar instance.
+	 */
+	public function add_admin_bar_edit_link( $wp_admin_bar ) {
+		if ( is_admin() || ! is_admin_bar_showing() || ! is_singular( 'page' ) ) {
+			return;
+		}
+
+		$post_id = get_queried_object_id();
+		if ( ! $post_id || ! current_user_can( 'edit_pages' ) || ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+
+		$wp_admin_bar->add_node(
+			array(
+				'id'    => 'dsf-edit-with-flow',
+				'title' => __( 'DS Flow', 'designstudio-flow' ),
+				'href'  => admin_url( 'admin.php?page=dsf-editor&post_id=' . intval( $post_id ) ),
+				'meta'  => array(
+					'title' => __( 'Edit with DesignStudio Flow', 'designstudio-flow' ),
+				),
+			)
+		);
 	}
 
 	/**
@@ -143,6 +171,7 @@ class DSF_Frontend {
 				'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
 				'nonce'           => wp_create_nonce( 'dsf_frontend_nonce' ),
 				'categories'      => $this->get_wc_categories(),
+				'productTags'     => $this->get_wc_product_tags(),
 				'isWooActive'     => class_exists( 'WooCommerce' ),
 				'wcAjaxUrl'       => class_exists( 'WooCommerce' ) ? \WC_AJAX::get_endpoint( 'add_to_cart' ) : '',
 				'wcCartNonce'     => class_exists( 'WooCommerce' ) ? wp_create_nonce( 'woocommerce-process_checkout' ) : '',
@@ -1169,5 +1198,36 @@ class DSF_Frontend {
 		}
 
 		return $result;
+	}
+
+	private function get_wc_product_tags() {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return array();
+		}
+
+		$tags = get_terms(
+			array(
+				'taxonomy'   => 'product_tag',
+				'hide_empty' => false,
+				'orderby'    => 'name',
+				'order'      => 'ASC',
+			)
+		);
+
+		if ( is_wp_error( $tags ) ) {
+			return array();
+		}
+
+		return array_map(
+			function ( $tag ) {
+				return array(
+					'id'    => $tag->term_id,
+					'name'  => $tag->name,
+					'slug'  => $tag->slug,
+					'count' => (int) $tag->count,
+				);
+			},
+			$tags
+		);
 	}
 }

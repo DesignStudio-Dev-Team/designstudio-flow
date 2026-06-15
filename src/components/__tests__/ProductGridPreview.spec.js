@@ -59,6 +59,26 @@ describe('ProductGridPreview', () => {
     expect(wrapper.find('.dsf-product-grid-preview__no-results').text()).toContain('current filters')
   })
 
+  it('limits tag filter options to the configured product tags', async () => {
+    const wrapper = mountGrid({
+      filterShowTags: true,
+      filterTags: ['sale'],
+    })
+
+    await nextTick()
+    await wrapper.findAll('.dsf-filter-group__header').find((button) => button.text().includes('Tags')).trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('input[type="checkbox"][value="sale"]').exists()).toBe(true)
+    expect(wrapper.find('input[type="checkbox"][value="bestseller"]').exists()).toBe(false)
+    expect(wrapper.find('input[type="checkbox"][value="new"]').exists()).toBe(false)
+
+    await wrapper.get('input[type="checkbox"][value="sale"]').setValue(true)
+    await nextTick()
+
+    expect(wrapper.findAll('.dsf-product-card-preview')).toHaveLength(3)
+  })
+
   it('stores filters in the URL, restores them on remount, and keeps search terms out of the URL', async () => {
     const wrapper = mountGrid()
 
@@ -114,6 +134,18 @@ describe('ProductGridPreview', () => {
                 attributes: { brand: ['Other Brand'] },
               },
               {
+                id: 212,
+                name: 'Child Dining Chair',
+                price: '$160.00',
+                price_num: 160,
+                rating: 4.3,
+                image: '',
+                categories: ['Dining Chairs'],
+                category_ids: [23],
+                tags: [],
+                attributes: { brand: ['Other Brand'] },
+              },
+              {
                 id: 303,
                 name: 'Wrong Table',
                 price: '$180.00',
@@ -136,8 +168,9 @@ describe('ProductGridPreview', () => {
       nonce: 'nonce',
       isWooActive: true,
       categories: [
-        { id: 10, name: 'Sofas' },
-        { id: 22, name: 'Chairs' },
+        { id: 10, name: 'Sofas', parent: 0 },
+        { id: 22, name: 'Chairs', parent: 0 },
+        { id: 23, name: 'Dining Chairs', parent: 22 },
         { id: 35, name: 'Tables' },
       ],
     }
@@ -154,12 +187,14 @@ describe('ProductGridPreview', () => {
     expect(requestBody.get('category_ids')).toBe('[10,22]')
     expect(requestBody.get('category_id')).toBe('10')
 
-    expect(wrapper.findAll('.dsf-product-card-preview')).toHaveLength(2)
+    expect(wrapper.findAll('.dsf-product-card-preview')).toHaveLength(3)
     expect(wrapper.text()).toContain('Source Sofa')
     expect(wrapper.text()).toContain('Source Chair')
+    expect(wrapper.text()).toContain('Child Dining Chair')
     expect(wrapper.text()).not.toContain('Wrong Table')
     expect(wrapper.find('input[type="checkbox"][value="Sofas"]').exists()).toBe(true)
     expect(wrapper.find('input[type="checkbox"][value="Chairs"]').exists()).toBe(true)
+    expect(wrapper.find('input[type="checkbox"][value="Dining Chairs"]').exists()).toBe(true)
     expect(wrapper.find('input[type="checkbox"][value="Tables"]').exists()).toBe(false)
   })
 

@@ -189,9 +189,12 @@ class DSF_Editor {
 				'restNonce'        => wp_create_nonce( 'wp_rest' ),
 				'postId'           => $post_id,
 				'postTitle'        => $post ? $post->post_title : '',
+				'postSlug'         => $post ? $post->post_name : '',
+				'postParent'       => $post ? (int) $post->post_parent : 0,
 				'postType'         => $post_type,
 				'layoutType'       => $layout_type,
 				'pageData'         => $this->get_page_data( $post_id ),
+				'parentPages'      => 'page' === $post_type ? $this->get_parent_page_options( $post_id ) : array(),
 				'layoutTemplates'  => $this->get_layout_templates(),
 				'layoutCreateUrls' => array(
 					'header' => admin_url( 'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=header' ),
@@ -200,6 +203,7 @@ class DSF_Editor {
 				'blocks'           => DSF_Blocks::get_instance()->get_registered_blocks(),
 				'forms'            => $this->get_available_forms(),
 				'categories'       => $this->get_wc_categories(),
+				'productTags'      => $this->get_wc_product_tags(),
 				'themeFonts'       => $this->get_theme_fonts(),
 				'themeTypography'  => $this->get_theme_typography_payload(),
 				'pluginUrl'        => DSF_PLUGIN_URL,
@@ -545,6 +549,95 @@ class DSF_Editor {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Get page options for assigning a WordPress parent page.
+	 */
+	private function get_parent_page_options( $current_post_id ) {
+		$pages = get_pages(
+			array(
+				'post_type'   => 'page',
+				'post_status' => array( 'publish', 'draft', 'pending', 'private' ),
+				'exclude'     => array_filter( array( (int) $current_post_id ) ),
+				'sort_column' => 'menu_order,post_title',
+				'sort_order'  => 'ASC',
+			)
+		);
+
+		if ( empty( $pages ) ) {
+			return array();
+		}
+
+		$children = array();
+		foreach ( $pages as $page ) {
+			$parent_id = (int) $page->post_parent;
+			if ( (int) $current_post_id === $parent_id ) {
+				$parent_id = 0;
+			}
+			if ( ! isset( $children[ $parent_id ] ) ) {
+				$children[ $parent_id ] = array();
+			}
+			$children[ $parent_id ][] = $page;
+		}
+
+		$result = array();
+		$walk   = function ( $parent_id, $depth ) use ( &$walk, &$children, &$result ) {
+			if ( empty( $children[ $parent_id ] ) ) {
+				return;
+			}
+
+			foreach ( $children[ $parent_id ] as $page ) {
+				$result[] = array(
+					'id'         => (int) $page->ID,
+					'title'      => html_entity_decode( get_the_title( $page ), ENT_QUOTES, get_bloginfo( 'charset' ) ),
+					'slug'       => $page->post_name,
+					'status'     => $page->post_status,
+					'parent'     => (int) $page->post_parent,
+					'depth'      => $depth,
+					'depthLabel' => str_repeat( '— ', $depth ),
+				);
+				$walk( (int) $page->ID, $depth + 1 );
+			}
+		};
+
+		$walk( 0, 0 );
+
+		return $result;
+	}
+
+	/**
+	 * Get WooCommerce product tags for tag filter configuration.
+	 */
+	private function get_wc_product_tags() {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return array();
+		}
+
+		$tags = get_terms(
+			array(
+				'taxonomy'   => 'product_tag',
+				'hide_empty' => false,
+				'orderby'    => 'name',
+				'order'      => 'ASC',
+			)
+		);
+
+		if ( is_wp_error( $tags ) ) {
+			return array();
+		}
+
+		return array_map(
+			function ( $tag ) {
+				return array(
+					'id'    => $tag->term_id,
+					'name'  => $tag->name,
+					'slug'  => $tag->slug,
+					'count' => (int) $tag->count,
+				);
+			},
+			$tags
+		);
 	}
 
 	/**

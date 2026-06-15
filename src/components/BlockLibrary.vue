@@ -178,6 +178,7 @@ function toggleCategory(key) {
 
 function getCategoryIcon(key) {
   const categoryIcons = {
+    heroes: Layout,
     content: FileText,
     ecommerce: ShoppingCart,
     marketing: Target,

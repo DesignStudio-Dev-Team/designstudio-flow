@@ -1,27 +1,36 @@
 <template>
   <div 
     class="dsf-block-preview dsf-hero-centered-preview"
+    :class="{ 'dsf-hero-centered-preview--bottom-split': isBottomSplit }"
     :style="previewStyle"
   >
+    <div
+      v-if="showBottomGradient"
+      class="dsf-hero-centered-preview__gradient"
+      :style="gradientStyle"
+    ></div>
+
     <div 
       class="dsf-hero-centered-preview__content"
       :style="contentStyle"
     >
-      <InlineText 
-        tagName="h2" 
-        class="dsf-hero-centered-preview__title"
-        v-model="settings.title"
-        :is-editor="isEditor"
-        placeholder="Enter Hero Title"
-      />
-      <InlineText 
-        tagName="p" 
-        class="dsf-hero-centered-preview__subtitle"
-        v-model="settings.subtitle"
-        :is-editor="isEditor"
-        placeholder="Enter subtitle description..."
-        :multiline="true"
-      />
+      <div class="dsf-hero-centered-preview__text" :style="textStyle">
+        <InlineText
+          tagName="h1"
+          class="dsf-hero-centered-preview__title"
+          v-model="settings.title"
+          :is-editor="isEditor"
+          placeholder="Enter Hero Title"
+        />
+        <InlineText
+          tagName="p"
+          class="dsf-hero-centered-preview__subtitle"
+          v-model="settings.subtitle"
+          :is-editor="isEditor"
+          placeholder="Enter subtitle description..."
+          :multiline="true"
+        />
+      </div>
       <a
         v-if="settings.showButton !== false"
         class="dsf-hero-centered-preview__btn"
@@ -57,9 +66,21 @@ const props = defineProps({
 const { openModal } = useFlowModal()
 
 const buttonAction = computed(() => props.settings?.buttonAction || 'link')
+const layoutStyle = computed(() => props.settings?.layoutStyle || 'centered')
+const isBottomSplit = computed(() => layoutStyle.value === 'bottom-split')
+const bottomSplitAlign = computed(() => {
+  const align = props.settings?.bottomSplitAlign
+  return ['left', 'center', 'right'].includes(align) ? align : 'left'
+})
+const showBottomGradient = computed(() => props.settings?.gradientType === 'bottom-dark')
 const buttonHref = computed(() =>
   buttonAction.value === 'link' ? (props.settings?.buttonUrl || '#') : '#'
 )
+
+function getNumberSetting(key, fallback) {
+  const value = Number.parseFloat(props.settings?.[key])
+  return Number.isFinite(value) ? value : fallback
+}
 
 function getModalContent() {
   const type = props.settings?.buttonModalContentType || 'wysiwyg'
@@ -101,9 +122,17 @@ const previewStyle = computed(() => {
 
   const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 80
   const paddingX = getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 24
+  const bottomOffset = getNumberSetting('bottomOffset', 15)
+
+  // When the bottom-split content is pushed to the left or right edge, keep at
+  // least 15px of breathing room so it never touches the edge.
+  const edgeAligned = isBottomSplit.value && bottomSplitAlign.value !== 'center'
+  const horizontalPad = edgeAligned ? Math.max(paddingX, 15) : paddingX
 
   return {
-    padding: `${paddingY}px ${paddingX}px`,
+    padding: isBottomSplit.value
+      ? `${paddingY}px ${horizontalPad}px ${bottomOffset}px`
+      : `${paddingY}px ${paddingX}px`,
     backgroundColor: props.settings?.backgroundColor || '#3B82F6',
     color: props.settings?.textColor || '#FFFFFF',
     backgroundImage: props.settings?.backgroundImage 
@@ -114,8 +143,8 @@ const previewStyle = computed(() => {
     display: 'flex',
     flexDirection: 'column',
     minHeight: '500px',
-    alignItems: alignItemsMap[horizontal] || 'center',
-    justifyContent: justifyContentMap[vertical] || 'center',
+    alignItems: isBottomSplit.value ? 'stretch' : (alignItemsMap[horizontal] || 'center'),
+    justifyContent: isBottomSplit.value ? 'flex-end' : (justifyContentMap[vertical] || 'center'),
   }
 })
 
@@ -131,6 +160,35 @@ const contentStyle = computed(() => {
 
   const hasBg = props.settings?.contentBackgroundColor && props.settings.contentBackgroundColor !== 'rgba(0,0,0,0)' && props.settings.contentBackgroundColor !== 'transparent'
 
+  if (isBottomSplit.value) {
+    const align = bottomSplitAlign.value
+    const justifyMap = {
+      left: 'flex-start',
+      center: 'center',
+      right: 'flex-end',
+    }
+    const showBtn = props.settings?.showButton !== false
+
+    return {
+      textAlign: align,
+      backgroundColor: props.settings?.contentBackgroundColor || 'transparent',
+      padding: hasBg ? '1.5rem' : '0',
+      borderRadius: hasBg ? 'var(--dsf-radius-lg)' : '0',
+      maxWidth: '100%',
+      width: '100%',
+      display: 'grid',
+      // Columns sized to their content so the button hugs the text instead of
+      // being pushed away by a fixed-width text column; the text width is
+      // capped via textStyle (max-width).
+      gridTemplateColumns: showBtn ? 'auto auto' : 'auto',
+      justifyContent: justifyMap[align] || 'flex-start',
+      justifyItems: justifyMap[align] || 'flex-start',
+      gap: `${getNumberSetting('textButtonGap', 15)}px`,
+      alignItems: 'center',
+      '--hero-title-subtitle-gap': `${getNumberSetting('titleSubtitleGap', 12)}px`,
+    }
+  }
+
   return {
     textAlign: textAlignMap[horizontal] || 'center',
     backgroundColor: props.settings?.contentBackgroundColor || 'transparent',
@@ -138,7 +196,19 @@ const contentStyle = computed(() => {
     borderRadius: hasBg ? 'var(--dsf-radius-lg)' : '0',
     maxWidth: '800px',
     width: '100%',
+    '--hero-title-subtitle-gap': `${getNumberSetting('titleSubtitleGap', 16)}px`,
   }
+})
+
+const gradientStyle = computed(() => ({
+  height: `${getNumberSetting('gradientHeight', 75)}%`,
+}))
+
+// In bottom-split mode, cap the text block width so a long subtitle wraps
+// rather than stretching the whole row and pushing the button off-screen.
+const textStyle = computed(() => {
+  if (!isBottomSplit.value) return {}
+  return { maxWidth: `${getNumberSetting('textColumnWidth', 720)}px` }
 })
 </script>
 
@@ -147,6 +217,15 @@ const contentStyle = computed(() => {
   position: relative;
   /* alignment handled by inline styles now */
   container-type: inline-size;
+  overflow: hidden;
+}
+
+.dsf-hero-centered-preview__gradient {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.86) 0%, rgba(0, 0, 0, 0.62) 38%, rgba(0, 0, 0, 0) 100%);
 }
 
 .dsf-hero-centered-preview__content {
@@ -154,11 +233,16 @@ const contentStyle = computed(() => {
   z-index: 1;
 }
 
+.dsf-hero-centered-preview__text {
+  min-width: 0;
+}
+
 .dsf-hero-centered-preview__title {
   font-family: var(--dsf-theme-heading-font, inherit);
   font-size: var(--dsf-theme-h1, 2.5rem);
   font-weight: 700;
-  margin-bottom: 1rem;
+  margin-top: 0;
+  margin-bottom: var(--hero-title-subtitle-gap, 1rem);
   color: inherit;
   line-height: 1.15;
   word-wrap: break-word;
@@ -170,12 +254,17 @@ const contentStyle = computed(() => {
   font-family: var(--dsf-theme-body-font, inherit);
   font-size: var(--dsf-theme-text-lg, 1.125rem);
   opacity: 0.9;
+  margin-top: 0;
   margin-bottom: 2rem;
   color: inherit;
   line-height: 1.5;
   word-wrap: break-word;
   overflow-wrap: break-word;
   max-width: 100%;
+}
+
+.dsf-hero-centered-preview--bottom-split .dsf-hero-centered-preview__subtitle {
+  margin-bottom: 0;
 }
 
 .dsf-hero-centered-preview__btn {
@@ -192,6 +281,11 @@ const contentStyle = computed(() => {
   text-decoration: none;
   line-height: 1.25;
   white-space: nowrap;
+  align-self: center;
+}
+
+.dsf-hero-centered-preview--bottom-split .dsf-hero-centered-preview__btn {
+  align-self: center;
 }
 
 @container (max-width: 1024px) {
@@ -200,12 +294,21 @@ const contentStyle = computed(() => {
 }
 
 @container (max-width: 768px) {
-  .dsf-hero-centered-preview {
+  .dsf-hero-centered-preview:not(.dsf-hero-centered-preview--bottom-split) {
     padding: 64px 20px !important;
     min-height: 360px !important;
   }
 
   .dsf-hero-centered-preview__title { font-size: var(--dsf-theme-h3, 1.75rem); }
   .dsf-hero-centered-preview__subtitle { font-size: var(--dsf-theme-text-sm, 0.95rem); }
+
+  .dsf-hero-centered-preview--bottom-split .dsf-hero-centered-preview__content {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dsf-hero-centered-preview--bottom-split .dsf-hero-centered-preview__btn {
+    /* Follow the content alignment (justify-items) instead of forcing left. */
+    justify-self: inherit;
+  }
 }
 </style>

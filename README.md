@@ -392,3 +392,46 @@ GPL v2 or later — https://www.gnu.org/licenses/gpl-2.0.html
 ## 🙌 Credits
 
 Built with care by **DesignStudio Network, Inc.**
+
+---
+
+## Next Update Improvements
+
+### Product Grid
+- Added product search support that works together with enabled filters.
+- Product filters now stay scoped to the selected product source, including selected categories or manually selected products.
+- Filter selections can be reflected in the URL so refreshed pages keep category/filter state without forcing search terms into the URL.
+- Product Grid category source now supports multiple selected categories.
+- Selected categories can be reordered, matching the manual product sorting experience.
+- Category-based product counts now include products from child categories.
+- Category selection UI is now a searchable dropdown with selected category chips and remove controls.
+- Tag filters now support choosing which product tags are available, with removable/re-addable tag chips.
+
+### Forms
+- Hidden Akismet fields are now properly tucked away.
+- Required field helper text has been reduced and aligned more cleanly with multi-step form labels.
+- Gravity Forms typography now better matches the site paragraph and label styling.
+- Gravity Forms name, address, and checkbox layouts have been cleaned up for better alignment and readability.
+
+### Block Library & Editor
+- Added a new Heroes block group at the top of the block picker.
+- Moved Hero, Bento Hero, Duo Hero, and Featured Promo Banner into the Heroes group.
+- Added consistent dropdown controls across block customization panels where supported.
+- Replaced the Preview header action with a Settings gear.
+- Added a page settings modal for editing page title, slug, status, and parent page from inside Flow.
+- Flow Pages custom post type support was removed in favor of standard WordPress pages.
+
+### Hero Block
+- Added a Bottom Split hero layout with a bottom dark-to-transparent gradient.
+- Added controls for gradient height, bottom spacing, text/button gap, title/subtitle gap, and text column width.
+- Improved zero-gap behavior so title and subtitle spacing can fully collapse when set to `0px`.
+- Split layout CTA buttons now align vertically centered with the text column.
+
+### Featured Promo Banner
+- Added toggle controls for showing or hiding the badge.
+- Added toggle controls for showing or hiding the button.
+- Badge and button remain enabled by default for existing layouts.
+
+### WooCommerce
+- Fixed add-to-cart AJAX handling for `?wc-ajax=add_to_cart`.
+- Improved add-to-cart button behavior in product-related blocks.

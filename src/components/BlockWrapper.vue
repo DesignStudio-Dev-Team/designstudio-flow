@@ -47,6 +47,7 @@ import ProductGridPreview from './blocks/ProductGridPreview.vue'
 import EcommerceShowcasePreview from './blocks/EcommerceShowcasePreview.vue'
 import FeaturesGridPreview from './blocks/FeaturesGridPreview.vue'
 import BentoHeroPreview from './blocks/BentoHeroPreview.vue'
+import SpotlightHeroPreview from './blocks/SpotlightHeroPreview.vue'
 import TextImagePreview from './blocks/TextImagePreview.vue'
 import TestimonialsPreview from './blocks/TestimonialsPreview.vue'
 import CtaBannerPreview from './blocks/CtaBannerPreview.vue'
@@ -81,6 +82,7 @@ const previewComponents = {
   'ecommerce-showcase': EcommerceShowcasePreview,
   'features-grid': FeaturesGridPreview,
   'bento-hero': BentoHeroPreview,
+  'spotlight-hero': SpotlightHeroPreview,
   'text-image': TextImagePreview,
   'testimonials': TestimonialsPreview,
   'cta-banner': CtaBannerPreview,

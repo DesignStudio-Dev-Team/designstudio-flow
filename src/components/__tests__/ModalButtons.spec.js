@@ -207,6 +207,23 @@ describe('Modal CTA Buttons', () => {
     })
   })
 
+  it('hides Featured Promo Banner button and badge when toggled off', () => {
+    const wrapper = mount(FeaturedPromoBannerPreview, {
+      props: {
+        settings: {
+          showButton: false,
+          showBadge: false,
+          badgeType: 'new',
+        },
+        isEditor: false,
+      },
+    })
+
+    expect(wrapper.find('.dsf-featured-promo__arrow-btn').exists()).toBe(false)
+    expect(wrapper.find('.dsf-featured-promo__badge-guide').exists()).toBe(false)
+    expect(wrapper.find('.dsf-featured-promo__badge').exists()).toBe(false)
+  })
+
   it('opens modal from CTA Banner button', async () => {
     const settings = {
       buttonText: 'CTA',

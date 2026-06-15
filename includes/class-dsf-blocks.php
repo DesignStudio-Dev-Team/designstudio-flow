@@ -46,15 +46,36 @@ class DSF_Blocks {
 						'label'   => 'Subtitle',
 						'default' => 'Discover amazing products',
 					),
+					'layoutStyle'            => array(
+						'type'    => 'select',
+						'label'   => 'Layout Style',
+						'default' => 'centered',
+						'options' => array(
+							'Classic Positioned' => 'centered',
+							'Bottom Split'       => 'bottom-split',
+						),
+					),
+					'bottomSplitAlign'       => array(
+						'type'     => 'select',
+						'label'    => 'Content Alignment',
+						'default'  => 'left',
+						'options'  => array(
+							'Left'   => 'left',
+							'Center' => 'center',
+							'Right'  => 'right',
+						),
+						'showWhen' => array( 'layoutStyle' => 'bottom-split' ),
+					),
 					'showButton'             => array(
 						'type'    => 'toggle',
 						'label'   => 'Show Button',
 						'default' => true,
 					),
 					'buttonText'             => array(
-						'type'    => 'text',
-						'label'   => 'Button Text',
-						'default' => 'Shop Now',
+						'type'     => 'text',
+						'label'    => 'Button Text',
+						'default'  => 'Shop Now',
+						'showWhen' => array( 'showButton' => true ),
 					),
 					'buttonUrl'              => array(
 						'type'     => 'text',
@@ -153,10 +174,10 @@ class DSF_Blocks {
 						'default' => 'rgba(0,0,0,0)',
 					),
 					'contentPosition'        => array(
-						'type'    => 'select',
-						'label'   => 'Content Position',
-						'default' => 'center-center',
-						'options' => array(
+						'type'     => 'select',
+						'label'    => 'Content Position',
+						'default'  => 'center-center',
+						'options'  => array(
 							'Top Left'      => 'top-left',
 							'Top Center'    => 'top-center',
 							'Top Right'     => 'top-right',
@@ -167,6 +188,56 @@ class DSF_Blocks {
 							'Bottom Center' => 'bottom-center',
 							'Bottom Right'  => 'bottom-right',
 						),
+						'showWhen' => array( 'layoutStyle' => 'centered' ),
+					),
+					'gradientType'           => array(
+						'type'    => 'select',
+						'label'   => 'Gradient Type',
+						'default' => 'none',
+						'options' => array(
+							'None'             => 'none',
+							'Bottom Dark Fade' => 'bottom-dark',
+						),
+					),
+					'gradientHeight'         => array(
+						'type'     => 'slider',
+						'label'    => 'Gradient Height',
+						'default'  => 75,
+						'min'      => 25,
+						'max'      => 100,
+						'unit'     => '%',
+						'showWhen' => array( 'gradientType' => 'bottom-dark' ),
+					),
+					'bottomOffset'           => array(
+						'type'     => 'slider',
+						'label'    => 'Bottom Offset',
+						'default'  => 15,
+						'min'      => 0,
+						'max'      => 120,
+						'showWhen' => array( 'layoutStyle' => 'bottom-split' ),
+					),
+					'titleSubtitleGap'       => array(
+						'type'    => 'slider',
+						'label'   => 'Title / Subtitle Gap',
+						'default' => 12,
+						'min'     => 0,
+						'max'     => 80,
+					),
+					'textButtonGap'          => array(
+						'type'     => 'slider',
+						'label'    => 'Text / Button Gap',
+						'default'  => 15,
+						'min'      => 0,
+						'max'      => 140,
+						'showWhen' => array( 'layoutStyle' => 'bottom-split' ),
+					),
+					'textColumnWidth'        => array(
+						'type'     => 'slider',
+						'label'    => 'Text Column Width',
+						'default'  => 720,
+						'min'      => 220,
+						'max'      => 1200,
+						'showWhen' => array( 'layoutStyle' => 'bottom-split' ),
 					),
 					'padding'                => array(
 						'type'    => 'slider',
@@ -210,6 +281,12 @@ class DSF_Blocks {
 						'type'    => 'text',
 						'label'   => 'Section Subtitle',
 						'default' => 'Everything you need',
+					),
+					'columns'              => array(
+						'type'    => 'select',
+						'label'   => 'Columns',
+						'default' => '3',
+						'options' => array( '2', '3', '4' ),
 					),
 					'features'             => array(
 						'type'    => 'repeater',
@@ -259,11 +336,87 @@ class DSF_Blocks {
 							),
 						),
 					),
-					'columns'              => array(
-						'type'    => 'select',
-						'label'   => 'Columns',
-						'default' => '3',
-						'options' => array( '2', '3', '4' ),
+					'bottomContent'        => array(
+						'type'         => 'wysiwyg',
+						'label'        => 'Bottom Content',
+						'default'      => '',
+						'allowRawHtml' => true,
+					),
+					'bottomButtonText'     => array(
+						'type'    => 'text',
+						'label'   => 'Bottom Button Text',
+						'default' => '',
+					),
+					'bottomButtonUrl'      => array(
+						'type'             => 'text',
+						'label'            => 'Bottom Button URL',
+						'default'          => '#',
+						'showWhen'         => array( 'bottomButtonAction' => 'link' ),
+						'showWhenNotEmpty' => array( 'bottomButtonText' ),
+					),
+					'bottomButtonAction'   => array(
+						'type'             => 'select',
+						'label'            => 'Bottom Button Action',
+						'default'          => 'link',
+						'options'          => array(
+							'Link'       => 'link',
+							'Open Modal' => 'modal',
+						),
+						'showWhenNotEmpty' => array( 'bottomButtonText' ),
+					),
+					'bottomButtonModalLayout' => array(
+						'type'             => 'select',
+						'label'            => 'Bottom Modal Layout',
+						'default'          => 'center',
+						'options'          => array(
+							'Center Popup'  => 'center',
+							'Right Drawer'  => 'drawer-right',
+						),
+						'showWhen'         => array( 'bottomButtonAction' => 'modal' ),
+						'showWhenNotEmpty' => array( 'bottomButtonText' ),
+					),
+					'bottomButtonModalContentType' => array(
+						'type'             => 'select',
+						'label'            => 'Bottom Modal Content Type',
+						'default'          => 'wysiwyg',
+						'options'          => array(
+							'Visual Editor' => 'wysiwyg',
+							'Raw HTML'      => 'html',
+							'Shortcode'     => 'shortcode',
+						),
+						'showWhen'         => array( 'bottomButtonAction' => 'modal' ),
+						'showWhenNotEmpty' => array( 'bottomButtonText' ),
+					),
+					'bottomButtonModalContent' => array(
+						'type'             => 'wysiwyg',
+						'label'            => 'Bottom Modal Content',
+						'default'          => '',
+						'allowRawHtml'     => true,
+						'showWhen'         => array(
+							'bottomButtonAction'           => 'modal',
+							'bottomButtonModalContentType' => 'wysiwyg',
+						),
+						'showWhenNotEmpty' => array( 'bottomButtonText' ),
+					),
+					'bottomButtonModalHtml' => array(
+						'type'             => 'textarea',
+						'label'            => 'Bottom Modal HTML',
+						'default'          => '',
+						'showWhen'         => array(
+							'bottomButtonAction'           => 'modal',
+							'bottomButtonModalContentType' => 'html',
+						),
+						'showWhenNotEmpty' => array( 'bottomButtonText' ),
+					),
+					'bottomButtonModalShortcode' => array(
+						'type'             => 'text',
+						'label'            => 'Bottom Modal Shortcode',
+						'default'          => '',
+						'showWhen'         => array(
+							'bottomButtonAction'           => 'modal',
+							'bottomButtonModalContentType' => 'shortcode',
+						),
+						'showWhenNotEmpty' => array( 'bottomButtonText' ),
 					),
 					'backgroundColor'      => array(
 						'type'    => 'color',
@@ -298,12 +451,12 @@ class DSF_Blocks {
 					'buttonColor'          => array(
 						'type'    => 'color',
 						'label'   => 'Button Color',
-						'default' => '',
+						'default' => '#000000',
 					),
 					'buttonTextColor'      => array(
 						'type'    => 'color',
 						'label'   => 'Button Text Color',
-						'default' => '',
+						'default' => '#FFFFFF',
 					),
 					'padding'              => array(
 						'type'    => 'slider',
@@ -875,6 +1028,237 @@ class DSF_Blocks {
 
 		$this->register_block(
 			array(
+				'id'          => 'spotlight-hero',
+				'name'        => 'Spotlight Hero',
+				'category'    => 'content',
+				'icon'        => 'layout',
+				'description' => 'Large media spotlight with a promo tile and three buttons',
+				'settings'    => array(
+					// Main Media
+					'mediaType'      => array(
+						'type'        => 'select',
+						'label'       => 'Main Media Type',
+						'default'     => 'image',
+						'options'     => array(
+							'Image' => 'image',
+							'Video' => 'video',
+						),
+						'section'     => 'main',
+						'sectionTitle' => 'Main Media',
+					),
+					'mainImage'      => array(
+						'type'         => 'image',
+						'label'        => 'Main Image',
+						'default'      => '',
+						'section'      => 'main',
+						'sectionTitle' => 'Main Media',
+					),
+					'mainVideo'      => array(
+						'type'         => 'text',
+						'label'        => 'Main Video URL (MP4/WebM or YouTube/Vimeo)',
+						'default'      => '',
+						'showWhen'     => array( 'mediaType' => 'video' ),
+						'section'      => 'main',
+						'sectionTitle' => 'Main Media',
+					),
+					'mainTitle'      => array(
+						'type'         => 'text',
+						'label'        => 'Main Headline',
+						'default'      => 'Your headline goes here.',
+						'section'      => 'main',
+						'sectionTitle' => 'Main Media',
+					),
+					'mainContentAlign' => array(
+						'type'         => 'select',
+						'label'        => 'Content Alignment',
+						'default'      => 'left',
+						'options'      => array(
+							'Left'   => 'left',
+							'Center' => 'center',
+							'Right'  => 'right',
+						),
+						'section'      => 'main',
+						'sectionTitle' => 'Main Media',
+					),
+					'showMainButton' => array(
+						'type'         => 'toggle',
+						'label'        => 'Show Button',
+						'default'      => true,
+						'section'      => 'main',
+						'sectionTitle' => 'Main Media',
+					),
+					'mainButtonText' => array(
+						'type'         => 'text',
+						'label'        => 'Button Text',
+						'default'      => 'Start Here',
+						'showWhen'     => array( 'showMainButton' => true ),
+						'section'      => 'main',
+						'sectionTitle' => 'Main Media',
+					),
+					'mainButtonUrl'  => array(
+						'type'         => 'text',
+						'label'        => 'Button URL',
+						'default'      => '#',
+						'showWhen'     => array( 'showMainButton' => true ),
+						'section'      => 'main',
+						'sectionTitle' => 'Main Media',
+					),
+
+					// Promo Tile
+					'promoImage'     => array(
+						'type'         => 'image',
+						'label'        => 'Promo Image',
+						'default'      => '',
+						'section'      => 'promo',
+						'sectionTitle' => 'Promo Tile',
+					),
+					'showPromoCaption' => array(
+						'type'         => 'toggle',
+						'label'        => 'Show Caption & Gradient',
+						'default'      => true,
+						'section'      => 'promo',
+						'sectionTitle' => 'Promo Tile',
+					),
+					'promoTitle'     => array(
+						'type'         => 'text',
+						'label'        => 'Promo Caption',
+						'default'      => '',
+						'showWhen'     => array( 'showPromoCaption' => true ),
+						'section'      => 'promo',
+						'sectionTitle' => 'Promo Tile',
+					),
+					'promoUrl'       => array(
+						'type'         => 'text',
+						'label'        => 'Promo URL',
+						'default'      => '#',
+						'section'      => 'promo',
+						'sectionTitle' => 'Promo Tile',
+					),
+
+					// Buttons
+					'showButtons'    => array(
+						'type'         => 'toggle',
+						'label'        => 'Show Buttons',
+						'default'      => true,
+						'section'      => 'buttons',
+						'sectionTitle' => 'Buttons',
+					),
+					'sideButtons'    => array(
+						'type'         => 'repeater',
+						'label'        => 'Buttons',
+						'showWhen'     => array( 'showButtons' => true ),
+						'section'      => 'buttons',
+						'sectionTitle' => 'Buttons',
+						'fields'       => array(
+							'text'    => array(
+								'type'    => 'text',
+								'label'   => 'Button Text',
+								'default' => 'Button',
+							),
+							'url'     => array(
+								'type'    => 'text',
+								'label'   => 'Button URL',
+								'default' => '#',
+							),
+							'enabled' => array(
+								'type'    => 'toggle',
+								'label'   => 'Visible',
+								'default' => true,
+							),
+						),
+						'default'      => array(
+							array(
+								'text'    => 'Button One',
+								'url'     => '#',
+								'enabled' => true,
+							),
+							array(
+								'text'    => 'Button Two',
+								'url'     => '#',
+								'enabled' => true,
+							),
+							array(
+								'text'    => 'Button Three',
+								'url'     => '#',
+								'enabled' => true,
+							),
+						),
+					),
+
+					// Style
+					'splitRatio'     => array(
+						'type'         => 'slider',
+						'label'        => 'Main Width',
+						'default'      => 58,
+						'min'          => 40,
+						'max'          => 70,
+						'unit'         => '%',
+						'section'      => 'layout',
+						'sectionTitle' => 'Layout',
+					),
+					'titleColor'     => array(
+						'type'         => 'color',
+						'label'        => 'Headline Color',
+						'default'      => '#FFFFFF',
+						'section'      => 'colors',
+						'sectionTitle' => 'Colors',
+					),
+					'promoTextColor' => array(
+						'type'         => 'color',
+						'label'        => 'Promo Caption Color',
+						'default'      => '#FFFFFF',
+						'showWhen'     => array( 'showPromoCaption' => true ),
+						'section'      => 'colors',
+						'sectionTitle' => 'Colors',
+					),
+					'buttonColor'    => array(
+						'type'         => 'color',
+						'label'        => 'Button Color',
+						'default'      => '#1CA0DC',
+						'section'      => 'colors',
+						'sectionTitle' => 'Colors',
+					),
+					'buttonTextColor' => array(
+						'type'         => 'color',
+						'label'        => 'Button Text Color',
+						'default'      => '#FFFFFF',
+						'section'      => 'colors',
+						'sectionTitle' => 'Colors',
+					),
+					'height'         => array(
+						'type'    => 'slider',
+						'label'   => 'Height',
+						'default' => 460,
+						'min'     => 300,
+						'max'     => 800,
+					),
+					'gap'            => array(
+						'type'    => 'slider',
+						'label'   => 'Gap',
+						'default' => 16,
+						'min'     => 0,
+						'max'     => 48,
+					),
+					'paddingX'       => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 100,
+					),
+					'marginY'        => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
 				'id'          => 'duo-hero',
 				'name'        => 'Duo Hero',
 				'category'    => 'content',
@@ -1204,25 +1588,35 @@ class DSF_Blocks {
 							'Image Left'  => 'left',
 						),
 					),
+					'showButton'             => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Button',
+						'default' => true,
+					),
 					'buttonText'             => array(
-						'type'    => 'text',
-						'label'   => 'Button Text',
-						'default' => 'Get Started',
+						'type'     => 'text',
+						'label'    => 'Button Text',
+						'default'  => 'Get Started',
+						'showWhen' => array( 'showButton' => true ),
 					),
 					'buttonUrl'              => array(
 						'type'     => 'text',
 						'label'    => 'Link URL',
 						'default'  => '#',
-						'showWhen' => array( 'buttonAction' => 'link' ),
+						'showWhen' => array(
+							'showButton'   => true,
+							'buttonAction' => 'link',
+						),
 					),
 					'buttonAction'           => array(
-						'type'    => 'select',
-						'label'   => 'Button Action',
-						'default' => 'link',
-						'options' => array(
+						'type'     => 'select',
+						'label'    => 'Button Action',
+						'default'  => 'link',
+						'options'  => array(
 							'Link'       => 'link',
 							'Open Modal' => 'modal',
 						),
+						'showWhen' => array( 'showButton' => true ),
 					),
 					'buttonModalLayout'      => array(
 						'type'     => 'select',
@@ -1232,7 +1626,10 @@ class DSF_Blocks {
 							'Center'       => 'center',
 							'Right Drawer' => 'drawer',
 						),
-						'showWhen' => array( 'buttonAction' => 'modal' ),
+						'showWhen' => array(
+							'showButton'   => true,
+							'buttonAction' => 'modal',
+						),
 					),
 					'buttonModalContentType' => array(
 						'type'     => 'select',
@@ -1243,13 +1640,17 @@ class DSF_Blocks {
 							'HTML'      => 'html',
 							'Shortcode' => 'shortcode',
 						),
-						'showWhen' => array( 'buttonAction' => 'modal' ),
+						'showWhen' => array(
+							'showButton'   => true,
+							'buttonAction' => 'modal',
+						),
 					),
 					'buttonModalContent'     => array(
 						'type'     => 'wysiwyg',
 						'label'    => 'Modal Content',
 						'default'  => '',
 						'showWhen' => array(
+							'showButton'             => true,
 							'buttonAction'           => 'modal',
 							'buttonModalContentType' => 'wysiwyg',
 						),
@@ -1259,6 +1660,7 @@ class DSF_Blocks {
 						'label'    => 'Modal HTML',
 						'default'  => '',
 						'showWhen' => array(
+							'showButton'             => true,
 							'buttonAction'           => 'modal',
 							'buttonModalContentType' => 'html',
 						),
@@ -1268,43 +1670,57 @@ class DSF_Blocks {
 						'label'    => 'Modal Shortcode',
 						'default'  => '',
 						'showWhen' => array(
+							'showButton'             => true,
 							'buttonAction'           => 'modal',
 							'buttonModalContentType' => 'shortcode',
 						),
 					),
 
 					// Badge Settings
+					'showBadge'              => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Badge',
+						'default' => true,
+					),
 					'badgeType'              => array(
-						'type'    => 'select',
-						'label'   => 'Badge Type',
-						'default' => 'new',
-						'options' => array(
+						'type'     => 'select',
+						'label'    => 'Badge Type',
+						'default'  => 'new',
+						'options'  => array(
 							'New / In Stock' => 'new',
 							'Low / Stock'    => 'low',
 							'Custom Text'    => 'custom',
 						),
+						'showWhen' => array( 'showBadge' => true ),
 					),
 					'badgePosition'          => array(
-						'type'    => 'select',
-						'label'   => 'Badge Position',
-						'default' => 'bottom-right',
-						'options' => array(
+						'type'     => 'select',
+						'label'    => 'Badge Position',
+						'default'  => 'bottom-right',
+						'options'  => array(
 							'Bottom Right'      => 'bottom-right',
 							'Bottom Left'       => 'bottom-left',
 							'Overlapping Curve' => 'overlapping',
 						),
+						'showWhen' => array( 'showBadge' => true ),
 					),
 					'badgeCustomLine1'       => array(
 						'type'     => 'text',
 						'label'    => 'Custom Line 1',
 						'default'  => 'Special',
-						'showWhen' => array( 'badgeType' => 'custom' ),
+						'showWhen' => array(
+							'showBadge' => true,
+							'badgeType' => 'custom',
+						),
 					),
 					'badgeCustomLine2'       => array(
 						'type'     => 'text',
 						'label'    => 'Custom Line 2',
 						'default'  => 'Offer',
-						'showWhen' => array( 'badgeType' => 'custom' ),
+						'showWhen' => array(
+							'showBadge' => true,
+							'badgeType' => 'custom',
+						),
 					),
 
 					// Style
@@ -1993,6 +2409,18 @@ class DSF_Blocks {
 						'label'        => 'Tags Filter',
 						'default'      => false,
 						'showWhen'     => array( 'enableFilters' => true ),
+						'section'      => 'filters',
+						'sectionTitle' => 'Filters',
+					),
+					'filterTags'         => array(
+						'type'         => 'product_tags',
+						'label'        => 'Filter Tags',
+						'default'      => null,
+						'helper'       => 'All product tags are included by default. Remove chips to hide specific tags from the frontend filter, or type to add them back.',
+						'showWhen'     => array(
+							'enableFilters'  => true,
+							'filterShowTags' => true,
+						),
 						'section'      => 'filters',
 						'sectionTitle' => 'Filters',
 					),
@@ -3773,6 +4201,11 @@ class DSF_Blocks {
 	 */
 	public function get_blocks_by_category() {
 		$categories = array(
+			'heroes'    => array(
+				'label'  => 'Heroes',
+				'icon'   => 'layout',
+				'blocks' => array(),
+			),
 			'content'   => array(
 				'label'  => 'Content',
 				'icon'   => 'file-text',
@@ -3789,10 +4222,13 @@ class DSF_Blocks {
 				'blocks' => array(),
 			),
 		);
+		$hero_block_ids = array( 'hero', 'bento-hero', 'spotlight-hero', 'duo-hero', 'featured-promo-banner' );
 
 		foreach ( $this->blocks as $block ) {
 			$cat = $block['category'];
-			if ( isset( $categories[ $cat ] ) ) {
+			if ( in_array( $block['id'], $hero_block_ids, true ) ) {
+				$categories['heroes']['blocks'][] = $block;
+			} elseif ( isset( $categories[ $cat ] ) ) {
 				$categories[ $cat ]['blocks'][] = $block;
 			}
 		}
