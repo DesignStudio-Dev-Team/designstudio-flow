@@ -67,7 +67,8 @@
           :multiline="true"
         />
         
-        <a 
+        <a
+          v-if="showButton"
           :href="buttonHref"
           class="dsf-featured-promo__arrow-btn"
           :style="{ backgroundColor: settings.badgeColor || '#3D736A' }"
@@ -86,7 +87,7 @@
       </div>
 
       <!-- Badge Guide (Matches SVG dimensions for positioning) -->
-      <div class="dsf-featured-promo__badge-guide">
+      <div v-if="showBadge" class="dsf-featured-promo__badge-guide">
         <div 
           v-if="settings.badgeType"
           class="dsf-featured-promo__badge"
@@ -145,6 +146,8 @@ const props = defineProps({
 const { openModal } = useFlowModal()
 
 const imagePosition = computed(() => props.settings?.imagePosition || 'right')
+const showButton = computed(() => props.settings?.showButton !== false)
+const showBadge = computed(() => props.settings?.showBadge !== false)
 
 const previewStyle = computed(() => {
   const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 0

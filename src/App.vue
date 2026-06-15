@@ -8,11 +8,11 @@
       :post-type="postType"
       :layout-type="layoutType"
       @update:title="updateTitle"
-      @preview="openPreview"
       @view="openView"
       @save="savePage"
       @set-preview-mode="setPreviewMode"
       @open-theme="showThemePanel = true"
+      @open-settings="showPageSettings = true"
     />
     
     <!-- Main Content -->
@@ -83,6 +83,17 @@
         @close="showThemePanel = false"
         @update:settings="updatePageSettings"
       />
+
+      <PageSettingsModal
+        :visible="showPageSettings"
+        :title="pageTitle"
+        :slug="pageSlug"
+        :status="currentPostStatus"
+        :parent-id="pageParentId"
+        :parent-pages="parentPages"
+        @close="showPageSettings = false"
+        @save="updatePageDetails"
+      />
     </div>
     
     <!-- Add Block Button -->
@@ -127,6 +138,7 @@ import BlockWrapper from './components/BlockWrapper.vue'
 import SidePanel from './components/SidePanel.vue'
 import ThemePanel from './components/ThemePanel.vue'
 import BlockLibrary from './components/BlockLibrary.vue'
+import PageSettingsModal from './components/PageSettingsModal.vue'
 import ConfirmDialog from './components/common/ConfirmDialog.vue'
 import FrontendApp from './frontend/FrontendApp.vue'
 import { applyThemeToBlocks, resolveThemeKey } from './utils/themeSync'
@@ -244,12 +256,16 @@ const pageTitle = ref(wpData.postTitle || 'Untitled Page')
 const currentPostStatus = ref(wpData.postStatus || 'draft')
 const currentViewUrl = ref(wpData.viewUrl || '')
 const currentPreviewUrl = ref(wpData.previewUrl || '')
+const pageSlug = ref(wpData.postSlug || '')
+const pageParentId = ref(Number.parseInt(wpData.postParent, 10) || 0)
+const parentPages = computed(() => Array.isArray(wpData.parentPages) ? wpData.parentPages : [])
 const isSaving = ref(false)
 const previewMode = ref('desktop')
 const selectedBlock = ref(null)
 const selectedBlockId = ref(null)
 const showBlockLibrary = ref(false)
 const showThemePanel = ref(false)
+const showPageSettings = ref(false)
 const deleteConfirmVisible = ref(false)
 const pendingDeleteIndex = ref(null)
 
@@ -257,6 +273,7 @@ const pendingDeleteIndex = ref(null)
 const blockCategories = computed(() => {
   const registeredBlocks = wpData.blocks || {}
   const categories = {
+    heroes: { label: 'Heroes', icon: 'layout', blocks: [] },
     content: { label: 'Content', icon: 'file-text', blocks: [] },
     marketing: { label: 'Marketing', icon: 'target', blocks: [] },
     ecommerce: { label: 'Ecommerce', icon: 'shopping-cart', blocks: [] },
@@ -274,17 +291,22 @@ const blockCategories = computed(() => {
   }
 
   // Define exact order for each category
-  const contentOrder = ['hero', 'bento-hero', 'duo-hero', 'text-image', 'features-grid', 'testimonials', 'form-embed', 'form-with-content']
-  const marketingOrder = ['featured-promo-banner', 'promo-banner', 'cta-banner', 'brand-carousel']
+  const heroOrder = ['hero', 'bento-hero', 'spotlight-hero', 'duo-hero', 'featured-promo-banner']
+  const contentOrder = ['text-image', 'features-grid', 'testimonials', 'form-embed', 'form-with-content']
+  const marketingOrder = ['promo-banner', 'cta-banner', 'brand-carousel']
   const ecommerceOrder = ['ecommerce-showcase', 'featured-product-banner', 'product-grid']
+  const heroBlockIds = new Set(heroOrder)
 
   allowedBlocks.forEach(block => {
-    if (categories[block.category]) {
+    if (heroBlockIds.has(block.id)) {
+      categories.heroes.blocks.push(block)
+    } else if (categories[block.category]) {
       categories[block.category].blocks.push(block)
     }
   })
 
   // Sort blocks within categories
+  categories.heroes.blocks.sort((a, b) => heroOrder.indexOf(a.id) - heroOrder.indexOf(b.id))
   categories.content.blocks.sort((a, b) => contentOrder.indexOf(a.id) - contentOrder.indexOf(b.id))
   categories.marketing.blocks.sort((a, b) => marketingOrder.indexOf(a.id) - marketingOrder.indexOf(b.id))
   categories.ecommerce.blocks.sort((a, b) => ecommerceOrder.indexOf(a.id) - ecommerceOrder.indexOf(b.id))
@@ -475,6 +497,14 @@ function updateTitle(newTitle) {
   pageTitle.value = newTitle
 }
 
+function updatePageDetails(details) {
+  pageTitle.value = details.title || pageTitle.value
+  pageSlug.value = details.slug || ''
+  currentPostStatus.value = details.status === 'publish' ? 'publish' : 'draft'
+  pageParentId.value = Number.parseInt(details.parentId, 10) || 0
+  showPageSettings.value = false
+}
+
 function updatePageSettings(newSettings) {
   const oldTheme = { ...(pageSettings.value?.theme || DEFAULT_THEME) }
   const nextSettings = { ...pageSettings.value, ...newSettings }
@@ -539,10 +569,7 @@ async function savePage(options = {}) {
     pageTitle.value = enteredTitle
   }
 
-  let statusToSave = status
-  if (!statusToSave && currentPostStatus.value === 'draft' && hasMeaningfulTitle(titleToSave)) {
-    statusToSave = 'publish'
-  }
+  const statusToSave = status || currentPostStatus.value || 'draft'
 
   let htmlSnapshot = ''
   if (!skipSnapshot) {
@@ -573,6 +600,8 @@ async function savePage(options = {}) {
   formData.append('blocks', JSON.stringify(blocks.value))
   formData.append('settings', JSON.stringify(pageSettings.value))
   formData.append('title', titleToSave)
+  formData.append('slug', pageSlug.value || '')
+  formData.append('parent_id', String(pageParentId.value || 0))
   if (postType === 'dsf_layout') {
     formData.append('layout_type', layoutType)
   }
@@ -613,6 +642,12 @@ async function savePage(options = {}) {
     if (saveResult?.post_title) {
       pageTitle.value = saveResult.post_title
     }
+    if (Object.prototype.hasOwnProperty.call(saveResult, 'post_name')) {
+      pageSlug.value = saveResult.post_name || ''
+    }
+    if (Object.prototype.hasOwnProperty.call(saveResult, 'post_parent')) {
+      pageParentId.value = Number.parseInt(saveResult.post_parent, 10) || 0
+    }
     if (saveResult?.permalink) {
       currentViewUrl.value = saveResult.permalink
     }
@@ -632,6 +667,8 @@ async function savePage(options = {}) {
         fallbackData.append('blocks', JSON.stringify(blocks.value))
         fallbackData.append('settings', JSON.stringify(pageSettings.value))
         fallbackData.append('title', titleToSave)
+        fallbackData.append('slug', pageSlug.value || '')
+        fallbackData.append('parent_id', String(pageParentId.value || 0))
         if (postType === 'dsf_layout') {
           fallbackData.append('layout_type', layoutType)
         }
@@ -644,6 +681,12 @@ async function savePage(options = {}) {
         }
         if (fallbackResult?.post_title) {
           pageTitle.value = fallbackResult.post_title
+        }
+        if (Object.prototype.hasOwnProperty.call(fallbackResult, 'post_name')) {
+          pageSlug.value = fallbackResult.post_name || ''
+        }
+        if (Object.prototype.hasOwnProperty.call(fallbackResult, 'post_parent')) {
+          pageParentId.value = Number.parseInt(fallbackResult.post_parent, 10) || 0
         }
         if (fallbackResult?.permalink) {
           currentViewUrl.value = fallbackResult.permalink
@@ -710,25 +753,6 @@ function stripHtmlComments(html) {
   return (html || '').replace(/<!--[\s\S]*?-->/g, '')
 }
 
-async function openPreview() {
-  if (postType === 'dsf_layout') {
-    alert('Header and footer templates do not have a direct preview URL yet.')
-    return
-  }
-
-  if (!currentPreviewUrl.value) {
-    alert('Preview link is unavailable for this page yet.')
-    return
-  }
-
-  const saved = await savePage({ status: 'draft', silent: false, requireNamePrompt: false })
-  if (saved) {
-    window.open(currentPreviewUrl.value, '_blank')
-  } else {
-    alert('Could not save the page for preview. Please try again.')
-  }
-}
-
 async function openView() {
   if (postType === 'dsf_layout') {
     alert('Header and footer templates do not have a direct view URL yet.')
@@ -741,12 +765,16 @@ async function openView() {
     return
   }
 
-  if (!currentViewUrl.value) {
+  const targetUrl = currentPostStatus.value === 'publish'
+    ? currentViewUrl.value
+    : (currentPreviewUrl.value || currentViewUrl.value)
+
+  if (!targetUrl) {
     alert('View link is unavailable for this page yet.')
     return
   }
 
-  window.open(currentViewUrl.value, '_blank')
+  window.open(targetUrl, '_blank')
 }
 
 // Watch for font changes and load them dynamically

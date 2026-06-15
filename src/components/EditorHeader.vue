@@ -45,19 +45,19 @@
     <div class="dsf-header__right">
       <button 
         class="dsf-btn dsf-btn--secondary dsf-header__btn"
+        :disabled="postType === 'dsf_layout'"
+        @click="$emit('open-settings')"
+      >
+        <Settings :size="16" />
+        {{ postType === 'dsf_layout' ? 'No Settings' : 'Settings' }}
+      </button>
+
+      <button
+        class="dsf-btn dsf-btn--secondary dsf-header__btn"
         @click="$emit('open-theme')"
       >
         <Palette :size="16" />
         Theme
-      </button>
-      
-      <button 
-        class="dsf-btn dsf-btn--secondary dsf-header__btn"
-        :disabled="postType === 'dsf_layout'"
-        @click="$emit('preview')"
-      >
-        <Eye :size="16" />
-        {{ postType === 'dsf_layout' ? 'No Preview' : 'Preview' }}
       </button>
 
       <button
@@ -83,7 +83,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Monitor, Tablet, Smartphone, Palette, Eye, ExternalLink, Save } from 'lucide-vue-next'
+import { Monitor, Tablet, Smartphone, Palette, Settings, ExternalLink, Save } from 'lucide-vue-next'
 
 const props = defineProps({
   title: String,
@@ -99,7 +99,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['update:title', 'preview', 'view', 'save', 'set-preview-mode', 'open-theme'])
+defineEmits(['update:title', 'view', 'save', 'set-preview-mode', 'open-theme', 'open-settings'])
 
 const logoUrl = computed(() => {
   const baseUrl = window.dsfEditorData?.pluginUrl || ''

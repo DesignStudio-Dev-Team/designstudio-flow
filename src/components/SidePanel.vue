@@ -293,13 +293,14 @@ const responsiveFieldDefaults = {
 
 const blockId = computed(() => props.blockDefinition?.id || props.block?.type || '')
 const responsiveFieldVisibility = {
-  gap: new Set(['bento-hero']),
+  gap: new Set(['bento-hero', 'spotlight-hero']),
 }
 
 const hasMobileTab = computed(() => blockId.value === 'header-mega-menu')
 
 const heightDefaultsByBlock = {
   'bento-hero': 400,
+  'spotlight-hero': 460,
   'duo-hero': 500,
   'promo-banner': 280,
   'featured-promo-banner': 450,
@@ -491,7 +492,7 @@ function getSettingValue(key) {
     return normalizeIdList(settings.categoryId)
   }
 
-  return settings[key]
+  return getSettingValueWithDefault(key, settings)
 }
 
 function updateSetting(key, value) {
@@ -570,7 +571,16 @@ function shouldShowField(key, settings) {
   // Check showWhen condition if present
   if (config?.showWhen) {
     for (const [dependKey, dependValue] of Object.entries(config.showWhen)) {
-      if (settings[dependKey] !== dependValue) {
+      if (getSettingValueWithDefault(dependKey, settings) !== dependValue) {
+        return false
+      }
+    }
+  }
+
+  if (config?.showWhenNotEmpty) {
+    for (const dependKey of config.showWhenNotEmpty) {
+      const dependValue = getSettingValueWithDefault(dependKey, settings)
+      if (dependValue === undefined || dependValue === null || String(dependValue).trim() === '') {
         return false
       }
     }
@@ -589,6 +599,15 @@ function shouldShowField(key, settings) {
   }
   
   return true
+}
+
+function getSettingValueWithDefault(key, settings = {}) {
+  if (Object.prototype.hasOwnProperty.call(settings, key)) {
+    return settings[key]
+  }
+
+  const config = props.blockDefinition?.settings?.[key]
+  return config?.default
 }
 </script>
 

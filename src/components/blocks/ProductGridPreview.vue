@@ -536,14 +536,44 @@ const selectedSourceCategoryIds = computed(() => {
   const legacyValue = Number.parseInt(props.settings?.categoryId, 10)
   return Number.isFinite(legacyValue) && legacyValue > 0 ? [legacyValue] : []
 })
-const selectedSourceCategoryNames = computed(() => {
+const selectedSourceCategoryTreeIds = computed(() => {
   if (selectedSourceCategoryIds.value.length === 0) return []
+
+  const selectedIds = new Set(selectedSourceCategoryIds.value)
+  const childrenByParent = new Map()
+
+  availableCategories.value.forEach((category) => {
+    const parentId = Number.parseInt(category?.parent, 10) || 0
+    const categoryId = Number.parseInt(category?.id, 10)
+    if (!Number.isFinite(categoryId) || categoryId <= 0) return
+
+    if (!childrenByParent.has(parentId)) {
+      childrenByParent.set(parentId, [])
+    }
+    childrenByParent.get(parentId).push(categoryId)
+  })
+
+  const collectDescendants = (categoryId) => {
+    const children = childrenByParent.get(categoryId) || []
+    children.forEach((childId) => {
+      if (selectedIds.has(childId)) return
+      selectedIds.add(childId)
+      collectDescendants(childId)
+    })
+  }
+
+  selectedSourceCategoryIds.value.forEach(collectDescendants)
+
+  return Array.from(selectedIds)
+})
+const selectedSourceCategoryNames = computed(() => {
+  if (selectedSourceCategoryTreeIds.value.length === 0) return []
 
   const namesById = new Map(
     availableCategories.value.map((category) => [Number(category?.id), category?.name]).filter(([, name]) => typeof name === 'string' && name)
   )
 
-  return selectedSourceCategoryIds.value
+  return selectedSourceCategoryTreeIds.value
     .map((categoryId) => namesById.get(categoryId))
     .filter(Boolean)
 })
@@ -616,7 +646,7 @@ const sourceProducts = computed(() => {
 
   return items.filter((product) => {
     if (Array.isArray(product.category_ids) && product.category_ids.length > 0) {
-      return product.category_ids.some((categoryId) => selectedSourceCategoryIds.value.includes(Number(categoryId)))
+      return product.category_ids.some((categoryId) => selectedSourceCategoryTreeIds.value.includes(Number(categoryId)))
     }
 
     if (selectedSourceCategoryNames.value.length > 0) {
@@ -653,6 +683,22 @@ function buildDistinctValues(items, accessor) {
     })
   })
   return Array.from(values.values())
+}
+
+function filterValuesByAllowed(values, allowedValues) {
+  if (!Array.isArray(allowedValues)) return values
+
+  const allowedLookup = new Map()
+  allowedValues.forEach((value) => {
+    const token = normalizeFilterToken(value)
+    if (token && !allowedLookup.has(token)) {
+      allowedLookup.set(token, true)
+    }
+  })
+
+  if (allowedLookup.size === 0) return []
+
+  return values.filter((value) => allowedLookup.has(normalizeFilterToken(value)))
 }
 
 function normalizeFilterToken(value) {
@@ -775,10 +821,23 @@ function productMatchesSearch(product, term) {
 }
 
 const allCategoryValues = computed(() => buildDistinctValues(sourceProducts.value, (product) => product.categories || []))
-const allTagValues = computed(() => buildDistinctValues(sourceProducts.value, (product) => product.tags || []))
+const allSourceTagValues = computed(() => buildDistinctValues(sourceProducts.value, (product) => product.tags || []))
+const configuredFilterTags = computed(() => {
+  if (!filterVisibility.value.tags) return []
+
+  if (Array.isArray(props.settings?.filterTags)) {
+    return props.settings.filterTags.filter((tag) => typeof tag === 'string' && tag.trim())
+  }
+
+  return allSourceTagValues.value
+})
+const allTagValues = computed(() => filterValuesByAllowed(allSourceTagValues.value, configuredFilterTags.value))
 
 const allCategories = computed(() => buildOptions(filterExcluding('category'), (product) => product.categories || []))
-const allTags = computed(() => buildOptions(filterExcluding('tags'), (product) => product.tags || []))
+const allTags = computed(() => buildOptions(
+  filterExcluding('tags'),
+  (product) => filterValuesByAllowed(product.tags || [], configuredFilterTags.value)
+))
 
 function getAttributeOptions(attrKey) {
   return buildOptions(filterExcluding(`attr:${attrKey}`), (product) => product.attributes?.[attrKey] || [])
@@ -912,6 +971,14 @@ watch(
   },
   { deep: true }
 )
+
+watch(allTagValues, (values) => {
+  const allowed = new Set(values)
+  const nextTags = activeTags.value.filter((tag) => allowed.has(tag))
+  if (nextTags.length !== activeTags.value.length) {
+    activeTags.value = nextTags
+  }
+})
 
 watch(searchQuery, () => {
   currentPage.value = 1

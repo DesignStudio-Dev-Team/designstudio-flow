@@ -201,6 +201,22 @@
       </div>
     </template>
 
+    <!-- Spotlight Hero -->
+    <template v-else-if="type === 'spotlight-hero'">
+      <div class="dsf-schematic__spotlight-hero">
+        <div class="dsf-schematic__spotlight-main">
+          <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+          <div class="dsf-schematic__btn dsf-schematic__btn--xs"></div>
+        </div>
+        <div class="dsf-schematic__spotlight-side">
+          <div class="dsf-schematic__spotlight-promo"></div>
+          <div class="dsf-schematic__spotlight-btn"></div>
+          <div class="dsf-schematic__spotlight-btn"></div>
+          <div class="dsf-schematic__spotlight-btn"></div>
+        </div>
+      </div>
+    </template>
+
     <!-- Duo Hero -->
     <template v-else-if="type === 'duo-hero'">
       <div class="dsf-schematic__duo-hero">
@@ -868,6 +884,52 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
 .dsf-schematic__bento-cta {
   background: linear-gradient(135deg, #2C5F5D 0%, #1e4847 100%);
   border-radius: 3px;
+}
+
+/* Spotlight Hero */
+.dsf-schematic__spotlight-hero {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 3px;
+}
+
+.dsf-schematic__spotlight-main {
+  flex: 1.4;
+  background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 6px;
+  gap: 3px;
+}
+
+.dsf-schematic__spotlight-main .dsf-schematic__line {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.dsf-schematic__spotlight-main .dsf-schematic__btn {
+  background: #1CA0DC;
+}
+
+.dsf-schematic__spotlight-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dsf-schematic__spotlight-promo {
+  flex: 1.2;
+  background: linear-gradient(145deg, #f5f5f4 0%, #e7e5e4 100%);
+  border-radius: 3px;
+}
+
+.dsf-schematic__spotlight-btn {
+  height: 8px;
+  background: #1CA0DC;
+  border-radius: 2px;
 }
 
 /* Duo Hero */

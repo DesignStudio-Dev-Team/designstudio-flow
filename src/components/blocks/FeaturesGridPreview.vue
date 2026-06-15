@@ -68,6 +68,27 @@
         </a>
       </div>
     </div>
+
+    <div
+      v-if="hasBottomContent"
+      class="dsf-features-grid-preview__bottom"
+    >
+      <div
+        v-if="settings.bottomContent"
+        class="dsf-features-grid-preview__bottom-content"
+        :style="{ color: settings.subtitleColor || '#6B7280' }"
+        v-html="settings.bottomContent"
+      />
+      <a
+        v-if="settings.bottomButtonText"
+        :href="bottomButtonHref"
+        class="dsf-features-grid-preview__bottom-btn"
+        :style="buttonStyle"
+        @click="handleBottomButtonClick"
+      >
+        {{ settings.bottomButtonText }}
+      </a>
+    </div>
   </div>
 </template>
 
@@ -118,6 +139,41 @@ function handleFeatureClick(event, feature) {
   }
 }
 
+const bottomButtonAction = computed(() => props.settings?.bottomButtonAction || 'link')
+
+const bottomButtonHref = computed(() =>
+  bottomButtonAction.value === 'link'
+    ? (props.settings?.bottomButtonUrl || '#')
+    : '#'
+)
+
+const bottomModalContent = computed(() => {
+  const type = props.settings?.bottomButtonModalContentType || 'wysiwyg'
+  if (type === 'html') return props.settings?.bottomButtonModalHtml || ''
+  if (type === 'shortcode') return props.settings?.bottomButtonModalShortcode || ''
+  return props.settings?.bottomButtonModalContent || ''
+})
+
+const hasBottomContent = computed(() =>
+  Boolean(props.settings?.bottomContent || props.settings?.bottomButtonText)
+)
+
+function handleBottomButtonClick(event) {
+  if (props.isEditor) {
+    event.preventDefault()
+    return
+  }
+
+  if (bottomButtonAction.value === 'modal') {
+    event.preventDefault()
+    openModal({
+      layout: props.settings?.bottomButtonModalLayout || 'center',
+      contentType: props.settings?.bottomButtonModalContentType || 'wysiwyg',
+      content: bottomModalContent.value,
+    })
+  }
+}
+
 const previewStyle = computed(() => {
   const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 60
   const paddingX = getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 24
@@ -133,8 +189,8 @@ const cardStyle = computed(() => ({
 
 const buttonStyle = computed(() => {
   const style = {}
-  const bg = props.settings?.buttonColor
-  const text = props.settings?.buttonTextColor
+  const bg = props.settings?.buttonColor || '#000000'
+  const text = props.settings?.buttonTextColor || '#FFFFFF'
   if (bg) { style.backgroundColor = bg; style.borderColor = bg }
   if (text) { style.color = text }
   return style
@@ -280,6 +336,51 @@ const displayFeatures = computed(() => {
 
 .dsf-feature-card-preview__btn:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+
+.dsf-features-grid-preview__bottom {
+  max-width: 760px;
+  margin: 2.5rem auto 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dsf-features-grid-preview__bottom-content {
+  font-family: var(--dsf-theme-body-font, inherit);
+  font-size: var(--dsf-theme-text-base, 1rem);
+  line-height: 1.6;
+}
+
+.dsf-features-grid-preview__bottom-content :deep(p) {
+  margin: 0 0 0.85rem;
+}
+
+.dsf-features-grid-preview__bottom-content :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.dsf-features-grid-preview__bottom-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.25rem;
+  border: 1px solid #000000;
+  border-radius: var(--dsf-radius-md);
+  background: #000000;
+  color: #ffffff;
+  font-family: var(--dsf-theme-body-font, inherit);
+  font-size: var(--dsf-theme-text-sm, 0.875rem);
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.dsf-features-grid-preview__bottom-btn:hover {
+  opacity: 0.85;
 }
 
 @container (max-width: 1024px) {

@@ -179,6 +179,13 @@
       :config="config"
       @update="$emit('update', $event)"
     />
+
+    <ProductTagsFilterField
+      v-else-if="config.type === 'product_tags'"
+      :value="value"
+      :config="config"
+      @update="$emit('update', $event)"
+    />
     
     <!-- Source Selector (Dynamic options) -->
     <div v-else-if="config.type === 'source'" class="dsf-select-cards">
@@ -208,8 +215,13 @@
       :modelValue="value"
       @update:modelValue="$emit('update', $event)"
     />
-    <TestimonialsRepeaterField 
+    <TestimonialsRepeaterField
       v-else-if="config.type === 'repeater' && fieldKey === 'testimonials'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+    <SpotlightButtonsField
+      v-else-if="config.type === 'repeater' && fieldKey === 'sideButtons'"
       :modelValue="value"
       @update:modelValue="$emit('update', $event)"
     />
@@ -259,10 +271,12 @@ import CategorySelector from './selectors/CategorySelector.vue'
 import CategoriesSelector from './selectors/CategoriesSelector.vue'
 import ProductsSelector from './selectors/ProductsSelector.vue'
 import ProductAttributeFiltersField from './common/ProductAttributeFiltersField.vue'
+import ProductTagsFilterField from './common/ProductTagsFilterField.vue'
 import ColorPicker from './common/ColorPicker.vue'
 import RepeaterField from './common/RepeaterField.vue'
 import BrandRepeaterField from './common/BrandRepeaterField.vue'
 import TestimonialsRepeaterField from './common/TestimonialsRepeaterField.vue'
+import SpotlightButtonsField from './common/SpotlightButtonsField.vue'
 import WysiwygField from './common/WysiwygField.vue'
 import SimpleLinksField from './common/SimpleLinksField.vue'
 import MegaMenuField from './common/MegaMenuField.vue'
