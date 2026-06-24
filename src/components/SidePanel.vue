@@ -296,7 +296,7 @@ const responsiveFieldVisibility = {
   gap: new Set(['bento-hero', 'spotlight-hero']),
 }
 
-const hasMobileTab = computed(() => blockId.value === 'header-mega-menu')
+const hasMobileTab = computed(() => ['header-mega-menu', 'header-showcase-mega'].includes(blockId.value))
 
 const heightDefaultsByBlock = {
   'bento-hero': 400,

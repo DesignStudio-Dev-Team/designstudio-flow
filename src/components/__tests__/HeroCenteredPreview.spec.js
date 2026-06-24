@@ -82,6 +82,7 @@ describe('HeroCenteredPreview', () => {
           showButton: true,
           buttonText: 'Shop',
           layoutStyle: 'bottom-split',
+          contentPosition: 'bottom-left',
           gradientType: 'bottom-dark',
           gradientHeight: 75,
           bottomOffset: 15,
@@ -108,7 +109,7 @@ describe('HeroCenteredPreview', () => {
     expect(gradientStyle).toContain('height: 75%;')
   })
 
-  it('defaults bottom-split to left alignment and keeps content off the edge', () => {
+  it('defaults two-column content to center and keeps content off the edge', () => {
     const wrapper = mount(HeroCenteredPreview, {
       props: {
         settings: { layoutStyle: 'bottom-split', paddingX: 0 },
@@ -119,29 +120,38 @@ describe('HeroCenteredPreview', () => {
     const rootStyle = wrapper.attributes('style')
     const contentStyle = wrapper.get('.dsf-hero-centered-preview__content').attributes('style')
 
-    expect(contentStyle).toContain('justify-content: flex-start;')
-    expect(contentStyle).toContain('text-align: left;')
+    expect(contentStyle).toContain('justify-content: center;')
+    expect(contentStyle).toContain('text-align: center;')
     // paddingX of 0 is bumped to a 15px minimum at the edge.
     expect(rootStyle).toContain('padding: 80px 15px 15px;')
   })
 
-  it('right-aligns bottom-split content when configured', () => {
+  it('positions two-column content from the content position setting', () => {
     const wrapper = mount(HeroCenteredPreview, {
       props: {
-        settings: { layoutStyle: 'bottom-split', bottomSplitAlign: 'right' },
+        settings: { layoutStyle: 'bottom-split', contentPosition: 'bottom-right' },
         isEditor: false,
       },
     })
 
+    const rootStyle = wrapper.attributes('style')
     const contentStyle = wrapper.get('.dsf-hero-centered-preview__content').attributes('style')
+
+    expect(rootStyle).toContain('justify-content: flex-end;')
     expect(contentStyle).toContain('justify-content: flex-end;')
     expect(contentStyle).toContain('text-align: right;')
   })
 
-  it('does not force a 15px minimum when bottom-split is centered', () => {
+  it('uses the configured edge padding as the minimum safe padding', () => {
     const wrapper = mount(HeroCenteredPreview, {
       props: {
-        settings: { layoutStyle: 'bottom-split', bottomSplitAlign: 'center', paddingX: 0 },
+        settings: {
+          layoutStyle: 'bottom-split',
+          contentPosition: 'center-center',
+          paddingX: 0,
+          bottomOffset: 0,
+          contentEdgePadding: 32,
+        },
         isEditor: false,
       },
     })
@@ -150,6 +160,6 @@ describe('HeroCenteredPreview', () => {
     const contentStyle = wrapper.get('.dsf-hero-centered-preview__content').attributes('style')
 
     expect(contentStyle).toContain('justify-content: center;')
-    expect(rootStyle).toContain('padding: 80px 0px 15px;')
+    expect(rootStyle).toContain('padding: 80px 32px 32px;')
   })
 })

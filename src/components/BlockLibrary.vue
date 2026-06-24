@@ -1,6 +1,6 @@
 <template>
   <div class="dsf-library-overlay" @click.self="$emit('close')">
-    <div class="dsf-library-panel dsf-animate-slide-in">
+    <div class="dsf-library-panel">
       <!-- Header -->
       <div class="dsf-library-header">
         <div class="dsf-library-header__title">
@@ -109,7 +109,9 @@ import {
   Megaphone,
   Mail,
   Image,
-  ListChecks
+  ListChecks,
+  Clock,
+  BadgeDollarSign
 } from 'lucide-vue-next'
 import BlockSchematic from './common/BlockSchematic.vue'
 
@@ -138,6 +140,8 @@ const icons = {
   'mail': Mail,
   'image': Image,
   'list-checks': ListChecks,
+  'clock': Clock,
+  'badge-dollar-sign': BadgeDollarSign,
   'layout-columns': Columns,
 }
 
@@ -182,6 +186,7 @@ function getCategoryIcon(key) {
     content: FileText,
     ecommerce: ShoppingCart,
     marketing: Target,
+    footers: LayoutTemplate,
   }
   return categoryIcons[key] || LayoutTemplate
 }

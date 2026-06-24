@@ -1,0 +1,124 @@
+.dsf-notification-bar {
+  position: relative;
+  z-index: 9998;
+  width: 100%;
+  background: var(--dsf-notification-bg, #2c5f5d);
+  color: var(--dsf-notification-text, #fff);
+  font-family: var(--dsf-theme-body-font, inherit);
+  font-size: var(--dsf-theme-p-size, 16px);
+  line-height: 1.45;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.dsf-notification-bar--sticky {
+  position: sticky;
+  top: 0;
+}
+
+.admin-bar .dsf-notification-bar--sticky {
+  top: 32px;
+}
+
+.dsf-notification-bar__inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  width: min(100% - 40px, 1440px);
+  min-height: 46px;
+  margin: 0 auto;
+  padding: 8px 42px;
+  box-sizing: border-box;
+}
+
+.dsf-notification-bar--left .dsf-notification-bar__inner {
+  justify-content: flex-start;
+}
+
+.dsf-notification-bar__message,
+.dsf-notification-bar__message p {
+  margin: 0;
+  color: inherit;
+  font: inherit;
+}
+
+.dsf-notification-bar__message a,
+.dsf-notification-bar__link {
+  color: var(--dsf-notification-link, #fff);
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+.dsf-notification-bar__link {
+  flex: 0 0 auto;
+}
+
+.dsf-notification-bar__close {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dsf-notification-bar__close:hover {
+  background: rgb(255 255 255 / 14%);
+}
+
+.dsf-notification-bar__close:focus-visible,
+.dsf-notification-bar__link:focus-visible,
+.dsf-notification-bar__message a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.dsf-notification-bar--closing {
+  opacity: 0;
+  transform: translateY(-100%);
+}
+
+@media (max-width: 782px) {
+  .admin-bar .dsf-notification-bar--sticky {
+    top: 46px;
+  }
+}
+
+@media (max-width: 640px) {
+  .dsf-notification-bar__inner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+    min-height: 50px;
+    padding: 10px 48px 10px 16px;
+  }
+
+  .dsf-notification-bar--center .dsf-notification-bar__inner {
+    align-items: center;
+    text-align: center;
+  }
+
+  .dsf-notification-bar__close {
+    right: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dsf-notification-bar {
+    transition: none;
+  }
+}

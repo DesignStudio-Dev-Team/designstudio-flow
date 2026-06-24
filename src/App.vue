@@ -1,5 +1,5 @@
 <template>
-  <div class="dsf-editor">
+  <div ref="editorRoot" class="dsf-editor">
     <!-- Header -->
     <EditorHeader 
       :title="pageTitle"
@@ -42,6 +42,7 @@
           <draggable 
             v-else
             v-model="blocks"
+            :disabled="singleBlockTemplate"
             item-key="id"
             handle=".dsf-block-toolbar__btn--drag"
             ghost-class="dsf-block--ghost"
@@ -53,6 +54,7 @@
                 :index="index"
                 :is-selected="selectedBlockId === element.id"
                 :preview-mode="previewMode"
+                :allow-reorder="!singleBlockTemplate"
                 @select="selectBlock(element)"
                 @move-up="moveBlockUp(index)"
                 @move-down="moveBlockDown(index)"
@@ -61,6 +63,17 @@
               />
             </template>
           </draggable>
+
+          <div v-if="canAddBlock" class="dsf-canvas__add-zone">
+            <button
+              type="button"
+              class="dsf-add-block-btn"
+              @click="openBlockLibrary"
+            >
+              <Plus :size="18" />
+              {{ isTemplateEditor ? 'Add Template Block' : 'Add Block' }}
+            </button>
+          </div>
         </div>
       </div>
       
@@ -77,11 +90,15 @@
       <ThemePanel
         v-if="showThemePanel"
         :settings="pageSettings"
+        :default-theme="SITE_DEFAULT_THEME"
+        :can-undo="themeHistory.length > 0"
         :post-type="postType"
         :layout-templates="layoutTemplates"
         :layout-create-urls="layoutCreateUrls"
         @close="showThemePanel = false"
         @update:settings="updatePageSettings"
+        @undo-theme="undoThemeChange"
+        @restore-defaults="restoreSiteThemeDefaults"
       />
 
       <PageSettingsModal
@@ -91,19 +108,15 @@
         :status="currentPostStatus"
         :parent-id="pageParentId"
         :parent-pages="parentPages"
+        :popup="pageSettings.popup"
+        :popup-id="pageSettings.popupId || 0"
+        :popups="availablePopups"
+        :popup-create-url="popupCreateUrl"
+        :popup-edit-url-base="popupEditUrlBase"
         @close="showPageSettings = false"
         @save="updatePageDetails"
       />
     </div>
-    
-    <!-- Add Block Button -->
-    <button 
-      class="dsf-add-block-btn"
-      @click="openBlockLibrary"
-    >
-      <Plus :size="20" />
-      {{ isTemplateEditor ? 'Add Template Block' : 'Add Block' }}
-    </button>
     
     <!-- Block Library Modal -->
     <BlockLibrary
@@ -128,9 +141,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, createApp, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, createApp, nextTick, watch } from 'vue'
 import draggable from 'vuedraggable'
 import { Plus, LayoutTemplate } from 'lucide-vue-next'
+import { gsap } from 'gsap'
 
 // Components
 import EditorHeader from './components/EditorHeader.vue'
@@ -142,6 +156,7 @@ import PageSettingsModal from './components/PageSettingsModal.vue'
 import ConfirmDialog from './components/common/ConfirmDialog.vue'
 import FrontendApp from './frontend/FrontendApp.vue'
 import { applyThemeToBlocks, resolveThemeKey } from './utils/themeSync'
+import { canAddTemplateBlock, isSingleBlockTemplate, normalizeTemplateBlocks } from './utils/templateBlockRules'
 
 // Get WordPress data
 const wpData = window.dsfEditorData || {}
@@ -184,13 +199,17 @@ function buildFormOptions(forms) {
 
 // Font loading state
 const loadedFonts = ref(new Set())
+const googleFontNames = new Set([
+  'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Outfit',
+  'Source Sans 3', 'Nunito', 'Raleway', 'Playfair Display', 'Merriweather',
+  'Lora', 'DM Sans', 'Work Sans', 'Oswald', 'Ubuntu', 'Rubik', 'Manrope',
+  'Space Grotesk',
+])
 
 function loadGoogleFont(fontFamily) {
   if (!fontFamily) return
-  const match = fontFamily.match(/'([^']+)'/)
-  if (!match) return
-  
-  const fontName = match[1]
+  const fontName = String(fontFamily).split(',')[0].trim().replace(/^['"]|['"]$/g, '')
+  if (!googleFontNames.has(fontName)) return
   if (loadedFonts.value.has(fontName)) return
   
   loadedFonts.value.add(fontName)
@@ -201,7 +220,7 @@ function loadGoogleFont(fontFamily) {
 }
 
 // Theme defaults & sync helpers
-const DEFAULT_THEME = {
+const FALLBACK_THEME = {
   primaryColor: '#2C5F5D',
   secondaryColor: '#1E40AF',
   textColor: '#1F2937',
@@ -209,6 +228,8 @@ const DEFAULT_THEME = {
   headingFont: '',
   bodyFont: '',
 }
+const SITE_DEFAULT_THEME = Object.freeze({ ...FALLBACK_THEME, ...(wpData.defaultTheme || {}) })
+const DEFAULT_THEME = SITE_DEFAULT_THEME
 
 const DEFAULT_LAYOUT = {
   containerWidth: 1800,
@@ -237,20 +258,32 @@ const themeLinkedSettings = (() => {
   return linked
 })()
 
-function syncThemeToBlocks(oldTheme, newTheme) {
+function syncThemeToBlocks(oldTheme, newTheme, forceChangedThemeKeys = false) {
   if (!oldTheme || !newTheme) return
   if (!blocks.value.length) return
 
-  blocks.value = applyThemeToBlocks(blocks.value, oldTheme, newTheme, themeLinkedSettings)
+  blocks.value = applyThemeToBlocks(
+    blocks.value,
+    oldTheme,
+    newTheme,
+    themeLinkedSettings,
+    { forceChangedThemeKeys }
+  )
 }
 
 // State
-const blocks = ref(wpData.pageData?.blocks || [])
+const blocks = ref(normalizeTemplateBlocks(wpData.pageData?.blocks, postType, layoutType))
 const initialSettings = wpData.pageData?.settings || {}
 const pageSettings = ref({
   theme: { ...DEFAULT_THEME, ...(initialSettings.theme || {}) },
   layout: { ...DEFAULT_LAYOUT, ...(initialSettings.layout || {}) },
+  popup: { ...(initialSettings.popup || {}) },
+  popupId: Number.parseInt(initialSettings.popupId, 10) || 0,
 })
+
+const availablePopups = ref(Array.isArray(wpData.popups) ? wpData.popups : [])
+const popupCreateUrl = wpData.popupCreateUrl || ''
+const popupEditUrlBase = wpData.popupEditUrlBase || ''
 
 const pageTitle = ref(wpData.postTitle || 'Untitled Page')
 const currentPostStatus = ref(wpData.postStatus || 'draft')
@@ -268,6 +301,12 @@ const showThemePanel = ref(false)
 const showPageSettings = ref(false)
 const deleteConfirmVisible = ref(false)
 const pendingDeleteIndex = ref(null)
+const editorRoot = ref(null)
+const themeHistory = ref([])
+let lastThemeHistoryKey = ''
+let lastThemeHistoryAt = 0
+const singleBlockTemplate = isSingleBlockTemplate(postType, layoutType)
+const canAddBlock = computed(() => canAddTemplateBlock(blocks.value, postType, layoutType))
 
 // Computed
 const blockCategories = computed(() => {
@@ -277,6 +316,7 @@ const blockCategories = computed(() => {
     content: { label: 'Content', icon: 'file-text', blocks: [] },
     marketing: { label: 'Marketing', icon: 'target', blocks: [] },
     ecommerce: { label: 'Ecommerce', icon: 'shopping-cart', blocks: [] },
+    footers: { label: 'Footers', icon: 'layout-template', blocks: [] },
   }
 
   const allBlocks = Object.values(registeredBlocks)
@@ -284,17 +324,20 @@ const blockCategories = computed(() => {
 
   if (isTemplateEditor) {
     const label = layoutType === 'footer' ? 'Footer Blocks' : 'Header Blocks'
-    const templateBlocks = allowedBlocks.filter((block) => block.category === 'content')
+    const templateBlocks = canAddBlock.value
+      ? allowedBlocks.filter((block) => block.category === 'content')
+      : []
     return {
       content: { label, icon: 'layout-template', blocks: templateBlocks },
     }
   }
 
   // Define exact order for each category
-  const heroOrder = ['hero', 'bento-hero', 'spotlight-hero', 'duo-hero', 'featured-promo-banner']
-  const contentOrder = ['text-image', 'features-grid', 'testimonials', 'form-embed', 'form-with-content']
-  const marketingOrder = ['promo-banner', 'cta-banner', 'brand-carousel']
+  const heroOrder = ['hero', 'landing-hero', 'bento-hero', 'spotlight-hero', 'expander-hero', 'duo-hero', 'featured-promo-banner']
+  const contentOrder = ['content', 'faq', 'text-image', 'landing-block-explorer', 'landing-product-story', 'landing-engagement-suite', 'landing-trust-workflow', 'features-grid', 'testimonials', 'form-embed', 'form-with-content']
+  const marketingOrder = ['landing-progress-header', 'pricing', 'countdown', 'promo-banner', 'cta-banner', 'brand-carousel']
   const ecommerceOrder = ['ecommerce-showcase', 'featured-product-banner', 'product-grid']
+  const footerOrder = ['landing-marketing-footer']
   const heroBlockIds = new Set(heroOrder)
 
   allowedBlocks.forEach(block => {
@@ -310,6 +353,7 @@ const blockCategories = computed(() => {
   categories.content.blocks.sort((a, b) => contentOrder.indexOf(a.id) - contentOrder.indexOf(b.id))
   categories.marketing.blocks.sort((a, b) => marketingOrder.indexOf(a.id) - marketingOrder.indexOf(b.id))
   categories.ecommerce.blocks.sort((a, b) => ecommerceOrder.indexOf(a.id) - ecommerceOrder.indexOf(b.id))
+  categories.footers.blocks.sort((a, b) => footerOrder.indexOf(a.id) - footerOrder.indexOf(b.id))
 
   return categories
 })
@@ -366,10 +410,39 @@ function getBlockDefinition(blockType) {
   return wpData.blocks?.[blockType] || null
 }
 
+function prefersReducedMotion() {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+}
+
+function animateAfterRender(callback) {
+  if (prefersReducedMotion()) return
+  nextTick(() => callback())
+}
+
+function animatePanel(selector, fromX) {
+  animateAfterRender(() => {
+    const panel = document.querySelector(selector)
+    if (!panel) return
+    gsap.fromTo(panel,
+      { autoAlpha: 0, x: fromX, scale: 0.985 },
+      { autoAlpha: 1, x: 0, scale: 1, duration: 0.36, ease: 'power3.out', clearProps: 'transform,opacity,visibility' }
+    )
+  })
+}
+
 function selectBlock(block) {
   selectedBlock.value = block
   selectedBlockId.value = block.id
   showThemePanel.value = false
+  animateAfterRender(() => {
+    const wrapper = document.getElementById('block-' + block.id)
+    const toolbar = wrapper?.querySelector('.dsf-block-toolbar')
+    if (!toolbar) return
+    gsap.fromTo(toolbar,
+      { autoAlpha: 0, y: -8, scale: 0.92 },
+      { autoAlpha: 1, y: 0, scale: 1, duration: 0.28, ease: 'back.out(1.7)', clearProps: 'transform,opacity,visibility' }
+    )
+  })
 }
 
 function openBlockSettings(block) {
@@ -390,6 +463,12 @@ function addBlock(blockDefinition) {
     return
   }
 
+  if (!canAddBlock.value) {
+    showBlockLibrary.value = false
+    alert('A header template can contain only one header. Delete the current header before choosing another design.')
+    return
+  }
+
   const newBlock = {
     id: 'block_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
     type: blockDefinition.id,
@@ -406,6 +485,12 @@ function addBlock(blockDefinition) {
     // Scroll to the new block
     const element = document.getElementById('block-' + newBlock.id)
     if (element) {
+      if (!prefersReducedMotion()) {
+        gsap.fromTo(element,
+          { autoAlpha: 0, y: 28, scale: 0.985 },
+          { autoAlpha: 1, y: 0, scale: 1, duration: 0.48, ease: 'power3.out', clearProps: 'transform,opacity,visibility' }
+        )
+      }
       element.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, 100)
@@ -481,6 +566,10 @@ function isBlockAllowedInCurrentEditor(blockDefinition) {
 }
 
 function openBlockLibrary() {
+  if (!canAddBlock.value) {
+    showBlockLibrary.value = false
+    return
+  }
   if (isTemplateEditor && availableTemplateBlocksCount.value === 0) {
     const typeLabel = layoutType === 'footer' ? 'footer' : 'header'
     alert(`No ${typeLabel} blocks are available yet.`)
@@ -502,17 +591,55 @@ function updatePageDetails(details) {
   pageSlug.value = details.slug || ''
   currentPostStatus.value = details.status === 'publish' ? 'publish' : 'draft'
   pageParentId.value = Number.parseInt(details.parentId, 10) || 0
+  pageSettings.value = {
+    ...pageSettings.value,
+    popup: { ...(details.popup || {}) },
+    popupId: Number.parseInt(details.popupId, 10) || 0,
+  }
   showPageSettings.value = false
 }
 
 function updatePageSettings(newSettings) {
   const oldTheme = { ...(pageSettings.value?.theme || DEFAULT_THEME) }
-  const nextSettings = { ...pageSettings.value, ...newSettings }
+  const { _themeChangeKey: themeChangeKey = '', ...settingsPatch } = newSettings || {}
+  const nextSettings = { ...pageSettings.value, ...settingsPatch }
+
+  if (settingsPatch?.theme) {
+    const now = Date.now()
+    const coalescesWithPrevious = themeChangeKey
+      && themeChangeKey === lastThemeHistoryKey
+      && now - lastThemeHistoryAt < 900
+
+    if (!coalescesWithPrevious) {
+      themeHistory.value = [...themeHistory.value.slice(-19), oldTheme]
+    }
+    lastThemeHistoryKey = themeChangeKey
+    lastThemeHistoryAt = now
+  }
+
   pageSettings.value = nextSettings
 
-  if (newSettings?.theme) {
-    syncThemeToBlocks(oldTheme, nextSettings.theme || DEFAULT_THEME)
+  if (settingsPatch?.theme) {
+    syncThemeToBlocks(oldTheme, nextSettings.theme || DEFAULT_THEME, true)
   }
+}
+
+function undoThemeChange() {
+  const previousTheme = themeHistory.value.at(-1)
+  if (!previousTheme) return
+
+  const currentTheme = { ...(pageSettings.value?.theme || DEFAULT_THEME) }
+  themeHistory.value = themeHistory.value.slice(0, -1)
+  lastThemeHistoryKey = ''
+  pageSettings.value = { ...pageSettings.value, theme: { ...previousTheme } }
+  syncThemeToBlocks(currentTheme, previousTheme, true)
+}
+
+function restoreSiteThemeDefaults() {
+  updatePageSettings({
+    theme: { ...SITE_DEFAULT_THEME },
+    _themeChangeKey: 'restore-site-defaults',
+  })
 }
 
 function isDefaultUntitledTitle(rawTitle) {
@@ -786,6 +913,37 @@ watch(() => [pageSettings.value?.theme?.headingFont, pageSettings.value?.theme?.
   { immediate: true }
 )
 
+watch([selectedBlock, showThemePanel], ([block, themeVisible]) => {
+  if (block || themeVisible) animatePanel('#dsf-editor-app .dsf-panel', 28)
+})
+
+watch(showBlockLibrary, (visible) => {
+  if (!visible) return
+  animateAfterRender(() => {
+    const overlay = editorRoot.value?.querySelector('.dsf-library-overlay')
+    const panel = editorRoot.value?.querySelector('.dsf-library-panel')
+    if (overlay) gsap.fromTo(overlay, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.22, ease: 'power2.out' })
+    if (panel) {
+      gsap.fromTo(panel,
+        { autoAlpha: 0, x: -44 },
+        { autoAlpha: 1, x: 0, duration: 0.4, ease: 'power3.out', clearProps: 'transform,opacity,visibility' }
+      )
+    }
+  })
+})
+
+watch(showPageSettings, (visible) => {
+  if (!visible) return
+  animateAfterRender(() => {
+    const modal = document.querySelector('.dsf-page-settings-modal')
+    if (!modal) return
+    gsap.fromTo(modal,
+      { autoAlpha: 0, y: 18, scale: 0.975 },
+      { autoAlpha: 1, y: 0, scale: 1, duration: 0.34, ease: 'power3.out', clearProps: 'transform,opacity,visibility' }
+    )
+  })
+})
+
 // Lifecycle
 onMounted(() => {
   console.log('DesignStudio Flow Editor loaded')
@@ -794,5 +952,19 @@ onMounted(() => {
   if (pageSettings.value?.theme) {
     syncThemeToBlocks(DEFAULT_THEME, pageSettings.value.theme)
   }
+
+  if (!prefersReducedMotion()) {
+    const root = editorRoot.value
+    const timeline = gsap.timeline({ defaults: { ease: 'power3.out' } })
+    timeline
+      .from(root?.querySelector('.dsf-header'), { autoAlpha: 0, y: -16, duration: 0.38 })
+      .from(root?.querySelector('.dsf-canvas__inner'), { autoAlpha: 0, y: 18, scale: 0.992, duration: 0.48 }, '-=0.2')
+      .from(root?.querySelectorAll('.dsf-block') || [], { autoAlpha: 0, y: 14, duration: 0.34, stagger: 0.055 }, '-=0.26')
+      .from(root?.querySelector('.dsf-add-block-btn'), { autoAlpha: 0, y: 12, scale: 0.94, duration: 0.3 }, '-=0.18')
+  }
+})
+
+onBeforeUnmount(() => {
+  if (editorRoot.value) gsap.killTweensOf(editorRoot.value.querySelectorAll('*'))
 })
 </script>

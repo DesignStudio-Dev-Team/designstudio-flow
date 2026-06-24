@@ -87,6 +87,15 @@ class DSF_Admin {
 			'edit_pages',
 			'edit.php?post_type=dsf_layout&dsf_layout_type=footer'
 		);
+
+		// Popups.
+		add_submenu_page(
+			'designstudio-flow',
+			__( 'DesignStudio Flow Popups', 'designstudio-flow' ),
+			__( 'Popups', 'designstudio-flow' ),
+			'edit_pages',
+			'edit.php?post_type=dsf_popup'
+		);
 	}
 
 	/**
@@ -362,6 +371,10 @@ class DSF_Admin {
 			return 'designstudio-flow';
 		}
 
+		if ( $this->is_popup_screen() ) {
+			return 'designstudio-flow';
+		}
+
 		return $parent_file;
 	}
 
@@ -382,7 +395,33 @@ class DSF_Admin {
 			return $layout_submenu;
 		}
 
+		if ( $this->is_popup_screen() ) {
+			return 'edit.php?post_type=dsf_popup';
+		}
+
 		return $submenu_file;
+	}
+
+	/**
+	 * Detect whether the current screen is a DSFlow popup list or editor.
+	 *
+	 * @return bool
+	 */
+	private function is_popup_screen() {
+		global $pagenow;
+
+		if ( 'edit.php' === $pagenow || 'post-new.php' === $pagenow ) {
+			$post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+			return 'dsf_popup' === ( $post_type ? sanitize_key( $post_type ) : '' );
+		}
+
+		if ( 'post.php' === $pagenow ) {
+			$post_id = filter_input( INPUT_GET, 'post', FILTER_VALIDATE_INT );
+			$post_id = $post_id ? intval( $post_id ) : 0;
+			return $post_id && 'dsf_popup' === get_post_type( $post_id );
+		}
+
+		return false;
 	}
 
 	/**

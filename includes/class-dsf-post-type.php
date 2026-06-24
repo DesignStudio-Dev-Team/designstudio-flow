@@ -95,6 +95,40 @@ class DSF_Post_Type {
 
 		register_post_type( 'dsf_form', $form_args );
 
+		$popup_labels = array(
+			'name'               => _x( 'DesignStudio Flow Popups', 'Post type general name', 'designstudio-flow' ),
+			'singular_name'      => _x( 'DesignStudio Flow Popup', 'Post type singular name', 'designstudio-flow' ),
+			'menu_name'          => _x( 'DesignStudio Flow Popups', 'Admin Menu text', 'designstudio-flow' ),
+			'name_admin_bar'     => _x( 'DSFlow Popup', 'Add New on Toolbar', 'designstudio-flow' ),
+			'add_new'            => __( 'Add New Popup', 'designstudio-flow' ),
+			'add_new_item'       => __( 'Add New Popup', 'designstudio-flow' ),
+			'new_item'           => __( 'New Popup', 'designstudio-flow' ),
+			'edit_item'          => __( 'Edit Popup', 'designstudio-flow' ),
+			'view_item'          => __( 'View Popup', 'designstudio-flow' ),
+			'all_items'          => __( 'All DesignStudio Flow Popups', 'designstudio-flow' ),
+			'search_items'       => __( 'Search DesignStudio Flow Popups', 'designstudio-flow' ),
+			'not_found'          => __( 'No DesignStudio Flow popups found.', 'designstudio-flow' ),
+			'not_found_in_trash' => __( 'No DesignStudio Flow popups found in Trash.', 'designstudio-flow' ),
+		);
+
+		$popup_args = array(
+			'labels'             => $popup_labels,
+			'public'             => false,
+			'publicly_queryable' => false,
+			'show_ui'            => true,
+			'show_in_menu'       => false,
+			'query_var'          => false,
+			'rewrite'            => false,
+			'capability_type'    => 'page',
+			'has_archive'        => false,
+			'hierarchical'       => false,
+			'menu_position'      => null,
+			'supports'           => array( 'title', 'author', 'revisions' ),
+			'show_in_rest'       => false,
+		);
+
+		register_post_type( 'dsf_popup', $popup_args );
+
 		// Entries — private records of form submissions. No public UI, no admin
 		// list view (admin pages handle this themselves via WP_List_Table).
 		register_post_type(
@@ -161,6 +195,20 @@ class DSF_Post_Type {
 				'description'   => 'Form settings',
 				'single'        => true,
 				'show_in_rest'  => true,
+				'auth_callback' => function () {
+					return current_user_can( 'edit_pages' );
+				},
+			)
+		);
+
+		register_post_meta(
+			'dsf_popup',
+			'_dsf_popup_settings',
+			array(
+				'type'          => 'array',
+				'description'   => 'Reusable popup settings',
+				'single'        => true,
+				'show_in_rest'  => false,
 				'auth_callback' => function () {
 					return current_user_can( 'edit_pages' );
 				},

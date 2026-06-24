@@ -60,7 +60,10 @@ class DSF_Editor {
 			$post_id   = intval( $post_id );
 			$post_type = get_post_type( $post_id );
 
-			if ( 'dsf_layout' === $post_type || ( 'page' === $post_type && get_post_meta( $post_id, '_dsf_enabled', true ) ) ) {
+			// Only redirect dsf_layout posts (DSFlow-only post type).
+			// Pages with _dsf_enabled keep their normal WP editor; the admin
+			// bar already provides a separate "DS Flow" shortcut.
+			if ( 'dsf_layout' === $post_type ) {
 				wp_safe_redirect( admin_url( 'admin.php?page=dsf-editor&post_id=' . $post_id ) );
 				exit;
 			}
@@ -202,10 +205,14 @@ class DSF_Editor {
 				),
 				'blocks'           => DSF_Blocks::get_instance()->get_registered_blocks(),
 				'forms'            => $this->get_available_forms(),
+				'popups'           => DSF_Popup::get_popup_list(),
+				'popupCreateUrl'   => admin_url( 'post-new.php?post_type=dsf_popup' ),
+				'popupEditUrlBase' => admin_url( 'post.php?action=edit&post=' ),
 				'categories'       => $this->get_wc_categories(),
 				'productTags'      => $this->get_wc_product_tags(),
 				'themeFonts'       => $this->get_theme_fonts(),
 				'themeTypography'  => $this->get_theme_typography_payload(),
+				'defaultTheme'     => DSF_Frontend::get_default_theme_settings(),
 				'pluginUrl'        => DSF_PLUGIN_URL,
 				'homeUrl'          => home_url(),
 				'adminUrl'         => admin_url(),
@@ -384,14 +391,7 @@ class DSF_Editor {
 	 */
 	private function get_default_settings() {
 		return array(
-			'theme'  => array(
-				'primaryColor'    => '#2C5F5D',
-				'secondaryColor'  => '#1E40AF',
-				'textColor'       => '#1F2937',
-				'backgroundColor' => '#FFFFFF',
-				'headingFont'     => '',
-				'bodyFont'        => '',
-			),
+			'theme'  => DSF_Frontend::get_default_theme_settings(),
 			'layout' => array(
 				'containerWidth'   => 1800,
 				'contentPadding'   => 10,
@@ -400,6 +400,31 @@ class DSF_Editor {
 				'headerTemplateId' => 0,
 				'footerTemplateId' => 0,
 				'template'         => 'default',
+			),
+			'popup'  => array(
+				'enabled'        => false,
+				'type'           => 'content',
+				'headline'       => 'Limited time offer',
+				'body'           => '<p>Add your popup message here.</p>',
+				'image'          => '',
+				'imageAlt'       => '',
+				'imagePosition'  => 'top',
+				'buttonText'     => 'Learn more',
+				'buttonUrl'      => '#',
+				'openNewTab'     => false,
+				'width'          => 'medium',
+				'position'       => 'center',
+				'delaySeconds'   => 3,
+				'startDate'      => '',
+				'endDate'        => '',
+				'cookieDuration' => 24,
+				'cookieUnit'     => 'hours',
+				'showOverlay'    => true,
+				'closeOnOverlay' => true,
+				'showClose'      => true,
+				'backgroundColor' => '#FFFFFF',
+				'textColor'      => '#1F2937',
+				'accentColor'    => '#2C5F5D',
 			),
 		);
 	}

@@ -148,4 +148,38 @@ describe('BentoHeroPreview bars', () => {
     const lastImage = images.at(images.length - 1)
     expect(lastImage.attributes('alt')).toBe('Spa Water Care category graphic')
   })
+
+  it('renders a video iframe for a YouTube URL in hero video mode', () => {
+    const wrapper = mount(BentoHeroPreview, {
+      props: {
+        settings: {
+          heroMediaType: 'video',
+          heroVideo: 'https://www.youtube.com/watch?v=abc123',
+        },
+        isEditor: false,
+      },
+    })
+
+    const iframe = wrapper.find('.dsf-bento-hero__hero-media--embed')
+    expect(iframe.exists()).toBe(true)
+    expect(iframe.attributes('src')).toContain('youtube.com/embed/abc123')
+  })
+
+  it('renders an HTML5 video for an mp4 URL in hero video mode', () => {
+    const wrapper = mount(BentoHeroPreview, {
+      props: {
+        settings: {
+          heroMediaType: 'video',
+          heroVideo: 'https://example.com/hero.mp4',
+          heroImage: 'https://example.com/poster.jpg',
+        },
+        isEditor: false,
+      },
+    })
+
+    const video = wrapper.find('.dsf-bento-hero__hero video')
+    expect(video.exists()).toBe(true)
+    expect(video.attributes('poster')).toBe('https://example.com/poster.jpg')
+    expect(wrapper.find('video source').attributes('type')).toBe('video/mp4')
+  })
 })

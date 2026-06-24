@@ -6,14 +6,20 @@
           <div class="dsf-page-settings-modal__header">
             <div>
               <h2 class="dsf-page-settings-modal__title">Page Settings</h2>
-              <p class="dsf-page-settings-modal__subtitle">Manage WordPress page details before saving.</p>
+              <p class="dsf-page-settings-modal__subtitle">Manage WordPress details and page-level features.</p>
             </div>
             <button type="button" class="dsf-page-settings-modal__close" @click="close">
               <X :size="20" />
             </button>
           </div>
 
+          <div class="dsf-page-settings-modal__tabs" role="tablist" aria-label="Page settings sections">
+            <button type="button" role="tab" :aria-selected="activeTab === 'general'" :class="{ 'is-active': activeTab === 'general' }" @click="activeTab = 'general'">General</button>
+            <button type="button" role="tab" :aria-selected="activeTab === 'popup'" :class="{ 'is-active': activeTab === 'popup' }" @click="activeTab = 'popup'">Popup</button>
+          </div>
+
           <div class="dsf-page-settings-modal__body">
+            <template v-if="activeTab === 'general'">
             <div class="dsf-form-group">
               <label class="dsf-label" for="dsf-page-title">Page Title</label>
               <input
@@ -65,6 +71,31 @@
                 </select>
               </div>
             </div>
+            </template>
+
+            <div v-else class="dsf-popup-picker">
+              <div class="dsf-form-group">
+                <label class="dsf-label" for="dsf-popup-pick">Popup for this page</label>
+                <select id="dsf-popup-pick" class="dsf-input" :value="localPopupId" @change="localPopupId = Number($event.target.value)">
+                  <option :value="0">No popup</option>
+                  <option v-for="item in localPopups" :key="item.id" :value="item.id">
+                    {{ item.title }}<template v-if="item.status && item.status !== 'publish'"> (draft)</template>
+                  </option>
+                </select>
+              </div>
+
+              <div class="dsf-popup-picker__actions">
+                <a class="dsf-btn dsf-btn--secondary" :href="popupCreateUrl || '#'" target="_blank" rel="noopener">Create new popup</a>
+                <a v-if="localPopupId" class="dsf-btn dsf-btn--secondary" :href="(popupEditUrlBase || '') + localPopupId" target="_blank" rel="noopener">Edit selected</a>
+                <button type="button" class="dsf-btn dsf-btn--secondary" :disabled="refreshing" @click="refreshPopups">
+                  {{ refreshing ? 'Refreshing…' : 'Refresh list' }}
+                </button>
+              </div>
+
+              <p v-if="localPopupId && selectedIsDraft" class="dsf-helper-text">This popup is a draft. Publish it for it to appear on the live page.</p>
+              <p v-else-if="!localPopupId && legacyActive" class="dsf-helper-text">An inline popup from older settings is active on this page. Choosing a popup above replaces it.</p>
+              <p v-else class="dsf-helper-text">Popups are reusable. Create and manage them under DesignStudio Flow → Popups.</p>
+            </div>
           </div>
 
           <div class="dsf-page-settings-modal__footer">
@@ -78,7 +109,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { X } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -106,6 +137,26 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  popup: {
+    type: Object,
+    default: () => ({}),
+  },
+  popupId: {
+    type: Number,
+    default: 0,
+  },
+  popups: {
+    type: Array,
+    default: () => [],
+  },
+  popupCreateUrl: {
+    type: String,
+    default: '',
+  },
+  popupEditUrlBase: {
+    type: String,
+    default: '',
+  },
 })
 
 const emit = defineEmits(['close', 'save'])
@@ -114,6 +165,17 @@ const localTitle = ref('')
 const localSlug = ref('')
 const localStatus = ref('draft')
 const localParentId = ref(0)
+const localPopup = ref({})
+const localPopupId = ref(0)
+const localPopups = ref([])
+const refreshing = ref(false)
+const activeTab = ref('general')
+
+const selectedIsDraft = computed(() => {
+  const match = localPopups.value.find((item) => item.id === localPopupId.value)
+  return match ? match.status && match.status !== 'publish' : false
+})
+const legacyActive = computed(() => Boolean(localPopup.value && localPopup.value.enabled))
 
 watch(
   () => props.visible,
@@ -123,9 +185,31 @@ watch(
     localSlug.value = props.slug || ''
     localStatus.value = props.status === 'publish' ? 'publish' : 'draft'
     localParentId.value = Number.parseInt(props.parentId, 10) || 0
+    localPopup.value = { ...(props.popup || {}) }
+    localPopupId.value = Number.parseInt(props.popupId, 10) || 0
+    localPopups.value = Array.isArray(props.popups) ? [...props.popups] : []
+    activeTab.value = 'general'
   },
   { immediate: true }
 )
+
+async function refreshPopups() {
+  const data = typeof window !== 'undefined' ? window.dsfEditorData : null
+  if (!data?.ajaxUrl || refreshing.value) return
+  refreshing.value = true
+  try {
+    const body = new URLSearchParams({ action: 'dsf_list_popups', nonce: data.nonce || '' })
+    const response = await fetch(data.ajaxUrl, { method: 'POST', body, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json?.success && Array.isArray(json.data?.popups)) {
+      localPopups.value = json.data.popups
+    }
+  } catch (error) {
+    // Non-fatal; keep the existing list.
+  } finally {
+    refreshing.value = false
+  }
+}
 
 function slugify(value) {
   return String(value || '')
@@ -148,6 +232,8 @@ function save() {
     slug: slugify(localSlug.value),
     status: localStatus.value === 'publish' ? 'publish' : 'draft',
     parentId: Number.parseInt(localParentId.value, 10) || 0,
+    popup: { ...localPopup.value },
+    popupId: Number.parseInt(localPopupId.value, 10) || 0,
   })
 }
 
@@ -170,7 +256,10 @@ function close() {
 }
 
 .dsf-page-settings-modal {
-  width: min(560px, 100%);
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 100%);
+  max-height: min(860px, calc(100dvh - 48px));
   overflow: hidden;
   border-radius: 18px;
   background: #fff;
@@ -179,6 +268,7 @@ function close() {
 
 .dsf-page-settings-modal__header,
 .dsf-page-settings-modal__footer {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -191,6 +281,8 @@ function close() {
 }
 
 .dsf-page-settings-modal__footer {
+  position: relative;
+  z-index: 2;
   border-top: 1px solid var(--dsf-gray-200);
   background: var(--dsf-gray-50);
 }
@@ -237,9 +329,36 @@ function close() {
 }
 
 .dsf-page-settings-modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
   gap: 1rem;
   padding: 22px;
+  overflow-y: auto;
+}
+
+.dsf-page-settings-modal__tabs {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+  padding: 10px 22px 0;
+  border-bottom: 1px solid var(--dsf-gray-200);
+}
+
+.dsf-page-settings-modal__tabs button {
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--dsf-gray-500);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dsf-page-settings-modal__tabs button.is-active {
+  border-bottom-color: var(--dsf-primary-600);
+  color: var(--dsf-primary-700);
 }
 
 .dsf-page-settings-modal__slug-row {
@@ -288,4 +407,26 @@ function close() {
     width: 100%;
   }
 }
+
+@media (max-height: 600px) {
+  .dsf-page-settings-overlay {
+    padding: 10px;
+  }
+
+  .dsf-page-settings-modal {
+    max-height: calc(100dvh - 20px);
+  }
+
+  .dsf-page-settings-modal__header,
+  .dsf-page-settings-modal__footer {
+    padding: 12px 16px;
+  }
+
+  .dsf-page-settings-modal__body {
+    padding: 16px;
+  }
+}
+
+.dsf-popup-picker { display: grid; gap: 14px; }
+.dsf-popup-picker__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 </style>

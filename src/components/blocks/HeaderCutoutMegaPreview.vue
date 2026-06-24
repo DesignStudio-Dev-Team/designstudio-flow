@@ -24,14 +24,15 @@
             @click.stop
           />
         </a>
-        <button
+        <a
           v-if="settings.showSearch !== false"
           class="dsf-header-cutout__search-btn"
+          :href="settings.searchUrl || '/?s='"
           @click="preventInEditor"
           aria-label="Search"
         >
           <Search :size="16" />
-        </button>
+        </a>
       </div>
     </div>
 
@@ -51,7 +52,7 @@
           :href="settings.homeUrl || '/'"
           @click="preventInEditor"
         >
-          <img v-if="settings.logoImage" :src="settings.logoImage" alt="Site logo" />
+          <img v-if="settings.logoImage" :src="settings.logoImage" :alt="settings.logoAlt || 'Site logo'" />
           <span v-else class="dsf-header-cutout__logo-placeholder">Select Logo Image</span>
         </a>
 
@@ -75,7 +76,10 @@
                 backgroundColor: settings.activeMenuBackground || '#f5f5f5',
                 color: settings.activeMenuTextColor || '#4f8e2f',
               } : {}"
+              :aria-expanded="item.hasMega ? activeIndex === index : null"
+              :aria-haspopup="item.hasMega ? 'true' : null"
               @mouseenter="setActive(index)"
+              @focus="setActive(index)"
               @click="onMenuClick($event, index)"
             >
               <InlineText
@@ -173,7 +177,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import { ChevronDown, Search } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
 
@@ -190,6 +194,9 @@ const props = defineProps({
 
 const activeIndex = ref(null)
 const panelHover = ref(false)
+
+onMounted(() => window.addEventListener('keydown', handleEscape))
+onUnmounted(() => window.removeEventListener('keydown', handleEscape))
 
 const defaultUtilityLinks = [
   { label: 'CONTACT', url: '#' },
@@ -414,6 +421,10 @@ function preventInEditor(event) {
   }
 }
 
+function handleEscape(event) {
+  if (event.key === 'Escape') activeIndex.value = null
+}
+
 function hasBannerContent(banner) {
   if (!banner || typeof banner !== 'object') return false
   if (banner.image) return true
@@ -503,6 +514,7 @@ function getImageColumnCount(column) {
   justify-content: center;
   cursor: pointer;
   color: inherit;
+  text-decoration: none;
 }
 
 .dsf-header-cutout__nav-wrap {

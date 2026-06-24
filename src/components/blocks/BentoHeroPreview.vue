@@ -6,13 +6,37 @@
     >
       <!-- Hero Section -->
       <div class="dsf-bento-hero__hero" :style="heroStyle">
-        <img 
-          v-if="settings.heroImage" 
-          :src="settings.heroImage" 
-          alt="Hero"
-          class="dsf-bento-hero__hero-img"
-        />
-        <div v-else class="dsf-bento-hero__hero-placeholder"></div>
+        <template v-if="isHeroVideoMode">
+          <iframe
+            v-if="heroVideoEmbedUrl"
+            :src="heroVideoEmbedUrl"
+            class="dsf-bento-hero__hero-media dsf-bento-hero__hero-media--embed"
+            frameborder="0"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowfullscreen
+          />
+          <video
+            v-else-if="heroVideoFileUrl"
+            class="dsf-bento-hero__hero-media"
+            autoplay
+            muted
+            loop
+            playsinline
+            :poster="settings.heroImage || ''"
+          >
+            <source :src="heroVideoFileUrl" :type="heroVideoFileType" />
+          </video>
+          <div v-else class="dsf-bento-hero__hero-placeholder"></div>
+        </template>
+        <template v-else>
+          <img
+            v-if="settings.heroImage"
+            :src="settings.heroImage"
+            alt="Hero"
+            class="dsf-bento-hero__hero-media"
+          />
+          <div v-else class="dsf-bento-hero__hero-placeholder"></div>
+        </template>
         
         <!-- Hero Content Overlay -->
         <div class="dsf-bento-hero__hero-content">
@@ -243,6 +267,35 @@ const showLastTile = computed(() => boxCountValue.value === 6)
 const sectionBarHeight = computed(() => props.settings?.sectionBarHeight ?? 64)
 const showTopBar = computed(() => props.settings?.showTopBar === true)
 const showBottomBar = computed(() => props.settings?.showBottomBar === true)
+const isHeroVideoMode = computed(() => props.settings?.heroMediaType === 'video')
+const heroVideoUrl = computed(() => (props.settings?.heroVideo || '').trim())
+const heroVideoFileUrl = computed(() => {
+  const url = heroVideoUrl.value.toLowerCase()
+  return /\.(mp4|webm|ogg|ogv)(\?.*)?$/.test(url) ? heroVideoUrl.value : ''
+})
+const heroVideoFileType = computed(() => {
+  const url = heroVideoUrl.value.toLowerCase()
+  if (url.includes('.webm')) return 'video/webm'
+  if (url.includes('.ogg') || url.includes('.ogv')) return 'video/ogg'
+  return 'video/mp4'
+})
+const heroVideoEmbedUrl = computed(() => {
+  const url = heroVideoUrl.value
+  if (!url || heroVideoFileUrl.value) return ''
+  if (url.includes('/embed/') || url.includes('player.vimeo.com')) return url
+
+  const ytShort = url.match(/youtu\.be\/([^?&]+)/)
+  if (ytShort) return `https://www.youtube.com/embed/${ytShort[1]}?autoplay=1&mute=1&loop=1&playlist=${ytShort[1]}&controls=0`
+  const ytWatch = url.match(/[?&]v=([^&]+)/)
+  if (ytWatch) return `https://www.youtube.com/embed/${ytWatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytWatch[1]}&controls=0`
+  const ytShorts = url.match(/shorts\/([^?&]+)/)
+  if (ytShorts) return `https://www.youtube.com/embed/${ytShorts[1]}`
+
+  const vimeo = url.match(/vimeo\.com\/(\d+)/)
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1&muted=1&loop=1&background=1`
+
+  return ''
+})
 const gridLayout = computed(() => {
   const rows = []
   let currentRow = 1
@@ -543,12 +596,21 @@ function handleCtaClick(event) {
   background: #E5E7EB;
 }
 
-.dsf-bento-hero__hero-img {
+.dsf-bento-hero__hero-media {
   width: 100%;
   height: 100%;
   object-fit: cover;
   position: absolute;
   inset: 0;
+}
+
+.dsf-bento-hero__hero-media--embed {
+  width: 177.78%;
+  height: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 0;
+  pointer-events: none;
 }
 
 .dsf-bento-hero__hero-placeholder {

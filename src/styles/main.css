@@ -3,11 +3,12 @@
  */
 
 /* Google Fonts - must be first */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap');
 
 /* Import design tokens */
 @import './variables.css';
 @import './components.css';
+@import './builder-modern.css';
 @import '../assets/theme-typography.css';
 
 /* Tailwind Directives */
@@ -29,4 +30,148 @@
 .dsf-wrapper *::before,
 .dsf-wrapper *::after {
   box-sizing: border-box;
+}
+
+/* Landing pages keep their sanitized SEO snapshot in the DOM while a short,
+   fail-safe cover prevents the pre-hydration markup from flashing onscreen. */
+.dsf-page-content--loading #dsf-frontend-app > * {
+  visibility: hidden;
+  animation: dsf-snapshot-failsafe 0s 2.5s forwards;
+}
+
+.dsf-landing-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: grid;
+  place-items: center;
+  color: #17212b;
+  background: #f7f4ed;
+  opacity: 1;
+  transition: opacity 260ms ease, visibility 260ms ease;
+  animation: dsf-loader-failsafe 0s 2.5s forwards;
+}
+
+.dsf-page-content--ready .dsf-landing-loader {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.dsf-landing-loader__content {
+  display: grid;
+  justify-items: center;
+  gap: 15px;
+  font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.dsf-landing-loader__mark {
+  display: grid;
+  grid-template-columns: repeat(2, 13px);
+  gap: 4px;
+}
+
+.dsf-landing-loader__mark i {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  background: var(--dsf-theme-primary, #0091ff);
+  animation: dsf-loader-pulse 900ms ease-in-out infinite alternate;
+}
+
+.dsf-landing-loader__mark i:nth-child(2),
+.dsf-landing-loader__mark i:nth-child(3) {
+  background: var(--dsf-theme-secondary, #ff7100);
+  animation-delay: 160ms;
+}
+
+.dsf-landing-loader__mark i:nth-child(4) {
+  animation-delay: 320ms;
+}
+
+@keyframes dsf-loader-pulse {
+  from { transform: scale(0.76); opacity: 0.45; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes dsf-loader-failsafe {
+  to { visibility: hidden; opacity: 0; }
+}
+
+@keyframes dsf-snapshot-failsafe {
+  to { visibility: visible; }
+}
+
+/* Keep landing-page display copy balanced without inserting brittle manual line breaks. */
+.dsf-block--landing h1,
+.dsf-block--landing h2,
+.dsf-block--landing h3 {
+  text-wrap: pretty;
+}
+
+.dsf-block--landing p,
+.dsf-block--landing li {
+  text-wrap: pretty;
+}
+
+/* A per-block text color should affect authored copy, not the miniature UI
+   mockups embedded in several landing components. */
+.dsf-block--landing [style*="--dsf-landing-text"] :is(
+  .dsf-product-hero__copy,
+  .dsf-block-explorer__intro,
+  .dsf-block-explorer__counter,
+  .dsf-block-explorer__footline,
+  .dsf-explorer-card__body,
+  .dsf-product-story__copy,
+  .dsf-trust__heading,
+  .dsf-trust__seo-caption,
+  .dsf-trust__security,
+  .dsf-trust__audience,
+  .dsf-trust__workflow,
+  .dsf-engagement-suite__heading,
+  .dsf-engagement-card__copy,
+  .dsf-marketing-footer__cta,
+  .dsf-marketing-footer__brand,
+  .dsf-marketing-footer__main nav,
+  .dsf-marketing-footer__bottom,
+  .dsf-landing-header__brand,
+  .dsf-landing-header__nav,
+  .dsf-landing-header__mobile
+) :is(h1, h2, h3, p, li, small, strong, span, a) {
+  color: var(--dsf-landing-text) !important;
+}
+
+/* ---- Landing motion helpers (shared by the GSAP scroll engine) ---- */
+
+/* SplitText line wrappers: clip words that rise from below without
+   cropping descenders (the negative margin offsets the safe padding). */
+.dsf-block--landing .dsf-split-line {
+  overflow: hidden;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+
+.dsf-block--landing [data-dsf-parallax],
+.dsf-block--landing [data-dsf-float],
+.dsf-block--landing [data-dsf-drift] {
+  will-change: transform;
+}
+
+/* Pinned horizontal galleries should never show a native scrollbar. */
+.dsf-block--landing [data-dsf-hscroll] {
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dsf-landing-loader__mark i {
+    animation: none;
+  }
+
+  .dsf-block--landing .dsf-split-line {
+    overflow: visible;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
 }

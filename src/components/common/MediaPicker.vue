@@ -3,7 +3,7 @@
     <!-- Image Preview (when set) -->
     <div v-if="modelValue" class="dsf-media-picker__preview">
       <img :src="modelValue" alt="" />
-      <button class="dsf-media-picker__remove" @click="$emit('update:modelValue', '')" title="Remove Image">
+      <button type="button" class="dsf-media-picker__remove" @click="$emit('update:modelValue', '')" title="Remove Image">
         <X :size="16" />
       </button>
     </div>
@@ -20,7 +20,7 @@
     </div>
     
     <!-- Media Library Button -->
-    <button class="dsf-btn dsf-btn--secondary dsf-media-picker__btn" @click="openMediaLibrary">
+    <button type="button" class="dsf-btn dsf-btn--secondary dsf-media-picker__btn" @click="openMediaLibrary">
       <ImagePlus :size="16" />
       {{ modelValue ? 'Change Image' : 'Select Image' }}
     </button>

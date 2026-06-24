@@ -30,6 +30,119 @@ class DSF_Blocks {
 		// CONTENT Category
 		$this->register_block(
 			array(
+				'id'          => 'content',
+				'name'        => 'Content',
+				'category'    => 'content',
+				'icon'        => 'file-text',
+				'description' => 'Simple WYSIWYG content block with width control',
+				'settings'    => array(
+					'content'  => array(
+						'type'         => 'wysiwyg',
+						'label'        => 'Content',
+						'default'      => '<p>Add your content here.</p>',
+						'allowRawHtml' => true,
+					),
+					'maxWidth' => array(
+						'type'    => 'slider',
+						'label'   => 'Content Width',
+						'default' => 900,
+						'min'     => 320,
+						'max'     => 1400,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'faq',
+				'name'        => 'FAQ',
+				'category'    => 'content',
+				'icon'        => 'list-checks',
+				'description' => 'Frequently asked questions accordion',
+				'settings'    => array(
+					'title'           => array(
+						'type'    => 'text',
+						'label'   => 'Title',
+						'default' => 'Frequently asked questions',
+					),
+					'items'           => array(
+						'type'    => 'faq_items',
+						'label'   => 'Questions & Answers',
+						'default' => array(
+							array(
+								'question' => 'What is DesignStudio Flow?',
+								'answer'   => '<p>DesignStudio Flow is a block-based page builder for creating polished WordPress pages with controlled, reusable layouts.</p>',
+							),
+							array(
+								'question' => 'Can I add more questions?',
+								'answer'   => '<p>Yes. Add, remove, edit, and reorder FAQ items from the block settings panel.</p>',
+							),
+							array(
+								'question' => 'Does this use my theme typography?',
+								'answer'   => '<p>Yes. The FAQ block uses the same heading and body font tokens as the rest of your Flow blocks.</p>',
+							),
+						),
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Content Width',
+						'default' => 900,
+						'min'     => 600,
+						'max'     => 1200,
+					),
+					'backgroundColor' => array(
+						'type'    => 'color',
+						'label'   => 'Background Color',
+						'default' => '#FFFFFF',
+					),
+					'titleColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Title Color',
+						'default' => '#111827',
+					),
+					'questionColor'   => array(
+						'type'    => 'color',
+						'label'   => 'Question Color',
+						'default' => '#111827',
+					),
+					'answerColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Answer Color',
+						'default' => '#4B5563',
+					),
+					'dividerColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Divider Color',
+						'default' => '#E5E7EB',
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 80,
+						'min'     => 20,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
 				'id'          => 'hero',
 				'name'        => 'Hero',
 				'category'    => 'content',
@@ -51,20 +164,9 @@ class DSF_Blocks {
 						'label'   => 'Layout Style',
 						'default' => 'centered',
 						'options' => array(
-							'Classic Positioned' => 'centered',
-							'Bottom Split'       => 'bottom-split',
+							'Classic'    => 'centered',
+							'Two Column' => 'bottom-split',
 						),
-					),
-					'bottomSplitAlign'       => array(
-						'type'     => 'select',
-						'label'    => 'Content Alignment',
-						'default'  => 'left',
-						'options'  => array(
-							'Left'   => 'left',
-							'Center' => 'center',
-							'Right'  => 'right',
-						),
-						'showWhen' => array( 'layoutStyle' => 'bottom-split' ),
 					),
 					'showButton'             => array(
 						'type'    => 'toggle',
@@ -174,10 +276,10 @@ class DSF_Blocks {
 						'default' => 'rgba(0,0,0,0)',
 					),
 					'contentPosition'        => array(
-						'type'     => 'select',
-						'label'    => 'Content Position',
-						'default'  => 'center-center',
-						'options'  => array(
+						'type'    => 'select',
+						'label'   => 'Content Position',
+						'default' => 'center-center',
+						'options' => array(
 							'Top Left'      => 'top-left',
 							'Top Center'    => 'top-center',
 							'Top Right'     => 'top-right',
@@ -188,7 +290,13 @@ class DSF_Blocks {
 							'Bottom Center' => 'bottom-center',
 							'Bottom Right'  => 'bottom-right',
 						),
-						'showWhen' => array( 'layoutStyle' => 'centered' ),
+					),
+					'contentEdgePadding'     => array(
+						'type'    => 'slider',
+						'label'   => 'Content Edge Padding',
+						'default' => 15,
+						'min'     => 15,
+						'max'     => 60,
 					),
 					'gradientType'           => array(
 						'type'    => 'select',
@@ -254,6 +362,488 @@ class DSF_Blocks {
 						'max'     => 100,
 					),
 					'marginY'                => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'countdown',
+				'name'        => 'Countdown',
+				'category'    => 'marketing',
+				'icon'        => 'clock',
+				'description' => 'Split countdown campaign block with CTA and media',
+				'settings'    => array(
+					'eyebrow'         => array(
+						'type'    => 'text',
+						'label'   => 'Eyebrow',
+						'default' => 'Default eyebrow text',
+					),
+					'title'           => array(
+						'type'    => 'text',
+						'label'   => 'Title',
+						'default' => 'Default title here',
+					),
+					'description'     => array(
+						'type'    => 'textarea',
+						'label'   => 'Description',
+						'default' => 'Default description text here.',
+					),
+					'buttonText'      => array(
+						'type'    => 'text',
+						'label'   => 'Button Text',
+						'default' => 'Default button text',
+					),
+					'buttonAction'    => array(
+						'type'    => 'select',
+						'label'   => 'Button Action',
+						'default' => 'link',
+						'options' => array(
+							'Link'       => 'link',
+							'Open Modal' => 'modal',
+						),
+					),
+					'buttonUrl'       => array(
+						'type'     => 'text',
+						'label'    => 'Button URL',
+						'default'  => '#',
+						'showWhen' => array( 'buttonAction' => 'link' ),
+					),
+					'buttonModalLayout' => array(
+						'type'     => 'select',
+						'label'    => 'Modal Layout',
+						'default'  => 'center',
+						'options'  => array(
+							'Center'       => 'center',
+							'Right Drawer' => 'drawer',
+						),
+						'showWhen' => array( 'buttonAction' => 'modal' ),
+					),
+					'buttonModalContentType' => array(
+						'type'     => 'select',
+						'label'    => 'Modal Content Type',
+						'default'  => 'wysiwyg',
+						'options'  => array(
+							'WYSIWYG'   => 'wysiwyg',
+							'HTML'      => 'html',
+							'Shortcode' => 'shortcode',
+						),
+						'showWhen' => array( 'buttonAction' => 'modal' ),
+					),
+					'buttonModalContent' => array(
+						'type'     => 'wysiwyg',
+						'label'    => 'Modal Content',
+						'default'  => '',
+						'showWhen' => array(
+							'buttonAction'           => 'modal',
+							'buttonModalContentType' => 'wysiwyg',
+						),
+					),
+					'buttonModalHtml' => array(
+						'type'     => 'textarea',
+						'label'    => 'Modal HTML',
+						'default'  => '',
+						'showWhen' => array(
+							'buttonAction'           => 'modal',
+							'buttonModalContentType' => 'html',
+						),
+					),
+					'buttonModalShortcode' => array(
+						'type'     => 'text',
+						'label'    => 'Modal Shortcode',
+						'default'  => '',
+						'showWhen' => array(
+							'buttonAction'           => 'modal',
+							'buttonModalContentType' => 'shortcode',
+						),
+					),
+					'targetDate'      => array(
+						'type'    => 'datetime',
+						'label'   => 'Countdown Target Date',
+						'default' => current_datetime()->modify( '+30 days' )->format( 'Y-m-d\TH:i' ),
+						'step'    => 60,
+						'helper'  => 'Choose the date and local time when the countdown ends.',
+					),
+					'expiredMessage'  => array(
+						'type'    => 'text',
+						'label'   => 'Expired Message',
+						'default' => 'Default expired message.',
+					),
+					'noticeText'      => array(
+						'type'    => 'text',
+						'label'   => 'Notice Text',
+						'default' => 'Default notice text',
+					),
+					'mediaType'       => array(
+						'type'    => 'select',
+						'label'   => 'Media Type',
+						'default' => 'image',
+						'options' => array(
+							'Image' => 'image',
+							'Video' => 'video',
+						),
+					),
+					'image'           => array(
+						'type'    => 'image',
+						'label'   => 'Image',
+						'default' => '',
+					),
+					'video'           => array(
+						'type'     => 'text',
+						'label'    => 'Video URL (MP4/WebM or YouTube/Vimeo)',
+						'default'  => '',
+						'showWhen' => array( 'mediaType' => 'video' ),
+					),
+					'mediaPosition'   => array(
+						'type'    => 'select',
+						'label'   => 'Media Position',
+						'default' => 'right',
+						'options' => array(
+							'Media Right' => 'right',
+							'Media Left'  => 'left',
+						),
+					),
+					'backgroundColor' => array(
+						'type'    => 'color',
+						'label'   => 'Background Color',
+						'default' => '#FFFFFF',
+					),
+					'textColor'       => array(
+						'type'    => 'color',
+						'label'   => 'Text Color',
+						'default' => '#111827',
+					),
+					'accentColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '#B42318',
+					),
+					'buttonColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Button Color',
+						'default' => '#111111',
+					),
+					'buttonTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Button Text Color',
+						'default' => '#FFFFFF',
+					),
+					'noticeColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Notice Background',
+						'default' => '#F8D7DA',
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 64,
+						'min'     => 20,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 40,
+						'min'     => 0,
+						'max'     => 140,
+					),
+					'gap'             => array(
+						'type'    => 'slider',
+						'label'   => 'Column Gap',
+						'default' => 56,
+						'min'     => 16,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'pricing',
+				'name'        => 'Pricing',
+				'category'    => 'marketing',
+				'icon'        => 'badge-dollar-sign',
+				'description' => 'Pricing plans with monthly and annual billing options',
+				'settings'    => array(
+					'eyebrow'         => array(
+						'type'    => 'text',
+						'label'   => 'Eyebrow',
+						'default' => 'Pricing',
+					),
+					'title'           => array(
+						'type'    => 'text',
+						'label'   => 'Title',
+						'default' => 'Pricing that grows with you',
+					),
+					'description'     => array(
+						'type'    => 'textarea',
+						'label'   => 'Description',
+						'default' => 'Choose the plan that fits your needs. Update this text with details about your pricing options.',
+					),
+					'showBillingToggle' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Monthly / Annual Toggle',
+						'default' => true,
+					),
+					'monthlyLabel'    => array(
+						'type'     => 'text',
+						'label'    => 'Monthly Label',
+						'default'  => 'Monthly',
+						'showWhen' => array( 'showBillingToggle' => true ),
+					),
+					'annualLabel'     => array(
+						'type'     => 'text',
+						'label'    => 'Annual Label',
+						'default'  => 'Annually',
+						'showWhen' => array( 'showBillingToggle' => true ),
+					),
+					'plans'           => array(
+						'type'    => 'pricing_plans',
+						'label'   => 'Pricing Plans',
+						'default' => array(
+							array(
+								'name'         => 'Basic Plan',
+								'description'  => 'A simple plan for getting started.',
+								'monthlyPrice' => '19',
+								'annualPrice'  => '15',
+								'pricePrefix'  => '$',
+								'priceSuffix'  => '/month',
+								'buttonText'   => 'Choose plan',
+								'buttonUrl'    => '#',
+								'popular'      => false,
+								'badgeText'    => 'Most popular',
+								'features'     => "Feature one\nFeature two\nFeature three",
+							),
+							array(
+								'name'         => 'Standard Plan',
+								'description'  => 'A flexible plan for growing teams.',
+								'monthlyPrice' => '29',
+								'annualPrice'  => '24',
+								'pricePrefix'  => '$',
+								'priceSuffix'  => '/month',
+								'buttonText'   => 'Choose plan',
+								'buttonUrl'    => '#',
+								'popular'      => true,
+								'badgeText'    => 'Most popular',
+								'features'     => "Everything in Basic\nAdvanced feature\nPriority support\nAdditional feature",
+							),
+							array(
+								'name'         => 'Premium Plan',
+								'description'  => 'A complete plan for established businesses.',
+								'monthlyPrice' => '59',
+								'annualPrice'  => '49',
+								'pricePrefix'  => '$',
+								'priceSuffix'  => '/month',
+								'buttonText'   => 'Choose plan',
+								'buttonUrl'    => '#',
+								'popular'      => false,
+								'badgeText'    => 'Most popular',
+								'features'     => "Everything in Standard\nUnlimited feature\nDedicated support\nCustom reporting",
+							),
+						),
+					),
+					'backgroundColor' => array(
+						'type'    => 'color',
+						'label'   => 'Background Color',
+						'default' => '#FFFFFF',
+					),
+					'textColor'       => array(
+						'type'    => 'color',
+						'label'   => 'Text Color',
+						'default' => '#111827',
+					),
+					'mutedColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Muted Text Color',
+						'default' => '#4B5563',
+					),
+					'accentColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '#4F36F5',
+					),
+					'cardColor'       => array(
+						'type'    => 'color',
+						'label'   => 'Card Background',
+						'default' => '#FFFFFF',
+					),
+					'columns'         => array(
+						'type'    => 'select',
+						'label'   => 'Columns',
+						'default' => '3',
+						'options' => array( '2', '3', '4' ),
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Content Width',
+						'default' => 1200,
+						'min'     => 760,
+						'max'     => 1600,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 80,
+						'min'     => 20,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'expander-hero',
+				'name'        => 'Expander Hero',
+				'category'    => 'content',
+				'icon'        => 'layout-columns',
+				'description' => 'Expandable image-card hero with optional center CTA bar',
+				'settings'    => array(
+					'layoutStyle'     => array(
+						'type'    => 'select',
+						'label'   => 'Layout Style',
+						'default' => 'split-bar',
+						'options' => array(
+							'Split With Bar' => 'split-bar',
+							'Expanding Row'  => 'row',
+						),
+					),
+					'cards'           => array(
+						'type'    => 'expander_cards',
+						'label'   => 'Cards',
+						'default' => array(
+							array( 'title' => 'Card 1', 'image' => '', 'url' => '#' ),
+							array( 'title' => 'Card 2', 'image' => '', 'url' => '#' ),
+							array( 'title' => 'Card 3', 'image' => '', 'url' => '#' ),
+							array( 'title' => 'Card 4', 'image' => '', 'url' => '#' ),
+							array( 'title' => 'Card 5', 'image' => '', 'url' => '#' ),
+							array( 'title' => 'Card 6', 'image' => '', 'url' => '#' ),
+						),
+					),
+					'barPosition'     => array(
+						'type'     => 'select',
+						'label'    => 'Bar Position',
+						'default'  => 'middle',
+						'options'  => array(
+							'Top'    => 'top',
+							'Middle' => 'middle',
+							'Bottom' => 'bottom',
+						),
+						'showWhen' => array( 'layoutStyle' => 'split-bar' ),
+					),
+					'barTitle'        => array(
+						'type'     => 'text',
+						'label'    => 'Bar Title',
+						'default'  => 'Test Title 1',
+						'showWhen' => array( 'layoutStyle' => 'split-bar' ),
+					),
+					'showButton'      => array(
+						'type'     => 'toggle',
+						'label'    => 'Show CTA',
+						'default'  => true,
+						'showWhen' => array( 'layoutStyle' => 'split-bar' ),
+					),
+					'buttonText'      => array(
+						'type'     => 'text',
+						'label'    => 'Button Text',
+						'default'  => 'test',
+						'showWhen' => array(
+							'layoutStyle' => 'split-bar',
+							'showButton'  => true,
+						),
+					),
+					'buttonUrl'       => array(
+						'type'     => 'text',
+						'label'    => 'Button URL',
+						'default'  => '#',
+						'showWhen' => array(
+							'layoutStyle' => 'split-bar',
+							'showButton'  => true,
+						),
+					),
+					'barColor'        => array(
+						'type'    => 'color',
+						'label'   => 'Bar Color',
+						'default' => '#76A64B',
+					),
+					'barTextColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Bar Text Color',
+						'default' => '#FFFFFF',
+					),
+					'buttonColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Button Color',
+						'default' => '#17212B',
+					),
+					'buttonTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Button Text Color',
+						'default' => '#FFFFFF',
+					),
+					'cardTextColor'   => array(
+						'type'    => 'color',
+						'label'   => 'Card Text Color',
+						'default' => '#FFFFFF',
+					),
+					'cardHeight'      => array(
+						'type'    => 'slider',
+						'label'   => 'Card Height',
+						'default' => 280,
+						'min'     => 160,
+						'max'     => 520,
+					),
+					'barHeight'       => array(
+						'type'     => 'slider',
+						'label'    => 'Bar Height',
+						'default'  => 110,
+						'min'      => 70,
+						'max'      => 220,
+						'showWhen' => array( 'layoutStyle' => 'split-bar' ),
+					),
+					'gap'             => array(
+						'type'    => 'slider',
+						'label'   => 'Gap',
+						'default' => 16,
+						'min'     => 0,
+						'max'     => 48,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 80,
+					),
+					'marginY'         => array(
 						'type'    => 'slider',
 						'label'   => 'Vertical Margin',
 						'default' => 25,
@@ -492,10 +1082,25 @@ class DSF_Blocks {
 				'description' => 'Mosaic grid with hero section and feature boxes',
 				'settings'    => array(
 					// Hero Section
+					'heroMediaType'             => array(
+						'type'    => 'select',
+						'label'   => 'Hero Media Type',
+						'default' => 'image',
+						'options' => array(
+							'Image' => 'image',
+							'Video' => 'video',
+						),
+					),
 					'heroImage'                  => array(
 						'type'    => 'image',
 						'label'   => 'Hero Image',
 						'default' => '',
+					),
+					'heroVideo'                  => array(
+						'type'     => 'text',
+						'label'    => 'Hero Video URL (MP4/WebM or YouTube/Vimeo)',
+						'default'  => '',
+						'showWhen' => array( 'heroMediaType' => 'video' ),
 					),
 					'heroTitle'                  => array(
 						'type'    => 'text',
@@ -1567,12 +2172,12 @@ class DSF_Blocks {
 					'headerText'             => array(
 						'type'    => 'text',
 						'label'   => 'Header Text',
-						'default' => 'New At Backyard Leisure',
+						'default' => 'Default title here',
 					),
 					'descriptionText'        => array(
 						'type'    => 'textarea',
 						'label'   => 'Description',
-						'default' => 'Our new patio furniture has arrived—designed for comfort, built for outdoor living.',
+						'default' => 'Default text here',
 					),
 					'image'                  => array(
 						'type'    => 'image',
@@ -1587,6 +2192,34 @@ class DSF_Blocks {
 							'Image Right' => 'right',
 							'Image Left'  => 'left',
 						),
+					),
+					'dividerStyle'           => array(
+						'type'    => 'select',
+						'label'   => 'Divider Style',
+						'default' => 'circle',
+						'options' => array(
+							'Circle Curve'      => 'circle',
+							'Arrow Shape'       => 'arrow',
+							'Straight Vertical' => 'vertical',
+							'Diagonal Forward'  => 'diagonal-forward',
+							'Diagonal Backward' => 'diagonal-backward',
+						),
+					),
+					'descriptionSize'        => array(
+						'type'    => 'select',
+						'label'   => 'Description Size',
+						'default' => 'large',
+						'options' => array(
+							'Large'        => 'large',
+							'Normal P Tag' => 'normal',
+						),
+					),
+					'titleLetterSpacing'     => array(
+						'type'    => 'slider',
+						'label'   => 'Title Letter Spacing',
+						'default' => 0,
+						'min'     => -2,
+						'max'     => 12,
 					),
 					'showButton'             => array(
 						'type'    => 'toggle',
@@ -1751,6 +2384,27 @@ class DSF_Blocks {
 					),
 
 					// Dimensions
+					'height'                 => array(
+						'type'    => 'slider',
+						'label'   => 'Height',
+						'default' => 450,
+						'min'     => 100,
+						'max'     => 800,
+					),
+					'contentPadding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Content Padding',
+						'default' => 40,
+						'min'     => 12,
+						'max'     => 80,
+					),
+					'contentSpacing'         => array(
+						'type'    => 'slider',
+						'label'   => 'Content Spacing',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 48,
+					),
 					'padding'                => array(
 						'type'    => 'slider',
 						'label'   => 'Vertical Padding',
@@ -1790,9 +2444,18 @@ class DSF_Blocks {
 						'default' => 'About Our Story',
 					),
 					'content'                => array(
-						'type'    => 'richtext',
+						'type'    => 'textarea',
 						'label'   => 'Description',
 						'default' => 'Share your brand story here.',
+					),
+					'descriptionSize'        => array(
+						'type'    => 'select',
+						'label'   => 'Description Size',
+						'default' => 'large',
+						'options' => array(
+							'Large Text' => 'large',
+							'P Tag'      => 'normal',
+						),
 					),
 					'showButton'             => array(
 						'type'    => 'toggle',
@@ -1920,8 +2583,15 @@ class DSF_Blocks {
 						'type'    => 'slider',
 						'label'   => 'Vertical Padding',
 						'default' => 60,
-						'min'     => 20,
+						'min'     => 0,
 						'max'     => 120,
+					),
+					'height'                 => array(
+						'type'    => 'slider',
+						'label'   => 'Block Height',
+						'default' => 400,
+						'min'     => 100,
+						'max'     => 800,
 					),
 					'paddingX'               => array(
 						'type'    => 'slider',
@@ -3102,6 +3772,11 @@ class DSF_Blocks {
 						'label'   => 'Logo Image',
 						'default' => '',
 					),
+					'logoAlt'                         => array(
+						'type'    => 'text',
+						'label'   => 'Logo Alt Text',
+						'default' => 'Site logo',
+					),
 					'logoImageSize'                   => array(
 						'type'    => 'slider',
 						'label'   => 'Logo Image Size',
@@ -3120,20 +3795,44 @@ class DSF_Blocks {
 						'label'   => 'Show Language Icon',
 						'default' => false,
 					),
+					'languageUrl'                     => array(
+						'type'     => 'text',
+						'label'    => 'Language URL',
+						'default'  => '#',
+						'showWhen' => array( 'showLanguage' => true ),
+					),
 					'showSearch'                      => array(
 						'type'    => 'toggle',
 						'label'   => 'Show Search Icon',
 						'default' => true,
+					),
+					'searchUrl'                       => array(
+						'type'     => 'text',
+						'label'    => 'Search URL',
+						'default'  => '/?s=',
+						'showWhen' => array( 'showSearch' => true ),
 					),
 					'showAccount'                     => array(
 						'type'    => 'toggle',
 						'label'   => 'Show Account Icon',
 						'default' => true,
 					),
+					'accountUrl'                      => array(
+						'type'     => 'text',
+						'label'    => 'Account URL',
+						'default'  => '/my-account/',
+						'showWhen' => array( 'showAccount' => true ),
+					),
 					'showCart'                        => array(
 						'type'    => 'toggle',
 						'label'   => 'Show Cart Icon',
 						'default' => true,
+					),
+					'cartUrl'                         => array(
+						'type'     => 'text',
+						'label'    => 'Cart URL',
+						'default'  => '/cart/',
+						'showWhen' => array( 'showCart' => true ),
 					),
 					'cartCount'                       => array(
 						'type'    => 'number',
@@ -3545,6 +4244,65 @@ class DSF_Blocks {
 
 		$this->register_block(
 			array(
+				'id'             => 'header-showcase-mega',
+				'name'           => 'Showcase Mega Header',
+				'category'       => 'content',
+				'template_scope' => 'header',
+				'icon'           => 'layout-template',
+				'description'    => 'Two-tier retail header with editorial mega menus, locations, calls, and a nested mobile drawer',
+				'settings'       => array(
+					'promoText'            => array( 'type' => 'text', 'label' => 'Promo Text', 'default' => 'Seasonal Event', 'section' => 'brand', 'sectionTitle' => 'Brand & Promo' ),
+					'promoUrl'             => array( 'type' => 'text', 'label' => 'Promo URL', 'default' => '#', 'section' => 'brand', 'sectionTitle' => 'Brand & Promo' ),
+					'logoText'             => array( 'type' => 'text', 'label' => 'Logo Text', 'default' => 'YOUR BRAND', 'section' => 'brand', 'sectionTitle' => 'Brand & Promo' ),
+					'logoImage'            => array( 'type' => 'image', 'label' => 'Logo Image', 'default' => '', 'section' => 'brand', 'sectionTitle' => 'Brand & Promo' ),
+					'logoAlt'              => array( 'type' => 'text', 'label' => 'Logo Alt Text', 'default' => 'Site logo', 'section' => 'brand', 'sectionTitle' => 'Brand & Promo' ),
+					'homeUrl'              => array( 'type' => 'text', 'label' => 'Logo URL', 'default' => '/', 'section' => 'brand', 'sectionTitle' => 'Brand & Promo' ),
+					'navigation'           => array(
+						'type'    => 'showcase_header_navigation',
+						'label'   => 'Header Navigation',
+						'section' => 'navigation',
+						'sectionTitle' => 'Navigation & Panels',
+						'default' => array(
+							'utility' => array(
+								array( 'label' => 'Services', 'url' => '#', 'icon' => 'settings', 'kind' => 'mega', 'links' => array(), 'panel' => $this->showcase_header_panel_defaults( 'Our Services' ) ),
+								array( 'label' => 'Resources', 'url' => '#', 'icon' => 'book', 'kind' => 'dropdown', 'links' => array( array( 'label' => 'Blog', 'url' => '#' ), array( 'label' => 'Financing', 'url' => '#' ), array( 'label' => 'Owner Manuals', 'url' => '#' ) ), 'panel' => $this->showcase_header_panel_defaults() ),
+								array( 'label' => 'Locations', 'url' => '#', 'icon' => 'map-pin', 'kind' => 'locations', 'links' => array(), 'panel' => $this->showcase_header_panel_defaults() ),
+								array( 'label' => 'Call Us', 'url' => 'tel:', 'icon' => 'phone', 'kind' => 'calls', 'links' => array(), 'panel' => $this->showcase_header_panel_defaults() ),
+							),
+							'menu' => array(
+								array( 'label' => 'Hot Tubs', 'url' => '#', 'hasMega' => true, 'panel' => $this->showcase_header_panel_defaults( 'Shop Our Collection' ) ),
+								array( 'label' => 'Swim', 'url' => '#', 'hasMega' => true, 'panel' => $this->showcase_header_panel_defaults( 'Explore Swim & Pools' ) ),
+								array( 'label' => 'Saunas', 'url' => '#', 'hasMega' => false, 'panel' => $this->showcase_header_panel_defaults() ),
+								array( 'label' => 'Cold Plunge', 'url' => '#', 'hasMega' => false, 'panel' => $this->showcase_header_panel_defaults() ),
+							),
+							'locations' => array( array( 'name' => 'Main Showroom', 'image' => '', 'address' => '123 Main Street', 'hours' => "Mon-Sat: 10:00AM - 6:00PM\nSunday: 11:00AM - 4:00PM", 'phone' => '(555) 555-0100', 'phoneUrl' => 'tel:+15555550100', 'directionsUrl' => '#' ) ),
+							'calls' => array( array( 'label' => 'Sales & Service', 'url' => 'tel:+15555550100' ) ),
+						),
+					),
+					'specialButtonText'    => array( 'type' => 'text', 'label' => 'Special Button Text', 'default' => 'Specials', 'section' => 'cta', 'sectionTitle' => 'Call to Action' ),
+					'specialButtonUrl'     => array( 'type' => 'text', 'label' => 'Special Button URL', 'default' => '#', 'section' => 'cta', 'sectionTitle' => 'Call to Action' ),
+					'mobileLocationsLabel' => array( 'type' => 'text', 'label' => 'Locations Label', 'default' => 'Locations', 'section' => 'mobileControls', 'sectionTitle' => 'Mobile Controls' ),
+					'mobileCallLabel'      => array( 'type' => 'text', 'label' => 'Call Label', 'default' => 'Call Us', 'section' => 'mobileControls', 'sectionTitle' => 'Mobile Controls' ),
+					'mobileShowSearch'     => array( 'type' => 'toggle', 'label' => 'Show Search', 'default' => true, 'section' => 'mobileControls', 'sectionTitle' => 'Mobile Controls' ),
+					'mobileBackground'     => array( 'type' => 'color', 'label' => 'Drawer Background', 'default' => '#2F73B6', 'section' => 'mobileStyle', 'sectionTitle' => 'Mobile Colors' ),
+					'mobileTextColor'      => array( 'type' => 'color', 'label' => 'Drawer Text', 'default' => '#FFFFFF', 'section' => 'mobileStyle', 'sectionTitle' => 'Mobile Colors' ),
+					'searchUrl'            => array( 'type' => 'text', 'label' => 'Search URL', 'default' => '/?s=', 'section' => 'mobileControls', 'sectionTitle' => 'Mobile Controls' ),
+					'utilityBackground'    => array( 'type' => 'color', 'label' => 'Utility Background', 'default' => '#2F73B6', 'section' => 'colors', 'sectionTitle' => 'Header Colors' ),
+					'utilityTextColor'     => array( 'type' => 'color', 'label' => 'Utility Text', 'default' => '#FFFFFF', 'section' => 'colors', 'sectionTitle' => 'Header Colors' ),
+					'navBackground'        => array( 'type' => 'color', 'label' => 'Navigation Background', 'default' => '#0D0D0D', 'section' => 'colors', 'sectionTitle' => 'Header Colors' ),
+					'navTextColor'         => array( 'type' => 'color', 'label' => 'Navigation Text', 'default' => '#FFFFFF', 'section' => 'colors', 'sectionTitle' => 'Header Colors' ),
+					'accentColor'          => array( 'type' => 'color', 'label' => 'Accent Color', 'default' => '#2F73B6', 'section' => 'colors', 'sectionTitle' => 'Header Colors' ),
+					'panelBackground'      => array( 'type' => 'color', 'label' => 'Panel Background', 'default' => '#FFFFFF', 'section' => 'colors', 'sectionTitle' => 'Header Colors' ),
+					'panelTextColor'       => array( 'type' => 'color', 'label' => 'Panel Text', 'default' => '#171717', 'section' => 'colors', 'sectionTitle' => 'Header Colors' ),
+					'logoWidth'            => array( 'type' => 'slider', 'label' => 'Logo Width', 'default' => 250, 'min' => 80, 'max' => 380, 'section' => 'dimensions', 'sectionTitle' => 'Dimensions' ),
+					'paddingX'             => array( 'type' => 'slider', 'label' => 'Horizontal Padding', 'default' => 0, 'min' => 0, 'max' => 100 ),
+					'marginY'              => array( 'type' => 'slider', 'label' => 'Vertical Margin', 'default' => 0, 'min' => 0, 'max' => 100 ),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
 				'id'             => 'header-cutout-mega',
 				'name'           => 'Header Cutout Mega',
 				'category'       => 'content',
@@ -3575,6 +4333,11 @@ class DSF_Blocks {
 						'label'   => 'Logo Image',
 						'default' => '',
 					),
+					'logoAlt'              => array(
+						'type'    => 'text',
+						'label'   => 'Logo Alt Text',
+						'default' => 'Site logo',
+					),
 					'homeUrl'              => array(
 						'type'    => 'text',
 						'label'   => 'Logo URL',
@@ -3584,6 +4347,12 @@ class DSF_Blocks {
 						'type'    => 'toggle',
 						'label'   => 'Show Search Icon',
 						'default' => true,
+					),
+					'searchUrl'            => array(
+						'type'     => 'text',
+						'label'    => 'Search URL',
+						'default'  => '/?s=',
+						'showWhen' => array( 'showSearch' => true ),
 					),
 					'menuItems'            => array(
 						'type'    => 'mega_menu',
@@ -4180,6 +4949,340 @@ class DSF_Blocks {
 				),
 			)
 		);
+
+		$this->register_landing_page_blocks();
+	}
+
+	/**
+	 * Standard image/video media controls for a landing block visual area.
+	 * When the type is "mockup" (default) the block renders its built-in illustration.
+	 *
+	 * @param string $prefix Settings key prefix (e.g. "media", "feature1").
+	 * @param string $label  Human label for the control group.
+	 * @return array
+	 */
+	private function landing_media_settings( $prefix = 'media', $label = 'Visual' ) {
+		return array(
+			$prefix . 'Type' => array(
+				'type'    => 'select',
+				'label'   => $label . ' source',
+				'section' => 'media',
+				'default' => 'mockup',
+				'options' => array(
+					'Built-in mockup' => 'mockup',
+					'Image'           => 'image',
+					'Video'           => 'video',
+				),
+			),
+			$prefix . 'Image'     => array(
+				'type'     => 'image',
+				'label'    => $label . ' image',
+				'section'  => 'media',
+				'default'  => '',
+				'showWhen' => array( $prefix . 'Type' => 'image' ),
+			),
+			$prefix . 'Video'     => array(
+				'type'     => 'video',
+				'label'    => $label . ' video (file or YouTube/Vimeo)',
+				'section'  => 'media',
+				'default'  => '',
+				'showWhen' => array( $prefix . 'Type' => 'video' ),
+			),
+		);
+	}
+
+	/**
+	 * Standard background / text / accent color + spacing controls for a landing block.
+	 *
+	 * @param array $defaults Optional default hex values keyed by background/text/accent.
+	 * @return array
+	 */
+	private function landing_style_settings( $defaults = array() ) {
+		return array(
+			'backgroundColor' => array( 'type' => 'color', 'label' => 'Background color', 'section' => 'style', 'default' => $defaults['background'] ?? '' ),
+			'textColor'       => array( 'type' => 'color', 'label' => 'Text color', 'section' => 'style', 'default' => $defaults['text'] ?? '' ),
+			'accentColor'     => array( 'type' => 'color', 'label' => 'Accent color', 'section' => 'style', 'default' => $defaults['accent'] ?? '' ),
+			'paddingX'        => array( 'type' => 'slider', 'label' => 'Horizontal padding', 'section' => 'style', 'default' => 0, 'min' => 0, 'max' => 80 ),
+			'marginY'         => array( 'type' => 'slider', 'label' => 'Vertical margin', 'section' => 'style', 'default' => 0, 'min' => 0, 'max' => 80 ),
+		);
+	}
+
+	/**
+	 * Curated icon options shared by landing blocks that expose an editable icon.
+	 *
+	 * @return array Map of "Label" => "kebab-name".
+	 */
+	private function landing_icon_options() {
+		return array(
+			'Sparkles'      => 'sparkles',
+			'Shield'        => 'shield-check',
+			'Lock'          => 'lock',
+			'Fingerprint'   => 'fingerprint',
+			'Code'          => 'code',
+			'Paintbrush'    => 'paintbrush',
+			'Palette'       => 'palette',
+			'Layers'        => 'layers',
+			'Layout'        => 'layout',
+			'Columns'       => 'columns',
+			'Grid'          => 'grid',
+			'Briefcase'     => 'briefcase',
+			'Store'         => 'store',
+			'Users'         => 'users',
+			'Mail'          => 'mail',
+			'Form'          => 'form-input',
+			'Bell'          => 'bell',
+			'Megaphone'     => 'megaphone',
+			'Clock'         => 'clock',
+			'Calendar'      => 'calendar',
+			'Search'        => 'search',
+			'Filter'        => 'filter',
+			'Bolt'          => 'zap',
+			'Rocket'        => 'rocket',
+			'Check'         => 'check',
+			'Star'          => 'star',
+			'Heart'         => 'heart',
+			'Globe'         => 'globe',
+			'Monitor'       => 'monitor',
+			'Phone'         => 'smartphone',
+			'Document'      => 'file-text',
+			'Settings'      => 'settings',
+			'Click'         => 'mouse-pointer',
+			'Panel'         => 'panel-top',
+			'Wand'          => 'wand',
+			'Gauge'         => 'gauge',
+			'Boxes'         => 'boxes',
+		);
+	}
+
+	/**
+	 * Register the page-scoped marketing blocks used by the DSFlow product landing page.
+	 */
+	private function register_landing_page_blocks() {
+		$this->register_block(
+			array(
+				'id'          => 'landing-progress-header',
+				'name'        => 'Site Header',
+				'category'    => 'marketing',
+				'icon'        => 'layout-template',
+				'description' => 'Sticky navigation header with optional reading progress',
+				'settings'    => array_merge(
+					array(
+						'variant'              => array( 'type' => 'select', 'label' => 'Header style', 'section' => 'content', 'default' => 'progress', 'options' => array( 'Progress bar' => 'progress', 'Minimal' => 'minimal', 'Centered nav' => 'centered', 'Transparent' => 'transparent' ) ),
+						'brandText'            => array( 'type' => 'text', 'label' => 'Brand text', 'section' => 'content', 'default' => '' ),
+						'logoImage'            => array( 'type' => 'image', 'label' => 'Logo image', 'section' => 'content', 'default' => '' ),
+						'navLinks'             => array( 'type' => 'simple_links', 'label' => 'Navigation links', 'section' => 'content', 'default' => array(
+							array( 'label' => 'Why DSFlow', 'url' => '#why-dsflow' ),
+							array( 'label' => 'Blocks', 'url' => '#blocks' ),
+							array( 'label' => 'WooCommerce', 'url' => '#woocommerce' ),
+							array( 'label' => 'Forms & Growth', 'url' => '#engagement' ),
+							array( 'label' => 'Security', 'url' => '#security' ),
+							array( 'label' => 'For Agencies', 'url' => '#audience' ),
+						) ),
+						'showAnnouncement'     => array( 'type' => 'toggle', 'label' => 'Show Announcement', 'section' => 'content', 'default' => false ),
+						'announcementText'     => array( 'type' => 'text', 'label' => 'Announcement', 'section' => 'content', 'default' => 'DesignStudio Flow is built for modern WordPress teams.', 'showWhen' => array( 'showAnnouncement' => true ) ),
+						'announcementLinkText' => array( 'type' => 'text', 'label' => 'Announcement Link Text', 'section' => 'content', 'default' => 'See what is new', 'showWhen' => array( 'showAnnouncement' => true ) ),
+						'announcementUrl'      => array( 'type' => 'text', 'label' => 'Announcement URL', 'section' => 'content', 'default' => '#blocks', 'showWhen' => array( 'showAnnouncement' => true ) ),
+						'homeUrl'              => array( 'type' => 'text', 'label' => 'Logo URL', 'section' => 'content', 'default' => '#why-dsflow' ),
+						'docsText'             => array( 'type' => 'text', 'label' => 'Documentation Label', 'section' => 'buttons', 'default' => 'Documentation' ),
+						'docsUrl'              => array( 'type' => 'text', 'label' => 'Documentation URL', 'section' => 'buttons', 'default' => '#workflow' ),
+						'ctaText'              => array( 'type' => 'text', 'label' => 'CTA Label', 'section' => 'buttons', 'default' => 'Get DSFlow' ),
+						'ctaUrl'               => array( 'type' => 'text', 'label' => 'CTA URL', 'section' => 'buttons', 'default' => '#get-dsflow' ),
+					),
+					$this->landing_style_settings()
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'landing-hero',
+				'name'        => 'Landing Page Hero',
+				'category'    => 'content',
+				'icon'        => 'layout',
+				'description' => 'Large split hero with calls to action and optional media',
+				'settings'    => array_merge(
+					array(
+						'eyebrow'       => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'THE VISUAL BUILDER WORDPRESS DESERVES' ),
+						'title'         => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'Build freely. Stay beautifully consistent.' ),
+						'description'   => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'DesignStudio Flow gives teams the freedom to create ambitious WordPress pages without losing the design system, content model, or publishing workflow beneath them.' ),
+						'primaryText'   => array( 'type' => 'text', 'label' => 'Primary Button', 'section' => 'buttons', 'default' => 'Explore the block library' ),
+						'primaryUrl'    => array( 'type' => 'text', 'label' => 'Primary URL', 'section' => 'buttons', 'default' => '#blocks' ),
+						'secondaryText' => array( 'type' => 'text', 'label' => 'Secondary Button', 'section' => 'buttons', 'default' => 'See how it works' ),
+						'secondaryUrl'  => array( 'type' => 'text', 'label' => 'Secondary URL', 'section' => 'buttons', 'default' => '#editor' ),
+						'note'          => array( 'type' => 'text', 'label' => 'Supporting Note', 'section' => 'content', 'default' => 'Built inside WordPress. Designed around secure, structured blocks.' ),
+						'align'         => array( 'type' => 'select', 'label' => 'Text alignment', 'section' => 'content', 'default' => 'left', 'options' => array( 'Left' => 'left', 'Center' => 'center' ) ),
+						'mediaPosition' => array( 'type' => 'select', 'label' => 'Visual position', 'section' => 'content', 'default' => 'right', 'options' => array( 'Right' => 'right', 'Left' => 'left' ) ),
+					),
+					$this->landing_media_settings( 'media', 'Hero visual' ),
+					$this->landing_style_settings()
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'landing-block-explorer',
+				'name'        => 'Content Carousel',
+				'category'    => 'content',
+				'icon'        => 'grid-3x3',
+				'description' => 'Filterable horizontal carousel of visual content cards',
+				'settings'    => array_merge(
+					array(
+						'eyebrow'     => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'A LIBRARY WITH A POINT OF VIEW' ),
+						'title'       => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'Start with structure. Finish with something original.' ),
+						'description' => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'Each block solves a real page-building problem, then gives your team the right amount of creative control.' ),
+						'footnote'    => array( 'type' => 'text', 'label' => 'Footnote', 'section' => 'content', 'default' => 'New blocks inherit the same editing, theme, responsive, and frontend rendering workflow.' ),
+						'items'       => array( 'type' => 'gallery_items', 'label' => 'Gallery items', 'section' => 'items', 'default' => array() ),
+					),
+					$this->landing_style_settings()
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'landing-product-story',
+				'name'        => 'Split Content',
+				'category'    => 'content',
+				'icon'        => 'columns',
+				'description' => 'Reusable text and media section with optional reversed layout',
+				'settings'    => array_merge(
+					array(
+						'variant'       => array( 'type' => 'select', 'label' => 'Fallback mockup', 'section' => 'content', 'default' => 'editor', 'options' => array( 'Editor Experience' => 'editor', 'Theme System' => 'theme', 'WooCommerce' => 'commerce', 'Headers and Footers' => 'layouts', 'Campaign Tools' => 'campaigns' ) ),
+						'reverseLayout' => array( 'type' => 'toggle', 'label' => 'Visual on Left', 'section' => 'content', 'default' => false ),
+						'eyebrow'       => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'EDIT THE EXPERIENCE' ),
+						'title'         => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'A visual workflow that still respects the system.' ),
+						'description'   => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'Work directly with the page, understand every choice, and keep the guardrails that make a site coherent.' ),
+						'featureOne'    => array( 'type' => 'text', 'label' => 'Feature One', 'section' => 'content', 'default' => 'Edit the same component visitors receive' ),
+						'featureTwo'    => array( 'type' => 'text', 'label' => 'Feature Two', 'section' => 'content', 'default' => 'Responsive controls stay close to the work' ),
+						'featureThree'  => array( 'type' => 'text', 'label' => 'Feature Three', 'section' => 'content', 'default' => 'Page and block settings have clear ownership' ),
+					),
+					$this->landing_media_settings( 'media', 'Story visual' ),
+					$this->landing_style_settings()
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'landing-trust-workflow',
+				'name'        => 'Content Showcase',
+				'category'    => 'content',
+				'icon'        => 'list-checks',
+				'description' => 'Flexible pipeline, card grid, or numbered content section',
+				'settings'    => array_merge(
+					array(
+						'variant'     => array( 'type' => 'select', 'label' => 'Section anchor', 'section' => 'content', 'default' => 'seo', 'options' => array( 'SEO Rendering' => 'seo', 'Security' => 'security', 'Audience' => 'audience', 'Workflow' => 'workflow' ) ),
+						'layout'      => array( 'type' => 'select', 'label' => 'Layout', 'section' => 'content', 'default' => '', 'options' => array( 'Auto (from anchor)' => '', 'Pipeline' => 'pipeline', 'Grid (dark)' => 'grid-dark', 'Grid (light)' => 'grid-light', 'Numbered steps' => 'numbered' ) ),
+						'eyebrow'     => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'VISIBLE TO PEOPLE AND MACHINES' ),
+						'title'       => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'A visual page should still be a real WordPress page.' ),
+						'description' => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'DesignStudio Flow saves an HTML snapshot alongside the interactive frontend, giving every page useful content before JavaScript takes over.' ),
+						'caption'     => array( 'type' => 'text', 'label' => 'Pipeline caption', 'section' => 'content', 'default' => 'Every saved page carries a readable HTML snapshot, so content exists before the interactive layer loads.' ),
+						'items'       => array( 'type' => 'icon_items', 'label' => 'Steps / items', 'section' => 'items', 'default' => array() ),
+					),
+					$this->landing_style_settings()
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'landing-engagement-suite',
+				'name'        => 'Content Grid',
+				'category'    => 'content',
+				'icon'        => 'mail',
+				'description' => 'Three-part content grid with icons and optional media',
+				'settings'    => array_merge(
+					array(
+						'eyebrow'                 => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'FROM VISIT TO CONVERSATION' ),
+						'title'                   => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'Build the page. Then help it do something.' ),
+						'description'             => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'Forms, popups, and notification bars bring the next action into the same visual system as the page around them.' ),
+						'formsIcon'               => array( 'type' => 'select', 'label' => 'Feature 1 icon', 'section' => 'feature-1', 'default' => 'form-input', 'options' => $this->landing_icon_options() ),
+						'formsLabel'              => array( 'type' => 'text', 'label' => 'Feature 1 label', 'section' => 'feature-1', 'default' => 'FORMS' ),
+						'formsTitle'              => array( 'type' => 'text', 'label' => 'Feature 1 title', 'section' => 'feature-1', 'default' => 'Forms that belong to the design.' ),
+						'formsDescription'        => array( 'type' => 'textarea', 'label' => 'Feature 1 description', 'section' => 'feature-1', 'default' => 'Build native forms or bring Gravity Forms into Flow, then keep fields, labels, buttons, and responsive behavior visually consistent.' ),
+						'formsBullets'            => array( 'type' => 'textarea', 'label' => 'Feature 1 bullets (one per line)', 'section' => 'feature-1', 'default' => "Visual field builder\nWordPress and Gravity Forms\nResponsive, theme-aware styling" ),
+						'popupIcon'               => array( 'type' => 'select', 'label' => 'Feature 2 icon', 'section' => 'feature-2', 'default' => 'panel-top', 'options' => $this->landing_icon_options() ),
+						'popupLabel'              => array( 'type' => 'text', 'label' => 'Feature 2 label', 'section' => 'feature-2', 'default' => 'POPUPS' ),
+						'popupTitle'              => array( 'type' => 'text', 'label' => 'Feature 2 title', 'section' => 'feature-2', 'default' => 'The right message at the right moment.' ),
+						'popupDescription'        => array( 'type' => 'textarea', 'label' => 'Feature 2 description', 'section' => 'feature-2', 'default' => 'Create image or content popups with scheduling, delay, sizing, CTA, and repeat-visit controls.' ),
+						'notificationIcon'        => array( 'type' => 'select', 'label' => 'Feature 3 icon', 'section' => 'feature-3', 'default' => 'bell', 'options' => $this->landing_icon_options() ),
+						'notificationLabel'       => array( 'type' => 'text', 'label' => 'Feature 3 label', 'section' => 'feature-3', 'default' => 'NOTIFICATION BAR' ),
+						'notificationTitle'       => array( 'type' => 'text', 'label' => 'Feature 3 title', 'section' => 'feature-3', 'default' => 'One announcement across the whole site.' ),
+						'notificationDescription' => array( 'type' => 'textarea', 'label' => 'Feature 3 description', 'section' => 'feature-3', 'default' => 'Publish a site-wide message with clear timing and a visual style connected to the rest of the experience.' ),
+					),
+					$this->landing_media_settings( 'forms', 'Feature 1 visual' ),
+					$this->landing_media_settings( 'popup', 'Feature 2 visual' ),
+					$this->landing_media_settings( 'notification', 'Feature 3 visual' ),
+					$this->landing_style_settings(),
+					array(
+						'accentColor' => array( 'type' => 'color', 'label' => 'Icon background color', 'section' => 'style', 'default' => '' ),
+					)
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'landing-marketing-footer',
+				'name'        => 'CTA Footer',
+				'category'    => 'footers',
+				'icon'        => 'layout-template',
+				'description' => 'Call to action with optional brand and navigation columns',
+				'settings'    => array_merge(
+					array(
+						'variant'        => array( 'type' => 'select', 'label' => 'Footer style', 'section' => 'content', 'default' => 'bigcta', 'options' => array( 'Big CTA + columns' => 'bigcta', 'Centered' => 'centered', 'Simple (CTA only)' => 'simple', 'Columns' => 'columns' ) ),
+						'eyebrow'        => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'YOUR NEXT PAGE CAN FEEL DIFFERENT' ),
+						'title'          => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'Give WordPress room to flow.' ),
+						'description'    => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'Create the ambitious page your idea deserves, then hand it to your team with the confidence that the system will hold.' ),
+						'primaryText'    => array( 'type' => 'text', 'label' => 'Primary Button', 'section' => 'buttons', 'default' => 'Get DesignStudio Flow' ),
+						'primaryUrl'     => array( 'type' => 'text', 'label' => 'Primary URL', 'section' => 'buttons', 'default' => '#' ),
+						'secondaryText'  => array( 'type' => 'text', 'label' => 'Secondary Button', 'section' => 'buttons', 'default' => 'Read the documentation' ),
+						'secondaryUrl'   => array( 'type' => 'text', 'label' => 'Secondary URL', 'section' => 'buttons', 'default' => '#workflow' ),
+						'brandText'      => array( 'type' => 'text', 'label' => 'Brand text', 'section' => 'content', 'default' => '' ),
+						'logoImage'      => array( 'type' => 'image', 'label' => 'Logo image', 'section' => 'content', 'default' => '' ),
+						'homeUrl'        => array( 'type' => 'text', 'label' => 'Logo URL', 'section' => 'content', 'default' => '#why-dsflow' ),
+						'brandStatement' => array( 'type' => 'textarea', 'label' => 'Brand Statement', 'section' => 'content', 'default' => 'A modern visual page builder for WordPress teams who care about freedom, consistency, and the quality of what gets published.' ),
+						'copyright'      => array( 'type' => 'text', 'label' => 'Copyright line', 'section' => 'content', 'default' => 'DesignStudio Flow. Built for WordPress.' ),
+						'tagline'        => array( 'type' => 'text', 'label' => 'Bottom tagline', 'section' => 'content', 'default' => 'Build freely. Stay beautifully consistent.' ),
+						'col1Title'      => array( 'type' => 'text', 'label' => 'Column 1 title', 'section' => 'columns', 'default' => 'Product' ),
+						'col1Links'      => array( 'type' => 'simple_links', 'label' => 'Column 1 links', 'section' => 'columns', 'default' => array( array( 'label' => 'Why DSFlow', 'url' => '#why-dsflow' ), array( 'label' => 'Block library', 'url' => '#blocks' ), array( 'label' => 'WooCommerce', 'url' => '#woocommerce' ), array( 'label' => 'Forms & growth', 'url' => '#engagement' ) ) ),
+						'col2Title'      => array( 'type' => 'text', 'label' => 'Column 2 title', 'section' => 'columns', 'default' => 'Build' ),
+						'col2Links'      => array( 'type' => 'simple_links', 'label' => 'Column 2 links', 'section' => 'columns', 'default' => array( array( 'label' => 'Editor experience', 'url' => '#editor' ), array( 'label' => 'Theme system', 'url' => '#theme' ), array( 'label' => 'Layouts', 'url' => '#layouts' ), array( 'label' => 'Workflow', 'url' => '#workflow' ) ) ),
+						'col3Title'      => array( 'type' => 'text', 'label' => 'Column 3 title', 'section' => 'columns', 'default' => 'Trust' ),
+						'col3Links'      => array( 'type' => 'simple_links', 'label' => 'Column 3 links', 'section' => 'columns', 'default' => array( array( 'label' => 'SEO rendering', 'url' => '#seo' ), array( 'label' => 'Security', 'url' => '#security' ), array( 'label' => 'For agencies', 'url' => '#audience' ), array( 'label' => 'Documentation', 'url' => '#workflow' ) ) ),
+					),
+					$this->landing_style_settings()
+				),
+			)
+		);
+	}
+
+	/**
+	 * Shared starter content for the editorial mega-menu panels.
+	 *
+	 * @param string $title Introductory panel title.
+	 * @return array
+	 */
+	private function showcase_header_panel_defaults( $title = 'Explore Our Collection' ) {
+		return array(
+			'introTitle'    => $title,
+			'introText'     => 'Discover products and services selected to make your space more enjoyable.',
+			'buttonText'    => 'View Collection',
+			'buttonUrl'     => '#',
+			'accentText'    => 'Shop Accessories',
+			'accentUrl'     => '#',
+			'promoImage'    => '',
+			'promoTitle'    => 'Featured Special',
+			'promoSubtitle' => 'Limited time only',
+			'promoUrl'      => '#',
+			'cards'         => array(
+				array( 'eyebrow' => 'Collection', 'title' => 'Premium Series', 'url' => '#', 'image' => '' ),
+				array( 'eyebrow' => 'Comfort & Design', 'title' => 'Signature Series', 'url' => '#', 'image' => '' ),
+				array( 'eyebrow' => 'Plug & Play', 'title' => 'Essential Series', 'url' => '#', 'image' => '' ),
+				array( 'eyebrow' => 'Performance', 'title' => 'Reserve Series', 'url' => '#', 'image' => '' ),
+			),
+		);
 	}
 
 	/**
@@ -4221,8 +5324,13 @@ class DSF_Blocks {
 				'icon'   => 'target',
 				'blocks' => array(),
 			),
+			'footers'   => array(
+				'label'  => 'Footers',
+				'icon'   => 'layout-template',
+				'blocks' => array(),
+			),
 		);
-		$hero_block_ids = array( 'hero', 'bento-hero', 'spotlight-hero', 'duo-hero', 'featured-promo-banner' );
+		$hero_block_ids = array( 'hero', 'landing-hero', 'bento-hero', 'spotlight-hero', 'expander-hero', 'duo-hero', 'featured-promo-banner' );
 
 		foreach ( $this->blocks as $block ) {
 			$cat = $block['category'];

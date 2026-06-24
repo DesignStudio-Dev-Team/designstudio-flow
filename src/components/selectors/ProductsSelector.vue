@@ -359,8 +359,8 @@ watch(
 }
 
 .dsf-selected-item {
-  background: #EFF6FF; /* bg-blue-50 */
-  border: 1px solid #BFDBFE; /* border-blue-200 */
+  background: var(--dsf-brand-blue-soft);
+  border: 1px solid rgb(12 95 168 / 22%);
   border-radius: 12px; /* Smoother radius */
   padding: 8px 16px; /* Reduced vertical padding */
   display: flex !important;
@@ -391,7 +391,7 @@ watch(
   height: 48px;
   object-fit: contain;
   background: white;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--dsf-ui-border);
   padding: 2px;
   border-radius: 6px;
   margin-right: 1rem;
@@ -511,8 +511,8 @@ watch(
 
 /* Badge */
 .dsf-badge--blue {
-  background-color: #DBEAFE; /* blue-100 */
-  color: #1E40AF; /* blue-800 */
+  background-color: var(--dsf-primary-100);
+  color: var(--dsf-brand-blue-dark);
   font-size: 0.75rem;
   padding: 2px 8px;
   border-radius: 9999px;
@@ -521,13 +521,13 @@ watch(
 
 .dsf-info-box {
   margin-top: 1rem;
-  background: #EFF6FF;
-  border: 1px solid #BFDBFE;
+  background: var(--dsf-brand-blue-soft);
+  border: 1px solid rgb(12 95 168 / 22%);
   border-radius: var(--dsf-radius-lg);
   padding: 1rem;
   display: flex;
   gap: 0.75rem;
-  color: #1E40AF;
+  color: var(--dsf-brand-blue-dark);
 }
 
 .dsf-info-box__title {
@@ -538,6 +538,6 @@ watch(
 .dsf-info-box p {
   margin: 0;
   font-size: 0.875rem;
-  color: #3B82F6;
+  color: var(--dsf-brand-blue);
 }
 </style>

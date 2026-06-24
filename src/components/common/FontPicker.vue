@@ -110,6 +110,7 @@ const presetFonts = [
   { label: 'Manrope', value: "'Manrope', sans-serif" },
   { label: 'Space Grotesk', value: "'Space Grotesk', sans-serif" },
 ]
+const presetFontNames = new Set(presetFonts.map((font) => font.label))
 
 // Theme fonts from WordPress
 const themeFonts = computed(() => {
@@ -161,11 +162,8 @@ function selectFont(value) {
 
 // Load Google Fonts dynamically for preview
 function loadGoogleFont(fontFamily) {
-  // Extract just the font name from the font-family string
-  const match = fontFamily.match(/'([^']+)'/)
-  if (!match) return
-  
-  const fontName = match[1]
+  const fontName = String(fontFamily).split(',')[0].trim().replace(/^['"]|['"]$/g, '')
+  if (!presetFontNames.has(fontName)) return
   if (loadedFonts.value.has(fontName)) return
   
   loadedFonts.value.add(fontName)
@@ -203,7 +201,7 @@ onMounted(() => {
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.625rem 0.75rem;
-  background: var(--dsf-white);
+  background: #fff;
   border: 1px solid var(--dsf-gray-300);
   border-radius: 0.5rem;
   cursor: pointer;
@@ -259,7 +257,7 @@ onMounted(() => {
 .dsf-font-picker__tabs {
   display: flex;
   border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
+  background: var(--dsf-ui-paper, #fcfbf7);
   flex-shrink: 0;
 }
 
@@ -281,9 +279,9 @@ onMounted(() => {
 }
 
 .dsf-font-picker__tab--active {
-  color: var(--dsf-primary, #3B82F6);
+  color: var(--dsf-brand-blue, rgb(12, 95, 168));
   background: #ffffff;
-  box-shadow: inset 0 -2px 0 var(--dsf-primary, #3B82F6);
+  box-shadow: inset 0 -2px 0 var(--dsf-brand-blue, rgb(12, 95, 168));
 }
 
 .dsf-font-picker__list {
@@ -304,7 +302,7 @@ onMounted(() => {
 }
 
 .dsf-font-picker__item:hover {
-  background: #f3f4f6;
+  background: var(--dsf-ui-paper-deep, #f7f4ed);
 }
 
 .dsf-font-picker__item--selected {

@@ -46,6 +46,8 @@ final class DesignStudio_Flow {
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-editor.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-ajax.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-frontend.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-popup.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-notification-bar.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-blocks.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-forms.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-connections.php';
@@ -83,10 +85,12 @@ final class DesignStudio_Flow {
 			DSF_Admin::get_instance();
 			DSF_Editor::get_instance();
 			DSF_Ajax::get_instance();
+			DSF_Popup::get_instance();
 		}
 
 		// Initialize frontend (always needed for rendering).
 		DSF_Frontend::get_instance();
+		DSF_Notification_Bar::get_instance();
 		DSF_Forms::get_instance();
 		DSF_Connections::get_instance();
 
@@ -165,6 +169,7 @@ final class DesignStudio_Flow {
 			'dsf_recaptcha_site_key'   => '',
 			'dsf_recaptcha_secret_key' => '',
 			'dsf_recaptcha_threshold'  => 0.5,
+			'dsf_notification_bar'     => DSF_Notification_Bar::get_defaults(),
 		);
 
 		foreach ( $defaults as $key => $value ) {

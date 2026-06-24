@@ -16,16 +16,16 @@ export default {
       colors: {
         // Primary brand colors
         primary: {
-          50: '#EFF6FF',
-          100: '#DBEAFE',
-          200: '#BFDBFE',
-          300: '#93C5FD',
-          400: '#60A5FA',
-          500: '#3B82F6',
-          600: '#2563EB',
-          700: '#1D4ED8',
-          800: '#1E40AF',
-          900: '#1E3A8A',
+          50: '#F2F8FD',
+          100: '#DEEEF9',
+          200: '#BCD9EF',
+          300: '#84B7E0',
+          400: '#418ECA',
+          500: '#0C5FA8',
+          600: '#084984',
+          700: '#073D6F',
+          800: '#0A3359',
+          900: '#0C2A47',
         },
         // Semantic colors
         success: {
@@ -48,7 +48,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['Source Sans 3', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       spacing: {
         '18': '4.5rem',

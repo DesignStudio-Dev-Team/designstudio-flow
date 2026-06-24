@@ -4,6 +4,7 @@
       v-for="block in blocks"
       :key="block.id"
       class="dsf-block"
+      :class="{ 'dsf-block--landing': block.type?.startsWith('landing-') }"
       :style="getBlockStyle(block)"
     >
       <component
@@ -23,20 +24,26 @@
         @close="closeModal"
       />
     </transition>
+    <PagePopup :settings="popupSettings" :post-id="postId" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import ContentPreview from '../components/blocks/ContentPreview.vue'
+import FaqPreview from '../components/blocks/FaqPreview.vue'
 import HeroPreview from '../components/blocks/HeroCenteredPreview.vue'
 import ProductGridPreview from '../components/blocks/ProductGridPreview.vue'
 import EcommerceShowcasePreview from '../components/blocks/EcommerceShowcasePreview.vue'
 import FeaturesGridPreview from '../components/blocks/FeaturesGridPreview.vue'
 import BentoHeroPreview from '../components/blocks/BentoHeroPreview.vue'
 import SpotlightHeroPreview from '../components/blocks/SpotlightHeroPreview.vue'
+import ExpanderHeroPreview from '../components/blocks/ExpanderHeroPreview.vue'
+import PricingPreview from '../components/blocks/PricingPreview.vue'
 import TextImagePreview from '../components/blocks/TextImagePreview.vue'
 import TestimonialsPreview from '../components/blocks/TestimonialsPreview.vue'
 import CtaBannerPreview from '../components/blocks/CtaBannerPreview.vue'
+import CountdownPreview from '../components/blocks/CountdownPreview.vue'
 import NewsletterPreview from '../components/blocks/NewsletterPreview.vue'
 import BrandLogosPreview from '../components/blocks/BrandLogosPreview.vue'
 import PromoBannerPreview from '../components/blocks/PromoBannerPreview.vue'
@@ -44,12 +51,21 @@ import FeaturedProductBannerPreview from '../components/blocks/FeaturedProductBa
 import DuoHeroPreview from '../components/blocks/DuoHeroPreview.vue'
 import FeaturedPromoBannerPreview from '../components/blocks/FeaturedPromoBannerPreview.vue'
 import HeaderMegaMenuPreview from '../components/blocks/HeaderMegaMenuPreview.vue'
+import HeaderShowcaseMegaPreview from '../components/blocks/HeaderShowcaseMegaPreview.vue'
 import HeaderCutoutMegaPreview from '../components/blocks/HeaderCutoutMegaPreview.vue'
 import FooterDealersPreview from '../components/blocks/FooterDealersPreview.vue'
 import FormEmbedPreview from '../components/blocks/FormEmbedPreview.vue'
 import FormWithContentPreview from '../components/blocks/FormWithContentPreview.vue'
+import LandingProgressHeaderPreview from '../components/blocks/LandingProgressHeaderPreview.vue'
+import LandingHeroPreview from '../components/blocks/LandingHeroPreview.vue'
+import LandingBlockExplorerPreview from '../components/blocks/LandingBlockExplorerPreview.vue'
+import LandingProductStoryPreview from '../components/blocks/LandingProductStoryPreview.vue'
+import LandingTrustWorkflowPreview from '../components/blocks/LandingTrustWorkflowPreview.vue'
+import LandingEngagementSuitePreview from '../components/blocks/LandingEngagementSuitePreview.vue'
+import LandingMarketingFooterPreview from '../components/blocks/LandingMarketingFooterPreview.vue'
 import GenericBlockPreview from '../components/blocks/GenericBlockPreview.vue'
 import FlowModal from '../components/common/FlowModal.vue'
+import PagePopup from '../components/common/PagePopup.vue'
 import { provideFlowModal } from '../components/common/useFlowModal'
 import { createModalController } from './modalController'
 import { getResponsiveValue } from '../utils/responsiveSettings'
@@ -59,18 +75,31 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  popupSettings: {
+    type: Object,
+    default: () => ({}),
+  },
+  postId: {
+    type: [Number, String],
+    default: 0,
+  },
 })
 
 const previewComponents = {
+  'content': ContentPreview,
+  'faq': FaqPreview,
   'hero': HeroPreview,
   'product-grid': ProductGridPreview,
   'ecommerce-showcase': EcommerceShowcasePreview,
   'features-grid': FeaturesGridPreview,
   'bento-hero': BentoHeroPreview,
   'spotlight-hero': SpotlightHeroPreview,
+  'expander-hero': ExpanderHeroPreview,
+  'pricing': PricingPreview,
   'text-image': TextImagePreview,
   'testimonials': TestimonialsPreview,
   'cta-banner': CtaBannerPreview,
+  'countdown': CountdownPreview,
   'newsletter': NewsletterPreview,
   'brand-carousel': BrandLogosPreview,
   'promo-banner': PromoBannerPreview,
@@ -78,10 +107,18 @@ const previewComponents = {
   'duo-hero': DuoHeroPreview,
   'featured-promo-banner': FeaturedPromoBannerPreview,
   'header-mega-menu': HeaderMegaMenuPreview,
+  'header-showcase-mega': HeaderShowcaseMegaPreview,
   'header-cutout-mega': HeaderCutoutMegaPreview,
   'footer-dealers': FooterDealersPreview,
   'form-embed': FormEmbedPreview,
   'form-with-content': FormWithContentPreview,
+  'landing-progress-header': LandingProgressHeaderPreview,
+  'landing-hero': LandingHeroPreview,
+  'landing-block-explorer': LandingBlockExplorerPreview,
+  'landing-product-story': LandingProductStoryPreview,
+  'landing-trust-workflow': LandingTrustWorkflowPreview,
+  'landing-engagement-suite': LandingEngagementSuitePreview,
+  'landing-marketing-footer': LandingMarketingFooterPreview,
 }
 
 function getPreviewComponent(blockType) {
@@ -131,7 +168,7 @@ function hasExplicitResponsiveValue(settings, key) {
 }
 
 function getDefaultMarginByType(blockType) {
-  if (blockType === 'header-mega-menu' || blockType === 'header-cutout-mega' || blockType === 'footer-dealers') {
+  if (blockType === 'header-mega-menu' || blockType === 'header-showcase-mega' || blockType === 'header-cutout-mega' || blockType === 'footer-dealers' || blockType?.startsWith('landing-')) {
     return 0
   }
   return 25

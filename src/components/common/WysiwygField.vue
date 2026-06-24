@@ -4,6 +4,14 @@
       <button
         type="button"
         class="dsf-wysiwyg__btn"
+        title="Heading 1"
+        @click="formatBlock('H1')"
+      >
+        H1
+      </button>
+      <button
+        type="button"
+        class="dsf-wysiwyg__btn"
         title="Heading 2"
         @click="formatBlock('H2')"
       >
@@ -156,8 +164,8 @@ watch(
 
 .dsf-wysiwyg__btn--active {
   color: #fff;
-  background: var(--dsf-primary-600, #2563eb);
-  border-color: var(--dsf-primary-600, #2563eb);
+  background: var(--dsf-brand-blue, rgb(12, 95, 168));
+  border-color: var(--dsf-brand-blue, rgb(12, 95, 168));
 }
 
 .dsf-wysiwyg__sep {
@@ -175,6 +183,32 @@ watch(
   line-height: 1.5;
 }
 
+.dsf-wysiwyg__editor {
+  color: var(--dsf-theme-text, var(--dsf-ui-ink, #171c23));
+  font-family: var(--dsf-theme-body-font, inherit);
+}
+
+.dsf-wysiwyg__editor h1,
+.dsf-wysiwyg__editor h2 {
+  margin: 0 0 0.75em;
+  font-family: var(--dsf-theme-heading-font, inherit);
+  line-height: 1.2;
+}
+
+.dsf-wysiwyg__editor h1 {
+  font-size: var(--dsf-theme-h1, 42px);
+}
+
+.dsf-wysiwyg__editor h2 {
+  font-size: var(--dsf-theme-h2, 37px);
+}
+
+.dsf-wysiwyg__editor p {
+  margin: 0 0 1em;
+  font-size: var(--dsf-theme-p-size, 20px);
+  line-height: 1.5;
+}
+
 .dsf-wysiwyg__source {
   display: block;
   width: 100%;
@@ -185,11 +219,11 @@ watch(
 }
 
 .dsf-wysiwyg__editor a {
-  color: #2563eb;
+  color: var(--dsf-brand-blue, rgb(12, 95, 168));
   text-decoration: underline;
 }
 
 .dsf-wysiwyg__editor a:hover {
-  color: #1d4ed8;
+  color: var(--dsf-brand-blue-dark, rgb(8, 73, 132));
 }
 </style>
