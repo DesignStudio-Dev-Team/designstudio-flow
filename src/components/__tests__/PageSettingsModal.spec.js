@@ -38,6 +38,36 @@ describe('PageSettingsModal', () => {
       slug: 'beat-the-heat-2026',
       status: 'publish',
       parentId: 42,
+      popup: {},
+      popupId: 0,
     })
+  })
+
+  it('lets the popup tab pick a reusable popup and emits its id', async () => {
+    const wrapper = mount(PageSettingsModal, {
+      props: {
+        visible: true,
+        popup: {},
+        popupId: 0,
+        popups: [
+          { id: 7, title: 'Summer Promo', status: 'publish' },
+          { id: 9, title: 'Newsletter', status: 'draft' },
+        ],
+        popupCreateUrl: 'http://example.test/new',
+        popupEditUrlBase: 'http://example.test/edit?id=',
+      },
+      attachTo: document.body,
+      global: { stubs: { Teleport: true } },
+    })
+
+    await wrapper.findAll('[role="tab"]')[1].trigger('click')
+
+    const select = wrapper.find('#dsf-popup-pick')
+    expect(select.exists()).toBe(true)
+    expect(wrapper.findAll('#dsf-popup-pick option')).toHaveLength(3) // None + 2 popups
+    await select.setValue('7')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(wrapper.emitted('save')?.[0]?.[0].popupId).toBe(7)
   })
 })

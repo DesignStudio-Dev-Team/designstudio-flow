@@ -9,8 +9,29 @@
       </div>
     </template>
 
+    <!-- Content -->
+    <template v-else-if="type === 'content'">
+      <div class="dsf-schematic__content">
+        <div class="dsf-schematic__line dsf-schematic__line--md"></div>
+        <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+        <div class="dsf-schematic__line dsf-schematic__line--lg"></div>
+        <div class="dsf-schematic__line dsf-schematic__line--xs"></div>
+      </div>
+    </template>
+
+    <!-- FAQ -->
+    <template v-else-if="type === 'faq'">
+      <div class="dsf-schematic__faq">
+        <div class="dsf-schematic__line dsf-schematic__line--lg"></div>
+        <div class="dsf-schematic__faq-row" v-for="i in 4" :key="i">
+          <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+          <span>{{ i === 1 ? '−' : '+' }}</span>
+        </div>
+      </div>
+    </template>
+
     <!-- Header Mega Menu -->
-    <template v-else-if="type === 'header-mega-menu'">
+    <template v-else-if="type === 'header-mega-menu' || type === 'header-showcase-mega'">
       <div class="dsf-schematic__header-mega">
         <div class="dsf-schematic__header-mega-top">
           <div class="dsf-schematic__line dsf-schematic__line--xxs"></div>
@@ -142,6 +163,43 @@
         <div class="dsf-schematic__btn dsf-schematic__btn--sm"></div>
       </div>
     </template>
+
+    <!-- Countdown -->
+    <template v-else-if="type === 'countdown'">
+      <div class="dsf-schematic__countdown">
+        <div class="dsf-schematic__countdown-copy">
+          <div class="dsf-schematic__line dsf-schematic__line--xs"></div>
+          <div class="dsf-schematic__line dsf-schematic__line--md"></div>
+          <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+          <div class="dsf-schematic__countdown-row">
+            <span v-for="i in 4" :key="i"></span>
+          </div>
+          <div class="dsf-schematic__btn dsf-schematic__btn--sm"></div>
+        </div>
+        <div class="dsf-schematic__countdown-media"></div>
+      </div>
+    </template>
+
+    <!-- Pricing -->
+    <template v-else-if="type === 'pricing'">
+      <div class="dsf-schematic__pricing">
+        <div class="dsf-schematic__line dsf-schematic__line--center dsf-schematic__line--md"></div>
+        <div class="dsf-schematic__line dsf-schematic__line--center dsf-schematic__line--sm"></div>
+        <div class="dsf-schematic__pricing-toggle"></div>
+        <div class="dsf-schematic__pricing-cards">
+          <div
+            v-for="i in 3"
+            :key="i"
+            class="dsf-schematic__pricing-card"
+            :class="{ 'dsf-schematic__pricing-card--featured': i === 2 }"
+          >
+            <div class="dsf-schematic__line dsf-schematic__line--xs"></div>
+            <div class="dsf-schematic__pricing-price"></div>
+            <div class="dsf-schematic__pricing-button"></div>
+          </div>
+        </div>
+      </div>
+    </template>
     
     <!-- Newsletter -->
     <template v-else-if="type === 'newsletter'">
@@ -217,6 +275,22 @@
       </div>
     </template>
 
+    <!-- Expander Hero -->
+    <template v-else-if="type === 'expander-hero'">
+      <div class="dsf-schematic__expander-hero">
+        <div class="dsf-schematic__expander-row">
+          <span v-for="i in 3" :key="`top-${i}`"></span>
+        </div>
+        <div class="dsf-schematic__expander-bar">
+          <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+          <div class="dsf-schematic__btn dsf-schematic__btn--xs"></div>
+        </div>
+        <div class="dsf-schematic__expander-row">
+          <span v-for="i in 3" :key="`bottom-${i}`"></span>
+        </div>
+      </div>
+    </template>
+
     <!-- Duo Hero -->
     <template v-else-if="type === 'duo-hero'">
       <div class="dsf-schematic__duo-hero">
@@ -282,6 +356,21 @@
       </div>
     </template>
 
+    <!-- Forms and Engagement Suite -->
+    <template v-else-if="type === 'landing-engagement-suite'">
+      <div class="dsf-schematic__engagement">
+        <div class="dsf-schematic__engagement-form">
+          <i></i><i></i><i></i><b></b>
+        </div>
+        <div class="dsf-schematic__engagement-popup">
+          <span></span><b></b>
+        </div>
+        <div class="dsf-schematic__engagement-bar">
+          <i></i><span></span><b></b>
+        </div>
+      </div>
+    </template>
+
     <!-- Form Embed -->
     <template v-else-if="type === 'form-embed'">
       <div class="dsf-schematic__form-embed">
@@ -319,6 +408,64 @@
           <div class="dsf-schematic__form-input"></div>
           <div class="dsf-schematic__btn dsf-schematic__btn--sm"></div>
         </div>
+      </div>
+    </template>
+
+    <!-- Landing: Product Hero -->
+    <template v-else-if="type === 'landing-hero'">
+      <div class="dsf-schematic__l-hero">
+        <div class="dsf-schematic__l-hero-copy">
+          <span></span>
+          <div class="dsf-schematic__line dsf-schematic__line--md"></div>
+          <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+          <b></b>
+        </div>
+        <div class="dsf-schematic__l-hero-studio"><i></i><i></i><i></i></div>
+      </div>
+    </template>
+
+    <!-- Landing: Progress Header -->
+    <template v-else-if="type === 'landing-progress-header'">
+      <div class="dsf-schematic__l-header">
+        <div class="dsf-schematic__l-header-bar"><em></em><span v-for="i in 4" :key="i"></span><b></b></div>
+        <i class="dsf-schematic__l-header-progress"></i>
+      </div>
+    </template>
+
+    <!-- Landing: Block Explorer -->
+    <template v-else-if="type === 'landing-block-explorer'">
+      <div class="dsf-schematic__l-explorer">
+        <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+        <div class="dsf-schematic__l-explorer-row"><span v-for="i in 4" :key="i"></span></div>
+      </div>
+    </template>
+
+    <!-- Landing: Product Story -->
+    <template v-else-if="type === 'landing-product-story'">
+      <div class="dsf-schematic__l-story">
+        <div class="dsf-schematic__l-story-copy">
+          <span></span>
+          <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+          <div class="dsf-schematic__line dsf-schematic__line--xs"></div>
+          <b></b>
+        </div>
+        <div class="dsf-schematic__l-story-visual"></div>
+      </div>
+    </template>
+
+    <!-- Landing: Trust / Workflow -->
+    <template v-else-if="type === 'landing-trust-workflow'">
+      <div class="dsf-schematic__l-trust">
+        <div class="dsf-schematic__line dsf-schematic__line--center dsf-schematic__line--sm"></div>
+        <div class="dsf-schematic__l-trust-flow"><i v-for="i in 4" :key="i"></i></div>
+      </div>
+    </template>
+
+    <!-- Landing: Marketing Footer -->
+    <template v-else-if="type === 'landing-marketing-footer'">
+      <div class="dsf-schematic__l-footer">
+        <div class="dsf-schematic__l-footer-cta"><div class="dsf-schematic__line dsf-schematic__line--md"></div><b></b></div>
+        <div class="dsf-schematic__l-footer-cols"><span v-for="i in 4" :key="i"></span></div>
       </div>
     </template>
 
@@ -415,7 +562,7 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
 .dsf-schematic__btn {
   width: 40px;
   height: 10px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--dsf-brand-blue) 0%, var(--dsf-brand-blue-dark) 100%);
   border-radius: 5px;
 }
 
@@ -441,6 +588,38 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
   gap: 8px;
   width: 100%;
 }
+
+.dsf-schematic__engagement {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  grid-template-rows: 1fr 20px;
+  width: 100%;
+  height: 100%;
+  padding: 6px;
+  border-radius: 8px;
+  background: #0091ff;
+  gap: 5px;
+}
+
+.dsf-schematic__engagement-form,
+.dsf-schematic__engagement-popup,
+.dsf-schematic__engagement-bar {
+  position: relative;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.dsf-schematic__engagement-form { display: grid; grid-template-columns: repeat(2, 1fr); padding: 7px; gap: 4px; }
+.dsf-schematic__engagement-form i { border: 1px solid #cfd8df; border-radius: 2px; }
+.dsf-schematic__engagement-form i:nth-child(3) { grid-column: span 2; }
+.dsf-schematic__engagement-form b { width: 20px; height: 6px; border-radius: 2px; background: #0091ff; }
+.dsf-schematic__engagement-popup { background: rgba(255,255,255,0.35); }
+.dsf-schematic__engagement-popup span { position: absolute; inset: 12px 7px; border-radius: 4px; background: #fff; box-shadow: 0 4px 8px rgba(7,27,47,0.18); }
+.dsf-schematic__engagement-popup b { position: absolute; right: 12px; bottom: 16px; left: 12px; height: 5px; border-radius: 2px; background: #ff7100; }
+.dsf-schematic__engagement-bar { display: flex; grid-column: span 2; align-items: center; padding: 0 7px; gap: 5px; }
+.dsf-schematic__engagement-bar i { width: 7px; height: 7px; border-radius: 50%; background: #ff7100; }
+.dsf-schematic__engagement-bar span { flex: 1; height: 4px; border-radius: 2px; background: #80909b; }
+.dsf-schematic__engagement-bar b { width: 24px; height: 7px; border-radius: 2px; background: #0091ff; }
 
 .dsf-schematic__fwc-col {
   display: flex;
@@ -521,6 +700,142 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
   min-height: 8px;
 }
 
+/* Content */
+.dsf-schematic__content {
+  width: 86%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* FAQ */
+.dsf-schematic__faq {
+  width: 88%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dsf-schematic__faq-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.55);
+}
+
+.dsf-schematic__faq-row span {
+  color: #374151;
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* Countdown */
+.dsf-schematic__countdown {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 7px;
+  width: 100%;
+  height: 100%;
+}
+
+.dsf-schematic__countdown-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+
+.dsf-schematic__countdown-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+}
+
+.dsf-schematic__countdown-row span {
+  height: 12px;
+  border-radius: 3px;
+  background: rgba(180, 35, 24, 0.35);
+}
+
+.dsf-schematic__countdown-media {
+  min-height: 48px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #d1d5db, #9ca3af);
+}
+
+/* Pricing */
+.dsf-schematic__pricing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  gap: 5px;
+}
+
+.dsf-schematic__pricing-toggle {
+  width: 34px;
+  height: 8px;
+  margin: 1px 0;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+}
+
+.dsf-schematic__pricing-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  width: 100%;
+  flex: 1;
+}
+
+.dsf-schematic__pricing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+}
+
+.dsf-schematic__pricing-card--featured { border-color: #4f46e5; }
+.dsf-schematic__pricing-price { width: 45%; height: 7px; background: #111827; border-radius: 2px; }
+.dsf-schematic__pricing-button { width: 100%; height: 7px; margin-top: auto; background: #c7d2fe; border-radius: 2px; }
+
+/* Expander Hero */
+.dsf-schematic__expander-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+}
+
+.dsf-schematic__expander-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.dsf-schematic__expander-row span {
+  min-height: 22px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #d1d5db, #9ca3af);
+}
+
+.dsf-schematic__expander-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 18px;
+  border-radius: 3px;
+  background: rgba(118, 166, 75, 0.8);
+}
+
 /* Features Grid */
 .dsf-schematic__features-grid {
   width: 100%;
@@ -548,7 +863,7 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
 .dsf-schematic__card-icon {
   width: 14px;
   height: 14px;
-  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  background: linear-gradient(135deg, var(--dsf-brand-blue) 0%, var(--dsf-brand-coral) 100%);
   border-radius: 50%;
 }
 
@@ -715,7 +1030,7 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, var(--dsf-brand-blue-dark) 0%, var(--dsf-brand-blue) 100%);
   padding: 12px;
   border-radius: 6px;
 }
@@ -1135,4 +1450,50 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
   grid-row: 1 / 3;
   background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
 }
+
+/* Landing: Product Hero */
+.dsf-schematic__l-hero { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; height: 100%; align-items: center; }
+.dsf-schematic__l-hero-copy { display: flex; flex-direction: column; gap: 5px; }
+.dsf-schematic__l-hero-copy span { width: 30%; height: 5px; border-radius: 2px; background: #ff7100; }
+.dsf-schematic__l-hero-copy b { width: 38px; height: 9px; margin-top: 2px; border-radius: 3px; background: #0091ff; }
+.dsf-schematic__l-hero-studio { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1.4fr 1fr; gap: 3px; height: 80%; padding: 5px; border-radius: 4px; background: #fff; box-shadow: 0 2px 8px rgba(7,27,47,0.12); }
+.dsf-schematic__l-hero-studio i { border-radius: 2px; background: linear-gradient(135deg, #a4d2f6, #0091ff); }
+.dsf-schematic__l-hero-studio i:first-child { grid-column: 1 / 3; }
+.dsf-schematic__l-hero-studio i:nth-child(3) { background: #ffc08e; }
+
+/* Landing: Progress Header */
+.dsf-schematic__l-header { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.dsf-schematic__l-header-bar { display: flex; align-items: center; gap: 5px; height: 18px; padding: 0 7px; border-radius: 4px; background: #fff; box-shadow: inset 0 0 0 1px #e2e8f0; }
+.dsf-schematic__l-header-bar em { width: 12px; height: 12px; border-radius: 3px; background: linear-gradient(135deg, #0091ff, #ff7100); }
+.dsf-schematic__l-header-bar span { width: 16px; height: 4px; border-radius: 2px; background: #94a3b8; }
+.dsf-schematic__l-header-bar b { width: 22px; height: 9px; margin-left: auto; border-radius: 3px; background: #0091ff; }
+.dsf-schematic__l-header-progress { width: 60%; height: 3px; border-radius: 2px; background: #0091ff; }
+
+/* Landing: Block Explorer */
+.dsf-schematic__l-explorer { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.dsf-schematic__l-explorer-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.dsf-schematic__l-explorer-row span { aspect-ratio: 3/4; border-radius: 4px; background: #fff; box-shadow: inset 0 0 0 1px #e2e8f0; }
+.dsf-schematic__l-explorer-row span:nth-child(1) { background: linear-gradient(135deg, #a4d2f6, #0091ff); }
+.dsf-schematic__l-explorer-row span:nth-child(3) { background: #fff0e9; }
+
+/* Landing: Product Story */
+.dsf-schematic__l-story { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; height: 100%; align-items: center; }
+.dsf-schematic__l-story-copy { display: flex; flex-direction: column; gap: 5px; }
+.dsf-schematic__l-story-copy span { width: 28%; height: 5px; border-radius: 2px; background: #0091ff; }
+.dsf-schematic__l-story-copy b { width: 34px; height: 9px; margin-top: 2px; border-radius: 3px; background: #0091ff; }
+.dsf-schematic__l-story-visual { height: 70%; border-radius: 5px; background: linear-gradient(135deg, #a4d2f6, #0091ff); }
+
+/* Landing: Trust / Workflow */
+.dsf-schematic__l-trust { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.dsf-schematic__l-trust-flow { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+.dsf-schematic__l-trust-flow::before { content: ''; position: absolute; left: 8px; right: 8px; top: 50%; height: 2px; background: #ff7100; }
+.dsf-schematic__l-trust-flow i { position: relative; width: 12px; height: 12px; border-radius: 50%; background: #0091ff; border: 2px solid #f1f5f9; }
+
+/* Landing: Marketing Footer */
+.dsf-schematic__l-footer { display: flex; flex-direction: column; gap: 7px; width: 100%; height: 100%; padding: 8px; border-radius: 4px; background: #101b26; }
+.dsf-schematic__l-footer-cta { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.dsf-schematic__l-footer-cta .dsf-schematic__line { background: rgba(255,255,255,0.7); }
+.dsf-schematic__l-footer-cta b { width: 26px; height: 9px; border-radius: 3px; background: #fff; flex-shrink: 0; }
+.dsf-schematic__l-footer-cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: auto; }
+.dsf-schematic__l-footer-cols span { height: 16px; border-radius: 2px; background: rgba(255,255,255,0.16); }
 </style>

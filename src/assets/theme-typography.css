@@ -12,6 +12,34 @@
 :root {
   --dsf-theme-heading-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --dsf-theme-body-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --dsf-theme-h1: 42px;
+  --dsf-theme-h1-size: 42px;
+  --dsf-theme-h2: 37px;
+  --dsf-theme-h2-size: 37px;
+  --dsf-theme-p-size: 20px;
+  --dsf-theme-text-base: 20px;
+}
+
+/* Semantic content sizes shared by editor previews and published DSFlow pages. */
+.dsf-frontend-blocks .dsf-block-preview h1,
+#dsf-editor-app .dsf-canvas .dsf-block-preview h1,
+.dsf-modal__content h1,
+.dsf-page-popup__body h1 {
+  font-size: var(--dsf-theme-h1, 42px) !important;
+}
+
+.dsf-frontend-blocks .dsf-block-preview h2,
+#dsf-editor-app .dsf-canvas .dsf-block-preview h2,
+.dsf-modal__content h2,
+.dsf-page-popup__body h2 {
+  font-size: var(--dsf-theme-h2, 37px) !important;
+}
+
+.dsf-frontend-blocks .dsf-block-preview p,
+#dsf-editor-app .dsf-canvas .dsf-block-preview p,
+.dsf-modal__content p,
+.dsf-page-popup__body p {
+  font-size: var(--dsf-theme-p-size, 20px) !important;
 }
 
 /* ========================================
@@ -33,6 +61,29 @@
   line-height: 1.5;
   word-wrap: break-word;
   overflow-wrap: break-word;
+}
+
+/* Every block inherits the selected page font; semantic headings use heading font. */
+.dsf-frontend-blocks .dsf-block-preview,
+#dsf-editor-app .dsf-canvas .dsf-block-preview,
+.dsf-modal__content,
+.dsf-page-popup__content {
+  color: var(--dsf-theme-text, inherit);
+  font-family: var(--dsf-theme-body-font, inherit) !important;
+}
+
+.dsf-frontend-blocks .dsf-block-preview :is(h1, h2, h3, h4, h5, h6),
+#dsf-editor-app .dsf-canvas .dsf-block-preview :is(h1, h2, h3, h4, h5, h6),
+.dsf-modal__content :is(h1, h2, h3, h4, h5, h6),
+.dsf-page-popup__content :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--dsf-theme-heading-font, inherit) !important;
+}
+
+.dsf-frontend-blocks .dsf-block-preview :is(p, a, button, input, select, textarea, label),
+#dsf-editor-app .dsf-canvas .dsf-block-preview :is(p, a, button, input, select, textarea, label),
+.dsf-modal__content :is(p, a, button, input, select, textarea, label),
+.dsf-page-popup__content :is(p, a, button, input, select, textarea, label) {
+  font-family: var(--dsf-theme-body-font, inherit) !important;
 }
 
 /* Button text with fixed metrics */

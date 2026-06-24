@@ -123,8 +123,8 @@ const iconComponent = computed(() => {
 }
 
 .dsf-confirm-icon--info {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--dsf-brand-blue-soft);
+  color: var(--dsf-brand-blue);
 }
 
 .dsf-confirm-title {
@@ -158,8 +158,9 @@ const iconComponent = computed(() => {
 }
 
 .dsf-confirm-btn--cancel {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--dsf-ui-paper);
+  color: var(--dsf-ui-ink);
+  border: 1px solid var(--dsf-ui-border);
 }
 
 .dsf-confirm-btn--cancel:hover {
@@ -187,11 +188,11 @@ const iconComponent = computed(() => {
 }
 
 .dsf-confirm-btn--info {
-  background: #2563eb;
+  background: var(--dsf-brand-blue);
 }
 
 .dsf-confirm-btn--info:hover {
-  background: #1d4ed8;
+  background: var(--dsf-brand-blue-dark);
 }
 
 /* Transitions */

@@ -5,6 +5,14 @@ const THEME_COLOR_ALIASES = {
   backgroundColor: new Set(['#ffffff', '#f5f5f4']),
 }
 
+const BACKGROUND_COLOR_KEYS = /^(backgroundColor|contentBackgroundColor|cardColor|panelColor)$/i
+const SURFACE_BACKGROUND_KEYS = /(panel|mega|content|card)Background$/i
+const PRIMARY_BACKGROUND_KEYS = /Background$/i
+const PRIMARY_COLOR_KEYS = /(primaryColor|accentColor|buttonColor|ctaColor|badgeColor|barColor|bannerColor|circleColor|iconBackground|socialBackgroundColor|priceColor|salePriceColor)$/i
+const SECONDARY_COLOR_KEYS = /(secondaryColor|dividerColor|borderColor|mutedColor|noticeColor)$/i
+const BACKGROUND_TEXT_KEYS = /(buttonTextColor|ctaTextColor|barTextColor|bannerTextColor|circleTextColor|iconColor|socialIconColor)$/i
+const TEXT_COLOR_KEYS = /(textColor|titleColor|subtitleColor|headingColor|questionColor|answerColor|descriptionColor|linkColor|logoColor)$/i
+
 export function normalizeValue(value) {
   if (typeof value !== 'string') return ''
   return value.trim().toLowerCase()
@@ -16,6 +24,15 @@ export function resolveThemeKey(value, key = '') {
   if (key === 'bodyFont') return 'bodyFont'
   if (key === 'titleFont') return 'headingFont'
   if (key === 'textFont') return 'bodyFont'
+
+  // Color setting names are more reliable than legacy registration defaults.
+  if (SURFACE_BACKGROUND_KEYS.test(key)) return 'backgroundColor'
+  if (PRIMARY_BACKGROUND_KEYS.test(key)) return 'primaryColor'
+  if (BACKGROUND_COLOR_KEYS.test(key)) return 'backgroundColor'
+  if (PRIMARY_COLOR_KEYS.test(key)) return 'primaryColor'
+  if (SECONDARY_COLOR_KEYS.test(key)) return 'secondaryColor'
+  if (BACKGROUND_TEXT_KEYS.test(key)) return 'backgroundColor'
+  if (TEXT_COLOR_KEYS.test(key)) return 'textColor'
 
   // Then check values (colors)
   const normalized = normalizeValue(value)
@@ -44,7 +61,7 @@ export function shouldSyncSetting(currentValue, themeKey, oldThemeValue) {
   return aliasSet ? aliasSet.has(normalized) : false
 }
 
-export function applyThemeToBlocks(blocksList, oldTheme, newTheme, linkedSettingsMap) {
+export function applyThemeToBlocks(blocksList, oldTheme, newTheme, linkedSettingsMap, options = {}) {
   if (!oldTheme || !newTheme) return blocksList
   if (!Array.isArray(blocksList)) return blocksList
 
@@ -60,7 +77,9 @@ export function applyThemeToBlocks(blocksList, oldTheme, newTheme, linkedSetting
       // if (!(settingKey in nextSettings)) return // - Removed to allow injecting theme defaults if missing? No, safer to keep.
       if (!(settingKey in nextSettings)) return
 
-      if (!shouldSyncSetting(nextSettings[settingKey], themeKey, oldTheme[themeKey])) return
+      const themeValueChanged = normalizeValue(oldTheme[themeKey]) !== normalizeValue(newTheme[themeKey])
+      if (!themeValueChanged) return
+      if (!options.forceChangedThemeKeys && !shouldSyncSetting(nextSettings[settingKey], themeKey, oldTheme[themeKey])) return
       
       nextSettings[settingKey] = newTheme[themeKey]
       updated = true

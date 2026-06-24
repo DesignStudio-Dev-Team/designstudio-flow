@@ -1,6 +1,10 @@
 <template>
   <div class="dsf-block-preview dsf-featured-promo" :style="previewStyle">
-    <div class="dsf-featured-promo__container" :class="{ 'dsf-featured-promo__container--image-left': imagePosition === 'left' }">
+    <div
+      class="dsf-featured-promo__container"
+      :class="containerClasses"
+      :style="containerStyle"
+    >
       
       <!-- Layer 1: Image Background (Right Side mainly, but full cover behind SVG) -->
       <div class="dsf-featured-promo__image-layer">
@@ -13,9 +17,10 @@
         <div v-else class="dsf-featured-promo__placeholder"></div>
       </div>
 
-      <!-- Layer 2: SVG Overlay (Background + Decoration + Mask) -->
+      <!-- Layer 2: Filled background shapes form the boundary with the image. -->
       <div class="dsf-featured-promo__svg-layer">
         <svg 
+          v-if="dividerStyle === 'circle'"
           class="dsf-featured-promo__svg" 
           viewBox="0 0 809 450" 
           preserveAspectRatio="none" 
@@ -43,17 +48,32 @@
             />
           </g>
         </svg>
+        <svg
+          v-else
+          class="dsf-featured-promo__svg dsf-featured-promo__svg--geometric"
+          viewBox="0 0 1000 450"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <path
+            class="dsf-featured-promo__divider-shape"
+            :data-divider-shape="dividerStyle"
+            :d="dividerShapePath"
+            :fill="settings.backgroundColor || '#E0F2F1'"
+          />
+        </svg>
       </div>
 
       <!-- Layer 3: Content -->
-      <div class="dsf-featured-promo__content" :style="{ color: settings.textColor || '#1F2937' }">
+      <div class="dsf-featured-promo__content" :style="contentStyle">
         <InlineText 
           tagName="h2" 
           class="dsf-featured-promo__title"
-          :style="{ color: settings.titleColor || '#1F2937' }"
+          :style="titleStyle"
           v-model="settings.headerText"
           :is-editor="isEditor"
-          placeholder="New At Backyard Leisure"
+          placeholder="Default title here"
         />
         
         <div class="dsf-featured-promo__divider" :style="{ borderColor: settings.badgeColor || '#3D736A' }"></div>
@@ -61,9 +81,10 @@
         <InlineText 
           tagName="p" 
           class="dsf-featured-promo__description"
+          :class="{ 'dsf-featured-promo__description--normal': descriptionSize === 'normal' }"
           v-model="settings.descriptionText"
           :is-editor="isEditor"
-          placeholder="Description goes here..."
+          placeholder="Default text here"
           :multiline="true"
         />
         
@@ -148,14 +169,57 @@ const { openModal } = useFlowModal()
 const imagePosition = computed(() => props.settings?.imagePosition || 'right')
 const showButton = computed(() => props.settings?.showButton !== false)
 const showBadge = computed(() => props.settings?.showBadge !== false)
+const dividerStyles = ['circle', 'arrow', 'vertical', 'diagonal-forward', 'diagonal-backward']
+const dividerStyle = computed(() => (
+  dividerStyles.includes(props.settings?.dividerStyle) ? props.settings.dividerStyle : 'circle'
+))
+const descriptionSize = computed(() => props.settings?.descriptionSize || 'large')
+
+const dividerShapePath = computed(() => ({
+  arrow: 'M0 0H500L600 225L500 450H0Z',
+  vertical: 'M0 0H520V450H0Z',
+  'diagonal-forward': 'M0 0H600L500 450H0Z',
+  'diagonal-backward': 'M0 0H500L600 450H0Z',
+}[dividerStyle.value] || 'M0 0H520V450H0Z'))
+
+const containerClasses = computed(() => ({
+  'dsf-featured-promo__container--image-left': imagePosition.value === 'left',
+  [`dsf-featured-promo__container--divider-${dividerStyle.value}`]: true,
+}))
 
 const previewStyle = computed(() => {
   const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 0
+  const paddingX = getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 0
   return {
     paddingTop: `${paddingY}px`,
     paddingBottom: `${paddingY}px`,
+    paddingLeft: `${paddingX}px`,
+    paddingRight: `${paddingX}px`,
   }
 })
+
+const containerStyle = computed(() => {
+  const height = getResponsiveValue(props.settings || {}, props.previewMode, 'height') ?? 450
+  const contentSpacing = getResponsiveValue(props.settings || {}, props.previewMode, 'contentSpacing') ?? 24
+  return {
+    '--dsf-featured-promo-height': `${height}px`,
+    '--dsf-featured-promo-bg': props.settings?.backgroundColor || '#E0F2F1',
+    '--dsf-featured-promo-spacing': `${contentSpacing}px`,
+  }
+})
+
+const contentStyle = computed(() => {
+  const contentPadding = getResponsiveValue(props.settings || {}, props.previewMode, 'contentPadding') ?? 40
+  return {
+    color: props.settings?.textColor || '#1F2937',
+    padding: `${contentPadding}px`,
+  }
+})
+
+const titleStyle = computed(() => ({
+  color: props.settings?.titleColor || '#1F2937',
+  letterSpacing: `${props.settings?.titleLetterSpacing ?? 0}px`,
+}))
 
 const buttonHref = computed(() =>
   (props.settings?.buttonAction || 'link') === 'link'
@@ -196,9 +260,9 @@ function handleButtonClick(event) {
   display: block; /* Removed grid */
   border-radius: 8px;
   overflow: hidden;
-  min-height: 450px; /* Match SVG height ratio approx */
+  min-height: var(--dsf-featured-promo-height, 450px); /* Match SVG height ratio approx */
   position: relative;
-  background-color: #f3f4f6; /* Default background if image/svg missing */
+  background-color: var(--dsf-featured-promo-bg, #E0F2F1);
 }
 
 /* Layer 1: Image */
@@ -235,6 +299,10 @@ function handleButtonClick(event) {
   pointer-events: none; /* Let clicks pass through if needed, though content is on top */
 }
 
+.dsf-featured-promo__container:not(.dsf-featured-promo__container--divider-circle) .dsf-featured-promo__svg-layer {
+  max-width: none;
+}
+
 .dsf-featured-promo__svg {
   width: 100%;
   height: 100%;
@@ -250,18 +318,28 @@ function handleButtonClick(event) {
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 40px;
   width: 100%; /* Match SVG width */
   max-width: 700px;
   height: 100%;
-  min-height: 450px; /* Ensure content area matches height */
+  min-height: var(--dsf-featured-promo-height, 450px); /* Ensure content area matches height */
+  background-color: transparent;
+}
+
+.dsf-featured-promo__container:not(.dsf-featured-promo__container--divider-circle) .dsf-featured-promo__content {
+  width: 52%;
+  max-width: none;
+  background-color: transparent;
+}
+
+.dsf-featured-promo__container:not(.dsf-featured-promo__container--divider-circle) .dsf-featured-promo__image-layer {
+  width: 52%;
 }
 
 .dsf-featured-promo__title {
   font-family: var(--dsf-theme-heading-font, inherit);
   font-size: var(--dsf-theme-h1, 42px);
   font-weight: 700;
-  margin-bottom: 24px;
+  margin-bottom: var(--dsf-featured-promo-spacing, 24px);
   line-height: 1.15;
   width: 100%;
   max-width: 600px;
@@ -272,17 +350,22 @@ function handleButtonClick(event) {
 .dsf-featured-promo__divider {
   width: 60px;
   border-bottom: 3px solid;
-  margin-bottom: 24px;
+  margin-bottom: var(--dsf-featured-promo-spacing, 24px);
 }
 
 .dsf-featured-promo__description {
   font-family: var(--dsf-theme-body-font, inherit);
   font-size: var(--dsf-theme-text-2xl, 24px);
-  margin-bottom: 32px;
+  margin-bottom: calc(var(--dsf-featured-promo-spacing, 24px) + 8px);
   line-height: 1.4;
   max-width: 80%;
   word-wrap: break-word;
   overflow-wrap: break-word;
+}
+
+.dsf-featured-promo__description--normal {
+  font-size: var(--dsf-theme-text-base, 16px);
+  line-height: 1.55;
 }
 
 .dsf-featured-promo__arrow-btn {
@@ -373,6 +456,10 @@ function handleButtonClick(event) {
 }
 
 .dsf-featured-promo__container--image-left .dsf-featured-promo__content {
+  margin-left: auto;
+}
+
+.dsf-featured-promo__container--image-left:not(.dsf-featured-promo__container--divider-circle) .dsf-featured-promo__content {
   margin-left: auto;
 }
 
@@ -477,6 +564,10 @@ function handleButtonClick(event) {
     max-width: 100%;
     min-height: auto;
     padding: 24px;
+  }
+
+  .dsf-featured-promo__container:not(.dsf-featured-promo__container--divider-circle) .dsf-featured-promo__content {
+    width: 100%;
   }
 
   .dsf-featured-promo__title { font-size: var(--dsf-theme-h3, 28px); }

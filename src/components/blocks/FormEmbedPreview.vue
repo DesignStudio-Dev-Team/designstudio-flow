@@ -535,12 +535,16 @@ onBeforeUnmount(() => {
 .dsf-form-embed-preview__frontend :deep(.gchoice > input[type="radio"]) {
   position: static !important;
   display: inline-block !important;
-  width: 16px !important;
-  height: 16px !important;
-  min-width: 16px !important;
-  min-height: 16px !important;
+  width: 25px !important;
+  height: 25px !important;
+  min-width: 25px !important;
+  min-height: 25px !important;
   margin: 0 !important;
-  flex: 0 0 16px !important;
+  opacity: 1 !important;
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  accent-color: #aaa !important;
+  flex: 0 0 25px !important;
 }
 
 @container (max-width: 600px) {

@@ -32,7 +32,7 @@
           <img
             v-if="settings.logoImage"
             :src="settings.logoImage"
-            alt="Logo"
+            :alt="settings.logoAlt || 'Site logo'"
             class="dsf-header-mega__brand-image"
             :style="{ width: `${logoImageSizePercent}%`, maxHeight: `${logoImageMaxHeight}px` }"
           />
@@ -49,23 +49,23 @@
         </a>
 
         <div class="dsf-header-mega__actions" :style="{ '--icon-bg': settings.iconBackground || '#2C6B34', '--icon-color': settings.iconColor || '#fff' }">
-          <button v-if="settings.showLanguage" class="dsf-header-mega__icon-btn" @click="preventInEditor">
+          <a v-if="settings.showLanguage" class="dsf-header-mega__icon-btn" :href="settings.languageUrl || '#'" aria-label="Language" @click="preventInEditor">
             <Globe :size="16" />
-          </button>
-          <button v-if="settings.showSearch !== false" class="dsf-header-mega__icon-btn" @click="preventInEditor">
+          </a>
+          <a v-if="settings.showSearch !== false" class="dsf-header-mega__icon-btn" :href="settings.searchUrl || '/?s='" aria-label="Search" @click="preventInEditor">
             <Search :size="16" />
-          </button>
-          <button v-if="settings.showAccount !== false" class="dsf-header-mega__icon-btn" @click="preventInEditor">
+          </a>
+          <a v-if="settings.showAccount !== false" class="dsf-header-mega__icon-btn" :href="settings.accountUrl || '/my-account/'" aria-label="Account" @click="preventInEditor">
             <User :size="16" />
-          </button>
-          <button v-if="settings.showCart !== false" class="dsf-header-mega__icon-btn dsf-header-mega__icon-btn--cart" @click="preventInEditor">
+          </a>
+          <a v-if="settings.showCart !== false" class="dsf-header-mega__icon-btn dsf-header-mega__icon-btn--cart" :href="settings.cartUrl || '/cart/'" aria-label="Cart" @click="preventInEditor">
             <ShoppingCart :size="16" />
             <span>{{ numericCartCount }}</span>
-          </button>
+          </a>
         </div>
 
         <div class="dsf-header-mega__mobile-actions">
-          <button class="dsf-header-mega__mobile-toggle" type="button" @click="openMobileMenu">
+          <button class="dsf-header-mega__mobile-toggle" type="button" aria-label="Open menu" :aria-expanded="mobileOpen" @click="openMobileMenu">
             <Menu :size="20" />
           </button>
         </div>
@@ -90,7 +90,10 @@
           class="dsf-header-mega__menu-item"
           :class="{ 'is-active': activeIndex === index }"
           :style="activeIndex === index ? { backgroundColor: settings.activeNavBackground || '#fff', color: settings.activeNavTextColor || '#111827' } : {}"
+          :aria-expanded="item.hasMega ? activeIndex === index : null"
+          :aria-haspopup="item.hasMega ? 'true' : null"
           @mouseenter="setActive(index)"
+          @focus="setActive(index)"
           @click="onMenuClick($event, index)"
         >
           <InlineText
@@ -188,6 +191,8 @@
     <aside
       class="dsf-header-mega__mobile-drawer"
       :class="{ 'is-open': mobileOpen }"
+      :aria-hidden="!mobileOpen"
+      aria-label="Mobile navigation"
       :style="{
         '--mobile-bg': settings.mobileMenuBackground || '#27357a',
         '--mobile-text': settings.mobileMenuTextColor || '#ffffff',
@@ -219,7 +224,7 @@
             <span>{{ settings.mobilePhoneNumber }}</span>
           </a>
         </div>
-        <button class="dsf-header-mega__mobile-close" type="button" @click="closeMobileMenu">
+        <button class="dsf-header-mega__mobile-close" type="button" aria-label="Close menu" @click="closeMobileMenu">
           <X :size="20" />
         </button>
       </div>
@@ -248,6 +253,7 @@
               v-if="hasMobileChildren(item)"
               class="dsf-header-mega__mobile-expand"
               type="button"
+              :aria-expanded="isMobileExpanded(index)"
               @click="toggleMobileItem(index)"
             >
               <ChevronDown v-if="isMobileExpanded(index)" :size="18" />
@@ -275,6 +281,7 @@
                   v-if="hasMobileColumnLinks(column)"
                   class="dsf-header-mega__mobile-expand"
                   type="button"
+                  :aria-expanded="isMobileColumnExpanded(index, columnIndex)"
                   @click="toggleMobileColumn(index, columnIndex)"
                 >
                   <ChevronDown v-if="isMobileColumnExpanded(index, columnIndex)" :size="18" />
@@ -315,10 +322,10 @@
     </aside>
 
     <div v-if="findPopupOpen" class="dsf-header-mega__find-overlay" @click="closeFindPopup">
-      <div class="dsf-header-mega__find-modal" @click.stop>
+      <div class="dsf-header-mega__find-modal" role="dialog" aria-modal="true" :aria-label="findPopupTitle" @click.stop>
         <div class="dsf-header-mega__find-header">
           <h3>{{ findPopupTitle }}</h3>
-          <button class="dsf-header-mega__find-close" type="button" @click="closeFindPopup">
+          <button class="dsf-header-mega__find-close" type="button" aria-label="Close store finder" @click="closeFindPopup">
             <X :size="18" />
           </button>
         </div>
@@ -390,7 +397,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import { ChevronDown, ChevronRight, Globe, MapPin, Menu, Phone, Search, ShoppingCart, User, X } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
 
@@ -416,10 +423,16 @@ const mobileExpanded = ref(new Set())
 const mobileExpandedColumns = ref(new Set())
 const findPopupOpen = ref(false)
 const findPopupType = ref('store')
+let previousBodyOverflow = ''
 
 const defaultUtilityLinks = [
   { label: 'Test', url: '#' },
   { label: 'About', url: '#' },
+]
+
+const defaultMobileStores = [
+  { title: 'New Hampton', address: '5008 Route 17M\nNew Hampton, New York 10958', mapsLabel: 'Open in Google Maps', mapsUrl: '#', buttonLabel: 'Set as Default', buttonUrl: '#' },
+  { title: 'Newburgh', address: '49 Route 17K\nNewburgh, New York 12550', mapsLabel: 'Open in Google Maps', mapsUrl: '#', buttonLabel: 'Set as Default', buttonUrl: '#' },
 ]
 
 const defaultMegaColumns = [
@@ -648,6 +661,24 @@ watch(
   }
 )
 
+watch(
+  () => mobileOpen.value || findPopupOpen.value,
+  (isOverlayOpen) => {
+    if (isOverlayOpen) {
+      previousBodyOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return
+    }
+    document.body.style.overflow = previousBodyOverflow
+  }
+)
+
+onMounted(() => window.addEventListener('keydown', handleEscape))
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleEscape)
+  document.body.style.overflow = previousBodyOverflow
+})
+
 const numericCartCount = computed(() => {
   const value = parseInt(props.settings?.cartCount ?? 0, 10)
   return Number.isNaN(value) ? 0 : value
@@ -762,11 +793,6 @@ function hasBannerContent(banner) {
   return !!String(banner.title || '').trim()
 }
 
-const defaultMobileStores = [
-  { title: 'New Hampton', address: '5008 Route 17M\nNew Hampton, New York 10958', mapsLabel: 'Open in Google Maps', mapsUrl: '#', buttonLabel: 'Set as Default', buttonUrl: '#' },
-  { title: 'Newburgh', address: '49 Route 17K\nNewburgh, New York 12550', mapsLabel: 'Open in Google Maps', mapsUrl: '#', buttonLabel: 'Set as Default', buttonUrl: '#' },
-]
-
 const mobileStores = computed(() => {
   const list = Array.isArray(props.settings?.mobileStores) ? props.settings.mobileStores : []
   if (list.length) {
@@ -785,6 +811,8 @@ function openMobileMenu() {
 
 function closeMobileMenu() {
   mobileOpen.value = false
+  mobileExpanded.value = new Set()
+  mobileExpandedColumns.value = new Set()
 }
 
 function toggleMobileItem(index) {
@@ -837,12 +865,26 @@ function isMobileColumnExpanded(itemIndex, columnIndex) {
 }
 
 function openFindPopup(type) {
+  closeMobileMenu()
   findPopupType.value = type
   findPopupOpen.value = true
 }
 
 function closeFindPopup() {
   findPopupOpen.value = false
+}
+
+function handleEscape(event) {
+  if (event.key !== 'Escape') return
+  if (findPopupOpen.value) {
+    closeFindPopup()
+    return
+  }
+  if (mobileOpen.value) {
+    closeMobileMenu()
+    return
+  }
+  activeIndex.value = null
 }
 </script>
 
@@ -947,6 +989,7 @@ function closeFindPopup() {
   background: var(--icon-bg);
   color: var(--icon-color);
   cursor: pointer;
+  text-decoration: none;
 }
 
 .dsf-header-mega__icon-btn--cart {

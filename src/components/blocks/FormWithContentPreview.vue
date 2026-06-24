@@ -425,12 +425,16 @@ body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > input[type="radio"] {
   position: static !important;
   display: inline-block !important;
-  width: 16px !important;
-  height: 16px !important;
-  min-width: 16px !important;
-  min-height: 16px !important;
-  flex: 0 0 16px !important;
+  width: 25px !important;
+  height: 25px !important;
+  min-width: 25px !important;
+  min-height: 25px !important;
+  flex: 0 0 25px !important;
   margin: 0 !important;
+  opacity: 1 !important;
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  accent-color: #aaa !important;
 }
 
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > label {
@@ -1312,13 +1316,17 @@ onBeforeUnmount(() => {
 .dsf-form-with-content__form-frontend :deep(input[type="radio"]) {
   position: static;
   display: inline-block;
-  width: 16px !important;
-  height: 16px !important;
+  width: 25px !important;
+  height: 25px !important;
+  min-width: 25px !important;
+  min-height: 25px !important;
   margin: 0 !important;
   opacity: 1;
   appearance: auto;
+  -webkit-appearance: auto;
+  accent-color: #aaa;
   vertical-align: middle;
-  flex: 0 0 16px !important;
+  flex: 0 0 25px !important;
 }
 
 /* Keep the checkbox/radio inline with its label inside Gravity Forms choices. */

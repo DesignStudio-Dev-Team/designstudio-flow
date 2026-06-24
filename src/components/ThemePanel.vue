@@ -1,21 +1,41 @@
 <template>
-  <aside class="dsf-panel dsf-animate-slide-in-right">
+  <aside class="dsf-panel">
     <div class="dsf-panel__header">
       <div>
         <h2 class="dsf-panel__title">Theme Settings</h2>
         <p class="dsf-panel__subtitle">Customize colors and typography</p>
       </div>
-      <button class="dsf-panel__close" @click="$emit('close')">
-        <X :size="20" />
-      </button>
+      <div class="dsf-theme-panel__actions">
+        <button
+          class="dsf-theme-panel__undo"
+          type="button"
+          :disabled="!canUndo"
+          title="Undo last theme change"
+          @click="$emit('undo-theme')"
+        >
+          <Undo2 :size="16" />
+          Undo
+        </button>
+        <button class="dsf-panel__close" type="button" @click="$emit('close')">
+          <X :size="20" />
+        </button>
+      </div>
     </div>
     
     <div class="dsf-panel__body">
+      <div class="dsf-theme-panel__site-defaults">
+        <div>
+          <strong>Site theme defaults</strong>
+          <span>Matches DesignStudio Flow settings in WordPress.</span>
+        </div>
+        <button type="button" @click="$emit('restore-defaults')">Restore</button>
+      </div>
+
       <!-- Primary Color -->
       <div class="dsf-form-group">
         <label class="dsf-label">Primary Color</label>
         <ColorPicker 
-          :modelValue="settings.theme?.primaryColor || '#3B82F6'" 
+          :modelValue="settings.theme?.primaryColor || defaultTheme.primaryColor"
           @update:modelValue="updateTheme('primaryColor', $event)" 
         />
         <p class="dsf-helper-text">Used for buttons and accents</p>
@@ -25,7 +45,7 @@
       <div class="dsf-form-group">
         <label class="dsf-label">Secondary Color</label>
         <ColorPicker 
-          :modelValue="settings.theme?.secondaryColor || '#1E40AF'" 
+          :modelValue="settings.theme?.secondaryColor || defaultTheme.secondaryColor"
           @update:modelValue="updateTheme('secondaryColor', $event)" 
         />
       </div>
@@ -34,7 +54,7 @@
       <div class="dsf-form-group">
         <label class="dsf-label">Text Color</label>
         <ColorPicker 
-          :modelValue="settings.theme?.textColor || '#1F2937'" 
+          :modelValue="settings.theme?.textColor || defaultTheme.textColor"
           @update:modelValue="updateTheme('textColor', $event)" 
         />
       </div>
@@ -43,7 +63,7 @@
       <div class="dsf-form-group">
         <label class="dsf-label">Background Color</label>
         <ColorPicker 
-          :modelValue="settings.theme?.backgroundColor || '#FFFFFF'" 
+          :modelValue="settings.theme?.backgroundColor || defaultTheme.backgroundColor"
           @update:modelValue="updateTheme('backgroundColor', $event)" 
         />
       </div>
@@ -57,7 +77,7 @@
           Heading Font
         </label>
         <FontPicker
-          :modelValue="settings.theme?.headingFont || ''"
+          :modelValue="settings.theme?.headingFont || defaultTheme.headingFont || ''"
           @update:modelValue="updateTheme('headingFont', $event)"
         />
         <p class="dsf-helper-text">Used for titles and headings</p>
@@ -66,7 +86,7 @@
       <div class="dsf-form-group">
         <label class="dsf-label">Body Font</label>
         <FontPicker
-          :modelValue="settings.theme?.bodyFont || ''"
+          :modelValue="settings.theme?.bodyFont || defaultTheme.bodyFont || ''"
           @update:modelValue="updateTheme('bodyFont', $event)"
         />
         <p class="dsf-helper-text">Used for paragraphs and text</p>
@@ -215,12 +235,24 @@
 
 <script setup>
 import { computed } from 'vue'
-import { X, Type } from 'lucide-vue-next'
+import { X, Type, Undo2 } from 'lucide-vue-next'
 import ColorPicker from './common/ColorPicker.vue'
 import FontPicker from './common/FontPicker.vue'
 
 const props = defineProps({
   settings: Object,
+  defaultTheme: {
+    type: Object,
+    default: () => ({
+      primaryColor: '#2C5F5D',
+      secondaryColor: '#1E40AF',
+      textColor: '#1F2937',
+      backgroundColor: '#FFFFFF',
+      headingFont: '',
+      bodyFont: '',
+    }),
+  },
+  canUndo: Boolean,
   postType: {
     type: String,
     default: 'page',
@@ -235,7 +267,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['close', 'update:settings'])
+const emit = defineEmits(['close', 'update:settings', 'undo-theme', 'restore-defaults'])
 
 const headerTemplates = computed(() => props.layoutTemplates?.headers || [])
 const footerTemplates = computed(() => props.layoutTemplates?.footers || [])
@@ -246,6 +278,7 @@ function updateTheme(key, value) {
       ...props.settings.theme,
       [key]: value,
     },
+    _themeChangeKey: key,
   })
 }
 
@@ -272,6 +305,73 @@ function formatTemplateOption(template) {
 </script>
 
 <style scoped>
+.dsf-theme-panel__actions,
+.dsf-theme-panel__undo {
+  display: flex;
+  align-items: center;
+}
+
+.dsf-theme-panel__actions {
+  gap: 6px;
+}
+
+.dsf-theme-panel__undo {
+  gap: 5px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--dsf-ui-border);
+  border-radius: 9px;
+  background: white;
+  color: var(--dsf-brand-blue);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dsf-theme-panel__undo:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.dsf-theme-panel__site-defaults {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 12px;
+  border: 1px solid rgb(12 95 168 / 16%);
+  border-radius: 11px;
+  background: var(--dsf-brand-blue-soft);
+}
+
+.dsf-theme-panel__site-defaults div,
+.dsf-theme-panel__site-defaults span {
+  display: block;
+}
+
+.dsf-theme-panel__site-defaults strong {
+  color: var(--dsf-ui-ink);
+  font-size: 13px;
+}
+
+.dsf-theme-panel__site-defaults span {
+  margin-top: 2px;
+  color: var(--dsf-ui-muted);
+  font-size: 11px;
+}
+
+.dsf-theme-panel__site-defaults button {
+  padding: 6px 9px;
+  border: 1px solid var(--dsf-brand-blue);
+  border-radius: 7px;
+  background: white;
+  color: var(--dsf-brand-blue);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .dsf-theme-panel-link {
   display: inline-flex;
   margin-top: 0.5rem;

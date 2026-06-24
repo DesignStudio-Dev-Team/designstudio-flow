@@ -68,10 +68,6 @@ const { openModal } = useFlowModal()
 const buttonAction = computed(() => props.settings?.buttonAction || 'link')
 const layoutStyle = computed(() => props.settings?.layoutStyle || 'centered')
 const isBottomSplit = computed(() => layoutStyle.value === 'bottom-split')
-const bottomSplitAlign = computed(() => {
-  const align = props.settings?.bottomSplitAlign
-  return ['left', 'center', 'right'].includes(align) ? align : 'left'
-})
 const showBottomGradient = computed(() => props.settings?.gradientType === 'bottom-dark')
 const buttonHref = computed(() =>
   buttonAction.value === 'link' ? (props.settings?.buttonUrl || '#') : '#'
@@ -122,17 +118,17 @@ const previewStyle = computed(() => {
 
   const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 80
   const paddingX = getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 24
+  const edgePadding = getNumberSetting('contentEdgePadding', 15)
   const bottomOffset = getNumberSetting('bottomOffset', 15)
 
-  // When the bottom-split content is pushed to the left or right edge, keep at
-  // least 15px of breathing room so it never touches the edge.
-  const edgeAligned = isBottomSplit.value && bottomSplitAlign.value !== 'center'
-  const horizontalPad = edgeAligned ? Math.max(paddingX, 15) : paddingX
+  const horizontalPad = Math.max(paddingX, edgePadding)
+  const verticalPad = Math.max(paddingY, edgePadding)
+  const bottomPad = Math.max(bottomOffset, edgePadding)
 
   return {
     padding: isBottomSplit.value
-      ? `${paddingY}px ${horizontalPad}px ${bottomOffset}px`
-      : `${paddingY}px ${paddingX}px`,
+      ? `${verticalPad}px ${horizontalPad}px ${bottomPad}px`
+      : `${verticalPad}px ${horizontalPad}px`,
     backgroundColor: props.settings?.backgroundColor || '#3B82F6',
     color: props.settings?.textColor || '#FFFFFF',
     backgroundImage: props.settings?.backgroundImage 
@@ -144,7 +140,7 @@ const previewStyle = computed(() => {
     flexDirection: 'column',
     minHeight: '500px',
     alignItems: isBottomSplit.value ? 'stretch' : (alignItemsMap[horizontal] || 'center'),
-    justifyContent: isBottomSplit.value ? 'flex-end' : (justifyContentMap[vertical] || 'center'),
+    justifyContent: justifyContentMap[vertical] || 'center',
   }
 })
 
@@ -161,7 +157,6 @@ const contentStyle = computed(() => {
   const hasBg = props.settings?.contentBackgroundColor && props.settings.contentBackgroundColor !== 'rgba(0,0,0,0)' && props.settings.contentBackgroundColor !== 'transparent'
 
   if (isBottomSplit.value) {
-    const align = bottomSplitAlign.value
     const justifyMap = {
       left: 'flex-start',
       center: 'center',
@@ -170,7 +165,7 @@ const contentStyle = computed(() => {
     const showBtn = props.settings?.showButton !== false
 
     return {
-      textAlign: align,
+      textAlign: textAlignMap[horizontal] || 'center',
       backgroundColor: props.settings?.contentBackgroundColor || 'transparent',
       padding: hasBg ? '1.5rem' : '0',
       borderRadius: hasBg ? 'var(--dsf-radius-lg)' : '0',
@@ -181,8 +176,8 @@ const contentStyle = computed(() => {
       // being pushed away by a fixed-width text column; the text width is
       // capped via textStyle (max-width).
       gridTemplateColumns: showBtn ? 'auto auto' : 'auto',
-      justifyContent: justifyMap[align] || 'flex-start',
-      justifyItems: justifyMap[align] || 'flex-start',
+      justifyContent: justifyMap[horizontal] || 'center',
+      justifyItems: justifyMap[horizontal] || 'center',
       gap: `${getNumberSetting('textButtonGap', 15)}px`,
       alignItems: 'center',
       '--hero-title-subtitle-gap': `${getNumberSetting('titleSubtitleGap', 12)}px`,

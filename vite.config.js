@@ -15,6 +15,8 @@ export default defineConfig({
       input: {
         editor: resolve(__dirname, 'src/main.js'),
         frontend: resolve(__dirname, 'src/frontend/main.js'),
+        'notification-bar': resolve(__dirname, 'src/frontend/notificationBar.js'),
+        'popup-editor': resolve(__dirname, 'src/admin/popupEditor.js'),
       },
       output: {
         entryFileNames: 'js/[name].js',

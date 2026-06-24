@@ -21,6 +21,18 @@
       @input="$emit('update', $event.target.value)"
     ></textarea>
 
+    <!-- Date and time -->
+    <input
+      v-else-if="config.type === 'datetime'"
+      type="datetime-local"
+      class="dsf-input"
+      :value="value"
+      :min="config.min"
+      :max="config.max"
+      :step="config.step || 60"
+      @input="$emit('update', $event.target.value)"
+    />
+
     <!-- WYSIWYG -->
     <WysiwygField
       v-else-if="config.type === 'wysiwyg'"
@@ -186,6 +198,36 @@
       :config="config"
       @update="$emit('update', $event)"
     />
+
+    <FaqItemsField
+      v-else-if="config.type === 'faq_items'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+
+    <ExpanderCardsField
+      v-else-if="config.type === 'expander_cards'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+
+    <GalleryItemsField
+      v-else-if="config.type === 'gallery_items'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+
+    <IconItemsField
+      v-else-if="config.type === 'icon_items'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+
+    <PricingPlansField
+      v-else-if="config.type === 'pricing_plans'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
     
     <!-- Source Selector (Dynamic options) -->
     <div v-else-if="config.type === 'source'" class="dsf-select-cards">
@@ -245,6 +287,12 @@
       @update:modelValue="$emit('update', $event)"
     />
 
+    <ShowcaseHeaderNavigationField
+      v-else-if="config.type === 'showcase_header_navigation'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+
     <!-- Footer dealers -->
     <FooterDealersField
       v-else-if="config.type === 'footer_dealers'"
@@ -272,6 +320,11 @@ import CategoriesSelector from './selectors/CategoriesSelector.vue'
 import ProductsSelector from './selectors/ProductsSelector.vue'
 import ProductAttributeFiltersField from './common/ProductAttributeFiltersField.vue'
 import ProductTagsFilterField from './common/ProductTagsFilterField.vue'
+import FaqItemsField from './common/FaqItemsField.vue'
+import ExpanderCardsField from './common/ExpanderCardsField.vue'
+import GalleryItemsField from './common/GalleryItemsField.vue'
+import IconItemsField from './common/IconItemsField.vue'
+import PricingPlansField from './common/PricingPlansField.vue'
 import ColorPicker from './common/ColorPicker.vue'
 import RepeaterField from './common/RepeaterField.vue'
 import BrandRepeaterField from './common/BrandRepeaterField.vue'
@@ -280,6 +333,7 @@ import SpotlightButtonsField from './common/SpotlightButtonsField.vue'
 import WysiwygField from './common/WysiwygField.vue'
 import SimpleLinksField from './common/SimpleLinksField.vue'
 import MegaMenuField from './common/MegaMenuField.vue'
+import ShowcaseHeaderNavigationField from './common/ShowcaseHeaderNavigationField.vue'
 import FooterDealersField from './common/FooterDealersField.vue'
 import MobileStoresField from './common/MobileStoresField.vue'
 

@@ -2,6 +2,8 @@
 
 > Build your WordPress Page with Artisanal Content Blocks.
 
+> **Building or changing a block or form?** Read [`BLOCK-BUILDING-README.md`](BLOCK-BUILDING-README.md) first. It is the mandatory human and AI/LLM workflow, including the security gates required before implementation.
+
 ---
 
 ## ✨ Overview
@@ -240,9 +242,10 @@ DesignStudio Flow is built with **WordPress security best practices** and adhere
 ### 🔍 Security Checks
 ```bash
 npm run security-check
+./vendor/bin/phpcs --standard=phpcs.xml.dist .
 ```
 
-This runs PHPCS with WordPress‑Extra rules plus `npm audit`.
+`npm run security-check` runs the JavaScript dependency audit. Run PHPCS separately to check PHP against the repository's WordPress-Extra ruleset.
 
 ---
 
@@ -420,6 +423,8 @@ Built with care by **DesignStudio Network, Inc.**
 - Replaced the Preview header action with a Settings gear.
 - Added a page settings modal for editing page title, slug, status, and parent page from inside Flow.
 - Flow Pages custom post type support was removed in favor of standard WordPress pages.
+- Added a Showcase Mega Header with an announcement bar, utility navigation, rich editorial mega panels, compact dropdowns, locations, call groups, and a nested mobile drawer.
+- Showcase header navigation uses capped nested collections, safe URL handling, and block-specific server-side sanitization.
 
 ### Hero Block
 - Added a Bottom Split hero layout with a bottom dark-to-transparent gradient.

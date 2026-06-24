@@ -1,0 +1,303 @@
+<?php
+/**
+ * Create or refresh the editable DesignStudio Flow product landing page.
+ *
+ * Run with: php scripts/seed-product-landing-page.php
+ */
+
+if ( 'cli' !== PHP_SAPI ) {
+	http_response_code( 404 );
+	exit;
+}
+
+require_once dirname( __DIR__, 4 ) . '/wp-load.php';
+
+$preferred_slug = 'landing-page';
+$existing       = get_page_by_path( $preferred_slug, OBJECT, 'page' );
+
+$post_data = array(
+	'post_title'   => 'DesignStudio Flow',
+	'post_name'    => $preferred_slug,
+	'post_type'    => 'page',
+	'post_status'  => 'publish',
+	'post_content' => '',
+);
+
+if ( $existing ) {
+	$post_data['ID'] = $existing->ID;
+}
+
+$post_id = wp_insert_post( wp_slash( $post_data ), true );
+if ( is_wp_error( $post_id ) ) {
+	fwrite( STDERR, $post_id->get_error_message() . PHP_EOL );
+	exit( 1 );
+}
+
+$make_block = static function ( $id, $type, $settings ) {
+	return array(
+		'id'       => $id,
+		'type'     => $type,
+		'settings' => array_merge(
+			array(
+				'paddingX' => 0,
+				'marginY'  => 0,
+			),
+			$settings
+		),
+	);
+};
+
+$blocks = array(
+	$make_block(
+		'dsflow-landing-header',
+		'landing-progress-header',
+		array(
+			'showAnnouncement'     => false,
+			'announcementText'     => 'DesignStudio Flow is built for modern WordPress teams.',
+			'announcementLinkText' => 'See what is new',
+			'announcementUrl'      => '#blocks',
+			'homeUrl'              => '#why-dsflow',
+			'docsText'             => 'Documentation',
+			'docsUrl'              => '#workflow',
+			'ctaText'              => 'Get DSFlow',
+			'ctaUrl'               => '#get-dsflow',
+		)
+	),
+	$make_block(
+		'dsflow-landing-hero',
+		'landing-hero',
+		array(
+			'eyebrow'       => 'THE VISUAL BUILDER WORDPRESS DESERVES',
+			'title'         => 'Build freely. Stay beautifully consistent.',
+			'description'   => 'DesignStudio Flow gives teams the freedom to create ambitious WordPress pages without losing the design system, content model, or publishing workflow beneath them.',
+			'primaryText'   => 'Explore the block library',
+			'primaryUrl'    => '#blocks',
+			'secondaryText' => 'See how it works',
+			'secondaryUrl'  => '#editor',
+			'note'          => 'Built inside WordPress. Designed around secure, structured blocks.',
+		)
+	),
+	$make_block(
+		'dsflow-block-explorer',
+		'landing-block-explorer',
+		array(
+			'eyebrow'     => 'A LIBRARY WITH A POINT OF VIEW',
+			'title'       => 'Start with structure. Finish with something original.',
+			'description' => 'Each block solves a real page-building problem, then gives your team the right amount of creative control.',
+			'footnote'    => 'New blocks inherit the same editing, theme, responsive, and frontend rendering workflow.',
+		)
+	),
+	$make_block(
+		'dsflow-editor-story',
+		'landing-product-story',
+		array(
+			'variant'       => 'editor',
+			'reverseLayout' => false,
+			'eyebrow'       => 'EDIT THE EXPERIENCE',
+			'title'         => 'A visual workflow that still respects the system.',
+			'description'   => 'Work directly with the page, understand every choice, and keep the guardrails that make a site coherent.',
+			'featureOne'    => 'Edit the same component visitors receive',
+			'featureTwo'    => 'Responsive controls stay close to the work',
+			'featureThree'  => 'Page and block settings have clear ownership',
+		)
+	),
+	$make_block(
+		'dsflow-theme-story',
+		'landing-product-story',
+		array(
+			'variant'       => 'theme',
+			'reverseLayout' => true,
+			'eyebrow'       => 'CONSISTENCY WITHOUT THE CAGE',
+			'title'         => 'Set the visual language once. Let every block speak it.',
+			'description'   => 'Page and site theme controls connect typography and color choices to the blocks that depend on them.',
+			'featureOne'    => 'Shared heading and body typography',
+			'featureTwo'    => 'Theme-linked primary and secondary colors',
+			'featureThree'  => 'Undo support for confident exploration',
+		)
+	),
+	$make_block(
+		'dsflow-commerce-story',
+		'landing-product-story',
+		array(
+			'variant'       => 'commerce',
+			'reverseLayout' => false,
+			'eyebrow'       => 'WOOCOMMERCE, COMPOSED',
+			'title'         => 'Turn the catalog into a guided buying experience.',
+			'description'   => 'Build product-led pages with category-aware filters, search, manual ordering, and actions connected to WooCommerce.',
+			'featureOne'    => 'Search and filters respect the selected product source',
+			'featureTwo'    => 'Parent categories include products from descendants',
+			'featureThree'  => 'Product and category ordering stays intentional',
+		)
+	),
+	$make_block(
+		'dsflow-layouts-story',
+		'landing-product-story',
+		array(
+			'variant'       => 'layouts',
+			'reverseLayout' => true,
+			'eyebrow'       => 'FROM FIRST IMPRESSION TO FINAL LINK',
+			'title'         => 'Headers and footers belong to the same design conversation.',
+			'description'   => 'Compose site-wide navigation and footer templates with the same visual language used for the page between them.',
+			'featureOne'    => 'Purpose-built navigation and mega-menu patterns',
+			'featureTwo'    => 'Desktop and mobile behavior in one component',
+			'featureThree'  => 'One-header and one-footer template guardrails',
+		)
+	),
+	$make_block(
+		'dsflow-campaigns-story',
+		'landing-product-story',
+		array(
+			'variant'       => 'campaigns',
+			'reverseLayout' => false,
+			'eyebrow'       => 'CAMPAIGNS WITH TIMING',
+			'title'         => 'Launch the moment, not just the page.',
+			'description'   => 'Create popups, countdowns, notification bars, and promotional sections that respect timing and repeat visits.',
+			'featureOne'    => 'Page popups with date, delay, and cookie controls',
+			'featureTwo'    => 'Site-wide notification bar scheduling',
+			'featureThree'  => 'Countdown expiration messaging and CTA actions',
+		)
+	),
+	$make_block(
+		'dsflow-engagement-suite',
+		'landing-engagement-suite',
+		array(
+			'eyebrow'                => 'FROM VISIT TO CONVERSATION',
+			'title'                  => 'Build the page. Then help it do something.',
+			'description'            => 'Forms, popups, and notification bars bring the next action into the same visual system as the page around them.',
+			'formsTitle'              => 'Forms that belong to the design.',
+			'formsDescription'        => 'Build native forms or bring Gravity Forms into Flow, then keep fields, labels, buttons, and responsive behavior visually consistent.',
+			'popupTitle'              => 'The right message at the right moment.',
+			'popupDescription'        => 'Create image or content popups with scheduling, delay, sizing, CTA, and repeat-visit controls.',
+			'notificationTitle'       => 'One announcement across the whole site.',
+			'notificationDescription' => 'Publish a site-wide message with clear timing and a visual style connected to the rest of the experience.',
+		)
+	),
+	$make_block(
+		'dsflow-seo-proof',
+		'landing-trust-workflow',
+		array(
+			'variant'     => 'seo',
+			'eyebrow'     => 'VISIBLE TO PEOPLE AND MACHINES',
+			'title'       => 'A visual page should still be a real WordPress page.',
+			'description' => 'DesignStudio Flow saves an HTML snapshot alongside the interactive frontend, giving every page useful content before JavaScript takes over.',
+		)
+	),
+	$make_block(
+		'dsflow-security-proof',
+		'landing-trust-workflow',
+		array(
+			'variant'     => 'security',
+			'eyebrow'     => 'SECURITY IS PART OF THE COMPONENT',
+			'title'       => 'Creative controls. Deliberate trust boundaries.',
+			'description' => 'The block workflow is designed around WordPress permissions, server-side sanitization, safe output, and bounded data contracts.',
+		)
+	),
+	$make_block(
+		'dsflow-audience-proof',
+		'landing-trust-workflow',
+		array(
+			'variant'     => 'audience',
+			'eyebrow'     => 'ONE BUILDER, DIFFERENT KINDS OF MOMENTUM',
+			'title'       => 'Useful to the people who shape, sell, and maintain the site.',
+			'description' => 'DesignStudio Flow creates a shared visual language between creative teams, agencies, commerce operators, and site owners.',
+		)
+	),
+	$make_block(
+		'dsflow-workflow-proof',
+		'landing-trust-workflow',
+		array(
+			'variant'     => 'workflow',
+			'eyebrow'     => 'FROM BLANK PAGE TO PUBLISHED',
+			'title'       => 'A straightforward path through ambitious work.',
+			'description' => 'The builder keeps the workflow legible, so teams can move quickly without losing track of what WordPress will publish.',
+		)
+	),
+	array(
+		'id'       => 'dsflow-landing-faq',
+		'type'     => 'faq',
+		'settings' => array(
+			'title'           => 'Questions before you start flowing',
+			'items'           => array(
+				array( 'question' => 'What is DesignStudio Flow?', 'answer' => '<p>DesignStudio Flow is a visual, block-based page-building workflow for normal WordPress pages, with reusable headers, footers, commerce tools, campaigns, and theme controls.</p>' ),
+				array( 'question' => 'Does it replace the WordPress page system?', 'answer' => '<p>No. Flow pages remain WordPress pages with their own title, slug, status, parent, permalink, and publishing lifecycle.</p>' ),
+				array( 'question' => 'Can it use WooCommerce products?', 'answer' => '<p>Yes. Product blocks can use manual products or category-based sources with search, filters, ordering, and category-aware results.</p>' ),
+				array( 'question' => 'Can teams control the design system?', 'answer' => '<p>Yes. Theme settings connect page colors and typography to blocks, while individual block controls handle the exceptions that genuinely need to be different.</p>' ),
+				array( 'question' => 'What happens before the frontend JavaScript loads?', 'answer' => '<p>DesignStudio Flow can store a sanitized HTML snapshot with the page so meaningful page content is available for first paint and search crawlers.</p>' ),
+				array( 'question' => 'How are custom block fields secured?', 'answer' => '<p>New blocks are expected to define bounded settings, sanitize data on the server, escape output for its context, check WordPress capabilities and nonces, and ship with tests.</p>' ),
+			),
+			'maxWidth'        => 980,
+			'backgroundColor' => '#F7F4ED',
+			'titleColor'      => '#111827',
+			'questionColor'   => '#111827',
+			'answerColor'     => '#526171',
+			'dividerColor'    => '#DDE3E7',
+			'padding'         => 110,
+			'paddingX'        => 24,
+			'marginY'         => 0,
+		),
+	),
+	$make_block(
+		'dsflow-landing-footer',
+		'landing-marketing-footer',
+		array(
+			'eyebrow'        => 'YOUR NEXT PAGE CAN FEEL DIFFERENT',
+			'title'          => 'Give WordPress room to flow.',
+			'description'    => 'Create the ambitious page your idea deserves, then hand it to your team with the confidence that the system will hold.',
+			'primaryText'    => 'Get DesignStudio Flow',
+			'primaryUrl'     => '#why-dsflow',
+			'secondaryText'  => 'Read the workflow',
+			'secondaryUrl'   => '#workflow',
+			'homeUrl'        => '#why-dsflow',
+			'docsUrl'        => '#workflow',
+			'brandStatement' => 'A modern visual page builder for WordPress teams who care about freedom, consistency, and the quality of what gets published.',
+		)
+	),
+);
+
+$settings = array(
+	'theme'  => array(
+		'primaryColor'    => '#0091FF',
+		'secondaryColor'  => '#FF7100',
+		'textColor'       => '#111827',
+		'backgroundColor' => '#F7F4ED',
+		'headingFont'     => "'Manrope', sans-serif",
+		'bodyFont'        => "'Source Sans 3', sans-serif",
+	),
+	'layout' => array(
+		'containerWidth'   => 1800,
+		'contentPadding'   => 0,
+		'showHeader'       => false,
+		'showFooter'       => false,
+		'headerTemplateId' => 0,
+		'footerTemplateId' => 0,
+		'template'         => 'fullwidth',
+	),
+	'popup'  => array( 'enabled' => false ),
+);
+
+$snapshot = '<main class="dsf-snapshot-landing">'
+	. '<header><a href="#why-dsflow">DesignStudio Flow</a><nav><a href="#blocks">Blocks</a> <a href="#woocommerce">WooCommerce</a> <a href="#engagement">Forms and Growth</a> <a href="#security">Security</a> <a href="#audience">For Agencies</a></nav></header>'
+	. '<section id="why-dsflow"><p>The visual builder WordPress deserves</p><h1>Build freely. Stay beautifully consistent.</h1><p>DesignStudio Flow gives teams the freedom to create ambitious WordPress pages without losing the design system, content model, or publishing workflow beneath them.</p></section>'
+	. '<section id="blocks"><h2>Start with structure. Finish with something original.</h2><p>Build with purpose-built heroes, content, commerce, campaign, header, and footer blocks.</p></section>'
+	. '<section id="editor"><h2>A visual workflow that still respects the system.</h2><p>Edit responsive pages directly while keeping design guardrails clear.</p></section>'
+	. '<section id="theme"><h2>Set the visual language once. Let every block speak it.</h2></section>'
+	. '<section id="woocommerce"><h2>Turn the catalog into a guided buying experience.</h2></section>'
+	. '<section id="layouts"><h2>Headers and footers belong to the same design conversation.</h2></section>'
+	. '<section id="campaigns"><h2>Launch the moment, not just the page.</h2></section>'
+	. '<section id="engagement"><h2>Build the page. Then help it do something.</h2><p>Forms, popups, and notification bars bring the next action into the same visual system.</p></section>'
+	. '<section id="seo"><h2>A visual page should still be a real WordPress page.</h2></section>'
+	. '<section id="security"><h2>Creative controls. Deliberate trust boundaries.</h2></section>'
+	. '<section id="audience"><h2>Useful to the people who shape, sell, and maintain the site.</h2></section>'
+	. '<section id="workflow"><h2>A straightforward path through ambitious work.</h2></section>'
+	. '<footer id="get-dsflow"><h2>Give WordPress room to flow.</h2></footer>'
+	. '</main>';
+
+update_post_meta( $post_id, '_dsf_enabled', true );
+update_post_meta( $post_id, '_dsf_blocks', $blocks );
+update_post_meta( $post_id, '_dsf_settings', $settings );
+update_post_meta( $post_id, '_dsf_html_snapshot', wp_kses_post( $snapshot ) );
+update_post_meta( $post_id, '_dsf_product_landing', '1' );
+
+clean_post_cache( $post_id );
+
+fwrite( STDOUT, wp_json_encode( array( 'post_id' => $post_id, 'url' => get_permalink( $post_id ), 'blocks' => count( $blocks ) ), JSON_PRETTY_PRINT ) . PHP_EOL );

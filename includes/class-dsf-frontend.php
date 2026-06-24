@@ -118,6 +118,7 @@ class DSF_Frontend {
 			}
 		}
 		$blocks = $this->prepare_blocks_for_frontend( $blocks );
+		$page_settings = $this->get_page_settings( $post_id );
 
 		$layout_templates = $this->get_assigned_layout_templates_data( $post_id );
 		$layout_templates = $this->prepare_layout_templates_for_frontend( $layout_templates );
@@ -166,7 +167,9 @@ class DSF_Frontend {
 			'dsfFrontendData',
 			array(
 				'postId'          => $post_id,
+				'pluginUrl'       => DSF_PLUGIN_URL,
 				'blocks'          => $blocks,
+				'popup'           => DSF_Popup::resolve_page_popup( $page_settings ),
 				'layoutTemplates' => $layout_templates,
 				'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
 				'nonce'           => wp_create_nonce( 'dsf_frontend_nonce' ),
@@ -581,21 +584,22 @@ class DSF_Frontend {
 	 */
 	private function enqueue_google_fonts( $post_id ) {
 		$settings = $this->get_page_settings( $post_id );
-		$theme    = $settings['theme'] ?? array();
+		$theme    = array_merge( self::get_default_theme_settings(), $settings['theme'] ?? array() );
 
 		$fonts_to_load = array();
+		$google_fonts  = array(
+			'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Outfit',
+			'Source Sans 3', 'Nunito', 'Raleway', 'Playfair Display', 'Merriweather',
+			'Lora', 'DM Sans', 'Work Sans', 'Oswald', 'Ubuntu', 'Rubik', 'Manrope',
+			'Space Grotesk',
+		);
 
-		// Extract font names from heading and body font settings
+		// Google presets are loaded here; WordPress theme fonts are already enqueued by the theme.
 		foreach ( array( 'headingFont', 'bodyFont' ) as $font_key ) {
 			if ( ! empty( $theme[ $font_key ] ) ) {
-				$font_family = $theme[ $font_key ];
-				// Extract font name from font-family string like "'Inter', sans-serif"
-				if ( preg_match( "/'([^']+)'/", $font_family, $matches ) ) {
-					$font_name = $matches[1];
-					// Skip system fonts
-					if ( ! in_array( strtolower( $font_name ), array( 'sans-serif', 'serif', 'monospace', 'cursive', 'fantasy', 'system-ui' ), true ) ) {
-						$fonts_to_load[ $font_name ] = true;
-					}
+				$first_family = trim( explode( ',', $theme[ $font_key ] )[0], " \t\n\r\0\x0B'\"" );
+				if ( in_array( $first_family, $google_fonts, true ) ) {
+					$fonts_to_load[ $first_family ] = true;
 				}
 			}
 		}
@@ -637,7 +641,7 @@ class DSF_Frontend {
 	 */
 	public function add_module_type_to_scripts( $tag, $handle, $src ) {
 		unset( $src );
-		if ( in_array( $handle, array( 'dsf-frontend-vite', 'dsf-frontend-app' ), true ) ) {
+		if ( in_array( $handle, array( 'dsf-frontend-vite', 'dsf-frontend-app', 'dsf-notification-bar' ), true ) ) {
 			if ( false === strpos( $tag, 'type="module"' ) ) {
 				$tag = str_replace( '<script ', '<script type="module" ', $tag );
 			}
@@ -760,6 +764,16 @@ class DSF_Frontend {
 		if ( ! $blocks_json ) {
 			return '';
 		}
+		$blocks          = is_array( $blocks_json ) ? $blocks_json : json_decode( $blocks_json, true );
+		$blocks          = is_array( $blocks ) ? $blocks : array();
+		$is_landing_page = false;
+		foreach ( $blocks as $block ) {
+			$type = is_array( $block ) && isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
+			if ( 0 === strpos( $type, 'landing-' ) ) {
+				$is_landing_page = true;
+				break;
+			}
+		}
 
 		$page_settings = $this->get_page_settings( $post_id );
 		$theme_style   = $this->build_theme_style( $page_settings );
@@ -772,11 +786,17 @@ class DSF_Frontend {
 			$outer_class .= ' dsf-page-content--fullwidth';
 			$inner_class .= ' dsf-page-content__inner--fullwidth';
 		}
+		if ( $is_landing_page ) {
+			$outer_class .= ' dsf-page-content--loading';
+		}
 
 		$snapshot = get_post_meta( $post_id, '_dsf_html_snapshot', true );
 
 		$output  = '<div class="' . esc_attr( $outer_class ) . '" style="' . esc_attr( $theme_style ) . '">';
 		$output .= '<div class="' . esc_attr( $inner_class ) . '">';
+		if ( $is_landing_page ) {
+			$output .= '<div class="dsf-landing-loader" role="status" aria-live="polite"><div class="dsf-landing-loader__content"><span class="dsf-landing-loader__mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>' . esc_html__( 'Loading DesignStudio Flow', 'designstudio-flow' ) . '</span></div></div>';
+		}
 		$output .= '<div id="dsf-frontend-app" class="dsf-wrapper" data-post-id="' . intval( $post_id ) . '">';
 		if ( ! empty( $snapshot ) ) {
 			$output .= $snapshot;
@@ -914,14 +934,7 @@ class DSF_Frontend {
 
 	private function get_default_settings() {
 		return array(
-			'theme'  => array(
-				'primaryColor'    => '#2C5F5D',
-				'secondaryColor'  => '#1E40AF',
-				'textColor'       => '#1F2937',
-				'backgroundColor' => '#FFFFFF',
-				'headingFont'     => '',
-				'bodyFont'        => '',
-			),
+			'theme'  => self::get_default_theme_settings(),
 			'layout' => array(
 				'containerWidth'   => 1800,
 				'contentPadding'   => 10,
@@ -930,6 +943,31 @@ class DSF_Frontend {
 				'headerTemplateId' => 0,
 				'footerTemplateId' => 0,
 				'template'         => 'default',
+			),
+			'popup'  => array(
+				'enabled'        => false,
+				'type'           => 'content',
+				'headline'       => 'Limited time offer',
+				'body'           => '<p>Add your popup message here.</p>',
+				'image'          => '',
+				'imageAlt'       => '',
+				'imagePosition'  => 'top',
+				'buttonText'     => 'Learn more',
+				'buttonUrl'      => '#',
+				'openNewTab'     => false,
+				'width'          => 'medium',
+				'position'       => 'center',
+				'delaySeconds'   => 3,
+				'startDate'      => '',
+				'endDate'        => '',
+				'cookieDuration' => 24,
+				'cookieUnit'     => 'hours',
+				'showOverlay'    => true,
+				'closeOnOverlay' => true,
+				'showClose'      => true,
+				'backgroundColor' => '#FFFFFF',
+				'textColor'      => '#1F2937',
+				'accentColor'    => '#2C5F5D',
 			),
 		);
 	}
@@ -950,6 +988,7 @@ class DSF_Frontend {
 		$defaults           = $this->get_default_settings();
 		$settings['theme']  = array_merge( $defaults['theme'], $settings['theme'] ?? array() );
 		$settings['layout'] = array_merge( $defaults['layout'], $settings['layout'] ?? array() );
+		$settings['popup']  = array_merge( $defaults['popup'], $settings['popup'] ?? array() );
 
 		$this->settings_cache[ $post_id ] = $settings;
 		return $settings;
@@ -964,8 +1003,8 @@ class DSF_Frontend {
 		$secondary       = $theme['secondaryColor'] ?? $defaults['theme']['secondaryColor'];
 		$text            = $theme['textColor'] ?? $defaults['theme']['textColor'];
 		$background      = $theme['backgroundColor'] ?? $defaults['theme']['backgroundColor'];
-		$heading_font    = $theme['headingFont'] ?? '';
-		$body_font       = $theme['bodyFont'] ?? '';
+		$heading_font    = self::sanitize_font_family( $theme['headingFont'] ?? '' );
+		$body_font       = self::sanitize_font_family( $theme['bodyFont'] ?? '' );
 		$container_width = intval( $layout['containerWidth'] ?? $defaults['layout']['containerWidth'] );
 		$content_padding = intval( $layout['contentPadding'] ?? $defaults['layout']['contentPadding'] );
 
@@ -1065,6 +1104,56 @@ class DSF_Frontend {
 	}
 
 	/**
+	 * Sanitize a CSS font-family value without permitting additional declarations.
+	 *
+	 * @param mixed $value Candidate font-family stack.
+	 * @return string
+	 */
+	public static function sanitize_font_family( $value ) {
+		$raw_value = trim( (string) $value );
+		$value     = function_exists( 'sanitize_text_field' ) ? sanitize_text_field( $raw_value ) : $raw_value;
+		$value     = is_string( $value ) ? $value : $raw_value;
+		if ( '' === $value ) {
+			return '';
+		}
+
+		return preg_match( '/^[a-zA-Z0-9\s,\-_"\'().:]+$/', $value ) ? $value : '';
+	}
+
+	/**
+	 * Return the site-wide DSFlow theme defaults shared by admin, editor, and frontend.
+	 *
+	 * @return array{primaryColor:string,secondaryColor:string,textColor:string,backgroundColor:string,headingFont:string,bodyFont:string}
+	 */
+	public static function get_default_theme_settings() {
+		$fallbacks = array(
+			'primary'    => '#2C5F5D',
+			'secondary'  => '#1E40AF',
+			'text'       => '#1F2937',
+			'background' => '#FFFFFF',
+		);
+		$colors    = function_exists( 'get_option' ) ? get_option( 'dsf_default_colors', $fallbacks ) : $fallbacks;
+		$colors    = is_array( $colors ) ? array_merge( $fallbacks, $colors ) : $fallbacks;
+		$font      = function_exists( 'get_option' )
+			? self::get_typography_option()
+			: array( 'heading_font' => '', 'body_font' => '' );
+
+		$sanitize_color = static function ( $value, $fallback ) {
+			$sanitized = sanitize_hex_color( (string) $value );
+			return $sanitized ? $sanitized : $fallback;
+		};
+
+		return array(
+			'primaryColor'    => $sanitize_color( $colors['primary'], $fallbacks['primary'] ),
+			'secondaryColor'  => $sanitize_color( $colors['secondary'], $fallbacks['secondary'] ),
+			'textColor'       => $sanitize_color( $colors['text'], $fallbacks['text'] ),
+			'backgroundColor' => $sanitize_color( $colors['background'], $fallbacks['background'] ),
+			'headingFont'     => self::sanitize_font_family( $font['heading_font'] ),
+			'bodyFont'        => self::sanitize_font_family( $font['body_font'] ),
+		);
+	}
+
+	/**
 	 * Compute the CSS variable map for a given base size + modular scale ratio.
 	 * Returns an ordered associative array of var name => CSS value (with units).
 	 */
@@ -1091,10 +1180,14 @@ class DSF_Frontend {
 			$tokens[ '--dsf-theme-text-' . $key ] = sprintf( '%.4gpx', $px );
 		}
 
+		// Keep authored content typography consistent across themes and scale settings.
+		$tokens['--dsf-theme-text-base'] = '20px';
+		$tokens['--dsf-theme-p-size']    = '20px';
+
 		// Heading aliases — semantic shortcuts for block CSS.
 		$headings = array(
-			'h1' => $sizes['4xl'],
-			'h2' => $sizes['3xl'],
+			'h1' => 42.0,
+			'h2' => 37.0,
 			'h3' => $sizes['2xl'],
 			'h4' => $sizes['xl'],
 			'h5' => $sizes['lg'],
@@ -1103,6 +1196,8 @@ class DSF_Frontend {
 		foreach ( $headings as $key => $px ) {
 			$tokens[ '--dsf-theme-' . $key ] = sprintf( '%.4gpx', $px );
 		}
+		$tokens['--dsf-theme-h1-size'] = '42px';
+		$tokens['--dsf-theme-h2-size'] = '37px';
 
 		return $tokens;
 	}

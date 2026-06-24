@@ -18,11 +18,13 @@
         />
         <InlineText 
           v-model="settings.content" 
-          tagName="div"
+          tagName="p"
           class="dsf-text-image-preview__text"
+          :class="{ 'dsf-text-image-preview__text--normal': descriptionSize === 'normal' }"
           :style="{ color: settings.textColor }"
           :is-editor="isEditor"
           placeholder="Share your brand story here."
+          :multiline="true"
         />
         
         <a 
@@ -41,7 +43,7 @@
         </a>
       </div>
       <div class="dsf-text-image-preview__image">
-        <img v-if="settings.image" :src="settings.image" alt="" />
+        <img v-if="imageSrc" :src="imageSrc" alt="" />
         <div v-else class="dsf-text-image-preview__placeholder">
           <ImageIcon :size="48" />
         </div>
@@ -56,9 +58,13 @@ import { Image as ImageIcon } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
 import { useFlowModal } from '../common/useFlowModal'
 import { getResponsiveValue } from '../../utils/responsiveSettings'
+import { safePublicUrl } from '../../utils/safeUrl'
 
 const props = defineProps({
-  settings: Object,
+  settings: {
+    type: Object,
+    default: () => ({}),
+  },
   isEditor: Boolean,
   previewMode: {
     type: String,
@@ -68,9 +74,14 @@ const props = defineProps({
 
 const { openModal } = useFlowModal()
 
+const descriptionSize = computed(() => (
+  props.settings?.descriptionSize === 'normal' ? 'normal' : 'large'
+))
+const imageSrc = computed(() => safePublicUrl(props.settings?.image, ''))
+
 const buttonHref = computed(() =>
   (props.settings?.buttonAction || 'link') === 'link'
-    ? (props.settings?.buttonUrl || '#')
+    ? safePublicUrl(props.settings?.buttonUrl)
     : '#'
 )
 
@@ -100,8 +111,11 @@ const containerStyle = computed(() => {
   const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 60
   const paddingX = getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 20
   const marginY = getResponsiveValue(props.settings || {}, props.previewMode, 'marginY') ?? 0
+  const height = getResponsiveValue(props.settings || {}, props.previewMode, 'height') ?? 400
   return {
     backgroundColor: props.settings?.backgroundColor || '#FFFFFF',
+    '--dsf-text-image-height': `${Math.max(100, Math.min(800, Number(height) || 400))}px`,
+    '--dsf-text-image-padding-y': `${Math.max(0, Number(paddingY) || 0)}px`,
     paddingTop: `${paddingY}px`,
     paddingBottom: `${paddingY}px`,
     paddingLeft: `${paddingX}px`,
@@ -126,6 +140,7 @@ const containerStyle = computed(() => {
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
+  min-height: max(100px, calc(var(--dsf-text-image-height, 400px) - var(--dsf-text-image-padding-y, 60px) - var(--dsf-text-image-padding-y, 60px)));
 }
 
 .dsf-text-image-preview--reverse {
@@ -154,6 +169,12 @@ const containerStyle = computed(() => {
   font-size: var(--dsf-theme-text-2xl, 24px);
   word-wrap: break-word;
   overflow-wrap: break-word;
+  margin: 0;
+}
+
+.dsf-text-image-preview__text.dsf-text-image-preview__text--normal {
+  font-size: var(--dsf-theme-p-size, var(--dsf-theme-text-base, 16px));
+  line-height: 1.6;
 }
 
 .dsf-text-image-preview__btn {
@@ -166,7 +187,7 @@ const containerStyle = computed(() => {
   border-radius: var(--dsf-radius-md);
   font-family: var(--dsf-theme-body-font, inherit);
   font-weight: 600;
-  font-size: var(--dsf-theme-text-2xl, 24px);
+  font-size: var(--dsf-theme-p-size, var(--dsf-theme-text-base, 16px));
   cursor: pointer;
   transition: background 0.2s;
   text-decoration: none;
@@ -179,12 +200,20 @@ const containerStyle = computed(() => {
 }
 
 .dsf-text-image-preview__image img {
+  display: block;
   width: 100%;
+  height: 100%;
+  object-fit: cover;
   border-radius: var(--dsf-radius-lg);
 }
 
+.dsf-text-image-preview__image {
+  height: max(100px, calc(var(--dsf-text-image-height, 400px) - var(--dsf-text-image-padding-y, 60px) - var(--dsf-text-image-padding-y, 60px)));
+}
+
 .dsf-text-image-preview__placeholder {
-  aspect-ratio: 4/3;
+  width: 100%;
+  height: 100%;
   background: var(--dsf-gray-100);
   border-radius: var(--dsf-radius-lg);
   display: flex;
@@ -197,7 +226,7 @@ const containerStyle = computed(() => {
   .dsf-text-image-preview { gap: 2rem; }
   .dsf-text-image-preview__title { font-size: var(--dsf-theme-h2, 34px); }
   .dsf-text-image-preview__text { font-size: var(--dsf-theme-text-lg, 18px); }
-  .dsf-text-image-preview__btn { font-size: var(--dsf-theme-text-lg, 18px); }
+  .dsf-text-image-preview__btn { font-size: var(--dsf-theme-p-size, var(--dsf-theme-text-base, 16px)); }
 }
 
 @container (max-width: 900px) {
