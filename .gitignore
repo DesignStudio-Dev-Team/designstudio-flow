@@ -6,6 +6,12 @@ vendor/
 .env
 .env.local
 .env.*.local
+.claude
+.agent
+.github
+.husky
+.vscode
+
 
 # Build
 build/

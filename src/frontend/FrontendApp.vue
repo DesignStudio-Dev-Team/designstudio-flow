@@ -59,6 +59,7 @@ import FormWithContentPreview from '../components/blocks/FormWithContentPreview.
 import LandingProgressHeaderPreview from '../components/blocks/LandingProgressHeaderPreview.vue'
 import LandingHeroPreview from '../components/blocks/LandingHeroPreview.vue'
 import LandingBlockExplorerPreview from '../components/blocks/LandingBlockExplorerPreview.vue'
+import LandingBlockReadyPreview from '../components/blocks/LandingBlockReadyPreview.vue'
 import LandingProductStoryPreview from '../components/blocks/LandingProductStoryPreview.vue'
 import LandingTrustWorkflowPreview from '../components/blocks/LandingTrustWorkflowPreview.vue'
 import LandingEngagementSuitePreview from '../components/blocks/LandingEngagementSuitePreview.vue'
@@ -115,6 +116,7 @@ const previewComponents = {
   'landing-progress-header': LandingProgressHeaderPreview,
   'landing-hero': LandingHeroPreview,
   'landing-block-explorer': LandingBlockExplorerPreview,
+  'landing-block-ready': LandingBlockReadyPreview,
   'landing-product-story': LandingProductStoryPreview,
   'landing-trust-workflow': LandingTrustWorkflowPreview,
   'landing-engagement-suite': LandingEngagementSuitePreview,

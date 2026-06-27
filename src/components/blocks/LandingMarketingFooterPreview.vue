@@ -11,7 +11,7 @@
         <InlineText tagName="p" v-model="settings.description" :is-editor="isEditor" :multiline="true" data-dsf-reveal placeholder="Description" />
       </div>
       <div v-if="isEditor || settings.primaryText || settings.secondaryText" class="dsf-marketing-footer__actions" data-dsf-reveal>
-        <a v-if="isEditor || settings.primaryText" class="dsf-footer-button dsf-footer-button--light" :href="safePublicUrl(settings.primaryUrl)" @click="guardEditor">
+        <a v-if="isEditor || settings.primaryText" class="dsf-footer-button dsf-footer-button--light" :style="primaryButtonStyle" :href="safePublicUrl(settings.primaryUrl)" @click="guardEditor">
           {{ settings.primaryText }} <ArrowUpRight :size="18" />
         </a>
         <a v-if="isEditor || settings.secondaryText" class="dsf-footer-button dsf-footer-button--outline" :href="safePublicUrl(settings.secondaryUrl)" @click="guardEditor">{{ settings.secondaryText }}</a>
@@ -29,7 +29,7 @@
       </div>
       <nav v-for="column in columns" :key="column.title" :aria-label="column.title" data-dsf-reveal>
         <strong>{{ column.title }}</strong>
-        <a v-for="link in column.links" :key="link.label" :href="link.url" @click="guardEditor">{{ link.label }}</a>
+        <a v-for="link in column.links" :key="link.label" :style="columnLinkStyle" :href="link.url" @click="guardEditor">{{ link.label }}</a>
       </nav>
     </div>
 
@@ -65,7 +65,23 @@ const taglineModel = computed({
   get: () => props.settings.tagline ?? 'Build freely. Stay beautifully consistent.',
   set: (value) => { props.settings.tagline = value },
 })
+const hexColor = (value) => (typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : '')
 const blockStyle = computed(() => landingBlockStyle(props.settings))
+
+// Applied directly to the elements (not via cascading vars) so the controls
+// always win and update reactively.
+const primaryButtonStyle = computed(() => {
+  const style = {}
+  const bg = hexColor(props.settings.buttonBgColor)
+  const text = hexColor(props.settings.buttonLabelColor)
+  if (bg) style.background = bg
+  if (text) style.color = text
+  return style
+})
+const columnLinkStyle = computed(() => {
+  const color = hexColor(props.settings.linksColor)
+  return color ? { color } : {}
+})
 const logoUrl = computed(() => {
   if (props.settings.logoImage) return props.settings.logoImage
   const baseUrl = window.dsfEditorData?.pluginUrl || window.dsfFrontendData?.pluginUrl || ''
@@ -115,15 +131,16 @@ useLandingMotion(root, props.isEditor)
 .dsf-marketing-footer__glow { position: absolute; top: -120px; right: 8%; width: 520px; height: 520px; border-radius: 50%; background: radial-gradient(circle, rgba(0,145,255,0.28), transparent 66%); }
 .dsf-marketing-footer__cta { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(300px, 1fr) auto; align-items: end; width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding: clamp(70px, 8vw, 112px) 0; border-bottom: 1px solid rgba(255,255,255,0.13); gap: 50px; }
 .dsf-marketing-footer__cta > div:first-child { max-width: 860px; }
-.dsf-marketing-footer__cta span { color: #ffab90; font-size: 13px; font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
+.dsf-marketing-footer__cta span { color: var(--blue); font-size: 13px; font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
 .dsf-marketing-footer h2 { margin: 13px 0 18px; color: #fff; font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); font-size: clamp(40px, 4.7vw, 62px); line-height: 1.02; letter-spacing: -0.05em; }
 .dsf-marketing-footer__cta p { max-width: 670px; margin: 0; color: #aebbc6; font-size: 20px; line-height: 1.55; }
 .dsf-marketing-footer__actions { display: grid; gap: 10px; }
 .dsf-footer-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 178px; min-height: 51px; padding: 0 19px; border: 1px solid transparent; border-radius: 9px; font-size: 15px; font-weight: 800; text-decoration: none; transition: transform 190ms ease, border-color 190ms ease, background 190ms ease, box-shadow 190ms ease; }
 .dsf-footer-button:hover { transform: translateY(-3px); }
+/* Defaults; the Main CTA color controls override these inline (see primaryButtonStyle). */
 .dsf-footer-button--light,
 .dsf-footer-button--light:hover,
-.dsf-footer-button--light:focus-visible { color: #111827 !important; background: #fff; box-shadow: 0 15px 34px rgba(0,0,0,0.22); }
+.dsf-footer-button--light:focus-visible { color: #111827; background: #fff; box-shadow: 0 15px 34px rgba(0,0,0,0.22); }
 .dsf-footer-button--outline { color: #fff; border-color: rgba(255,255,255,0.25); }
 .dsf-marketing-footer__main { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(280px, 1.5fr) repeat(3, minmax(130px, 0.55fr)); width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding: 65px 0 55px; gap: 45px; }
 .dsf-marketing-footer__brand > a { display: flex; align-items: center; gap: 10px; color: #fff; font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); font-size: 18px; font-weight: 750; text-decoration: none; }.dsf-marketing-footer__brand a strong { color: #6fb7e8; }

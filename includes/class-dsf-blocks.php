@@ -2793,7 +2793,7 @@ class DSF_Blocks {
 						'default' => 'dsf',
 						'options' => array(
 							'DSF Form'               => 'dsf',
-							'Shortcode / Embed Code' => 'embed',
+							'Custom Content / Embed'  => 'embed',
 						),
 					),
 					'formId'          => array(
@@ -2807,7 +2807,7 @@ class DSF_Blocks {
 					),
 					'embedCode'       => array(
 						'type'         => 'wysiwyg',
-						'label'        => 'Shortcode / Embed Code',
+						'label'        => 'Custom Content',
 						'default'      => '',
 						'allowRawHtml' => true,
 						'showWhen'     => array( 'formSource' => 'embed' ),
@@ -5141,6 +5141,35 @@ class DSF_Blocks {
 
 		$this->register_block(
 			array(
+				'id'          => 'landing-block-ready',
+				'name'        => 'Design-Ready Block',
+				'category'    => 'content',
+				'icon'        => 'boxes',
+				'description' => 'Shows a fully designed block dropping in, with only the content left to edit',
+				'settings'    => array_merge(
+					array(
+						'eyebrow'     => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'DESIGN INCLUDED' ),
+						'title'       => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'Add a block. The design is already done.' ),
+						'description' => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'Every block ships fully designed and responsive. Drop one onto the page, swap in your own words and images, and publish — no layout work, no CSS, nothing to wire up.' ),
+						'step1Title'  => array( 'type' => 'text', 'label' => 'Step 1 title', 'section' => 'steps', 'default' => 'Pick a block' ),
+						'step1Text'   => array( 'type' => 'textarea', 'label' => 'Step 1 text', 'section' => 'steps', 'default' => 'Choose from a library of purpose-built sections made for real pages.' ),
+						'step2Title'  => array( 'type' => 'text', 'label' => 'Step 2 title', 'section' => 'steps', 'default' => 'It lands fully styled' ),
+						'step2Text'   => array( 'type' => 'textarea', 'label' => 'Step 2 text', 'section' => 'steps', 'default' => 'Spacing, type, color, and responsive behavior are already handled for you.' ),
+						'step3Title'  => array( 'type' => 'text', 'label' => 'Step 3 title', 'section' => 'steps', 'default' => 'Change only the content' ),
+						'step3Text'   => array( 'type' => 'textarea', 'label' => 'Step 3 text', 'section' => 'steps', 'default' => 'Edit the copy and images in place, then publish with confidence.' ),
+						'note'        => array( 'type' => 'text', 'label' => 'Supporting note', 'section' => 'content', 'default' => 'Every new block inherits the same theme, responsive, and publishing workflow.' ),
+						'demoEyebrow' => array( 'type' => 'text', 'label' => 'Demo eyebrow', 'section' => 'demo', 'default' => 'COUNTDOWN TO LAUNCH' ),
+						'demoTitle'   => array( 'type' => 'text', 'label' => 'Demo headline', 'section' => 'demo', 'default' => 'Launch day is almost here' ),
+						'demoText'    => array( 'type' => 'textarea', 'label' => 'Demo text', 'section' => 'demo', 'default' => 'Be first in line when the doors open.' ),
+						'demoButton'  => array( 'type' => 'text', 'label' => 'Demo button', 'section' => 'demo', 'default' => 'Reserve your spot' ),
+					),
+					$this->landing_style_settings()
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
 				'id'          => 'landing-product-story',
 				'name'        => 'Split Content',
 				'category'    => 'content',
@@ -5252,7 +5281,17 @@ class DSF_Blocks {
 						'col3Title'      => array( 'type' => 'text', 'label' => 'Column 3 title', 'section' => 'columns', 'default' => 'Trust' ),
 						'col3Links'      => array( 'type' => 'simple_links', 'label' => 'Column 3 links', 'section' => 'columns', 'default' => array( array( 'label' => 'SEO rendering', 'url' => '#seo' ), array( 'label' => 'Security', 'url' => '#security' ), array( 'label' => 'For agencies', 'url' => '#audience' ), array( 'label' => 'Documentation', 'url' => '#workflow' ) ) ),
 					),
-					$this->landing_style_settings()
+					// Pre-fill the base palette with the footer's real (non-theme-alias)
+					// colors so the pickers show real values and stay stable on load.
+					$this->landing_style_settings( array( 'background' => '#101B26', 'text' => '#FFFFFF', 'accent' => '#0091FF' ) ),
+					array(
+						// Footer-specific colors. Keys are intentionally named so the theme
+						// auto-linker (resolveThemeKey) leaves them alone — these are
+						// explicit controls, not theme-followers.
+						'buttonBgColor'    => array( 'type' => 'color', 'label' => 'Main CTA background', 'section' => 'style', 'default' => '#FEFEFE' ),
+						'buttonLabelColor' => array( 'type' => 'color', 'label' => 'Main CTA text', 'section' => 'style', 'default' => '#111827' ),
+						'linksColor'       => array( 'type' => 'color', 'label' => 'Column link color', 'section' => 'style', 'default' => '#9FB0BD' ),
+					)
 				),
 			)
 		);

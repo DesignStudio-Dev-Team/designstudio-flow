@@ -334,7 +334,7 @@ const blockCategories = computed(() => {
 
   // Define exact order for each category
   const heroOrder = ['hero', 'landing-hero', 'bento-hero', 'spotlight-hero', 'expander-hero', 'duo-hero', 'featured-promo-banner']
-  const contentOrder = ['content', 'faq', 'text-image', 'landing-block-explorer', 'landing-product-story', 'landing-engagement-suite', 'landing-trust-workflow', 'features-grid', 'testimonials', 'form-embed', 'form-with-content']
+  const contentOrder = ['content', 'faq', 'text-image', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-engagement-suite', 'landing-trust-workflow', 'features-grid', 'testimonials', 'form-embed', 'form-with-content']
   const marketingOrder = ['landing-progress-header', 'pricing', 'countdown', 'promo-banner', 'cta-banner', 'brand-carousel']
   const ecommerceOrder = ['ecommerce-showcase', 'featured-product-banner', 'product-grid']
   const footerOrder = ['landing-marketing-footer']

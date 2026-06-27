@@ -83,8 +83,28 @@ $blocks = array(
 		array(
 			'eyebrow'     => 'A LIBRARY WITH A POINT OF VIEW',
 			'title'       => 'Start with structure. Finish with something original.',
-			'description' => 'Each block solves a real page-building problem, then gives your team the right amount of creative control.',
+			'description' => 'Heroes, content, commerce, forms, headers, and footers — every block solves a real page-building problem, then gives your team room to make it original.',
 			'footnote'    => 'New blocks inherit the same editing, theme, responsive, and frontend rendering workflow.',
+		)
+	),
+	$make_block(
+		'dsflow-block-ready',
+		'landing-block-ready',
+		array(
+			'eyebrow'     => 'DESIGN INCLUDED',
+			'title'       => 'Add a block. The design is already done.',
+			'description' => 'Every block ships fully designed and responsive. Drop one onto the page, swap in your own words and images, and publish — no layout work, no CSS, nothing to wire up.',
+			'step1Title'  => 'Pick a block',
+			'step1Text'   => 'Choose from a library of purpose-built sections made for real pages.',
+			'step2Title'  => 'It lands fully styled',
+			'step2Text'   => 'Spacing, type, color, and responsive behavior are already handled for you.',
+			'step3Title'  => 'Change only the content',
+			'step3Text'   => 'Edit the copy and images in place, then publish with confidence.',
+			'note'        => 'Every new block inherits the same theme, responsive, and publishing workflow.',
+			'demoEyebrow' => 'COUNTDOWN TO LAUNCH',
+			'demoTitle'   => 'Launch day is almost here',
+			'demoText'    => 'Be first in line when the doors open.',
+			'demoButton'  => 'Reserve your spot',
 		)
 	),
 	$make_block(
@@ -112,7 +132,7 @@ $blocks = array(
 			'description'   => 'Page and site theme controls connect typography and color choices to the blocks that depend on them.',
 			'featureOne'    => 'Shared heading and body typography',
 			'featureTwo'    => 'Theme-linked primary and secondary colors',
-			'featureThree'  => 'Undo support for confident exploration',
+			'featureThree'  => 'One-click undo, so you can explore with confidence',
 		)
 	),
 	$make_block(
@@ -209,7 +229,7 @@ $blocks = array(
 			'variant'     => 'workflow',
 			'eyebrow'     => 'FROM BLANK PAGE TO PUBLISHED',
 			'title'       => 'A straightforward path through ambitious work.',
-			'description' => 'The builder keeps the workflow legible, so teams can move quickly without losing track of what WordPress will publish.',
+			'description' => 'The builder keeps every step clear, so teams move quickly without losing track of what WordPress will publish.',
 		)
 	),
 	array(
@@ -250,6 +270,14 @@ $blocks = array(
 			'homeUrl'        => '#why-dsflow',
 			'docsUrl'        => '#workflow',
 			'brandStatement' => 'A modern visual page builder for WordPress teams who care about freedom, consistency, and the quality of what gets published.',
+			'copyright'       => 'DesignStudio Flow. Built for WordPress.',
+			'tagline'         => 'Build freely. Stay beautifully consistent.',
+			'backgroundColor' => '#101B26',
+			'textColor'       => '#FFFFFF',
+			'accentColor'     => '#0091FF',
+			'buttonBgColor'   => '#FEFEFE',
+			'buttonLabelColor' => '#111827',
+			'linksColor'      => '#9FB0BD',
 		)
 	),
 );
@@ -279,6 +307,7 @@ $snapshot = '<main class="dsf-snapshot-landing">'
 	. '<header><a href="#why-dsflow">DesignStudio Flow</a><nav><a href="#blocks">Blocks</a> <a href="#woocommerce">WooCommerce</a> <a href="#engagement">Forms and Growth</a> <a href="#security">Security</a> <a href="#audience">For Agencies</a></nav></header>'
 	. '<section id="why-dsflow"><p>The visual builder WordPress deserves</p><h1>Build freely. Stay beautifully consistent.</h1><p>DesignStudio Flow gives teams the freedom to create ambitious WordPress pages without losing the design system, content model, or publishing workflow beneath them.</p></section>'
 	. '<section id="blocks"><h2>Start with structure. Finish with something original.</h2><p>Build with purpose-built heroes, content, commerce, campaign, header, and footer blocks.</p></section>'
+	. '<section id="ready"><h2>Add a block. The design is already done.</h2><p>Every block ships fully designed and responsive. Swap in your own words and images, and publish.</p></section>'
 	. '<section id="editor"><h2>A visual workflow that still respects the system.</h2><p>Edit responsive pages directly while keeping design guardrails clear.</p></section>'
 	. '<section id="theme"><h2>Set the visual language once. Let every block speak it.</h2></section>'
 	. '<section id="woocommerce"><h2>Turn the catalog into a guided buying experience.</h2></section>'

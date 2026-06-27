@@ -249,22 +249,26 @@
     @apply dsf-w-full dsf-border dsf-rounded-md dsf-transition-all;
     height: var(--dsf-input-height);
     padding: 0 var(--dsf-input-padding-x);
-    border-color: var(--dsf-gray-200);
-    background-color: var(--dsf-gray-50);
+    border-color: #8c8f94;
+    border-radius: 4px;
+    background-color: #fff;
     font-size: var(--dsf-text-sm);
+    box-shadow: 0 0 0 transparent;
   }
   
   .dsf-input:focus {
     @apply dsf-outline-none;
-    border-color: var(--dsf-primary-500);
+    border-color: #2271b1;
     background-color: white;
-    box-shadow: var(--dsf-ring-primary);
+    box-shadow: 0 0 0 1px #2271b1;
   }
   
   /* Color Input */
   .dsf-color-input {
     @apply dsf-flex dsf-items-center dsf-gap-3 dsf-p-3 dsf-border dsf-rounded-lg;
-    border-color: var(--dsf-gray-200);
+    border-color: #8c8f94;
+    border-radius: 4px;
+    background: #fff;
   }
   
   .dsf-color-swatch {
@@ -277,7 +281,10 @@
   /* Slider */
   .dsf-slider-group {
     @apply dsf-p-3 dsf-border dsf-rounded-lg;
-    border-color: var(--dsf-gray-200);
+    border-color: #8c8f94;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 1px 1px rgb(0 0 0 / 4%);
   }
   
   .dsf-slider-value {

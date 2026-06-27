@@ -53,6 +53,7 @@ final class DesignStudio_Flow {
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-connections.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-entries.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-import-export.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-redirects.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-update-checker.php';
 	}
 
@@ -93,6 +94,8 @@ final class DesignStudio_Flow {
 		DSF_Notification_Bar::get_instance();
 		DSF_Forms::get_instance();
 		DSF_Connections::get_instance();
+		// Redirects run on the frontend (template_redirect) and admin (admin-post).
+		DSF_Redirects::get_instance();
 
 		if ( is_admin() ) {
 			DSF_Entries::get_instance();

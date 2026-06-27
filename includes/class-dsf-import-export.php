@@ -217,11 +217,19 @@ class DSF_Import_Export {
 	public function add_tools_menu() {
 		add_submenu_page(
 			'designstudio-flow',
-			__( 'Import / Export', 'designstudio-flow' ),
-			__( 'Import / Export', 'designstudio-flow' ),
+			__( 'Tools', 'designstudio-flow' ),
+			__( 'Tools', 'designstudio-flow' ),
 			'edit_pages',
 			'dsf-tools',
 			array( $this, 'render_tools_page' )
+		);
+	}
+
+	private function get_tabs() {
+		return array(
+			'pages'     => __( 'Pages, Headers & Footers', 'designstudio-flow' ),
+			'forms'     => __( 'Forms', 'designstudio-flow' ),
+			'redirects' => __( 'Redirects', 'designstudio-flow' ),
 		);
 	}
 
@@ -229,50 +237,87 @@ class DSF_Import_Export {
 		if ( ! current_user_can( 'edit_pages' ) ) {
 			return;
 		}
+
+		$tabs   = $this->get_tabs();
+		$active = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'pages';
+		if ( ! isset( $tabs[ $active ] ) ) {
+			$active = 'pages';
+		}
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'DesignStudio Flow — Import / Export', 'designstudio-flow' ); ?></h1>
+			<h1><?php esc_html_e( 'DesignStudio Flow — Tools', 'designstudio-flow' ); ?></h1>
 
-			<div class="dsf-tools-grid" style="display:grid;grid-template-columns:minmax(0,1fr);gap:20px;max-width:760px;margin-top:16px;">
-				<div class="card" style="padding:20px;">
-					<h2 style="margin-top:0;"><?php esc_html_e( 'Import', 'designstudio-flow' ); ?></h2>
+			<nav class="nav-tab-wrapper" style="margin-top:12px;">
+				<?php foreach ( $tabs as $key => $label ) : ?>
+					<a
+						href="<?php echo esc_url( add_query_arg( array( 'page' => 'dsf-tools', 'tab' => $key ), admin_url( 'admin.php' ) ) ); ?>"
+						class="nav-tab <?php echo $active === $key ? 'nav-tab-active' : ''; ?>"
+					><?php echo esc_html( $label ); ?></a>
+				<?php endforeach; ?>
+			</nav>
+
+			<?php
+			if ( 'forms' === $active ) {
+				$this->render_forms_tab();
+			} elseif ( 'redirects' === $active && class_exists( 'DSF_Redirects' ) ) {
+				DSF_Redirects::get_instance()->render_admin_tab();
+			} else {
+				$this->render_pages_tab();
+			}
+			?>
+		</div>
+		<?php
+	}
+
+	private function render_pages_tab() {
+		?>
+		<div class="dsf-tools-grid" style="display:grid;grid-template-columns:minmax(0,1fr);gap:20px;max-width:760px;margin-top:16px;">
+			<div class="card" style="padding:20px;">
+				<h2 style="margin-top:0;"><?php esc_html_e( 'Import', 'designstudio-flow' ); ?></h2>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
+					<?php wp_nonce_field( self::IMPORT_ACTION ); ?>
+					<input type="hidden" name="action" value="<?php echo esc_attr( self::IMPORT_ACTION ); ?>">
 					<p><?php esc_html_e( 'Upload a JSON file exported by DesignStudio Flow. Each item is imported as a new post — existing pages, headers, and footers are never overwritten.', 'designstudio-flow' ); ?></p>
+					<table class="form-table">
+						<tr>
+							<th scope="row"><label for="dsf-import-file"><?php esc_html_e( 'JSON file', 'designstudio-flow' ); ?></label></th>
+							<td><input type="file" id="dsf-import-file" name="dsf_import_file" accept=".json,application/json" required></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="dsf-import-status"><?php esc_html_e( 'Imported item status', 'designstudio-flow' ); ?></label></th>
+							<td>
+								<select id="dsf-import-status" name="dsf_import_status">
+									<option value="draft"><?php esc_html_e( 'Draft (recommended)', 'designstudio-flow' ); ?></option>
+									<option value="publish"><?php esc_html_e( 'Published', 'designstudio-flow' ); ?></option>
+								</select>
+							</td>
+						</tr>
+					</table>
+					<p class="submit"><button type="submit" class="button button-primary"><?php esc_html_e( 'Import', 'designstudio-flow' ); ?></button></p>
+				</form>
+			</div>
 
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
-						<?php wp_nonce_field( self::IMPORT_ACTION ); ?>
-						<input type="hidden" name="action" value="<?php echo esc_attr( self::IMPORT_ACTION ); ?>">
-						<table class="form-table">
-							<tr>
-								<th scope="row"><label for="dsf-import-file"><?php esc_html_e( 'JSON file', 'designstudio-flow' ); ?></label></th>
-								<td><input type="file" id="dsf-import-file" name="dsf_import_file" accept=".json,application/json" required></td>
-							</tr>
-							<tr>
-								<th scope="row"><label for="dsf-import-status"><?php esc_html_e( 'Imported item status', 'designstudio-flow' ); ?></label></th>
-								<td>
-									<select id="dsf-import-status" name="dsf_import_status">
-										<option value="draft"><?php esc_html_e( 'Draft (recommended)', 'designstudio-flow' ); ?></option>
-										<option value="publish"><?php esc_html_e( 'Published', 'designstudio-flow' ); ?></option>
-									</select>
-								</td>
-							</tr>
-						</table>
-						<p class="submit"><button type="submit" class="button button-primary"><?php esc_html_e( 'Import', 'designstudio-flow' ); ?></button></p>
-					</form>
-				</div>
-
-				<div class="card" style="padding:20px;">
-					<h2 style="margin-top:0;"><?php esc_html_e( 'Export', 'designstudio-flow' ); ?></h2>
-					<p><?php esc_html_e( 'Use the "Export" row action on a single item, or pick "Export to JSON" from the Bulk Actions dropdown to export multiple at once.', 'designstudio-flow' ); ?></p>
-					<ul style="list-style:disc;margin-left:24px;">
-						<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=page&dsf_flow=1' ) ); ?>"><?php esc_html_e( 'Pages', 'designstudio-flow' ); ?></a></li>
-						<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_layout&dsf_layout_type=header' ) ); ?>"><?php esc_html_e( 'Headers', 'designstudio-flow' ); ?></a></li>
-						<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_layout&dsf_layout_type=footer' ) ); ?>"><?php esc_html_e( 'Footers', 'designstudio-flow' ); ?></a></li>
-					</ul>
-					<p class="description"><?php esc_html_e( 'Media (images, uploaded files) is referenced by URL — files are not bundled. Make sure media is available on the destination site.', 'designstudio-flow' ); ?></p>
-				</div>
+			<div class="card" style="padding:20px;">
+				<h2 style="margin-top:0;"><?php esc_html_e( 'Export', 'designstudio-flow' ); ?></h2>
+				<p><?php esc_html_e( 'Use the "Export" row action on a single item, or pick "Export to JSON" from the Bulk Actions dropdown to export multiple at once.', 'designstudio-flow' ); ?></p>
+				<ul style="list-style:disc;margin-left:24px;">
+					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=page&dsf_flow=1' ) ); ?>"><?php esc_html_e( 'Pages', 'designstudio-flow' ); ?></a></li>
+					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_layout&dsf_layout_type=header' ) ); ?>"><?php esc_html_e( 'Headers', 'designstudio-flow' ); ?></a></li>
+					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_layout&dsf_layout_type=footer' ) ); ?>"><?php esc_html_e( 'Footers', 'designstudio-flow' ); ?></a></li>
+				</ul>
+				<p class="description"><?php esc_html_e( 'Media (images, uploaded files) is referenced by URL — files are not bundled. Make sure media is available on the destination site.', 'designstudio-flow' ); ?></p>
 			</div>
 		</div>
 		<?php
+	}
+
+	private function render_forms_tab() {
+		if ( class_exists( 'DSF_Entries' ) && method_exists( 'DSF_Entries', 'render_tools_content' ) ) {
+			DSF_Entries::get_instance()->render_tools_content();
+			return;
+		}
+
+		echo '<p style="margin-top:16px;">' . esc_html__( 'Forms import / export is unavailable.', 'designstudio-flow' ) . '</p>';
 	}
 
 	public function handle_import() {
@@ -282,7 +327,13 @@ class DSF_Import_Export {
 
 		check_admin_referer( self::IMPORT_ACTION );
 
-		$redirect_base = admin_url( 'admin.php?page=dsf-tools' );
+		$redirect_base = add_query_arg(
+			array(
+				'page' => 'dsf-tools',
+				'tab'  => 'pages',
+			),
+			admin_url( 'admin.php' )
+		);
 
 		if ( empty( $_FILES['dsf_import_file']['tmp_name'] ) || ! is_uploaded_file( $_FILES['dsf_import_file']['tmp_name'] ) ) {
 			wp_safe_redirect( add_query_arg( 'dsf_import', 'no_file', $redirect_base ) );

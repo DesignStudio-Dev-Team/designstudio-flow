@@ -74,6 +74,7 @@ import FormWithContentPreview from './blocks/FormWithContentPreview.vue'
 import LandingProgressHeaderPreview from './blocks/LandingProgressHeaderPreview.vue'
 import LandingHeroPreview from './blocks/LandingHeroPreview.vue'
 import LandingBlockExplorerPreview from './blocks/LandingBlockExplorerPreview.vue'
+import LandingBlockReadyPreview from './blocks/LandingBlockReadyPreview.vue'
 import LandingProductStoryPreview from './blocks/LandingProductStoryPreview.vue'
 import LandingTrustWorkflowPreview from './blocks/LandingTrustWorkflowPreview.vue'
 import LandingEngagementSuitePreview from './blocks/LandingEngagementSuitePreview.vue'
@@ -126,6 +127,7 @@ const previewComponents = {
   'landing-progress-header': LandingProgressHeaderPreview,
   'landing-hero': LandingHeroPreview,
   'landing-block-explorer': LandingBlockExplorerPreview,
+  'landing-block-ready': LandingBlockReadyPreview,
   'landing-product-story': LandingProductStoryPreview,
   'landing-trust-workflow': LandingTrustWorkflowPreview,
   'landing-engagement-suite': LandingEngagementSuitePreview,
@@ -136,7 +138,7 @@ function getPreviewComponent(blockType) {
   return previewComponents[blockType] || GenericBlockPreview
 }
 
-const templateBlockTypes = new Set(['header-mega-menu', 'header-showcase-mega', 'header-cutout-mega', 'footer-dealers', 'landing-progress-header', 'landing-hero', 'landing-block-explorer', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-marketing-footer'])
+const templateBlockTypes = new Set(['header-mega-menu', 'header-showcase-mega', 'header-cutout-mega', 'footer-dealers', 'landing-progress-header', 'landing-hero', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-marketing-footer'])
 const isLandingBlock = computed(() => props.block?.type?.startsWith('landing-') === true)
 
 const defaultMargin = computed(() => (

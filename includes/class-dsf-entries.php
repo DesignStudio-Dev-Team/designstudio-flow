@@ -43,13 +43,22 @@ class DSF_Entries {
 			array( $this, 'render_entries_page' )
 		);
 
-		add_submenu_page(
-			'designstudio-flow',
-			__( 'Import / Export', 'designstudio-flow' ),
-			__( 'Import / Export', 'designstudio-flow' ),
-			'edit_pages',
-			self::MENU_SLUG_IMPORT,
-			array( $this, 'render_import_export_page' )
+		// Forms & entries import/export now lives in the Tools page "Forms" tab
+		// (rendered via render_tools_content), so no separate submenu is added.
+	}
+
+	/**
+	 * URL of the Tools page "Forms" tab where this UI is surfaced.
+	 *
+	 * @return string
+	 */
+	private function tools_forms_url() {
+		return add_query_arg(
+			array(
+				'page' => 'dsf-tools',
+				'tab'  => 'forms',
+			),
+			admin_url( 'admin.php' )
 		);
 	}
 
@@ -236,14 +245,16 @@ class DSF_Entries {
 		echo '</div>';
 	}
 
-	public function render_import_export_page() {
+	/**
+	 * Forms & entries import/export UI, rendered inside the Tools page "Forms" tab.
+	 * The Tools page supplies the surrounding .wrap and page title.
+	 */
+	public function render_tools_content() {
 		if ( ! current_user_can( 'edit_pages' ) ) {
 			return;
 		}
 		$forms = $this->get_forms_for_dropdown();
 		$base  = admin_url( 'admin-post.php' );
-
-		echo '<div class="wrap"><h1>' . esc_html__( 'Import / Export', 'designstudio-flow' ) . '</h1>';
 
 		if ( isset( $_GET['imported_forms'] ) ) {
 			echo '<div class="notice notice-success is-dismissible"><p>' . sprintf( esc_html__( 'Imported %d form(s).', 'designstudio-flow' ), intval( $_GET['imported_forms'] ) ) . '</p></div>';
@@ -318,8 +329,6 @@ class DSF_Entries {
 		echo '<input type="file" name="dsf_import_file" accept=".json,.csv" required> ';
 		submit_button( __( 'Import Entries', 'designstudio-flow' ), 'primary', '', false );
 		echo '</form>';
-		echo '</div>';
-
 		echo '</div>';
 	}
 
@@ -435,7 +444,7 @@ class DSF_Entries {
 			}
 		}
 
-		wp_safe_redirect( add_query_arg( array( 'page' => self::MENU_SLUG_IMPORT, 'imported_forms' => $imported ), admin_url( 'admin.php' ) ) );
+		wp_safe_redirect( add_query_arg( array( 'imported_forms' => $imported ), $this->tools_forms_url() ) );
 		exit;
 	}
 
@@ -481,7 +490,7 @@ class DSF_Entries {
 			}
 		}
 
-		wp_safe_redirect( add_query_arg( array( 'page' => self::MENU_SLUG_IMPORT, 'imported_entries' => $imported ), admin_url( 'admin.php' ) ) );
+		wp_safe_redirect( add_query_arg( array( 'imported_entries' => $imported ), $this->tools_forms_url() ) );
 		exit;
 	}
 
@@ -758,7 +767,7 @@ class DSF_Entries {
 	}
 
 	private function import_redirect_with_error( $message ) {
-		wp_safe_redirect( add_query_arg( array( 'page' => self::MENU_SLUG_IMPORT, 'error' => rawurlencode( $message ) ), admin_url( 'admin.php' ) ) );
+		wp_safe_redirect( add_query_arg( array( 'error' => rawurlencode( $message ) ), $this->tools_forms_url() ) );
 		exit;
 	}
 

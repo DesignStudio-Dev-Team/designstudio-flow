@@ -80,7 +80,20 @@ const innerStyle = computed(() => ({
 
 .dsf-content-preview__inner :deep(ul),
 .dsf-content-preview__inner :deep(ol) {
-  margin: 0 0 1rem 1.25rem;
-  padding: 0;
+  margin: 0 0 1rem;
+  padding-left: 1.4em;
+}
+
+.dsf-content-preview__inner :deep(ul) {
+  list-style: disc outside;
+}
+
+.dsf-content-preview__inner :deep(ol) {
+  list-style: decimal outside;
+}
+
+.dsf-content-preview__inner :deep(li) {
+  display: list-item;
+  margin: 0 0 0.35em;
 }
 </style>

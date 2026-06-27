@@ -40,6 +40,12 @@
       :allow-raw-html="config.allowRawHtml === true"
       @update:modelValue="$emit('update', $event)"
     />
+
+    <ShortcodeEmbedField
+      v-else-if="config.type === 'shortcode_embed'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
     
     <!-- Number -->
     <input 
@@ -331,6 +337,7 @@ import BrandRepeaterField from './common/BrandRepeaterField.vue'
 import TestimonialsRepeaterField from './common/TestimonialsRepeaterField.vue'
 import SpotlightButtonsField from './common/SpotlightButtonsField.vue'
 import WysiwygField from './common/WysiwygField.vue'
+import ShortcodeEmbedField from './common/ShortcodeEmbedField.vue'
 import SimpleLinksField from './common/SimpleLinksField.vue'
 import MegaMenuField from './common/MegaMenuField.vue'
 import ShowcaseHeaderNavigationField from './common/ShowcaseHeaderNavigationField.vue'
