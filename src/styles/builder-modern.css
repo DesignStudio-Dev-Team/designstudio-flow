@@ -499,12 +499,12 @@
 #dsf-editor-app .dsf-input {
   min-height: 42px;
   height: 42px;
-  border-color: var(--dsf-ui-border);
-  border-radius: 9px;
-  background: white;
+  border: 1px solid #8c8f94;
+  border-radius: 4px;
+  background: #fff;
   color: var(--dsf-ui-ink);
   font-size: 13px;
-  box-shadow: inset 0 1px 2px rgb(23 28 35 / 3%);
+  box-shadow: 0 0 0 transparent;
 }
 
 #dsf-editor-app textarea.dsf-input {
@@ -516,20 +516,22 @@
 }
 
 #dsf-editor-app .dsf-input:hover {
-  border-color: rgb(12 95 168 / 30%);
+  border-color: #646970;
 }
 
 #dsf-editor-app .dsf-input:focus {
-  border-color: var(--dsf-brand-blue);
-  background: white;
-  box-shadow: var(--dsf-ring-primary);
+  border-color: #2271b1;
+  background: #fff;
+  box-shadow: 0 0 0 1px #2271b1;
 }
 
 #dsf-editor-app .dsf-slider-group,
 #dsf-editor-app .dsf-color-picker-wrapper {
-  border-color: var(--dsf-ui-border);
-  border-radius: 11px;
-  background: var(--dsf-ui-paper);
+  border: 1px solid #8c8f94;
+  border-radius: 4px;
+  padding: 12px;
+  background: #fff;
+  box-shadow: 0 1px 1px rgb(0 0 0 / 4%);
 }
 
 #dsf-editor-app .dsf-slider-value {
@@ -565,10 +567,10 @@
 }
 
 #dsf-editor-app .dsf-select-card {
-  border-width: 1px;
-  border-color: var(--dsf-ui-border);
-  border-radius: 12px;
-  background: white;
+  border: 1px solid #8c8f94;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 1px 1px rgb(0 0 0 / 4%);
 }
 
 #dsf-editor-app .dsf-select-card:hover {
@@ -578,37 +580,203 @@
 }
 
 #dsf-editor-app .dsf-select-card--active {
-  border-color: var(--dsf-brand-blue);
-  background: var(--dsf-brand-blue-soft);
-  color: var(--dsf-brand-blue);
-  box-shadow: inset 0 0 0 1px var(--dsf-brand-blue);
+  border-color: #2271b1;
+  background: #f0f6fc;
+  color: #135e96;
+  box-shadow: 0 0 0 1px #2271b1;
 }
 
 #dsf-editor-app .dsf-wysiwyg {
-  border-color: var(--dsf-ui-border);
-  border-radius: 10px;
-  box-shadow: inset 0 1px 2px rgb(23 28 35 / 3%);
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #e6e8ec;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 4%), 0 6px 16px rgb(16 24 40 / 4%);
+}
+
+#dsf-editor-app .dsf-wysiwyg:focus-within {
+  border-color: #7aa7e9;
+  box-shadow: 0 0 0 4px rgb(37 99 235 / 12%);
 }
 
 #dsf-editor-app .dsf-wysiwyg__toolbar {
-  border-color: var(--dsf-ui-border);
-  background: var(--dsf-ui-paper-deep);
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid #eef0f3;
+  border-radius: 12px;
+  background: #f8f9fb;
 }
 
 #dsf-editor-app .dsf-wysiwyg__btn {
-  border-color: var(--dsf-ui-border);
-  border-radius: 6px;
-  color: var(--dsf-gray-700);
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #475467;
+  background: transparent;
+  box-shadow: none;
 }
 
 #dsf-editor-app .dsf-wysiwyg__btn:hover {
-  border-color: rgb(12 95 168 / 28%);
-  color: var(--dsf-brand-blue);
+  border-color: transparent;
+  color: #1d4ed8;
+  background: rgb(37 99 235 / 10%);
+  box-shadow: none;
+  transform: none;
 }
 
-#dsf-editor-app .dsf-wysiwyg__btn--active {
-  border-color: var(--dsf-brand-blue);
-  background: var(--dsf-brand-blue);
+#dsf-editor-app .dsf-wysiwyg__btn--active,
+#dsf-editor-app .dsf-wysiwyg__btn--active:hover {
+  color: #fff;
+  border-color: #2563eb;
+  background: #2563eb;
+  box-shadow: 0 2px 6px rgb(37 99 235 / 28%);
+}
+
+#dsf-editor-app .dsf-wysiwyg__editor,
+#dsf-editor-app .dsf-wysiwyg__source {
+  min-height: 280px;
+  padding: 5px;
+  border: 1px solid #e6e8ec;
+  border-radius: 12px;
+  background: #fff;
+}
+
+#dsf-editor-app .dsf-wysiwyg__editor:focus,
+#dsf-editor-app .dsf-wysiwyg__source:focus {
+  border-color: #7aa7e9;
+  box-shadow: 0 0 0 4px rgb(37 99 235 / 10%);
+}
+
+#dsf-editor-app .dsf-wysiwyg__source {
+  color: #1f2937;
+  background: #fff;
+}
+
+/* The editor only loads main.css + editor.css, so the content typography that
+   normally lives in the scoped component must be defined here to reach the
+   contenteditable's (un-scoped) child nodes and beat the Tailwind list reset. */
+#dsf-editor-app .dsf-wysiwyg__editor p {
+  margin: 0 0 1.1em;
+  font-size: var(--dsf-theme-p-size, 20px);
+  line-height: 1.6;
+}
+
+#dsf-editor-app .dsf-wysiwyg__editor h1 { font-size: var(--dsf-theme-h1, 42px); }
+#dsf-editor-app .dsf-wysiwyg__editor h2 { font-size: var(--dsf-theme-h2, 37px); }
+#dsf-editor-app .dsf-wysiwyg__editor h3 { font-size: var(--dsf-theme-h3, 28px); }
+#dsf-editor-app .dsf-wysiwyg__editor h4 {
+  font-size: calc(var(--dsf-theme-p-size, 20px) * 0.9);
+  font-weight: 700;
+}
+
+#dsf-editor-app .dsf-wysiwyg__editor ul {
+  margin: 0 0 1.1em;
+  padding-left: 1.6em;
+  list-style: disc outside;
+}
+
+#dsf-editor-app .dsf-wysiwyg__editor ol {
+  margin: 0 0 1.1em;
+  padding-left: 1.6em;
+  list-style: decimal outside;
+}
+
+#dsf-editor-app .dsf-wysiwyg__editor li {
+  display: list-item;
+  margin: 0 0 0.4em;
+}
+
+#dsf-editor-app .dsf-wysiwyg__gf-select {
+  height: 38px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  color: #344054;
+  background: #fff;
+}
+
+#dsf-editor-app .dsf-wysiwyg__gf-insert,
+#dsf-editor-app .dsf-wysiwyg__gf-insert:hover {
+  color: #fff;
+  border-color: #2563eb;
+  background: #2563eb;
+}
+
+#dsf-editor-app .dsf-wysiwyg__gf-insert:hover {
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+}
+
+#dsf-editor-app .dsf-shortcode-embed,
+#dsf-editor-app .dsf-repeater-item,
+#dsf-editor-app .dsf-faq-items-field__item,
+#dsf-editor-app .dsf-media-picker__preview,
+#dsf-editor-app [class*="-field__item"],
+#dsf-editor-app [class*="-field__section"],
+#dsf-editor-app .dsf-popup-settings-fields__enable,
+#dsf-editor-app .dsf-popup-settings-fields__section {
+  border: 1px solid #8c8f94;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 1px 1px rgb(0 0 0 / 4%);
+}
+
+#dsf-editor-app .dsf-shortcode-embed {
+  padding: 12px;
+  background: #f6f7f7;
+}
+
+#dsf-editor-app .dsf-shortcode-embed__header,
+#dsf-editor-app .dsf-shortcode-embed__gravity,
+#dsf-editor-app .dsf-shortcode-embed__toolbar,
+#dsf-editor-app .dsf-shortcode-embed__footer,
+#dsf-editor-app .dsf-repeater-item__header,
+#dsf-editor-app .dsf-faq-items-field__header,
+#dsf-editor-app [class*="-field__header"] {
+  border-color: #c3c4c7;
+  border-radius: 4px;
+  background: #fff;
+}
+
+#dsf-editor-app .dsf-shortcode-embed__source {
+  border-color: #8c8f94;
+  border-radius: 4px;
+}
+
+#dsf-editor-app .dsf-repeater-item__body,
+#dsf-editor-app .dsf-faq-items-field__body,
+#dsf-editor-app [class*="-field__body"] {
+  border-top: 1px solid #c3c4c7;
+  background: #fff;
+}
+
+#dsf-editor-app .dsf-repeater__add,
+#dsf-editor-app .dsf-faq-items-field__add,
+#dsf-editor-app .dsf-media-picker__btn,
+#dsf-editor-app [class*="-field__add"],
+#dsf-editor-app .dsf-shortcode-embed__quick-btn,
+#dsf-editor-app .dsf-shortcode-embed__insert,
+#dsf-editor-app .dsf-shortcode-embed__toolbar button {
+  border: 1px solid #8c8f94;
+  border-radius: 4px;
+  background: #f6f7f7;
+  color: #1d2327;
+  box-shadow: 0 1px 1px rgb(0 0 0 / 4%);
+}
+
+#dsf-editor-app .dsf-repeater__add:hover,
+#dsf-editor-app .dsf-faq-items-field__add:hover,
+#dsf-editor-app .dsf-media-picker__btn:hover,
+#dsf-editor-app [class*="-field__add"]:hover,
+#dsf-editor-app .dsf-shortcode-embed__quick-btn:hover,
+#dsf-editor-app .dsf-shortcode-embed__insert:hover,
+#dsf-editor-app .dsf-shortcode-embed__toolbar button:hover {
+  border-color: #2271b1;
+  background: #fff;
+  color: #135e96;
+  box-shadow: 0 0 0 1px #2271b1;
 }
 
 #dsf-editor-app .dsf-library-overlay {

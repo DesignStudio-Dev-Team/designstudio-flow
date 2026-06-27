@@ -729,6 +729,37 @@ class DSF_Admin {
 				'alt'     => true,
 				'loading' => true,
 			),
+			'svg'  => array(
+				'class'           => true,
+				'viewBox'         => true,
+				'xmlns'           => true,
+				'width'           => true,
+				'height'          => true,
+				'fill'            => true,
+				'stroke'          => true,
+				'stroke-width'    => true,
+				'stroke-linecap'  => true,
+				'stroke-linejoin' => true,
+				'aria-hidden'     => true,
+				'role'            => true,
+			),
+			'rect' => array(
+				'x'       => true,
+				'y'       => true,
+				'width'   => true,
+				'height'  => true,
+				'rx'      => true,
+				'fill'    => true,
+				'opacity' => true,
+			),
+			'path' => array(
+				'd'               => true,
+				'fill'            => true,
+				'stroke'          => true,
+				'stroke-width'    => true,
+				'stroke-linecap'  => true,
+				'stroke-linejoin' => true,
+			),
 		);
 	}
 

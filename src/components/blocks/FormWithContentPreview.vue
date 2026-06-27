@@ -155,7 +155,7 @@
         >
           <div v-if="customFormHtml" v-html="customFormHtml" />
           <div v-else class="dsf-form-with-content__empty">
-            Add a shortcode or embed code in the block settings.
+            Add your content in the block settings.
           </div>
         </div>
       </div>
@@ -392,6 +392,21 @@ body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf
   font-family: var(--dsf-theme-body-font, inherit) !important;
   font-size: var(--dsf-theme-text-base, 16px) !important;
   line-height: 1.65 !important;
+}
+
+/* Field-level labels are always bold (every field type). Individual checkbox/radio
+   choice labels are intentionally left at normal weight. */
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_label,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper legend.gfield_label,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform-field-label:not(.gform-field-label--type-inline) {
+  font-weight: 700 !important;
+}
+
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gchoice label,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_checkbox label,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_radio label,
+body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform-field-label--type-inline {
+  font-weight: 400 !important;
 }
 
 body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] legend,
@@ -894,7 +909,20 @@ onBeforeUnmount(() => {
   line-height: 1.65;
 }
 
-.dsf-form-with-content__content :deep(li),
+.dsf-form-with-content__content :deep(ul) {
+  list-style: disc outside;
+}
+
+.dsf-form-with-content__content :deep(ol) {
+  list-style: decimal outside;
+}
+
+.dsf-form-with-content__content :deep(li) {
+  display: list-item;
+  font-size: inherit;
+  line-height: inherit;
+}
+
 .dsf-form-with-content__content :deep(em),
 .dsf-form-with-content__content :deep(span) {
   font-size: inherit;

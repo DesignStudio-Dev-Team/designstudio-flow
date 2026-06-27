@@ -205,6 +205,7 @@ class DSF_Editor {
 				),
 				'blocks'           => DSF_Blocks::get_instance()->get_registered_blocks(),
 				'forms'            => $this->get_available_forms(),
+				'gravityForms'     => $this->get_available_gravity_forms(),
 				'popups'           => DSF_Popup::get_popup_list(),
 				'popupCreateUrl'   => admin_url( 'post-new.php?post_type=dsf_popup' ),
 				'popupEditUrlBase' => admin_url( 'post.php?action=edit&post=' ),
@@ -509,6 +510,49 @@ class DSF_Editor {
 			},
 			$forms
 		);
+	}
+
+	/**
+	 * Get available Gravity Forms for shortcode insertion when the plugin is active.
+	 */
+	private function get_available_gravity_forms() {
+		if ( ! class_exists( 'GFAPI' ) || ! is_callable( array( 'GFAPI', 'get_forms' ) ) ) {
+			return array();
+		}
+
+		$forms = GFAPI::get_forms();
+		if ( empty( $forms ) || ! is_array( $forms ) ) {
+			return array();
+		}
+
+		$result = array();
+		foreach ( $forms as $form ) {
+			if ( ! is_array( $form ) ) {
+				continue;
+			}
+
+			$form_id = absint( $form['id'] ?? 0 );
+			if ( ! $form_id ) {
+				continue;
+			}
+
+			$title = sanitize_text_field( $form['title'] ?? '' );
+			if ( '' === $title ) {
+				$title = sprintf(
+					/* translators: %d: Gravity Forms form id. */
+					__( 'Gravity Form #%d', 'designstudio-flow' ),
+					$form_id
+				);
+			}
+
+			$result[] = array(
+				'id'        => $form_id,
+				'title'     => $title,
+				'shortcode' => sprintf( '[gravityform id="%d" title="false" description="false" ajax="true"]', $form_id ),
+			);
+		}
+
+		return $result;
 	}
 
 	/**

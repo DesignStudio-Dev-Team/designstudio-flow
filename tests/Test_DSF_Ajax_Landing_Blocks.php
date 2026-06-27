@@ -12,6 +12,16 @@ class Test_DSF_Ajax_Landing_Blocks extends TestCase {
 		WP_Mock::userFunction( 'sanitize_text_field', array( 'return_arg' => 0 ) );
 		WP_Mock::userFunction( 'sanitize_textarea_field', array( 'return_arg' => 0 ) );
 		WP_Mock::userFunction( 'wp_kses_post', array( 'return' => 'safe-answer' ) );
+		WP_Mock::userFunction(
+			'wp_kses',
+			array(
+				'return' => static function ( $html, $allowed = null ) {
+					$html = preg_replace( '#<script\b[^>]*>.*?</script>#is', '', $html );
+					$html = preg_replace( '/\s+on[a-z]+\s*=\s*(["\']).*?\1/i', '', $html );
+					return $html;
+				},
+			)
+		);
 		WP_Mock::userFunction( 'sanitize_hex_color', array( 'return_arg' => 0 ) );
 		WP_Mock::userFunction( 'absint', array( 'return_arg' => 0 ) );
 		WP_Mock::userFunction( 'current_datetime', array( 'return' => new DateTimeImmutable( '2026-06-22 12:00:00' ) ) );
@@ -169,14 +179,40 @@ class Test_DSF_Ajax_Landing_Blocks extends TestCase {
 		$footer = $this->sanitize_settings(
 			'landing-marketing-footer',
 			array(
-				'variant'   => 'columns',
-				'col1Title' => 'Explore',
-				'col1Links' => array( array( 'label' => 'Safe', 'url' => '#safe', 'unknown' => 'drop' ) ),
+				'variant'          => 'columns',
+				'col1Title'        => 'Explore',
+				'col1Links'        => array( array( 'label' => 'Safe', 'url' => '#safe', 'unknown' => 'drop' ) ),
+				'buttonBgColor'    => '#FF0000',
+				'buttonLabelColor' => '#00FF00',
+				'linksColor'       => '#0000FF',
 			)
 		);
 		$this->assertSame( 'columns', $footer['variant'] );
 		$this->assertSame( 'Explore', $footer['col1Title'] );
 		$this->assertSame( array( 'label' => 'Safe', 'url' => '#safe' ), $footer['col1Links'][0] );
+		// CTA/link color controls must survive the save sanitizer (regression guard).
+		$this->assertSame( '#FF0000', $footer['buttonBgColor'] );
+		$this->assertSame( '#00FF00', $footer['buttonLabelColor'] );
+		$this->assertSame( '#0000FF', $footer['linksColor'] );
+	}
+
+	public function test_design_ready_block_text_persists() {
+		$ready = $this->sanitize_settings(
+			'landing-block-ready',
+			array(
+				'title'      => 'Add a block',
+				'demoTitle'  => 'Launch day is almost here',
+				'demoButton' => 'Reserve your spot',
+				'step1Text'  => "Pick a block\nfrom the library",
+				'malicious'  => '<script>alert(1)</script>',
+			)
+		);
+
+		$this->assertSame( 'Add a block', $ready['title'] );
+		$this->assertSame( 'Launch day is almost here', $ready['demoTitle'] );
+		$this->assertSame( 'Reserve your spot', $ready['demoButton'] );
+		$this->assertSame( "Pick a block\nfrom the library", $ready['step1Text'] );
+		$this->assertArrayNotHasKey( 'malicious', $ready );
 	}
 
 	public function test_cta_footer_has_its_own_library_group() {
@@ -195,6 +231,26 @@ class Test_DSF_Ajax_Landing_Blocks extends TestCase {
 
 		$this->assertCount( 12, $clean['items'] );
 		$this->assertSame( 'safe-answer', $clean['items'][0]['answer'] );
+	}
+
+	public function test_form_embed_settings_keep_shortcodes_and_strip_executable_embed_markup() {
+		$clean = $this->invoke_private(
+			'sanitize_form_block_settings',
+			'form-with-content',
+			array(
+				'formSource' => 'embed',
+				'embedCode'  => '[gravityform id="7" title="false"]<iframe src="https://example.com/form" onload="alert(1)"></iframe><script>alert(1)</script>',
+				'content'    => '<p>Intro</p>',
+				'unknown'    => '<script>bad</script>',
+			)
+		);
+
+		$this->assertSame( 'embed', $clean['formSource'] );
+		$this->assertStringContainsString( '[gravityform id="7"', $clean['embedCode'] );
+		$this->assertStringContainsString( '<iframe src="https://example.com/form"', $clean['embedCode'] );
+		$this->assertStringNotContainsString( '<script', $clean['embedCode'] );
+		$this->assertStringNotContainsString( 'onload', $clean['embedCode'] );
+		$this->assertArrayNotHasKey( 'unknown', $clean );
 	}
 
 	private function sanitize_settings( $type, $settings ) {

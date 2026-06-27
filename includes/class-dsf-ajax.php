@@ -238,7 +238,7 @@ class DSF_Ajax {
 			if ( ! is_array( $block ) ) {
 				continue;
 			}
-			if ( in_array( $block['type'] ?? '', array( 'landing-progress-header', 'landing-hero', 'landing-block-explorer', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-marketing-footer' ), true ) ) {
+			if ( in_array( $block['type'] ?? '', array( 'landing-progress-header', 'landing-hero', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-marketing-footer' ), true ) ) {
 				$block['settings'] = $this->sanitize_landing_block_settings( $block['type'], $block['settings'] ?? array() );
 				continue;
 			}
@@ -256,6 +256,10 @@ class DSF_Ajax {
 			}
 			if ( 'expander-hero' === ( $block['type'] ?? '' ) ) {
 				$block['settings'] = $this->sanitize_expander_hero_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( in_array( $block['type'] ?? '', array( 'form-embed', 'form-with-content' ), true ) ) {
+				$block['settings'] = $this->sanitize_form_block_settings( $block['type'], $block['settings'] ?? array() );
 				continue;
 			}
 			if ( 'header-showcase-mega' !== ( $block['type'] ?? '' ) ) {
@@ -297,6 +301,97 @@ class DSF_Ajax {
 		unset( $block );
 
 		return $blocks;
+	}
+
+	/**
+	 * Sanitize form block settings, including bounded raw embed content.
+	 *
+	 * @param string $type Block type.
+	 * @param array  $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_form_block_settings( $type, $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		if ( 'form-embed' === $type ) {
+			return array(
+				'formId'        => absint( $settings['formId'] ?? 0 ) ? (string) absint( $settings['formId'] ) : '',
+				'showTitle'     => ! empty( $settings['showTitle'] ),
+				'title'         => sanitize_text_field( $settings['title'] ?? '' ),
+				'formMaxWidth'  => max( 300, min( 1200, absint( $settings['formMaxWidth'] ?? 600 ) ) ),
+				'formAlignment' => in_array( $settings['formAlignment'] ?? '', array( 'left', 'center', 'right' ), true ) ? $settings['formAlignment'] : 'center',
+				'marginY'       => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			);
+		}
+
+		$clean = array(
+			'sectionTitle'    => sanitize_text_field( $settings['sectionTitle'] ?? '' ),
+			'showDivider'     => ! empty( $settings['showDivider'] ),
+			'formSource'      => 'embed' === ( $settings['formSource'] ?? '' ) ? 'embed' : 'dsf',
+			'formId'          => absint( $settings['formId'] ?? 0 ) ? (string) absint( $settings['formId'] ) : '',
+			'embedCode'       => $this->sanitize_form_embed_code( $settings['embedCode'] ?? '' ),
+			'formSide'        => 'left' === ( $settings['formSide'] ?? '' ) ? 'left' : 'right',
+			'columnRatio'     => in_array( $settings['columnRatio'] ?? '', array( '1-1', '3-2', '2-3' ), true ) ? $settings['columnRatio'] : '1-1',
+			'content'         => wp_kses_post( $settings['content'] ?? '' ),
+			'mediaType'       => 'image' === ( $settings['mediaType'] ?? '' ) ? 'image' : 'video',
+			'image'           => esc_url_raw( $settings['image'] ?? '', array( 'http', 'https' ) ),
+			'logo'            => esc_url_raw( $settings['logo'] ?? '', array( 'http', 'https' ) ),
+			'logoPadding'     => ! empty( $settings['logoPadding'] ),
+			'video'           => esc_url_raw( $settings['video'] ?? '', array( 'http', 'https' ) ),
+			'videoFile'       => esc_url_raw( $settings['videoFile'] ?? '', array( 'http', 'https' ) ),
+			'padding'         => max( 0, min( 120, absint( $settings['padding'] ?? 60 ) ) ),
+			'paddingX'        => max( 0, min( 100, absint( $settings['paddingX'] ?? 24 ) ) ),
+			'marginY'         => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+		);
+
+		foreach ( array( 'dividerColor', 'backgroundColor', 'contentBg', 'formBg', 'textColor', 'titleColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Keep shortcode text and safe embed HTML while removing executable markup.
+	 *
+	 * @param mixed $embed_code Submitted shortcode/embed content.
+	 * @return string
+	 */
+	private function sanitize_form_embed_code( $embed_code ) {
+		$embed_code = is_string( $embed_code ) ? trim( $embed_code ) : '';
+		if ( '' === $embed_code ) {
+			return '';
+		}
+
+		$allowed = function_exists( 'wp_kses_allowed_html' ) ? wp_kses_allowed_html( 'post' ) : array(
+			'p'      => array(),
+			'br'     => array(),
+			'strong' => array(),
+			'em'     => array(),
+			'a'      => array(
+				'href'   => true,
+				'target' => true,
+				'rel'    => true,
+			),
+		);
+		$allowed['iframe'] = array(
+			'src'             => true,
+			'title'           => true,
+			'width'           => true,
+			'height'          => true,
+			'class'           => true,
+			'id'              => true,
+			'loading'         => true,
+			'allow'           => true,
+			'allowfullscreen' => true,
+			'frameborder'     => true,
+			'referrerpolicy'  => true,
+			'sandbox'         => true,
+			'style'           => true,
+		);
+
+		return wp_kses( $embed_code, $allowed );
 	}
 
 	/**
@@ -377,6 +472,16 @@ class DSF_Ajax {
 			return $clean;
 		}
 
+		if ( 'landing-block-ready' === $type ) {
+			foreach ( array( 'eyebrow', 'title', 'note', 'step1Title', 'step2Title', 'step3Title', 'demoEyebrow', 'demoTitle', 'demoButton' ) as $key ) {
+				$clean[ $key ] = sanitize_text_field( $settings[ $key ] ?? '' );
+			}
+			foreach ( array( 'description', 'step1Text', 'step2Text', 'step3Text', 'demoText' ) as $key ) {
+				$clean[ $key ] = sanitize_textarea_field( $settings[ $key ] ?? '' );
+			}
+			return $clean;
+		}
+
 		if ( 'landing-engagement-suite' === $type ) {
 			foreach ( array( 'eyebrow', 'title', 'formsLabel', 'formsTitle', 'popupLabel', 'popupTitle', 'notificationLabel', 'notificationTitle' ) as $key ) {
 				$clean[ $key ] = sanitize_text_field( $settings[ $key ] ?? '' );
@@ -406,6 +511,10 @@ class DSF_Ajax {
 		$clean['logoImage'] = esc_url_raw( $settings['logoImage'] ?? '', array( 'http', 'https' ) );
 		foreach ( array( 1, 2, 3 ) as $column ) {
 			$clean[ 'col' . $column . 'Links' ] = $this->sanitize_landing_links( $settings[ 'col' . $column . 'Links' ] ?? array(), 10 );
+		}
+		foreach ( array( 'buttonBgColor', 'buttonLabelColor', 'linksColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
 		}
 
 		return $clean;
