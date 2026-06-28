@@ -153,6 +153,37 @@ class DSF_Post_Type {
 				'show_in_rest'        => false,
 			)
 		);
+
+		// Saved Blocks — a site-wide library of reusable blocks (a block's type +
+		// full settings) editors can drop onto any page. Managed via its own admin
+		// list under the DesignStudio Flow menu.
+		register_post_type(
+			'dsf_saved_block',
+			array(
+				'labels'             => array(
+					'name'               => _x( 'Saved Blocks', 'Post type general name', 'designstudio-flow' ),
+					'singular_name'      => _x( 'Saved Block', 'Post type singular name', 'designstudio-flow' ),
+					'menu_name'          => __( 'Saved Blocks', 'designstudio-flow' ),
+					'all_items'          => __( 'Saved Blocks', 'designstudio-flow' ),
+					'edit_item'          => __( 'Edit Saved Block', 'designstudio-flow' ),
+					'search_items'       => __( 'Search Saved Blocks', 'designstudio-flow' ),
+					'not_found'          => __( 'No saved blocks yet.', 'designstudio-flow' ),
+					'not_found_in_trash' => __( 'No saved blocks found in Trash.', 'designstudio-flow' ),
+				),
+				'public'             => false,
+				'publicly_queryable' => false,
+				'show_ui'            => true,
+				'show_in_menu'       => 'designstudio-flow',
+				'query_var'          => false,
+				'rewrite'            => false,
+				'capability_type'    => 'page',
+				'map_meta_cap'       => true,
+				'has_archive'        => false,
+				'hierarchical'       => false,
+				'supports'           => array( 'title' ),
+				'show_in_rest'       => false,
+			)
+		);
 	}
 
 	/**

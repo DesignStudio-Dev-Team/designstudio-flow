@@ -204,6 +204,7 @@ class DSF_Editor {
 					'footer' => admin_url( 'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=footer' ),
 				),
 				'blocks'           => DSF_Blocks::get_instance()->get_registered_blocks(),
+				'blockPresets'     => DSF_Block_Presets::get_instance()->get_presets(),
 				'forms'            => $this->get_available_forms(),
 				'gravityForms'     => $this->get_available_gravity_forms(),
 				'popups'           => DSF_Popup::get_popup_list(),

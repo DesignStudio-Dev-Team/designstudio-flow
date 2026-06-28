@@ -60,6 +60,7 @@
                 @move-down="moveBlockDown(index)"
                 @delete="deleteBlock(index)"
                 @open-settings="openBlockSettings(element)"
+                @save-block="handleSaveBlock(element)"
               />
             </template>
           </draggable>
@@ -122,8 +123,13 @@
     <BlockLibrary
       v-if="showBlockLibrary"
       :categories="blockCategories"
+      :saved-blocks="availableSavedBlocks"
+      :presets="blockPresets"
       @close="showBlockLibrary = false"
       @add="addBlock"
+      @insert-saved="insertSavedBlock"
+      @delete-saved="deleteSavedBlock"
+      @insert-preset="insertPreset"
     />
     
     <!-- Delete Confirmation Dialog -->
@@ -282,6 +288,8 @@ const pageSettings = ref({
 })
 
 const availablePopups = ref(Array.isArray(wpData.popups) ? wpData.popups : [])
+const availableSavedBlocks = ref([])
+const blockPresets = Array.isArray(wpData.blockPresets) ? wpData.blockPresets : []
 const popupCreateUrl = wpData.popupCreateUrl || ''
 const popupEditUrlBase = wpData.popupEditUrlBase || ''
 
@@ -472,7 +480,11 @@ function addBlock(blockDefinition) {
   const newBlock = {
     id: 'block_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
     type: blockDefinition.id,
-    settings: getDefaultSettings(blockDefinition),
+    // A saved block carries its own stored settings; a fresh block from the
+    // library starts from the definition defaults.
+    settings: blockDefinition.savedSettings
+      ? JSON.parse(JSON.stringify(blockDefinition.savedSettings))
+      : getDefaultSettings(blockDefinition),
   }
   
   blocks.value.push(newBlock)
@@ -496,9 +508,95 @@ function addBlock(blockDefinition) {
   }, 100)
 }
 
+// ---- Saved Blocks (reusable block library) ----
+
+async function loadSavedBlocks() {
+  if (!wpData.ajaxUrl) return
+  try {
+    const formData = new FormData()
+    formData.append('action', 'dsf_list_saved_blocks')
+    formData.append('nonce', wpData.nonce)
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json.success && Array.isArray(json.data?.savedBlocks)) {
+      availableSavedBlocks.value = json.data.savedBlocks
+    }
+  } catch (e) {
+    // Non-fatal: the picker simply shows no saved blocks.
+  }
+}
+
+async function handleSaveBlock(block) {
+  if (!block?.type) return
+  const def = getBlockDefinition(block.type)
+  const suggested = (def && def.name) ? def.name : 'Saved block'
+  const name = window.prompt('Name this saved block', suggested)
+  if (name === null) return // cancelled
+
+  try {
+    const formData = new FormData()
+    formData.append('action', 'dsf_save_block')
+    formData.append('nonce', wpData.nonce)
+    formData.append('name', name.trim() || suggested)
+    formData.append('type', block.type)
+    formData.append('settings', JSON.stringify(block.settings || {}))
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json.success && json.data) {
+      availableSavedBlocks.value = [...availableSavedBlocks.value, json.data]
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    } else {
+      alert(json.data?.message || 'Could not save this block.')
+    }
+  } catch (e) {
+    alert('Could not save this block.')
+  }
+}
+
+function insertSavedBlock(saved) {
+  if (!saved?.type) return
+  const def = (wpData.blocks || {})[saved.type]
+  if (!def) {
+    alert('This saved block type is no longer available.')
+    return
+  }
+  // Reuse the normal insertion path, but seed it with the saved settings.
+  addBlock({ ...def, id: saved.type, savedSettings: saved.settings || {} })
+}
+
+function insertPreset(preset) {
+  if (!preset?.type) return
+  const def = (wpData.blocks || {})[preset.type]
+  if (!def) {
+    alert('This preset is not available for this site.')
+    return
+  }
+  addBlock({ ...def, id: preset.type, savedSettings: preset.settings || {} })
+}
+
+async function deleteSavedBlock(saved) {
+  if (!saved?.id) return
+  if (!confirm(`Delete saved block "${saved.name}"? This removes it from the library for everyone.`)) return
+  try {
+    const formData = new FormData()
+    formData.append('action', 'dsf_delete_saved_block')
+    formData.append('nonce', wpData.nonce)
+    formData.append('id', saved.id)
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json.success) {
+      availableSavedBlocks.value = availableSavedBlocks.value.filter((b) => b.id !== saved.id)
+    } else {
+      alert(json.data?.message || 'Could not delete this saved block.')
+    }
+  } catch (e) {
+    alert('Could not delete this saved block.')
+  }
+}
+
 function getDefaultSettings(blockDef) {
   const defaults = {}
-  
+
   if (blockDef.settings) {
     Object.entries(blockDef.settings).forEach(([key, config]) => {
       // Use helper to determine if this setting maps to a theme property
@@ -952,6 +1050,9 @@ onMounted(() => {
   if (pageSettings.value?.theme) {
     syncThemeToBlocks(DEFAULT_THEME, pageSettings.value.theme)
   }
+
+  // Populate the reusable saved-block library for the picker.
+  loadSavedBlocks()
 
   if (!prefersReducedMotion()) {
     const root = editorRoot.value
