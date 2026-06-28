@@ -43,13 +43,18 @@
             <button
               v-for="preset in filteredPresets"
               :key="preset.key"
-              class="dsf-library-saved__add dsf-library-preset"
+              class="dsf-library-block"
               @click="$emit('insert-preset', preset)"
             >
-              <component :is="getBlockIcon(preset.icon)" :size="16" />
-              <div class="dsf-library-block__text">
-                <h4>{{ preset.name }}</h4>
-                <span>Click to add</span>
+              <div class="dsf-library-block__preview">
+                <BlockSchematic :type="preset.type" :icon="preset.icon" />
+              </div>
+              <div class="dsf-library-block__info">
+                <component :is="getBlockIcon(preset.icon)" :size="16" />
+                <div class="dsf-library-block__text">
+                  <h4>{{ preset.name }}</h4>
+                  <span>Click to add</span>
+                </div>
               </div>
             </button>
           </div>
@@ -70,16 +75,21 @@
             />
           </button>
           <div class="dsf-library-blocks" v-show="savedOpen">
-            <div v-for="saved in filteredSavedBlocks" :key="saved.id" class="dsf-library-saved">
-              <button class="dsf-library-saved__add" @click="$emit('insert-saved', saved)">
-                <component :is="getBlockIcon(savedIcon(saved))" :size="16" />
-                <div class="dsf-library-block__text">
-                  <h4>{{ saved.name }}</h4>
-                  <span>{{ savedTypeLabel(saved) }}</span>
+            <div v-for="saved in filteredSavedBlocks" :key="saved.id" class="dsf-library-block dsf-library-block--saved">
+              <button class="dsf-library-block__main" @click="$emit('insert-saved', saved)">
+                <div class="dsf-library-block__preview">
+                  <BlockSchematic :type="saved.type" :icon="savedIcon(saved)" />
+                </div>
+                <div class="dsf-library-block__info">
+                  <component :is="getBlockIcon(savedIcon(saved))" :size="16" />
+                  <div class="dsf-library-block__text">
+                    <h4>{{ saved.name }}</h4>
+                    <span>{{ savedTypeLabel(saved) }}</span>
+                  </div>
                 </div>
               </button>
               <button
-                class="dsf-library-saved__delete"
+                class="dsf-library-block__delete"
                 title="Delete saved block"
                 aria-label="Delete saved block"
                 @click.stop="$emit('delete-saved', saved)"
@@ -541,55 +551,42 @@ function getBlockIcon(iconName) {
   color: var(--dsf-primary-500);
 }
 
-/* Saved blocks rows: an insert button + a delete affordance. */
-.dsf-library-saved {
-  display: flex;
-  align-items: stretch;
-  gap: 0.375rem;
-  margin-bottom: 0.5rem;
+/* Saved block cards: same card as a regular block, plus a delete overlay. */
+.dsf-library-block--saved {
+  position: relative;
+  padding: 0;
 }
 
-.dsf-library-saved:last-child {
-  margin-bottom: 0;
-}
-
-.dsf-library-saved__add {
-  flex: 1;
+.dsf-library-block__main {
   display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  padding: 0.625rem 0.75rem;
-  background: white;
-  border: 2px solid var(--dsf-gray-200);
-  border-radius: var(--dsf-radius-lg);
-  color: var(--dsf-gray-500);
+  flex-direction: column;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  transition: all 0.2s;
+  text-align: left;
 }
 
-.dsf-library-saved__add:hover {
-  border-color: var(--dsf-primary-500);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-}
-
-.dsf-library-saved__add:hover .dsf-library-block__text span {
-  color: var(--dsf-primary-500);
-}
-
-.dsf-library-saved__delete {
+.dsf-library-block__delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  background: white;
-  border: 2px solid var(--dsf-gray-200);
-  border-radius: var(--dsf-radius-lg);
-  color: var(--dsf-gray-400);
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--dsf-gray-200);
+  border-radius: var(--dsf-radius-md);
+  color: var(--dsf-gray-500);
   cursor: pointer;
   transition: all 0.15s;
 }
 
-.dsf-library-saved__delete:hover {
+.dsf-library-block__delete:hover {
   border-color: #ef4444;
   color: #ef4444;
   background: #fef2f2;

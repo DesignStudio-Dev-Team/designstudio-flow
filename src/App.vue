@@ -143,6 +143,34 @@
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
+
+    <!-- Save block to library -->
+    <SaveBlockModal
+      :visible="saveModalVisible"
+      :suggested-name="saveModalSuggestedName"
+      :existing="saveModalExisting"
+      @save="onSaveBlockConfirm"
+      @cancel="saveModalVisible = false"
+    />
+
+    <!-- Delete saved block confirmation -->
+    <ConfirmDialog
+      :visible="savedDeleteVisible"
+      title="Delete saved block?"
+      :message="`This removes &quot;${savedToDelete?.name || ''}&quot; from the library for everyone. This cannot be undone.`"
+      confirm-text="Delete"
+      cancel-text="Cancel"
+      variant="danger"
+      @confirm="confirmDeleteSavedBlock"
+      @cancel="cancelDeleteSavedBlock"
+    />
+
+    <!-- Transient toast -->
+    <Teleport to="body">
+      <Transition name="dsf-toast">
+        <div v-if="toast.visible" class="dsf-toast" :class="`dsf-toast--${toast.type}`">{{ toast.message }}</div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -160,6 +188,7 @@ import ThemePanel from './components/ThemePanel.vue'
 import BlockLibrary from './components/BlockLibrary.vue'
 import PageSettingsModal from './components/PageSettingsModal.vue'
 import ConfirmDialog from './components/common/ConfirmDialog.vue'
+import SaveBlockModal from './components/SaveBlockModal.vue'
 import FrontendApp from './frontend/FrontendApp.vue'
 import { applyThemeToBlocks, resolveThemeKey } from './utils/themeSync'
 import { canAddTemplateBlock, isSingleBlockTemplate, normalizeTemplateBlocks } from './utils/templateBlockRules'
@@ -526,30 +555,54 @@ async function loadSavedBlocks() {
   }
 }
 
-async function handleSaveBlock(block) {
+// Save-block modal state. handleSaveBlock opens it; onSaveBlockConfirm performs
+// the AJAX (creating a new saved block, or updating an existing one in place).
+const saveModalVisible = ref(false)
+const saveModalBlock = ref(null)
+const saveModalSuggestedName = ref('')
+const saveModalExisting = computed(() => {
+  const type = saveModalBlock.value?.type
+  if (!type) return []
+  return availableSavedBlocks.value.filter((b) => b.type === type)
+})
+
+function handleSaveBlock(block) {
   if (!block?.type) return
   const def = getBlockDefinition(block.type)
-  const suggested = (def && def.name) ? def.name : 'Saved block'
-  const name = window.prompt('Name this saved block', suggested)
-  if (name === null) return // cancelled
+  saveModalBlock.value = block
+  saveModalSuggestedName.value = (def && def.name) ? def.name : 'Saved block'
+  saveModalVisible.value = true
+}
+
+async function onSaveBlockConfirm({ name, id }) {
+  const block = saveModalBlock.value
+  saveModalVisible.value = false
+  if (!block?.type) return
 
   try {
     const formData = new FormData()
     formData.append('action', 'dsf_save_block')
     formData.append('nonce', wpData.nonce)
-    formData.append('name', name.trim() || suggested)
+    formData.append('name', name)
     formData.append('type', block.type)
     formData.append('settings', JSON.stringify(block.settings || {}))
+    if (id) formData.append('id', id)
     const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
     const json = await response.json()
     if (json.success && json.data) {
-      availableSavedBlocks.value = [...availableSavedBlocks.value, json.data]
-        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      const idx = availableSavedBlocks.value.findIndex((b) => b.id === json.data.id)
+      if (idx >= 0) {
+        availableSavedBlocks.value.splice(idx, 1, json.data)
+      } else {
+        availableSavedBlocks.value = [...availableSavedBlocks.value, json.data]
+      }
+      availableSavedBlocks.value.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      showToast(id ? 'Saved block updated' : 'Block saved to library')
     } else {
-      alert(json.data?.message || 'Could not save this block.')
+      showToast(json.data?.message || 'Could not save this block.', 'error')
     }
   } catch (e) {
-    alert('Could not save this block.')
+    showToast('Could not save this block.', 'error')
   }
 }
 
@@ -574,9 +627,25 @@ function insertPreset(preset) {
   addBlock({ ...def, id: preset.type, savedSettings: preset.settings || {} })
 }
 
-async function deleteSavedBlock(saved) {
+// Saved-block deletion uses the shared confirm dialog instead of window.confirm.
+const savedDeleteVisible = ref(false)
+const savedToDelete = ref(null)
+
+function deleteSavedBlock(saved) {
   if (!saved?.id) return
-  if (!confirm(`Delete saved block "${saved.name}"? This removes it from the library for everyone.`)) return
+  savedToDelete.value = saved
+  savedDeleteVisible.value = true
+}
+
+function cancelDeleteSavedBlock() {
+  savedDeleteVisible.value = false
+  savedToDelete.value = null
+}
+
+async function confirmDeleteSavedBlock() {
+  const saved = savedToDelete.value
+  savedDeleteVisible.value = false
+  if (!saved?.id) return
   try {
     const formData = new FormData()
     formData.append('action', 'dsf_delete_saved_block')
@@ -586,12 +655,24 @@ async function deleteSavedBlock(saved) {
     const json = await response.json()
     if (json.success) {
       availableSavedBlocks.value = availableSavedBlocks.value.filter((b) => b.id !== saved.id)
+      showToast('Saved block deleted')
     } else {
-      alert(json.data?.message || 'Could not delete this saved block.')
+      showToast(json.data?.message || 'Could not delete this saved block.', 'error')
     }
   } catch (e) {
-    alert('Could not delete this saved block.')
+    showToast('Could not delete this saved block.', 'error')
+  } finally {
+    savedToDelete.value = null
   }
+}
+
+// Lightweight transient toast for editor actions.
+const toast = ref({ visible: false, message: '', type: 'success' })
+let toastTimer = null
+function showToast(message, type = 'success') {
+  toast.value = { visible: true, message, type }
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toast.value.visible = false }, 3000)
 }
 
 function getDefaultSettings(blockDef) {
@@ -1069,3 +1150,31 @@ onBeforeUnmount(() => {
   if (editorRoot.value) gsap.killTweensOf(editorRoot.value.querySelectorAll('*'))
 })
 </script>
+
+<style>
+/* Editor toast (teleported to body, so intentionally unscoped). */
+.dsf-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 1200;
+  padding: 0.7rem 1.1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: #111827;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  max-width: 90vw;
+}
+
+.dsf-toast--success { background: #15803d; }
+.dsf-toast--error { background: #b91c1c; }
+
+.dsf-toast-enter-active,
+.dsf-toast-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+
+.dsf-toast-enter-from,
+.dsf-toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(8px); }
+</style>

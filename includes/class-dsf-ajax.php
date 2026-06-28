@@ -105,14 +105,34 @@ class DSF_Ajax {
 			$name = isset( $def['name'] ) ? $def['name'] : __( 'Saved block', 'designstudio-flow' );
 		}
 
-		$post_id = wp_insert_post(
-			array(
-				'post_type'   => 'dsf_saved_block',
-				'post_status' => 'publish',
-				'post_title'  => $name,
-			),
-			true
-		);
+		// An optional id updates an existing saved block in place (re-save), rather
+		// than creating a duplicate.
+		$update_id = isset( $_POST['id'] ) ? intval( $_POST['id'] ) : 0;
+
+		if ( $update_id ) {
+			if ( 'dsf_saved_block' !== get_post_type( $update_id ) ) {
+				wp_send_json_error( array( 'message' => 'Invalid saved block' ), 400 );
+			}
+			if ( ! current_user_can( 'edit_post', $update_id ) ) {
+				wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+			}
+			$post_id = wp_update_post(
+				array(
+					'ID'         => $update_id,
+					'post_title' => $name,
+				),
+				true
+			);
+		} else {
+			$post_id = wp_insert_post(
+				array(
+					'post_type'   => 'dsf_saved_block',
+					'post_status' => 'publish',
+					'post_title'  => $name,
+				),
+				true
+			);
+		}
 
 		if ( is_wp_error( $post_id ) || ! $post_id ) {
 			wp_send_json_error( array( 'message' => 'Could not save block' ), 500 );
