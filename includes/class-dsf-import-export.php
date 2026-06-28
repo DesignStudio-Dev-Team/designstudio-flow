@@ -510,6 +510,25 @@ class DSF_Import_Export {
 			return $url;
 		}
 
+		// SSRF guard: never fetch from private/reserved/unresolvable hosts.
+		if ( ! $this->is_safe_remote_host( $url ) ) {
+			$cache[ $url ] = $url;
+			return $url;
+		}
+
+		// Skip oversized media when the server advertises a length over the cap.
+		$max_bytes = (int) apply_filters( 'dsf_import_media_max_bytes', 64 * 1024 * 1024 );
+		if ( $max_bytes > 0 ) {
+			$head = wp_remote_head( $url, array( 'timeout' => 10, 'redirection' => 3 ) );
+			if ( ! is_wp_error( $head ) ) {
+				$length = (int) wp_remote_retrieve_header( $head, 'content-length' );
+				if ( $length > 0 && $length > $max_bytes ) {
+					$cache[ $url ] = $url;
+					return $url;
+				}
+			}
+		}
+
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 		require_once ABSPATH . 'wp-admin/includes/media.php';
 		require_once ABSPATH . 'wp-admin/includes/image.php';
@@ -542,6 +561,49 @@ class DSF_Import_Export {
 		$new_url       = wp_get_attachment_url( $attach_id );
 		$cache[ $url ] = $new_url ? $new_url : $url;
 		return $cache[ $url ];
+	}
+
+	/**
+	 * SSRF guard: a URL is safe to fetch only if its host resolves and every
+	 * resolved address is a public IP (no localhost/private/link-local ranges).
+	 */
+	private function is_safe_remote_host( $url ) {
+		$host = wp_parse_url( $url, PHP_URL_HOST );
+		if ( ! $host ) {
+			return false;
+		}
+
+		$ips = array();
+		$v4  = gethostbynamel( $host );
+		if ( is_array( $v4 ) ) {
+			$ips = array_merge( $ips, $v4 );
+		}
+		if ( function_exists( 'dns_get_record' ) ) {
+			$v6 = dns_get_record( $host, DNS_AAAA );
+			if ( is_array( $v6 ) ) {
+				foreach ( $v6 as $record ) {
+					if ( ! empty( $record['ipv6'] ) ) {
+						$ips[] = $record['ipv6'];
+					}
+				}
+			}
+		}
+
+		if ( empty( $ips ) ) {
+			return false;
+		}
+
+		foreach ( $ips as $ip ) {
+			if ( ! $this->is_public_ip( $ip ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private function is_public_ip( $ip ) {
+		return (bool) filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE );
 	}
 
 	public function show_admin_notices() {

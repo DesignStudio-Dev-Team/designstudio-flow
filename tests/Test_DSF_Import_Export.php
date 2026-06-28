@@ -66,6 +66,24 @@ class Test_DSF_Import_Export extends TestCase {
 		);
 	}
 
+	/**
+	 * @dataProvider ip_provider
+	 */
+	public function test_public_ip_classification( $ip, $expected ) {
+		$this->assertSame( $expected, $this->invoke( 'is_public_ip', $ip ) );
+	}
+
+	public function ip_provider() {
+		return array(
+			'public v4'        => array( '8.8.8.8', true ),
+			'loopback'         => array( '127.0.0.1', false ),
+			'private 10'       => array( '10.0.0.5', false ),
+			'private 192'      => array( '192.168.1.10', false ),
+			'link-local meta'  => array( '169.254.169.254', false ),
+			'ipv6 loopback'    => array( '::1', false ),
+		);
+	}
+
 	private function invoke( $method_name, ...$arguments ) {
 		$reflection = new ReflectionClass( 'DSF_Import_Export' );
 		$instance   = $reflection->newInstanceWithoutConstructor();
