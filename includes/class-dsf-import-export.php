@@ -230,6 +230,7 @@ class DSF_Import_Export {
 			'pages'     => __( 'Pages, Headers & Footers', 'designstudio-flow' ),
 			'forms'     => __( 'Forms', 'designstudio-flow' ),
 			'redirects' => __( 'Redirects', 'designstudio-flow' ),
+			'mail'      => __( 'Mail / SMTP', 'designstudio-flow' ),
 		);
 	}
 
@@ -261,6 +262,8 @@ class DSF_Import_Export {
 				$this->render_forms_tab();
 			} elseif ( 'redirects' === $active && class_exists( 'DSF_Redirects' ) ) {
 				DSF_Redirects::get_instance()->render_admin_tab();
+			} elseif ( 'mail' === $active && class_exists( 'DSF_Mail_SMTP' ) ) {
+				DSF_Mail_SMTP::get_instance()->render_admin_tab();
 			} else {
 				$this->render_pages_tab();
 			}

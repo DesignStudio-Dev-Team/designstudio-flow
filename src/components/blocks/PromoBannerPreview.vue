@@ -142,8 +142,8 @@ const panelStyle = computed(() => ({
 }))
 
 const buttonStyle = computed(() => ({
-  color: props.settings?.panelColor || '#2C5F5D',
-  backgroundColor: props.settings?.textColor || '#FFFFFF',
+  backgroundColor: props.settings?.buttonColor || props.settings?.textColor || '#FFFFFF',
+  color: props.settings?.buttonTextColor || props.settings?.panelColor || '#2C5F5D',
 }))
 </script>
 

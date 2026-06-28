@@ -61,8 +61,17 @@
 
 ### 🧩 Customization Panels
 - **Content**: Text, images, buttons, toggles
-- **Style**: Spacing, background, text + button colors
+- **Style**: Spacing, background, text colors, **independent button background + button text colors**, and **eyebrow text + eyebrow line colors**
 - **Products**: Source, filters, manual picks
+
+> Every button exposes its **own** text color separate from its background, and eyebrow labels expose separate colors for the text and the accent line/dot. Per‑block colors override the theme; leaving a color blank inherits the theme default.
+
+### 🔠 Content Sizing & Typography (Settings → Content Sizing)
+Global typography defaults applied across all blocks (editor preview + published page):
+- **Base font sizes** for `p`, `h1`, `h2`, `h3`, `h4`
+- **Container max width** for the main page content (per‑page override still available in the Theme panel)
+- Heading/body font families and a modular type scale (Settings → Typography)
+- Eyebrow labels are standardized to a single consistent size across every block
 
 ---
 
@@ -76,6 +85,38 @@
 
 ---
 
+## 📧 Mail / SMTP Delivery
+
+Routes all WordPress email (form notifications, system mail, etc.) through a chosen transport. Configure it under **DesignStudio Flow → Tools → Mail / SMTP**.
+
+### Supported mailers
+| Mailer | How it sends |
+|---|---|
+| **Default (PHP mail)** | Leaves `wp_mail()` untouched |
+| **SendGrid** | Authenticated SMTP using a SendGrid API key |
+| **Google / Gmail** | SMTP + XOAUTH2 — **one‑click connect** |
+| **Microsoft / Outlook** | SMTP + XOAUTH2 — **one‑click connect** (auto‑detects Microsoft 365 vs personal Outlook) |
+
+### Features
+- **One‑click OAuth** for Gmail and Outlook — register an OAuth app once (Client ID + Secret, redirect URI shown in the UI), then connect the mailbox with a single click. Refresh tokens are stored and access tokens minted/refreshed automatically.
+- **From email / name** with an optional "force from" override.
+- **Send test email** with a full SMTP connection log (access tokens redacted) for fast troubleshooting.
+- **Email log** — recent sends (recipient, subject, mailer, status, error) stored in a dedicated table, **auto‑pruned after 30 days** (daily cron + opportunistic cleanup). Toggleable; only metadata is stored, never the message body.
+- **Admin warnings** when a mailer is selected but not fully configured, or when a connected mailbox needs re‑authorization.
+- **Credentials encrypted at rest** (see Security).
+
+---
+
+## ⚡ Performance
+
+Flow pages are tuned for Core Web Vitals. On Flow‑rendered pages the plugin:
+- Loads the large bundle stylesheet **non‑render‑blocking** on landing pages (with inlined critical loader CSS), and loads Google Fonts asynchronously.
+- **Module‑preloads** the frontend JS bundle so Vue mounts sooner, and **preconnects** to the Google Fonts origins.
+- **Preloads the hero/LCP image** (`fetchpriority="high"`) and adds `loading="lazy"` / `decoding="async"` to rendered images.
+- **Dequeues WordPress defaults a self‑contained Flow page doesn't need** — emoji script, the oEmbed host script, and the Gutenberg/global block stylesheets (each filterable).
+
+---
+
 ## 🧱 Architecture
 
 ```
@@ -85,6 +126,11 @@ designstudio-flow/
 │   ├── class-dsf-editor.php
 │   ├── class-dsf-blocks.php
 │   ├── class-dsf-frontend.php
+│   ├── class-dsf-mail-smtp.php        # Mail / SMTP transports + OAuth + email log
+│   ├── class-dsf-mail-oauth-provider.php
+│   ├── class-dsf-crypto.php           # At-rest encryption for stored secrets
+│   ├── class-dsf-import-export.php    # Tools page (import/export, redirects, mail)
+│   ├── class-dsf-redirects.php
 │   └── ...
 ├── templates/
 │   ├── flow-page.php
@@ -236,7 +282,12 @@ DesignStudio Flow is built with **WordPress security best practices** and adhere
 - Sanitization + validation of user‑provided input
 - Escaping output for HTML, attributes, and URLs
 - Nonce checks for privileged actions
+- **Per‑object capability checks** (`edit_post` / `publish_post`), not just general role checks
 - Capability checks for all editor/admin routes
+- **Stored credentials encrypted at rest** (SMTP API key, OAuth client secrets, refresh/access tokens, reCAPTCHA secret) with AES‑256‑CBC keyed from the site auth salt in `wp-config.php`
+- **Allowlisted shortcode rendering** on the public AJAX endpoint (no arbitrary `do_shortcode` from request input)
+- **CSV export hardened** against spreadsheet formula injection
+- HTML snapshots sanitized with `wp_kses` on save; uploads validated and mime‑restricted
 - Strict adherence to WordPress‑Extra coding rules
 
 ### 🔍 Security Checks
@@ -399,6 +450,36 @@ Built with care by **DesignStudio Network, Inc.**
 ---
 
 ## Next Update Improvements
+
+### Mail / SMTP (new)
+- New **Tools → Mail / SMTP** tab to route all WordPress email through a chosen transport.
+- Four mailers: Default PHP mail, SendGrid (API key), Google/Gmail (XOAUTH2), Microsoft/Outlook (XOAUTH2).
+- One‑click OAuth connect for Gmail and Outlook, with automatic token refresh and the exact redirect URI shown in the UI.
+- Outlook host auto‑detection (Microsoft 365 vs personal Outlook).
+- Send‑test‑email tool with a redacted SMTP connection log.
+- Email log with 30‑day retention (dedicated table, daily prune), toggleable, metadata only.
+- Site‑wide admin notices for unconfigured mailers and revoked/expired OAuth connections.
+
+### Performance
+- Bundle CSS made non‑render‑blocking on landing pages (with inlined critical loader CSS); Google Fonts loaded asynchronously.
+- Module‑preload of the frontend JS bundle and preconnect to Google Fonts origins.
+- Hero/LCP image preload (`fetchpriority="high"`) plus `loading="lazy"` / `decoding="async"` on rendered images.
+- Dequeues unused WordPress defaults on Flow pages (emoji, oEmbed, Gutenberg/global block CSS) — each filterable.
+
+### Typography & Content Sizing
+- New **Settings → Content Sizing**: base font sizes for `p`, `h1`, `h2`, `h3`, `h4`, and a global container max width.
+- Sizes flow to both the editor canvas and the published page through the shared typography token pipeline.
+
+### Blocks & Colors
+- Eyebrow labels standardized to one consistent size across every block.
+- Added separate **eyebrow text color** and **eyebrow line color** pickers.
+- Every button now has an **independent button text color** distinct from its background (fixed blocks where button colors were hardcoded or shared with body/panel/accent colors).
+
+### Security Hardening
+- Credentials encrypted at rest (SMTP/OAuth secrets + reCAPTCHA secret) via a shared AES‑256 helper.
+- Public shortcode AJAX endpoint locked to a filterable allowlist + length cap.
+- Per‑object capability checks added to page save/publish/title endpoints (IDOR fix).
+- `upload_files` capability enforced on image upload; CSV exports protected from formula injection.
 
 ### Product Grid
 - Added product search support that works together with enabled filters.

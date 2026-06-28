@@ -243,7 +243,7 @@ onUnmounted(() => {
 .dsf-button--ghost { color: var(--blue); border-color: rgba(17, 24, 39, 0.12); background: #fff; }
 .dsf-button--primary,
 .dsf-button--primary:hover,
-.dsf-button--primary:focus-visible { color: #fff !important; background: var(--blue); box-shadow: 0 8px 20px rgba(12, 95, 168, 0.18); }
+.dsf-button--primary:focus-visible { color: var(--dsf-button-text, #fff) !important; background: var(--dsf-button-bg, var(--blue)); box-shadow: 0 8px 20px rgba(12, 95, 168, 0.18); }
 .dsf-landing-header__menu { display: none; width: 42px; height: 42px; padding: 0; border: 0; background: transparent; }
 .dsf-landing-header__menu span { display: block; width: 21px; height: 2px; margin: 5px auto; background: var(--ink); }
 .dsf-landing-header__mobile { display: none; }

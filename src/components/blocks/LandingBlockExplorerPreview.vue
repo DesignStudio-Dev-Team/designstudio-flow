@@ -242,8 +242,8 @@ useLandingMotion(root, props.isEditor)
 .dsf-block-explorer__topline { display: flex; align-items: flex-end; justify-content: space-between; width: min(1320px, calc(100% - 48px)); margin: 0 auto; gap: 32px; }
 .dsf-block-explorer__intro { max-width: 760px; }
 /* Eyebrow: orange line, blue text (shared treatment across landing blocks). */
-.dsf-section-kicker { display: inline-flex; align-items: center; gap: 9px; color: var(--blue); font-size: 12px; font-weight: 850; letter-spacing: 0.14em; text-transform: uppercase; }
-.dsf-section-kicker i { width: 22px; height: 2px; background: var(--coral); }
+.dsf-section-kicker { display: inline-flex; align-items: center; gap: 9px; color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 14px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
+.dsf-section-kicker i { width: 22px; height: 2px; background: var(--dsf-eyebrow-line-color, var(--coral)); }
 .dsf-block-explorer h2 { max-width: 820px; margin: 14px 0 12px; font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); font-size: clamp(34px, 4.2vw, 58px); line-height: 1.02; letter-spacing: -0.045em; text-wrap: balance; }
 .dsf-block-explorer__intro p { max-width: 580px; margin: 0; color: #5d6975; font-size: clamp(16px, 1.5vw, 19px); line-height: 1.5; }
 .dsf-block-explorer__counter { display: grid; flex: 0 0 auto; text-align: right; font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); }

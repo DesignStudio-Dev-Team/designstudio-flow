@@ -394,7 +394,7 @@ class DSF_Editor {
 		return array(
 			'theme'  => DSF_Frontend::get_default_theme_settings(),
 			'layout' => array(
-				'containerWidth'   => 1800,
+				'containerWidth'   => DSF_Frontend::get_typography_option()['container_width'],
 				'contentPadding'   => 10,
 				'showHeader'       => true,
 				'showFooter'       => true,
@@ -721,7 +721,7 @@ class DSF_Editor {
 		return array(
 			'base'        => $defaults['base'],
 			'scale'       => $defaults['scale'],
-			'tokens'      => DSF_Frontend::compute_typography_tokens( $defaults['base'], $defaults['scale'] ),
+			'tokens'      => DSF_Frontend::compute_typography_tokens( $defaults['base'], $defaults['scale'], DSF_Frontend::get_typography_size_overrides() ),
 			'mode'        => $option['mode'],
 			'headingFont' => $option['heading_font'],
 			'bodyFont'    => $option['body_font'],

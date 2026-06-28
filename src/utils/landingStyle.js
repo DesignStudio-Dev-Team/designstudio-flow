@@ -11,6 +11,10 @@ export function landingBlockStyle(settings = {}) {
   const text = safeColor(settings.textColor)
   const accent = safeColor(settings.accentColor)
   const secondary = safeColor(settings.secondaryColor)
+  const eyebrow = safeColor(settings.eyebrowColor)
+  const eyebrowLine = safeColor(settings.eyebrowLineColor)
+  const buttonBg = safeColor(settings.buttonColor)
+  const buttonText = safeColor(settings.buttonTextColor)
 
   if (background) {
     style['--dsf-theme-background'] = background
@@ -20,12 +24,22 @@ export function landingBlockStyle(settings = {}) {
     style.backgroundColor = background
   }
   if (text) {
+    // Drive text color ONLY through the theme variable, which each block routes to
+    // its body copy / headings (via `--ink`). We deliberately do NOT set a blanket
+    // inline `color` on the block root — that would cascade and override every other
+    // color (eyebrow, accent, button, links). Those have their own controls.
     style['--dsf-theme-text'] = text
     style['--dsf-landing-text'] = text
-    style.color = text
   }
   if (accent) style['--dsf-theme-primary'] = accent
   if (secondary) style['--dsf-theme-secondary'] = secondary
+  // CTA button background + label get their own override, independent of the
+  // accent (which also tints many decorative elements in these blocks).
+  if (buttonBg) style['--dsf-button-bg'] = buttonBg
+  if (buttonText) style['--dsf-button-text'] = buttonText
+  // Eyebrow text + line (the small accent mark) override their CSS fallbacks.
+  if (eyebrow) style['--dsf-eyebrow-color'] = eyebrow
+  if (eyebrowLine) style['--dsf-eyebrow-line-color'] = eyebrowLine
 
   const paddingX = boundedSpace(settings.paddingX)
   const marginY = boundedSpace(settings.marginY)

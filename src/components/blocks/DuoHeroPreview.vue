@@ -50,9 +50,10 @@
               </div>
             </template>
             <template v-else>
-              <a 
+              <a
                 :href="leftButtonHref"
                 class="dsf-duo-hero__btn"
+                :style="{ backgroundColor: settings.leftButtonColor || '#FFFFFF', color: settings.leftButtonTextColor || '#1F2937' }"
                 @click="handleLeftButtonClick"
               >
                 <InlineText 
@@ -113,9 +114,10 @@
               </div>
             </template>
             <template v-else>
-              <a 
+              <a
                 :href="rightButtonHref"
                 class="dsf-duo-hero__btn"
+                :style="{ backgroundColor: settings.rightButtonColor || '#FFFFFF', color: settings.rightButtonTextColor || '#1F2937' }"
                 @click="handleRightButtonClick"
               >
                 <InlineText 

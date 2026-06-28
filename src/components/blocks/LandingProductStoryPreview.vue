@@ -115,8 +115,8 @@ useLandingMotion(root, props.isEditor)
 .dsf-product-story.is-reversed .dsf-product-story__copy { order: 2; }
 .dsf-product-story.is-reversed .dsf-product-story__visual { order: 1; }
 .dsf-product-story__copy { max-width: 520px; }
-.dsf-story-kicker { display: inline-flex; align-items: center; gap: 10px; color: var(--blue); font-size: 13px; font-weight: 850; letter-spacing: 0.12em; text-transform: uppercase; }
-.dsf-story-kicker__tick { width: 18px; height: 2px; background: var(--coral); }
+.dsf-story-kicker { display: inline-flex; align-items: center; gap: 10px; color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 14px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
+.dsf-story-kicker__tick { width: 18px; height: 2px; background: var(--dsf-eyebrow-line-color, var(--coral)); }
 .dsf-product-story h2 { margin: 14px 0 22px; font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); font-size: clamp(37px, 3.8vw, 54px); line-height: 1.05; letter-spacing: -0.045em; text-wrap: balance; }
 .dsf-product-story__copy > p { margin: 0; color: #596775; font-size: 20px; line-height: 1.57; }
 .dsf-product-story ul { display: grid; margin: 28px 0 0; padding: 0; gap: 13px; list-style: none; }

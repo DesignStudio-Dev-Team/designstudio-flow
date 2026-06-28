@@ -1530,7 +1530,7 @@ class DSF_Forms {
 	private function get_recaptcha_settings() {
 		$enabled    = (bool) get_option( 'dsf_recaptcha_enabled', false );
 		$site_key   = trim( (string) get_option( 'dsf_recaptcha_site_key', '' ) );
-		$secret_key = trim( (string) get_option( 'dsf_recaptcha_secret_key', '' ) );
+		$secret_key = trim( (string) DSF_Crypto::decrypt( get_option( 'dsf_recaptcha_secret_key', '' ) ) );
 		$threshold  = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
 		$threshold  = min( 1, max( 0, $threshold ) );
 
@@ -1557,7 +1557,7 @@ class DSF_Forms {
 			return new WP_Error( 'dsf_recaptcha_missing', __( 'Please complete the reCAPTCHA check.', 'designstudio-flow' ) );
 		}
 
-		$secret_key = trim( (string) get_option( 'dsf_recaptcha_secret_key', '' ) );
+		$secret_key = trim( (string) DSF_Crypto::decrypt( get_option( 'dsf_recaptcha_secret_key', '' ) ) );
 		if ( '' === $secret_key ) {
 			return new WP_Error( 'dsf_recaptcha_missing_secret', __( 'reCAPTCHA is not configured correctly.', 'designstudio-flow' ) );
 		}

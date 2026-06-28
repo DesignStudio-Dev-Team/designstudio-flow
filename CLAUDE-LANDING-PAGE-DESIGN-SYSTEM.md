@@ -206,6 +206,31 @@ Define all colors as reusable tokens.
 - Avoid gradients unless they represent an image overlay or subtle depth.
 - Never introduce purple as a primary or secondary color.
 
+### Runtime Theme Tokens (implemented system)
+
+Live landing blocks read these CSS custom properties so per-block and per-page overrides cascade over the theme. Set them on the block/page wrapper; each falls back to the theme default when unset.
+
+```css
+/* Theme */
+--dsf-theme-primary    /* accent / "blue" */
+--dsf-theme-secondary  /* secondary / "coral" */
+--dsf-theme-text
+--dsf-theme-background
+--dsf-theme-heading-font
+--dsf-theme-body-font
+--dsf-theme-container-width
+--dsf-theme-h1 / --dsf-theme-h2 / --dsf-theme-h3 / --dsf-theme-h4 / --dsf-theme-p-size
+
+/* Eyebrow label */
+--dsf-eyebrow-size        /* default 14px */
+--dsf-eyebrow-color       /* text */
+--dsf-eyebrow-line-color  /* accent mark (line/dot/tick) */
+
+/* Buttons */
+--dsf-button-bg
+--dsf-button-text
+```
+
 ---
 
 ## Typography
@@ -240,11 +265,21 @@ Do not default to Inter, Roboto, Arial, or the system font stack unless required
 
 - Use sentence case for headlines.
 - Keep body copy between 55 and 75 characters per line.
-- Use uppercase only for short eyebrow labels.
+- Use uppercase only for short eyebrow labels, and keep **all eyebrows at one consistent size** (see Eyebrow Label).
 - Keep button text at normal paragraph size.
 - Use tight heading line-height between 0.95 and 1.12.
 - Use body line-height between 1.5 and 1.7.
 - Avoid enormous headlines that force supporting content below the fold.
+
+### Configurable Typography (Settings → Content Sizing)
+
+Base sizes and the main container width are global settings that flow to both the editor canvas and the published page:
+
+- **Base font sizes** for `p`, `h1`, `h2`, `h3`, `h4`
+- **Container max width** for the main page content (per-page override available in the Theme panel)
+- Heading and body font families plus a modular type scale (Settings → Typography)
+
+Leave a size blank to use the automatic value from the scale.
 
 ---
 
@@ -305,6 +340,8 @@ Use square or modestly rounded editor surfaces. Reserve large rounding for major
 ---
 
 ## Buttons and Links
+
+> Every button exposes an **independent background color and text color** (`--dsf-button-bg` and `--dsf-button-text`), so the label color is never tied to the button background, body text, or accent. Always set both for adequate contrast.
 
 ### Primary Button
 
@@ -382,10 +419,10 @@ Navigation:
 ### Eyebrow Label
 
 - Uppercase
-- 12 to 14 pixels
-- Letter spacing between 0.08em and 0.14em
-- Deep teal or coral
-- May include a section number
+- **14 pixels, standardized across every block** for a single consistent eyebrow size (use the `--dsf-eyebrow-size` token; default `14px`)
+- Letter spacing `0.13em`, weight 850
+- **Separate colors for the text and the accent mark (line/dot/tick)** — the text uses `--dsf-eyebrow-color` (default deep teal/accent) and the mark uses `--dsf-eyebrow-line-color` (default coral/secondary). They are independent so the line can be one color and the text another.
+- May include a small line, dot, or tick mark; may include a section number
 
 ### Feature Card
 

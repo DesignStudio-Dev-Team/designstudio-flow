@@ -9,7 +9,7 @@
         <InlineText
           tagName="p"
           class="dsf-countdown-preview__eyebrow"
-          :style="{ color: settings.accentColor || '#B42318' }"
+          :style="{ color: settings.eyebrowColor || settings.accentColor || '#B42318' }"
           v-model="settings.eyebrow"
           :is-editor="isEditor"
           placeholder="Default eyebrow text"
@@ -305,9 +305,10 @@ function getModalContent() {
 .dsf-countdown-preview__eyebrow {
   margin: 0 0 1.15rem;
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: var(--dsf-theme-text-sm, 0.875rem);
-  font-weight: 800;
+  font-size: var(--dsf-eyebrow-size, 14px);
+  font-weight: 850;
   line-height: 1.25;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 

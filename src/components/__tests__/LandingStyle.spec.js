@@ -12,8 +12,8 @@ describe('landing block style settings', () => {
       marginY: 16,
     })).toEqual(expect.objectContaining({
       backgroundColor: '#112233',
-      color: '#fefefe',
       '--dsf-theme-background': '#112233',
+      '--dsf-theme-text': '#fefefe',
       '--dsf-landing-text': '#fefefe',
       '--dsf-theme-primary': '#ff6600',
       paddingLeft: '28px',
@@ -21,6 +21,14 @@ describe('landing block style settings', () => {
       marginTop: '16px',
       marginBottom: '16px',
     }))
+  })
+
+  it('text color drives only the theme text variable, never a blanket inline color', () => {
+    // Text color must not cascade over eyebrow / accent / button colors, so it is
+    // applied via --dsf-theme-text only (each block routes that to its body text).
+    const style = landingBlockStyle({ textColor: '#abcdef' })
+    expect(style['--dsf-theme-text']).toBe('#abcdef')
+    expect(style).not.toHaveProperty('color')
   })
 
   it('rejects malformed colors and clamps spacing', () => {

@@ -128,6 +128,13 @@ class DSF_Ajax {
 			wp_send_json_error( array( 'message' => 'Invalid post ID' ) );
 		}
 
+		// Per-object authorization: the general edit_pages gate is not enough — the
+		// user must be allowed to edit this specific post (prevents writing Flow
+		// data onto posts they do not own / arbitrary IDs).
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+
 		// Validate JSON
 		$blocks_raw  = wp_unslash( $blocks );
 		$blocks_data = json_decode( $blocks_raw, true );
@@ -1178,8 +1185,45 @@ class DSF_Ajax {
 
 		$shortcode = isset( $_POST['shortcode'] ) ? wp_unslash( $_POST['shortcode'] ) : '';
 
-		if ( ! $shortcode ) {
+		if ( ! is_string( $shortcode ) || '' === $shortcode ) {
 			wp_send_json_error( array( 'message' => 'Missing shortcode' ) );
+		}
+
+		// Bound the payload — this endpoint is reachable unauthenticated.
+		if ( strlen( $shortcode ) > 20000 ) {
+			wp_send_json_error( array( 'message' => 'Shortcode is too long.' ), 400 );
+		}
+
+		// This endpoint runs do_shortcode() on request input and is callable by
+		// unauthenticated visitors, so restrict execution to a curated allowlist of
+		// display/embed shortcodes. Site owners can extend it via the filter. Only
+		// registered shortcodes execute, so we only need to vet the ones present.
+		$allowed = apply_filters(
+			'dsf_render_shortcode_allowed_tags',
+			array(
+				'dsform',
+				'gravityform',
+				'gravityforms',
+				'contact-form-7',
+				'wpforms',
+				'ninja_form',
+				'ninja_forms',
+				'formidable',
+				'caldera_form',
+				'fluentform',
+				'forminator_form',
+				'wpforms_selector',
+			)
+		);
+
+		if ( is_array( $allowed ) ) {
+			preg_match_all( '/' . get_shortcode_regex() . '/', $shortcode, $matches );
+			$used = array_filter( array_unique( isset( $matches[2] ) ? $matches[2] : array() ) );
+			foreach ( $used as $tag ) {
+				if ( ! in_array( $tag, $allowed, true ) ) {
+					wp_send_json_error( array( 'message' => 'This shortcode is not allowed.' ), 403 );
+				}
+			}
 		}
 
 		$html = do_shortcode( $shortcode );
@@ -1508,6 +1552,11 @@ class DSF_Ajax {
 		}
 		$this->verify_permissions();
 
+		// Uploading media requires its own capability beyond editing pages.
+		if ( ! current_user_can( 'upload_files' ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+
 		if ( empty( $_FILES['image'] ) ) {
 			wp_send_json_error( array( 'message' => 'No file uploaded' ) );
 		}
@@ -1547,6 +1596,10 @@ class DSF_Ajax {
 			wp_send_json_error( array( 'message' => 'Invalid data' ) );
 		}
 
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+
 		wp_update_post(
 			array(
 				'ID'         => $post_id,
@@ -1570,6 +1623,10 @@ class DSF_Ajax {
 
 		if ( ! $post_id ) {
 			wp_send_json_error( array( 'message' => 'Invalid post ID' ) );
+		}
+
+		if ( ! current_user_can( 'publish_post', $post_id ) || ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
 		}
 
 		wp_update_post(

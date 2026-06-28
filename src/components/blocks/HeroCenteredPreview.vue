@@ -34,6 +34,7 @@
       <a
         v-if="settings.showButton !== false"
         class="dsf-hero-centered-preview__btn"
+        :style="{ backgroundColor: settings.buttonColor || '#FFFFFF', color: settings.buttonTextColor || '#2563EB' }"
         :href="buttonHref"
         @click="handleButtonClick"
       >
