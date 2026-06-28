@@ -48,6 +48,11 @@ class DSF_Ajax {
 
 		// List reusable popups for the page-settings picker.
 		add_action( 'wp_ajax_dsf_list_popups', array( $this, 'list_popups' ) );
+
+		// Saved Blocks — reusable block library.
+		add_action( 'wp_ajax_dsf_save_block', array( $this, 'save_block' ) );
+		add_action( 'wp_ajax_dsf_list_saved_blocks', array( $this, 'list_saved_blocks' ) );
+		add_action( 'wp_ajax_dsf_delete_saved_block', array( $this, 'delete_saved_block' ) );
 	}
 
 	/**
@@ -63,6 +68,125 @@ class DSF_Ajax {
 		}
 
 		wp_send_json_success( array( 'popups' => DSF_Popup::get_popup_list() ) );
+	}
+
+	/* -----------------------------------------------------------------
+	 * Saved Blocks (reusable block library)
+	 * ----------------------------------------------------------------- */
+
+	/**
+	 * Save the current block (type + full settings) as a reusable saved block.
+	 */
+	public function save_block() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+		$type = isset( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
+
+		if ( '' === $type || ! DSF_Blocks::get_instance()->get_block( $type ) ) {
+			wp_send_json_error( array( 'message' => 'Unknown block type' ), 400 );
+		}
+
+		$settings_raw = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : '{}';
+		$settings     = json_decode( $settings_raw, true );
+		if ( ! is_array( $settings ) ) {
+			$settings = array();
+		}
+
+		// Run through the same per-type sanitizer used when saving a page.
+		$sanitized = $this->sanitize_known_block_settings( array( array( 'type' => $type, 'settings' => $settings ) ) );
+		$settings  = isset( $sanitized[0]['settings'] ) && is_array( $sanitized[0]['settings'] ) ? $sanitized[0]['settings'] : array();
+
+		if ( '' === $name ) {
+			$def  = DSF_Blocks::get_instance()->get_block( $type );
+			$name = isset( $def['name'] ) ? $def['name'] : __( 'Saved block', 'designstudio-flow' );
+		}
+
+		$post_id = wp_insert_post(
+			array(
+				'post_type'   => 'dsf_saved_block',
+				'post_status' => 'publish',
+				'post_title'  => $name,
+			),
+			true
+		);
+
+		if ( is_wp_error( $post_id ) || ! $post_id ) {
+			wp_send_json_error( array( 'message' => 'Could not save block' ), 500 );
+		}
+
+		update_post_meta( $post_id, '_dsf_block_type', $type );
+		update_post_meta( $post_id, '_dsf_block_settings', $settings );
+
+		wp_send_json_success(
+			array(
+				'id'       => $post_id,
+				'name'     => $name,
+				'type'     => $type,
+				'settings' => $settings,
+			)
+		);
+	}
+
+	/**
+	 * Return the site-wide library of saved blocks for the editor picker.
+	 */
+	public function list_saved_blocks() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$posts = get_posts(
+			array(
+				'post_type'      => 'dsf_saved_block',
+				'post_status'    => 'publish',
+				'posts_per_page' => 200,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+			)
+		);
+
+		$blocks = array();
+		foreach ( $posts as $post ) {
+			$type = (string) get_post_meta( $post->ID, '_dsf_block_type', true );
+			if ( '' === $type ) {
+				continue;
+			}
+			$settings = get_post_meta( $post->ID, '_dsf_block_settings', true );
+			$blocks[] = array(
+				'id'       => $post->ID,
+				'name'     => $post->post_title,
+				'type'     => $type,
+				'settings' => is_array( $settings ) ? $settings : array(),
+			);
+		}
+
+		wp_send_json_success( array( 'savedBlocks' => $blocks ) );
+	}
+
+	/**
+	 * Delete a saved block from the library.
+	 */
+	public function delete_saved_block() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$id = isset( $_POST['id'] ) ? intval( $_POST['id'] ) : 0;
+		if ( ! $id || 'dsf_saved_block' !== get_post_type( $id ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid saved block' ), 400 );
+		}
+		if ( ! current_user_can( 'delete_post', $id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+
+		wp_trash_post( $id );
+		wp_send_json_success( array( 'id' => $id ) );
 	}
 
 	/**

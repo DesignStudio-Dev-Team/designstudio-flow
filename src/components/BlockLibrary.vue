@@ -25,8 +25,73 @@
       
       <!-- Categories -->
       <div class="dsf-library-content">
-        <div 
-          v-for="(cat, key) in filteredCategories" 
+        <!-- Presets (curated starter library) -->
+        <div v-if="filteredPresets.length" class="dsf-library-category">
+          <button class="dsf-library-category__header" @click="presetsOpen = !presetsOpen">
+            <div class="dsf-library-category__left">
+              <Sparkles :size="16" />
+              <span>Presets</span>
+              <span class="dsf-library-category__count">{{ filteredPresets.length }}</span>
+            </div>
+            <ChevronDown
+              :size="16"
+              class="dsf-library-category__chevron"
+              :class="{ 'dsf-library-category__chevron--open': presetsOpen }"
+            />
+          </button>
+          <div class="dsf-library-blocks" v-show="presetsOpen">
+            <button
+              v-for="preset in filteredPresets"
+              :key="preset.key"
+              class="dsf-library-saved__add dsf-library-preset"
+              @click="$emit('insert-preset', preset)"
+            >
+              <component :is="getBlockIcon(preset.icon)" :size="16" />
+              <div class="dsf-library-block__text">
+                <h4>{{ preset.name }}</h4>
+                <span>Click to add</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Saved Blocks (reusable library) -->
+        <div v-if="filteredSavedBlocks.length" class="dsf-library-category">
+          <button class="dsf-library-category__header" @click="savedOpen = !savedOpen">
+            <div class="dsf-library-category__left">
+              <Bookmark :size="16" />
+              <span>Saved Blocks</span>
+              <span class="dsf-library-category__count">{{ filteredSavedBlocks.length }}</span>
+            </div>
+            <ChevronDown
+              :size="16"
+              class="dsf-library-category__chevron"
+              :class="{ 'dsf-library-category__chevron--open': savedOpen }"
+            />
+          </button>
+          <div class="dsf-library-blocks" v-show="savedOpen">
+            <div v-for="saved in filteredSavedBlocks" :key="saved.id" class="dsf-library-saved">
+              <button class="dsf-library-saved__add" @click="$emit('insert-saved', saved)">
+                <component :is="getBlockIcon(savedIcon(saved))" :size="16" />
+                <div class="dsf-library-block__text">
+                  <h4>{{ saved.name }}</h4>
+                  <span>{{ savedTypeLabel(saved) }}</span>
+                </div>
+              </button>
+              <button
+                class="dsf-library-saved__delete"
+                title="Delete saved block"
+                aria-label="Delete saved block"
+                @click.stop="$emit('delete-saved', saved)"
+              >
+                <Trash2 :size="14" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-for="(cat, key) in filteredCategories"
           :key="key"
           class="dsf-library-category"
         >
@@ -111,18 +176,31 @@ import {
   Image,
   ListChecks,
   Clock,
-  BadgeDollarSign
+  BadgeDollarSign,
+  Bookmark,
+  Trash2,
+  Sparkles
 } from 'lucide-vue-next'
 import BlockSchematic from './common/BlockSchematic.vue'
 
 const props = defineProps({
   categories: Object,
+  savedBlocks: {
+    type: Array,
+    default: () => [],
+  },
+  presets: {
+    type: Array,
+    default: () => [],
+  },
 })
 
-defineEmits(['close', 'add'])
+defineEmits(['close', 'add', 'insert-saved', 'delete-saved', 'insert-preset'])
 
 const searchQuery = ref('')
 const openCategories = ref([])
+const savedOpen = ref(true)
+const presetsOpen = ref(true)
 
 const icons = {
   'layout-template': LayoutTemplate,
@@ -143,6 +221,7 @@ const icons = {
   'clock': Clock,
   'badge-dollar-sign': BadgeDollarSign,
   'layout-columns': Columns,
+  'bookmark': Bookmark,
 }
 
 const filteredCategories = computed(() => {
@@ -167,8 +246,47 @@ const filteredCategories = computed(() => {
   return result
 })
 
+// Flatten every registered block definition into a lookup by id, so a saved
+// block can show its source type's name and icon.
+const blockDefById = computed(() => {
+  const map = {}
+  for (const cat of Object.values(props.categories || {})) {
+    for (const block of cat.blocks || []) {
+      map[block.id] = block
+    }
+  }
+  return map
+})
+
+const filteredSavedBlocks = computed(() => {
+  const list = Array.isArray(props.savedBlocks) ? props.savedBlocks : []
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return list
+  return list.filter((saved) => (saved.name || '').toLowerCase().includes(query))
+})
+
+const filteredPresets = computed(() => {
+  const list = Array.isArray(props.presets) ? props.presets : []
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return list
+  return list.filter((preset) => (preset.name || '').toLowerCase().includes(query))
+})
+
+function savedIcon(saved) {
+  return blockDefById.value[saved.type]?.icon || 'bookmark'
+}
+
+function savedTypeLabel(saved) {
+  return blockDefById.value[saved.type]?.name || 'Reusable block'
+}
+
 const noResults = computed(() => {
-  return searchQuery.value.trim() && Object.keys(filteredCategories.value).length === 0
+  return (
+    searchQuery.value.trim() &&
+    Object.keys(filteredCategories.value).length === 0 &&
+    filteredSavedBlocks.value.length === 0 &&
+    filteredPresets.value.length === 0
+  )
 })
 
 function toggleCategory(key) {
@@ -421,6 +539,60 @@ function getBlockIcon(iconName) {
 
 .dsf-library-block:hover .dsf-library-block__text span {
   color: var(--dsf-primary-500);
+}
+
+/* Saved blocks rows: an insert button + a delete affordance. */
+.dsf-library-saved {
+  display: flex;
+  align-items: stretch;
+  gap: 0.375rem;
+  margin-bottom: 0.5rem;
+}
+
+.dsf-library-saved:last-child {
+  margin-bottom: 0;
+}
+
+.dsf-library-saved__add {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  background: white;
+  border: 2px solid var(--dsf-gray-200);
+  border-radius: var(--dsf-radius-lg);
+  color: var(--dsf-gray-500);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dsf-library-saved__add:hover {
+  border-color: var(--dsf-primary-500);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.dsf-library-saved__add:hover .dsf-library-block__text span {
+  color: var(--dsf-primary-500);
+}
+
+.dsf-library-saved__delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  background: white;
+  border: 2px solid var(--dsf-gray-200);
+  border-radius: var(--dsf-radius-lg);
+  color: var(--dsf-gray-400);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dsf-library-saved__delete:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
 }
 
 .dsf-library-empty {

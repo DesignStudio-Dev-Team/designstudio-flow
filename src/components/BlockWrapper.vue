@@ -17,6 +17,9 @@
       <button type="button" class="dsf-block-toolbar__btn" title="Settings" aria-label="Open block settings" @click.stop="$emit('open-settings')">
         <Settings :size="16" />
       </button>
+      <button type="button" class="dsf-block-toolbar__btn" title="Save block to library" aria-label="Save block to library" @click.stop="$emit('save-block')">
+        <Bookmark :size="16" />
+      </button>
       <button v-if="allowReorder" type="button" class="dsf-block-toolbar__btn" title="Move up" aria-label="Move block up" @click.stop="$emit('move-up')">
         <ChevronUp :size="16" />
       </button>
@@ -41,7 +44,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { GripVertical, Settings, ChevronUp, ChevronDown, Trash2 } from 'lucide-vue-next'
+import { GripVertical, Settings, ChevronUp, ChevronDown, Trash2, Bookmark } from 'lucide-vue-next'
 import { getResponsiveValue } from '../utils/responsiveSettings'
 
 // Block preview components
@@ -97,7 +100,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['select', 'move-up', 'move-down', 'delete', 'open-settings'])
+defineEmits(['select', 'move-up', 'move-down', 'delete', 'open-settings', 'save-block'])
 
 const previewComponents = {
   'content': ContentPreview,
