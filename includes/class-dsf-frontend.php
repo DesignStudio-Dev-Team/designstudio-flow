@@ -20,6 +20,18 @@ class DSF_Frontend {
 	/** Per-request cache for get_page_settings() results. */
 	private $settings_cache = array();
 
+	/** Whether the current request is a Flow frontend page (set during enqueue). */
+	private $is_flow_page = false;
+
+	/** Whether the current Flow page uses landing blocks (loader-gated render). */
+	private $current_is_landing = false;
+
+	/** Current Flow post ID (set during enqueue, for head hints/filters). */
+	private $current_post_id = 0;
+
+	/** First image URL found in the page blocks, preloaded as the LCP candidate. */
+	private $hero_image_url = '';
+
 	public static function get_instance() {
 		if ( null === self::$instance ) {
 			self::$instance = new self();
@@ -33,9 +45,14 @@ class DSF_Frontend {
 		// This fixes asset loading for non-logged-in users where get_queried_object_id() may return 0
 		// at the default priority (10) due to the query not being initialized yet.
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ), 20 );
+		// Strip WordPress/theme defaults a self-contained Flow page never uses.
+		add_action( 'wp_enqueue_scripts', array( $this, 'dequeue_default_bloat' ), 100 );
 		add_filter( 'template_include', array( $this, 'load_flow_template' ), 99 );
 		add_action( 'template_redirect', array( $this, 'redirect_legacy_flow_urls' ), 1 );
 		add_filter( 'script_loader_tag', array( $this, 'add_module_type_to_scripts' ), 10, 3 );
+		add_filter( 'style_loader_tag', array( $this, 'make_styles_non_blocking' ), 10, 4 );
+		// Print resource hints and critical CSS early in <head> on Flow pages.
+		add_action( 'wp_head', array( $this, 'print_performance_hints' ), 2 );
 		add_filter( 'dsf_flow_show_header', array( $this, 'filter_show_header' ), 10, 2 );
 		add_filter( 'dsf_flow_show_footer', array( $this, 'filter_show_footer' ), 10, 2 );
 		add_action( 'admin_bar_menu', array( $this, 'add_admin_bar_edit_link' ), 80 );
@@ -117,7 +134,13 @@ class DSF_Frontend {
 				$blocks = array();
 			}
 		}
-		$blocks = $this->prepare_blocks_for_frontend( $blocks );
+		// Record state for the style/head filters (non-blocking CSS, hints).
+		$this->is_flow_page       = true;
+		$this->current_post_id    = $post_id;
+		$this->current_is_landing = $this->blocks_use_landing( $blocks );
+		$this->hero_image_url     = $this->find_hero_image_url( $blocks );
+
+		$blocks        = $this->prepare_blocks_for_frontend( $blocks );
 		$page_settings = $this->get_page_settings( $post_id );
 
 		$layout_templates = $this->get_assigned_layout_templates_data( $post_id );
@@ -236,23 +259,23 @@ class DSF_Frontend {
 			return $block;
 		}
 
-		$settings = isset( $block['settings'] ) && is_array( $block['settings'] ) ? $block['settings'] : array();
+		$settings    = isset( $block['settings'] ) && is_array( $block['settings'] ) ? $block['settings'] : array();
 		$form_source = isset( $settings['formSource'] ) ? sanitize_key( $settings['formSource'] ) : 'dsf';
 
 		if ( 'form-with-content' === $type && 'embed' === $form_source ) {
 			$embed_code                       = isset( $settings['embedCode'] ) ? (string) $settings['embedCode'] : '';
 			$embed_payload                    = $this->render_embed_code( $embed_code );
-			$settings['formSource']          = 'embed';
-			$settings['renderedFormHtml']    = '';
-			$settings['renderedEmbedHtml']   = $embed_payload['html'];
+			$settings['formSource']           = 'embed';
+			$settings['renderedFormHtml']     = '';
+			$settings['renderedEmbedHtml']    = $embed_payload['html'];
 			$settings['renderedEmbedScripts'] = $embed_payload['scripts'];
-			$block['settings']               = $settings;
+			$block['settings']                = $settings;
 
 			return $block;
 		}
 
-		$form_id  = isset( $settings['formId'] ) ? absint( $settings['formId'] ) : 0;
-		$form     = $form_id ? get_post( $form_id ) : null;
+		$form_id = isset( $settings['formId'] ) ? absint( $settings['formId'] ) : 0;
+		$form    = $form_id ? get_post( $form_id ) : null;
 
 		if ( ! $form || 'dsf_form' !== $form->post_type ) {
 			$form_id = 0;
@@ -279,14 +302,14 @@ class DSF_Frontend {
 
 		$this->enqueue_gravity_form_assets_from_embed_code( $embed_code );
 
-		$html = do_shortcode( $embed_code );
+		$html    = do_shortcode( $embed_code );
 		$scripts = array();
-		$html = $this->mark_hidden_gravity_form_pages( $html );
-		$html = $this->mark_gravity_form_ajax_iframes( $html );
-		$html = preg_replace_callback(
+		$html    = $this->mark_hidden_gravity_form_pages( $html );
+		$html    = $this->mark_gravity_form_ajax_iframes( $html );
+		$html    = preg_replace_callback(
 			'#<script\b([^>]*)>(.*?)</script>#is',
 			function ( $matches ) use ( &$scripts ) {
-				$code  = isset( $matches[2] ) ? trim( $matches[2] ) : '';
+				$code = isset( $matches[2] ) ? trim( $matches[2] ) : '';
 
 				if ( '' !== $code ) {
 					$scripts[] = array(
@@ -310,7 +333,7 @@ class DSF_Frontend {
 			$html
 		);
 
-		$allowed = wp_kses_allowed_html( 'post' );
+		$allowed      = wp_kses_allowed_html( 'post' );
 		$common_attrs = array(
 			'class'  => true,
 			'id'     => true,
@@ -324,7 +347,7 @@ class DSF_Frontend {
 		foreach ( array( 'div', 'section', 'span', 'p', 'ul', 'ol', 'li', 'strong', 'em', 'small' ) as $tag ) {
 			$allowed[ $tag ] = isset( $allowed[ $tag ] ) ? array_merge( $allowed[ $tag ], $common_attrs ) : $common_attrs;
 		}
-		$allowed['a'] = isset( $allowed['a'] ) ? array_merge(
+		$allowed['a']        = isset( $allowed['a'] ) ? array_merge(
 			$allowed['a'],
 			$common_attrs,
 			array(
@@ -344,17 +367,17 @@ class DSF_Frontend {
 				'onkeypress' => true,
 			)
 		);
-		$allowed['form'] = array(
-			'action'         => true,
-			'method'         => true,
-			'enctype'        => true,
-			'target'         => true,
-			'class'          => true,
-			'id'             => true,
-			'name'           => true,
-			'novalidate'     => true,
-			'data-*'         => true,
-			'aria-*'         => true,
+		$allowed['form']     = array(
+			'action'     => true,
+			'method'     => true,
+			'enctype'    => true,
+			'target'     => true,
+			'class'      => true,
+			'id'         => true,
+			'name'       => true,
+			'novalidate' => true,
+			'data-*'     => true,
+			'aria-*'     => true,
 		);
 		$allowed['fieldset'] = array(
 			'class'  => true,
@@ -362,13 +385,13 @@ class DSF_Frontend {
 			'data-*' => true,
 			'aria-*' => true,
 		);
-		$allowed['legend'] = array(
+		$allowed['legend']   = array(
 			'class'  => true,
 			'id'     => true,
 			'data-*' => true,
 			'aria-*' => true,
 		);
-		$allowed['label'] = array(
+		$allowed['label']    = array(
 			'for'    => true,
 			'class'  => true,
 			'id'     => true,
@@ -376,7 +399,7 @@ class DSF_Frontend {
 			'data-*' => true,
 			'aria-*' => true,
 		);
-		$allowed['input'] = array(
+		$allowed['input']    = array(
 			'type'         => true,
 			'name'         => true,
 			'value'        => true,
@@ -399,7 +422,7 @@ class DSF_Frontend {
 			'data-*'       => true,
 			'aria-*'       => true,
 		);
-		$allowed['select'] = array(
+		$allowed['select']   = array(
 			'name'     => true,
 			'id'       => true,
 			'class'    => true,
@@ -411,7 +434,7 @@ class DSF_Frontend {
 			'data-*'   => true,
 			'aria-*'   => true,
 		);
-		$allowed['option'] = array(
+		$allowed['option']   = array(
 			'value'    => true,
 			'selected' => true,
 			'disabled' => true,
@@ -434,21 +457,21 @@ class DSF_Frontend {
 			'data-*'      => true,
 			'aria-*'      => true,
 		);
-		$allowed['button'] = array(
-			'type'          => true,
-			'name'          => true,
-			'value'         => true,
-			'id'            => true,
-			'class'         => true,
-			'style'         => true,
-			'disabled'      => true,
-			'aria-label'    => true,
-			'onclick'       => true,
-			'onkeypress'    => true,
-			'data-*'        => true,
-			'aria-*'        => true,
+		$allowed['button']   = array(
+			'type'       => true,
+			'name'       => true,
+			'value'      => true,
+			'id'         => true,
+			'class'      => true,
+			'style'      => true,
+			'disabled'   => true,
+			'aria-label' => true,
+			'onclick'    => true,
+			'onkeypress' => true,
+			'data-*'     => true,
+			'aria-*'     => true,
 		);
-		$allowed['svg'] = array(
+		$allowed['svg']      = array(
 			'class'       => true,
 			'viewBox'     => true,
 			'xmlns'       => true,
@@ -460,14 +483,14 @@ class DSF_Frontend {
 			'role'        => true,
 			'data-*'      => true,
 		);
-		$allowed['path'] = array(
+		$allowed['path']     = array(
 			'd'         => true,
 			'fill'      => true,
 			'fill-rule' => true,
 			'clip-rule' => true,
 			'data-*'    => true,
 		);
-		$allowed['iframe'] = array(
+		$allowed['iframe']   = array(
 			'src'             => true,
 			'id'              => true,
 			'name'            => true,
@@ -588,9 +611,25 @@ class DSF_Frontend {
 
 		$fonts_to_load = array();
 		$google_fonts  = array(
-			'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Outfit',
-			'Source Sans 3', 'Nunito', 'Raleway', 'Playfair Display', 'Merriweather',
-			'Lora', 'DM Sans', 'Work Sans', 'Oswald', 'Ubuntu', 'Rubik', 'Manrope',
+			'Inter',
+			'Roboto',
+			'Open Sans',
+			'Lato',
+			'Montserrat',
+			'Poppins',
+			'Outfit',
+			'Source Sans 3',
+			'Nunito',
+			'Raleway',
+			'Playfair Display',
+			'Merriweather',
+			'Lora',
+			'DM Sans',
+			'Work Sans',
+			'Oswald',
+			'Ubuntu',
+			'Rubik',
+			'Manrope',
 			'Space Grotesk',
 		);
 
@@ -650,6 +689,242 @@ class DSF_Frontend {
 	}
 
 	/**
+	 * Detect whether a block list contains any landing-* block.
+	 *
+	 * @param array $blocks Raw blocks.
+	 * @return bool
+	 */
+	private function blocks_use_landing( $blocks ) {
+		if ( ! is_array( $blocks ) ) {
+			return false;
+		}
+		foreach ( $blocks as $block ) {
+			$type = is_array( $block ) && isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
+			if ( 0 === strpos( $type, 'landing-' ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Take the heavy stylesheet off the critical render path.
+	 *
+	 * The Google Fonts request is always loaded asynchronously (font-display:swap
+	 * keeps text visible). The bundle CSS is only deferred on landing pages, where
+	 * the snapshot is intentionally hidden behind a loader until Vue mounts — so
+	 * there is no content to flash unstyled. Other Flow pages paint the snapshot
+	 * immediately, so their CSS stays render-blocking to avoid a FOUC.
+	 *
+	 * @param string $tag    Stylesheet link tag.
+	 * @param string $handle Style handle.
+	 * @param string $href   Stylesheet URL.
+	 * @param string $media  Media attribute.
+	 * @return string
+	 */
+	public function make_styles_non_blocking( $tag, $handle, $href, $media ) {
+		if ( ! $this->is_flow_page ) {
+			return $tag;
+		}
+
+		$always       = array( 'dsf-google-fonts' );
+		$landing_only = array( 'dsf-main', 'dsf-frontend' );
+
+		$should_defer = in_array( $handle, $always, true )
+			|| ( $this->current_is_landing && in_array( $handle, $landing_only, true ) );
+
+		if ( ! $should_defer ) {
+			return $tag;
+		}
+
+		$media = $media ? $media : 'all';
+
+		$preload  = sprintf(
+			'<link rel="preload" as="style" href="%1$s" media="%2$s" onload="this.onload=null;this.rel=\'stylesheet\'">',
+			esc_url( $href ),
+			esc_attr( $media )
+		);
+		$noscript = sprintf(
+			// phpcs:ignore WordPress.WP.EnqueuedStylesheet.NotInFooter, WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- no-JS fallback for an already-enqueued, filter-deferred style.
+			'<noscript><link rel="stylesheet" href="%1$s" media="%2$s"></noscript>',
+			esc_url( $href ),
+			esc_attr( $media )
+		);
+
+		return $preload . $noscript . "\n";
+	}
+
+	/**
+	 * Output resource hints and critical CSS early in the document head.
+	 *
+	 * - Preconnects to the Google Fonts origins (saves a DNS + TLS round-trip).
+	 * - Module-preloads the frontend JS bundle so Vue can mount sooner (the
+	 *   landing loader clears as soon as it does), instead of waterfalling the
+	 *   large chunks after the entry script is parsed.
+	 * - Inlines just enough loader CSS so it renders correctly while the deferred
+	 *   bundle stylesheet is still downloading.
+	 */
+	public function print_performance_hints() {
+		if ( ! $this->is_flow_page ) {
+			return;
+		}
+
+		echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
+		echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
+
+		// Preload the likely LCP image so it is ready the moment it paints.
+		if ( '' !== $this->hero_image_url ) {
+			printf(
+				'<link rel="preload" as="image" href="%s" fetchpriority="high">' . "\n",
+				esc_url( $this->hero_image_url )
+			);
+		}
+
+		foreach ( $this->get_frontend_module_preload_urls() as $url ) {
+			printf( '<link rel="modulepreload" href="%s">' . "\n", esc_url( $url ) );
+		}
+
+		if ( $this->current_is_landing ) {
+			echo '<style id="dsf-loader-critical">' . $this->get_loader_critical_css() . '</style>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static CSS string.
+		}
+	}
+
+	/**
+	 * Resolve the frontend entry's JS chunks for module preloading.
+	 *
+	 * @return string[] Absolute URLs.
+	 */
+	private function get_frontend_module_preload_urls() {
+		static $urls = null;
+		if ( null !== $urls ) {
+			return $urls;
+		}
+
+		$urls          = array();
+		$manifest_path = DSF_PLUGIN_DIR . 'assets/.vite/manifest.json';
+		if ( ! file_exists( $manifest_path ) ) {
+			return $urls;
+		}
+
+		$manifest = json_decode( (string) file_get_contents( $manifest_path ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( ! is_array( $manifest ) || empty( $manifest['src/frontend/main.js']['imports'] ) ) {
+			return $urls;
+		}
+
+		foreach ( (array) $manifest['src/frontend/main.js']['imports'] as $key ) {
+			if ( isset( $manifest[ $key ]['file'] ) ) {
+				$urls[] = DSF_PLUGIN_URL . 'assets/' . ltrim( $manifest[ $key ]['file'], '/' );
+			}
+		}
+
+		return $urls;
+	}
+
+	/**
+	 * Minimal critical CSS for the landing loader, inlined so it looks right
+	 * before the deferred bundle stylesheet finishes loading.
+	 *
+	 * @return string
+	 */
+	private function get_loader_critical_css() {
+		return '.dsf-page-content--loading{position:relative;min-height:60vh}'
+			. '.dsf-page-content--loading #dsf-frontend-app>*{visibility:hidden}'
+			. '.dsf-landing-loader{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;background:#f7f4ed;color:#17212b;font-family:var(--dsf-theme-heading-font,"Manrope",sans-serif)}'
+			. '.dsf-page-content--ready .dsf-landing-loader{opacity:0;visibility:hidden;transition:opacity .26s,visibility .26s}'
+			. '.dsf-landing-loader__content{display:grid;justify-items:center;gap:15px;font-size:13px;font-weight:800;letter-spacing:.08em}'
+			. '.dsf-landing-loader__mark{display:grid;grid-template-columns:repeat(2,13px);gap:4px}'
+			. '.dsf-landing-loader__mark i{width:13px;height:13px;border-radius:3px;background:var(--dsf-theme-primary,#0091ff);animation:dsf-loader-pulse .9s ease-in-out infinite alternate}'
+			. '.dsf-landing-loader__mark i:nth-child(2),.dsf-landing-loader__mark i:nth-child(3){background:var(--dsf-theme-secondary,#ff7100);animation-delay:.16s}'
+			. '.dsf-landing-loader__mark i:nth-child(4){animation-delay:.32s}'
+			. '@keyframes dsf-loader-pulse{from{opacity:.35;transform:scale(.85)}to{opacity:1;transform:scale(1)}}';
+	}
+
+	/**
+	 * Drop WordPress/theme defaults a self-contained Flow page does not use.
+	 *
+	 * Runs late on wp_enqueue_scripts (after other plugins/theme have enqueued)
+	 * so we can remove the emoji detector, the oEmbed host script, and the
+	 * Gutenberg / global block stylesheets. Each removal is filterable.
+	 */
+	public function dequeue_default_bloat() {
+		if ( ! $this->is_flow_page ) {
+			return;
+		}
+
+		// Emoji detector + styles (wp_head priority 7 / wp_print_styles run later).
+		if ( apply_filters( 'dsf_flow_disable_emoji', true, $this->current_post_id ) ) {
+			remove_action( 'wp_head', 'print_emoji_detection_script', 7 );
+			remove_action( 'wp_print_styles', 'print_emoji_styles' );
+			remove_action( 'wp_print_styles', 'wp_enqueue_emoji_styles' );
+			remove_filter( 'the_content_feed', 'wp_staticize_emoji' );
+			remove_filter( 'comment_text_rss', 'wp_staticize_emoji' );
+		}
+
+		// oEmbed host JavaScript — Flow renders its own embeds.
+		if ( apply_filters( 'dsf_flow_disable_embed', true, $this->current_post_id ) ) {
+			wp_dequeue_script( 'wp-embed' );
+		}
+
+		// Gutenberg / global block CSS — Flow ships its own design system.
+		if ( apply_filters( 'dsf_flow_dequeue_default_styles', true, $this->current_post_id ) ) {
+			foreach ( array( 'wp-block-library', 'wp-block-library-theme', 'global-styles', 'classic-theme-styles' ) as $handle ) {
+				wp_dequeue_style( $handle );
+			}
+		}
+	}
+
+	/**
+	 * Find the first image URL in the page blocks (the LCP candidate).
+	 *
+	 * @param array $blocks Raw blocks.
+	 * @return string
+	 */
+	private function find_hero_image_url( $blocks ) {
+		if ( ! is_array( $blocks ) ) {
+			return '';
+		}
+
+		$scanned = 0;
+		foreach ( $blocks as $block ) {
+			if ( $scanned++ >= 4 ) {
+				break; // Only the first few blocks can hold the above-the-fold hero.
+			}
+			$url = $this->search_image_url( $block );
+			if ( '' !== $url ) {
+				return $url;
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Recursively pull the first raster image URL out of a block value.
+	 *
+	 * @param mixed $data Block data.
+	 * @return string
+	 */
+	private function search_image_url( $data ) {
+		if ( is_string( $data ) ) {
+			if ( preg_match( '#https?://[^\s"\'<>]+\.(?:jpe?g|png|webp|avif)(?:\?[^\s"\'<>]*)?#i', $data, $match ) ) {
+				return $match[0];
+			}
+			return '';
+		}
+
+		if ( is_array( $data ) ) {
+			foreach ( $data as $value ) {
+				$found = $this->search_image_url( $value );
+				if ( '' !== $found ) {
+					return $found;
+				}
+			}
+		}
+
+		return '';
+	}
+
+	/**
 	 * Render Flow page content
 	 */
 	public function render_flow_content( $content ) {
@@ -692,6 +967,13 @@ class DSF_Frontend {
 		$is_flow   = ( 'page' === $post_type ) && get_post_meta( $post_id, '_dsf_enabled', true );
 		if ( ! $is_flow ) {
 			return $template;
+		}
+
+		// While an editor is logged in, never let the browser serve a stale cached
+		// copy of a Flow page — they need to see edits immediately. Anonymous
+		// visitors are unaffected (this keeps the perf/caching benefits for them).
+		if ( is_user_logged_in() && current_user_can( 'edit_pages' ) && ! headers_sent() ) {
+			nocache_headers();
 		}
 
 		$settings        = $this->get_page_settings( $post_id );
@@ -799,7 +1081,8 @@ class DSF_Frontend {
 		}
 		$output .= '<div id="dsf-frontend-app" class="dsf-wrapper" data-post-id="' . intval( $post_id ) . '">';
 		if ( ! empty( $snapshot ) ) {
-			$output .= $snapshot;
+			// Add loading="lazy"/decoding="async"/fetchpriority to snapshot images.
+			$output .= function_exists( 'wp_filter_content_tags' ) ? wp_filter_content_tags( $snapshot, 'dsf-flow' ) : $snapshot;
 		}
 		$output .= '</div>';
 		$output .= '</div></div>';
@@ -936,7 +1219,7 @@ class DSF_Frontend {
 		return array(
 			'theme'  => self::get_default_theme_settings(),
 			'layout' => array(
-				'containerWidth'   => 1800,
+				'containerWidth'   => self::get_typography_option()['container_width'],
 				'contentPadding'   => 10,
 				'showHeader'       => true,
 				'showFooter'       => true,
@@ -945,29 +1228,29 @@ class DSF_Frontend {
 				'template'         => 'default',
 			),
 			'popup'  => array(
-				'enabled'        => false,
-				'type'           => 'content',
-				'headline'       => 'Limited time offer',
-				'body'           => '<p>Add your popup message here.</p>',
-				'image'          => '',
-				'imageAlt'       => '',
-				'imagePosition'  => 'top',
-				'buttonText'     => 'Learn more',
-				'buttonUrl'      => '#',
-				'openNewTab'     => false,
-				'width'          => 'medium',
-				'position'       => 'center',
-				'delaySeconds'   => 3,
-				'startDate'      => '',
-				'endDate'        => '',
-				'cookieDuration' => 24,
-				'cookieUnit'     => 'hours',
-				'showOverlay'    => true,
-				'closeOnOverlay' => true,
-				'showClose'      => true,
+				'enabled'         => false,
+				'type'            => 'content',
+				'headline'        => 'Limited time offer',
+				'body'            => '<p>Add your popup message here.</p>',
+				'image'           => '',
+				'imageAlt'        => '',
+				'imagePosition'   => 'top',
+				'buttonText'      => 'Learn more',
+				'buttonUrl'       => '#',
+				'openNewTab'      => false,
+				'width'           => 'medium',
+				'position'        => 'center',
+				'delaySeconds'    => 3,
+				'startDate'       => '',
+				'endDate'         => '',
+				'cookieDuration'  => 24,
+				'cookieUnit'      => 'hours',
+				'showOverlay'     => true,
+				'closeOnOverlay'  => true,
+				'showClose'       => true,
 				'backgroundColor' => '#FFFFFF',
-				'textColor'      => '#1F2937',
-				'accentColor'    => '#2C5F5D',
+				'textColor'       => '#1F2937',
+				'accentColor'     => '#2C5F5D',
 			),
 		);
 	}
@@ -1038,9 +1321,11 @@ class DSF_Frontend {
 			$style .= sprintf( ' --dsf-theme-body-font:%s;', esc_attr( $body_font ) );
 		}
 
-		// Typography scale: base size + modular scale → 7 size tokens + 6 heading aliases.
+		// Typography scale: base size + modular scale → size tokens, with any
+		// explicit per-element size overrides from the admin Typography settings.
 		$typography = self::get_default_typography();
-		foreach ( self::compute_typography_tokens( $typography['base'], $typography['scale'] ) as $name => $value ) {
+		$overrides  = self::get_typography_size_overrides();
+		foreach ( self::compute_typography_tokens( $typography['base'], $typography['scale'], $overrides ) as $name => $value ) {
 			$style .= sprintf( ' %s:%s;', $name, esc_attr( $value ) );
 		}
 
@@ -1090,16 +1375,49 @@ class DSF_Frontend {
 	 * @return array{mode:string,heading_font:string,body_font:string,base:float,scale:float}
 	 */
 	public static function get_typography_option() {
-		$option = get_option( 'dsf_typography', array() );
+		$option = function_exists( 'get_option' ) ? get_option( 'dsf_typography', array() ) : array();
 		if ( ! is_array( $option ) ) {
 			$option = array();
 		}
+		$clamp_size = static function ( $value ) {
+			$value = floatval( $value );
+			if ( $value <= 0 ) {
+				return 0.0; // 0 = "automatic" (derive from scale).
+			}
+			return max( 8.0, min( 200.0, $value ) );
+		};
+
 		return array(
-			'mode'         => ( ( $option['mode'] ?? '' ) === 'override' ) ? 'override' : 'theme',
-			'heading_font' => isset( $option['heading_font'] ) ? (string) $option['heading_font'] : '',
-			'body_font'    => isset( $option['body_font'] ) ? (string) $option['body_font'] : '',
-			'base'         => isset( $option['base'] ) ? floatval( $option['base'] ) : 16.0,
-			'scale'        => isset( $option['scale'] ) ? floatval( $option['scale'] ) : 1.25,
+			'mode'            => ( ( $option['mode'] ?? '' ) === 'override' ) ? 'override' : 'theme',
+			'heading_font'    => isset( $option['heading_font'] ) ? (string) $option['heading_font'] : '',
+			'body_font'       => isset( $option['body_font'] ) ? (string) $option['body_font'] : '',
+			'base'            => isset( $option['base'] ) ? floatval( $option['base'] ) : 16.0,
+			'scale'           => isset( $option['scale'] ) ? floatval( $option['scale'] ) : 1.25,
+			'size_p'          => $clamp_size( $option['size_p'] ?? 0 ),
+			'size_h1'         => $clamp_size( $option['size_h1'] ?? 0 ),
+			'size_h2'         => $clamp_size( $option['size_h2'] ?? 0 ),
+			'size_h3'         => $clamp_size( $option['size_h3'] ?? 0 ),
+			'size_h4'         => $clamp_size( $option['size_h4'] ?? 0 ),
+			'container_width' => isset( $option['container_width'] ) && intval( $option['container_width'] ) > 0
+				? max( 320, min( 3000, intval( $option['container_width'] ) ) )
+				: 1800,
+		);
+	}
+
+	/**
+	 * Explicit per-element size overrides (px) from the admin Typography option.
+	 * Keys: p, h1, h2, h3, h4. A value of 0 means "use the automatic size".
+	 *
+	 * @return array<string,float>
+	 */
+	public static function get_typography_size_overrides() {
+		$option = self::get_typography_option();
+		return array(
+			'p'  => $option['size_p'],
+			'h1' => $option['size_h1'],
+			'h2' => $option['size_h2'],
+			'h3' => $option['size_h3'],
+			'h4' => $option['size_h4'],
 		);
 	}
 
@@ -1136,7 +1454,10 @@ class DSF_Frontend {
 		$colors    = is_array( $colors ) ? array_merge( $fallbacks, $colors ) : $fallbacks;
 		$font      = function_exists( 'get_option' )
 			? self::get_typography_option()
-			: array( 'heading_font' => '', 'body_font' => '' );
+			: array(
+				'heading_font' => '',
+				'body_font'    => '',
+			);
 
 		$sanitize_color = static function ( $value, $fallback ) {
 			$sanitized = sanitize_hex_color( (string) $value );
@@ -1157,7 +1478,7 @@ class DSF_Frontend {
 	 * Compute the CSS variable map for a given base size + modular scale ratio.
 	 * Returns an ordered associative array of var name => CSS value (with units).
 	 */
-	public static function compute_typography_tokens( $base_px, $scale ) {
+	public static function compute_typography_tokens( $base_px, $scale, $overrides = array() ) {
 		$base  = max( 8.0, (float) $base_px );
 		$scale = max( 1.05, (float) $scale );
 
@@ -1198,6 +1519,30 @@ class DSF_Frontend {
 		}
 		$tokens['--dsf-theme-h1-size'] = '42px';
 		$tokens['--dsf-theme-h2-size'] = '37px';
+
+		// Explicit per-element size overrides from the admin Typography settings
+		// win over the derived/default sizes. A value of 0 keeps the automatic size.
+		$overrides = is_array( $overrides ) ? $overrides : array();
+		$size      = static function ( $value ) {
+			$value = floatval( $value );
+			return $value > 0 ? sprintf( '%.4gpx', $value ) : '';
+		};
+
+		$p = $size( $overrides['p'] ?? 0 );
+		if ( '' !== $p ) {
+			$tokens['--dsf-theme-p-size']   = $p;
+			$tokens['--dsf-theme-text-base'] = $p;
+		}
+		foreach ( array( 'h1', 'h2', 'h3', 'h4' ) as $tag ) {
+			$value = $size( $overrides[ $tag ] ?? 0 );
+			if ( '' === $value ) {
+				continue;
+			}
+			$tokens[ '--dsf-theme-' . $tag ] = $value;
+			if ( 'h1' === $tag || 'h2' === $tag ) {
+				$tokens[ '--dsf-theme-' . $tag . '-size' ] = $value;
+			}
+		}
 
 		return $tokens;
 	}

@@ -139,7 +139,10 @@
   .dsf-landing-header__brand,
   .dsf-landing-header__nav,
   .dsf-landing-header__mobile
-) :is(h1, h2, h3, p, li, small, strong, span, a) {
+) :is(h1, h2, h3, p, li) {
+  /* Body copy + headings follow the per-block Text Color. Eyebrows (span),
+     links and buttons (a), column titles (strong) and labels (small) are
+     intentionally excluded so their own color pickers stay independent. */
   color: var(--dsf-landing-text) !important;
 }
 

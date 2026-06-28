@@ -92,7 +92,7 @@
           v-if="showButton"
           :href="buttonHref"
           class="dsf-featured-promo__arrow-btn"
-          :style="{ backgroundColor: settings.badgeColor || '#3D736A' }"
+          :style="{ backgroundColor: settings.buttonColor || settings.badgeColor || '#3D736A' }"
           @click="handleButtonClick"
         >
           <span class="dsf-featured-promo__btn-text" :style="{ color: settings.circleTextColor || '#FFFFFF' }">

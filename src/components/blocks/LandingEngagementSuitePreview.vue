@@ -135,7 +135,7 @@ useLandingMotion(root, props.isEditor)
 }
 .dsf-engagement-suite::after { position: absolute; right: -140px; bottom: -220px; width: 520px; height: 520px; border: 1px solid rgba(255,255,255,0.16); border-radius: 50%; content: ''; }
 .dsf-engagement-suite__heading { position: relative; z-index: 1; width: min(1080px, 100%); margin: 0 auto clamp(46px, 6vw, 76px); text-align: center; }
-.dsf-engagement-suite__heading > span { color: #fff; font-size: 13px; font-weight: 850; letter-spacing: 0.14em; text-transform: uppercase; }
+.dsf-engagement-suite__heading > span { color: var(--dsf-eyebrow-color, #fff); font-size: var(--dsf-eyebrow-size, 14px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
 .dsf-engagement-suite__heading h2 { margin: 14px 0 19px; color: #fff; font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); font-size: clamp(40px, 4.8vw, 62px); line-height: 1.02; letter-spacing: -0.05em; }
 .dsf-engagement-suite__heading p { max-width: 730px; margin: 0 auto; color: rgba(255,255,255,0.82); font-size: 20px; line-height: 1.58; }
 .dsf-engagement-suite__grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(12, 1fr); width: min(1220px, 100%); margin: 0 auto; gap: 16px; }

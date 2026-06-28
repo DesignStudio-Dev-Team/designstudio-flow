@@ -520,20 +520,36 @@ class DSF_Entries {
 		$fh = fopen( 'php://temp', 'r+' );
 		// Prepend UTF-8 BOM so Excel opens the file with the right encoding.
 		fwrite( $fh, "\xEF\xBB\xBF" );
-		$header = array_merge( array( 'entry_id', 'submitted_at' ), $rows );
+		$header = array_map( array( $this, 'csv_safe_cell' ), array_merge( array( 'entry_id', 'submitted_at' ), $rows ) );
 		fputcsv( $fh, $header, ',', '"', '' );
 		foreach ( $result['entries'] as $entry ) {
 			$row = array( $entry['id'], $entry['submitted_at'] );
 			foreach ( $rows as $field_name ) {
-				$val = $entry['data'][ $field_name ] ?? '';
+				$val   = $entry['data'][ $field_name ] ?? '';
 				$row[] = is_array( $val ) ? implode( '|', array_map( 'strval', $val ) ) : (string) $val;
 			}
-			fputcsv( $fh, $row, ',', '"', '' );
+			fputcsv( $fh, array_map( array( $this, 'csv_safe_cell' ), $row ), ',', '"', '' );
 		}
 		rewind( $fh );
 		$csv = stream_get_contents( $fh );
 		fclose( $fh );
 		return $csv;
+	}
+
+	/**
+	 * Neutralize spreadsheet formula injection: values starting with =, +, -, @,
+	 * tab, or CR are prefixed with an apostrophe so Excel/Sheets treat them as
+	 * text. Entry data originates from untrusted public form submissions.
+	 *
+	 * @param mixed $value Cell value.
+	 * @return string
+	 */
+	private function csv_safe_cell( $value ) {
+		$value = (string) $value;
+		if ( '' !== $value && in_array( $value[0], array( '=', '+', '-', '@', "\t", "\r" ), true ) ) {
+			$value = "'" . $value;
+		}
+		return $value;
 	}
 
 	private function build_entries_json( $form_id ) {

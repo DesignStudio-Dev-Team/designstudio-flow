@@ -153,8 +153,8 @@ useLandingMotion(root, props.isEditor)
 .dsf-ready__inner { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); align-items: center; width: min(1240px, 100%); margin: 0 auto; gap: clamp(40px, 5vw, 76px); }
 
 /* Copy — eyebrow uses an orange line with blue text (shared across blocks). */
-.dsf-ready__eyebrow { display: inline-flex; align-items: center; gap: 9px; color: var(--blue); font-size: 13px; font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
-.dsf-ready__eyebrow i { width: 22px; height: 2px; background: var(--coral); }
+.dsf-ready__eyebrow { display: inline-flex; align-items: center; gap: 9px; color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 14px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
+.dsf-ready__eyebrow i { width: 22px; height: 2px; background: var(--dsf-eyebrow-line-color, var(--coral)); }
 .dsf-ready__heading h2 { margin: 14px 0 16px; font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); font-size: clamp(34px, 4.4vw, 58px); line-height: 1.03; letter-spacing: -0.045em; text-wrap: balance; }
 .dsf-ready__lead { max-width: 520px; margin: 0; color: #5d6a76; font-size: clamp(16px, 1.45vw, 19px); line-height: 1.56; }
 

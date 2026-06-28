@@ -275,6 +275,16 @@ class DSF_Blocks {
 						'label'   => 'Text Background',
 						'default' => 'rgba(0,0,0,0)',
 					),
+					'buttonColor'            => array(
+						'type'    => 'color',
+						'label'   => 'Button Background',
+						'default' => '#FFFFFF',
+					),
+					'buttonTextColor'        => array(
+						'type'    => 'color',
+						'label'   => 'Button Text Color',
+						'default' => '#2563EB',
+					),
 					'contentPosition'        => array(
 						'type'    => 'select',
 						'label'   => 'Content Position',
@@ -524,6 +534,11 @@ class DSF_Blocks {
 						'label'   => 'Accent Color',
 						'default' => '#B42318',
 					),
+					'eyebrowColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Eyebrow Color',
+						'default' => '',
+					),
 					'buttonColor'     => array(
 						'type'    => 'color',
 						'label'   => 'Button Color',
@@ -676,9 +691,24 @@ class DSF_Blocks {
 						'label'   => 'Accent Color',
 						'default' => '#4F36F5',
 					),
+					'eyebrowColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Eyebrow Color',
+						'default' => '',
+					),
 					'cardColor'       => array(
 						'type'    => 'color',
 						'label'   => 'Card Background',
+						'default' => '#FFFFFF',
+					),
+					'buttonColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Button Background',
+						'default' => '',
+					),
+					'buttonTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Button Text Color',
 						'default' => '#FFFFFF',
 					),
 					'columns'         => array(
@@ -2013,6 +2043,16 @@ class DSF_Blocks {
 						'label'   => 'Left Text Color',
 						'default' => '#FFFFFF',
 					),
+					'leftButtonColor'             => array(
+						'type'    => 'color',
+						'label'   => 'Left Button Background',
+						'default' => '#FFFFFF',
+					),
+					'leftButtonTextColor'         => array(
+						'type'    => 'color',
+						'label'   => 'Left Button Text Color',
+						'default' => '#1F2937',
+					),
 
 					// Right Side
 					'rightImage'                  => array(
@@ -2132,6 +2172,16 @@ class DSF_Blocks {
 						'type'    => 'color',
 						'label'   => 'Right Text Color',
 						'default' => '#FFFFFF',
+					),
+					'rightButtonColor'            => array(
+						'type'    => 'color',
+						'label'   => 'Right Button Background',
+						'default' => '#FFFFFF',
+					),
+					'rightButtonTextColor'        => array(
+						'type'    => 'color',
+						'label'   => 'Right Button Text Color',
+						'default' => '#1F2937',
 					),
 
 					// General Styles
@@ -2381,6 +2431,11 @@ class DSF_Blocks {
 						'type'    => 'color',
 						'label'   => 'Badge & Button Text Color',
 						'default' => '#FFFFFF',
+					),
+					'buttonColor'            => array(
+						'type'    => 'color',
+						'label'   => 'Button Background',
+						'default' => '#3D736A',
 					),
 
 					// Dimensions
@@ -3488,6 +3543,16 @@ class DSF_Blocks {
 						'type'    => 'color',
 						'label'   => 'Divider Color',
 						'default' => '#FFFFFF',
+					),
+					'buttonColor'            => array(
+						'type'    => 'color',
+						'label'   => 'Button Background',
+						'default' => '#FFFFFF',
+					),
+					'buttonTextColor'        => array(
+						'type'    => 'color',
+						'label'   => 'Button Text Color',
+						'default' => '#2C5F5D',
 					),
 					'bannerHeight'           => array(
 						'type'    => 'slider',
@@ -5002,6 +5067,7 @@ class DSF_Blocks {
 			'backgroundColor' => array( 'type' => 'color', 'label' => 'Background color', 'section' => 'style', 'default' => $defaults['background'] ?? '' ),
 			'textColor'       => array( 'type' => 'color', 'label' => 'Text color', 'section' => 'style', 'default' => $defaults['text'] ?? '' ),
 			'accentColor'     => array( 'type' => 'color', 'label' => 'Accent color', 'section' => 'style', 'default' => $defaults['accent'] ?? '' ),
+			'eyebrowColor'    => array( 'type' => 'color', 'label' => 'Eyebrow text color', 'section' => 'style', 'default' => $defaults['eyebrow'] ?? '' ),
 			'paddingX'        => array( 'type' => 'slider', 'label' => 'Horizontal padding', 'section' => 'style', 'default' => 0, 'min' => 0, 'max' => 80 ),
 			'marginY'         => array( 'type' => 'slider', 'label' => 'Vertical margin', 'section' => 'style', 'default' => 0, 'min' => 0, 'max' => 80 ),
 		);
@@ -5068,6 +5134,8 @@ class DSF_Blocks {
 				'settings'    => array_merge(
 					array(
 						'variant'              => array( 'type' => 'select', 'label' => 'Header style', 'section' => 'content', 'default' => 'progress', 'options' => array( 'Progress bar' => 'progress', 'Minimal' => 'minimal', 'Centered nav' => 'centered', 'Transparent' => 'transparent' ) ),
+						'buttonColor'          => array( 'type' => 'color', 'label' => 'Button background', 'section' => 'style', 'default' => '' ),
+						'buttonTextColor'      => array( 'type' => 'color', 'label' => 'Button text color', 'section' => 'style', 'default' => '' ),
 						'brandText'            => array( 'type' => 'text', 'label' => 'Brand text', 'section' => 'content', 'default' => '' ),
 						'logoImage'            => array( 'type' => 'image', 'label' => 'Logo image', 'section' => 'content', 'default' => '' ),
 						'navLinks'             => array( 'type' => 'simple_links', 'label' => 'Navigation links', 'section' => 'content', 'default' => array(
@@ -5088,7 +5156,7 @@ class DSF_Blocks {
 						'ctaText'              => array( 'type' => 'text', 'label' => 'CTA Label', 'section' => 'buttons', 'default' => 'Get DSFlow' ),
 						'ctaUrl'               => array( 'type' => 'text', 'label' => 'CTA URL', 'section' => 'buttons', 'default' => '#get-dsflow' ),
 					),
-					$this->landing_style_settings()
+					$this->landing_style_settings( array( 'background' => '#F7F4ED', 'text' => '#111827', 'accent' => '#0091FF', 'eyebrow' => '#0091FF' ) )
 				),
 			)
 		);
@@ -5102,7 +5170,10 @@ class DSF_Blocks {
 				'description' => 'Large split hero with calls to action and optional media',
 				'settings'    => array_merge(
 					array(
-						'eyebrow'       => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'THE VISUAL BUILDER WORDPRESS DESERVES' ),
+						'eyebrow'         => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'THE VISUAL BUILDER WORDPRESS DESERVES' ),
+						'eyebrowLineColor' => array( 'type' => 'color', 'label' => 'Eyebrow line color', 'section' => 'style', 'default' => '' ),
+						'buttonColor'      => array( 'type' => 'color', 'label' => 'Primary button background', 'section' => 'style', 'default' => '' ),
+						'buttonTextColor'  => array( 'type' => 'color', 'label' => 'Primary button text color', 'section' => 'style', 'default' => '' ),
 						'title'         => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'Build freely. Stay beautifully consistent.' ),
 						'description'   => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'DesignStudio Flow gives teams the freedom to create ambitious WordPress pages without losing the design system, content model, or publishing workflow beneath them.' ),
 						'primaryText'   => array( 'type' => 'text', 'label' => 'Primary Button', 'section' => 'buttons', 'default' => 'Explore the block library' ),
@@ -5114,7 +5185,7 @@ class DSF_Blocks {
 						'mediaPosition' => array( 'type' => 'select', 'label' => 'Visual position', 'section' => 'content', 'default' => 'right', 'options' => array( 'Right' => 'right', 'Left' => 'left' ) ),
 					),
 					$this->landing_media_settings( 'media', 'Hero visual' ),
-					$this->landing_style_settings()
+					$this->landing_style_settings( array( 'background' => '#F7F4ED', 'text' => '#111827', 'accent' => '#0091FF', 'eyebrow' => '#0091FF' ) )
 				),
 			)
 		);
@@ -5129,12 +5200,13 @@ class DSF_Blocks {
 				'settings'    => array_merge(
 					array(
 						'eyebrow'     => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'A LIBRARY WITH A POINT OF VIEW' ),
+						'eyebrowLineColor' => array( 'type' => 'color', 'label' => 'Eyebrow line color', 'section' => 'style', 'default' => '' ),
 						'title'       => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'Start with structure. Finish with something original.' ),
 						'description' => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'Each block solves a real page-building problem, then gives your team the right amount of creative control.' ),
 						'footnote'    => array( 'type' => 'text', 'label' => 'Footnote', 'section' => 'content', 'default' => 'New blocks inherit the same editing, theme, responsive, and frontend rendering workflow.' ),
 						'items'       => array( 'type' => 'gallery_items', 'label' => 'Gallery items', 'section' => 'items', 'default' => array() ),
 					),
-					$this->landing_style_settings()
+					$this->landing_style_settings( array( 'background' => '#F7F4ED', 'text' => '#111827', 'accent' => '#0091FF', 'eyebrow' => '#0091FF' ) )
 				),
 			)
 		);
@@ -5149,6 +5221,7 @@ class DSF_Blocks {
 				'settings'    => array_merge(
 					array(
 						'eyebrow'     => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'DESIGN INCLUDED' ),
+						'eyebrowLineColor' => array( 'type' => 'color', 'label' => 'Eyebrow line color', 'section' => 'style', 'default' => '' ),
 						'title'       => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'Add a block. The design is already done.' ),
 						'description' => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'Every block ships fully designed and responsive. Drop one onto the page, swap in your own words and images, and publish — no layout work, no CSS, nothing to wire up.' ),
 						'step1Title'  => array( 'type' => 'text', 'label' => 'Step 1 title', 'section' => 'steps', 'default' => 'Pick a block' ),
@@ -5163,7 +5236,7 @@ class DSF_Blocks {
 						'demoText'    => array( 'type' => 'textarea', 'label' => 'Demo text', 'section' => 'demo', 'default' => 'Be first in line when the doors open.' ),
 						'demoButton'  => array( 'type' => 'text', 'label' => 'Demo button', 'section' => 'demo', 'default' => 'Reserve your spot' ),
 					),
-					$this->landing_style_settings()
+					$this->landing_style_settings( array( 'background' => '#F7F4ED', 'text' => '#111827', 'accent' => '#0091FF', 'eyebrow' => '#0091FF' ) )
 				),
 			)
 		);
@@ -5180,6 +5253,7 @@ class DSF_Blocks {
 						'variant'       => array( 'type' => 'select', 'label' => 'Fallback mockup', 'section' => 'content', 'default' => 'editor', 'options' => array( 'Editor Experience' => 'editor', 'Theme System' => 'theme', 'WooCommerce' => 'commerce', 'Headers and Footers' => 'layouts', 'Campaign Tools' => 'campaigns' ) ),
 						'reverseLayout' => array( 'type' => 'toggle', 'label' => 'Visual on Left', 'section' => 'content', 'default' => false ),
 						'eyebrow'       => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'EDIT THE EXPERIENCE' ),
+						'eyebrowLineColor' => array( 'type' => 'color', 'label' => 'Eyebrow line color', 'section' => 'style', 'default' => '' ),
 						'title'         => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'A visual workflow that still respects the system.' ),
 						'description'   => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'Work directly with the page, understand every choice, and keep the guardrails that make a site coherent.' ),
 						'featureOne'    => array( 'type' => 'text', 'label' => 'Feature One', 'section' => 'content', 'default' => 'Edit the same component visitors receive' ),
@@ -5187,7 +5261,7 @@ class DSF_Blocks {
 						'featureThree'  => array( 'type' => 'text', 'label' => 'Feature Three', 'section' => 'content', 'default' => 'Page and block settings have clear ownership' ),
 					),
 					$this->landing_media_settings( 'media', 'Story visual' ),
-					$this->landing_style_settings()
+					$this->landing_style_settings( array( 'background' => '#F7F4ED', 'text' => '#111827', 'accent' => '#0091FF', 'eyebrow' => '#0091FF' ) )
 				),
 			)
 		);
@@ -5209,6 +5283,9 @@ class DSF_Blocks {
 						'caption'     => array( 'type' => 'text', 'label' => 'Pipeline caption', 'section' => 'content', 'default' => 'Every saved page carries a readable HTML snapshot, so content exists before the interactive layer loads.' ),
 						'items'       => array( 'type' => 'icon_items', 'label' => 'Steps / items', 'section' => 'items', 'default' => array() ),
 					),
+					// Variant-themed block (SEO/Security/Audience/Workflow each set their
+					// own scheme, including a dark Security variant), so its colors stay
+					// theme/variant-driven rather than pre-filled to fixed values.
 					$this->landing_style_settings()
 				),
 			)
@@ -5243,10 +5320,54 @@ class DSF_Blocks {
 					$this->landing_media_settings( 'forms', 'Feature 1 visual' ),
 					$this->landing_media_settings( 'popup', 'Feature 2 visual' ),
 					$this->landing_media_settings( 'notification', 'Feature 3 visual' ),
-					$this->landing_style_settings(),
+					$this->landing_style_settings( array( 'background' => '#0091FF', 'text' => '#FFFFFF', 'accent' => '#0091FF', 'eyebrow' => '#FFFFFF' ) ),
 					array(
 						'accentColor' => array( 'type' => 'color', 'label' => 'Icon background color', 'section' => 'style', 'default' => '' ),
 					)
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'landing-redirect-tool',
+				'name'        => 'Redirect Tool',
+				'category'    => 'content',
+				'icon'        => 'milestone',
+				'description' => 'Showcase the built-in redirect manager with a live redirects table mockup',
+				'settings'    => array_merge(
+					array(
+						'reverseLayout' => array( 'type' => 'toggle', 'label' => 'Visual on Left', 'section' => 'content', 'default' => false ),
+						'eyebrow'       => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'TRAFFIC CONTROL' ),
+						'title'         => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'Send every old URL exactly where it belongs.' ),
+						'description'   => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'A built-in redirect manager handles 301 and 302 rules, CSV import and export, and live hit tracking — no extra plugin required.' ),
+						'featureOne'    => array( 'type' => 'text', 'label' => 'Feature One', 'section' => 'content', 'default' => '301 and 302 redirects with one click' ),
+						'featureTwo'    => array( 'type' => 'text', 'label' => 'Feature Two', 'section' => 'content', 'default' => 'Bulk import and export by CSV' ),
+						'featureThree'  => array( 'type' => 'text', 'label' => 'Feature Three', 'section' => 'content', 'default' => 'Live hit counts for every rule' ),
+					),
+					$this->landing_style_settings( array( 'background' => '#F7F4ED', 'text' => '#111827', 'accent' => '#0091FF', 'eyebrow' => '#0091FF' ) )
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'landing-mail-tool',
+				'name'        => 'Mail / SMTP',
+				'category'    => 'content',
+				'icon'        => 'mail-check',
+				'description' => 'Showcase SMTP delivery, one-click OAuth, and the email log with a settings mockup',
+				'settings'    => array_merge(
+					array(
+						'reverseLayout' => array( 'type' => 'toggle', 'label' => 'Visual on Left', 'section' => 'content', 'default' => true ),
+						'eyebrow'       => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'DELIVERABILITY' ),
+						'title'         => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'Email that actually reaches the inbox.' ),
+						'description'   => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'Route WordPress mail through SendGrid or one-click Gmail and Outlook OAuth, send a test message, and keep a 30-day delivery log — with credentials encrypted at rest.' ),
+						'featureOne'    => array( 'type' => 'text', 'label' => 'Feature One', 'section' => 'content', 'default' => 'SendGrid, Gmail, and Outlook transports' ),
+						'featureTwo'    => array( 'type' => 'text', 'label' => 'Feature Two', 'section' => 'content', 'default' => 'One-click OAuth and a built-in test email' ),
+						'featureThree'  => array( 'type' => 'text', 'label' => 'Feature Three', 'section' => 'content', 'default' => 'Email log with 30-day retention' ),
+					),
+					$this->landing_style_settings( array( 'background' => '#F7F4ED', 'text' => '#111827', 'accent' => '#0091FF', 'eyebrow' => '#0091FF' ) )
 				),
 			)
 		);
@@ -5288,9 +5409,9 @@ class DSF_Blocks {
 						// Footer-specific colors. Keys are intentionally named so the theme
 						// auto-linker (resolveThemeKey) leaves them alone — these are
 						// explicit controls, not theme-followers.
-						'buttonBgColor'    => array( 'type' => 'color', 'label' => 'Main CTA background', 'section' => 'style', 'default' => '#FEFEFE' ),
-						'buttonLabelColor' => array( 'type' => 'color', 'label' => 'Main CTA text', 'section' => 'style', 'default' => '#111827' ),
-						'linksColor'       => array( 'type' => 'color', 'label' => 'Column link color', 'section' => 'style', 'default' => '#9FB0BD' ),
+						'buttonBgColor'    => array( 'type' => 'color', 'label' => 'Main CTA background', 'section' => 'style', 'default' => '#FFFFFF' ),
+						'buttonLabelColor' => array( 'type' => 'color', 'label' => 'Main CTA text', 'section' => 'style', 'default' => '#101B26' ),
+						'linksColor'       => array( 'type' => 'color', 'label' => 'Column link color', 'section' => 'style', 'default' => '#0091FF' ),
 					)
 				),
 			)

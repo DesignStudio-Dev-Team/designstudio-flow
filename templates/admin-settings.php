@@ -57,7 +57,7 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 
 	update_option( 'dsf_recaptcha_enabled', $recaptcha_enabled );
 	update_option( 'dsf_recaptcha_site_key', $recaptcha_site_key );
-	update_option( 'dsf_recaptcha_secret_key', $recaptcha_secret_key );
+	update_option( 'dsf_recaptcha_secret_key', DSF_Crypto::encrypt( $recaptcha_secret_key ) );
 	update_option( 'dsf_recaptcha_threshold', $recaptcha_threshold );
 
 	// Typography defaults.
@@ -67,12 +67,30 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 	$typography_base  = max( 12.0, min( 22.0, $typography_base ) );
 	$typography_scale = max( 1.05, min( 1.6, $typography_scale ) );
 
+	// Explicit per-element sizes (px). Blank / 0 means "automatic".
+	$dsf_clamp_size = static function ( $key ) {
+		$value = isset( $_POST[ $key ] ) ? floatval( wp_unslash( $_POST[ $key ] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified above.
+		if ( $value <= 0 ) {
+			return 0.0;
+		}
+		return max( 8.0, min( 200.0, $value ) );
+	};
+
+	$container_width = isset( $_POST['dsf_container_width'] ) ? intval( wp_unslash( $_POST['dsf_container_width'] ) ) : 1800;
+	$container_width = $container_width > 0 ? max( 320, min( 3000, $container_width ) ) : 1800;
+
 	$typography = array(
-		'mode'         => $typography_mode,
-		'heading_font' => isset( $_POST['dsf_typography_heading_font'] ) ? DSF_Frontend::sanitize_font_family( wp_unslash( $_POST['dsf_typography_heading_font'] ) ) : '',
-		'body_font'    => isset( $_POST['dsf_typography_body_font'] ) ? DSF_Frontend::sanitize_font_family( wp_unslash( $_POST['dsf_typography_body_font'] ) ) : '',
-		'base'         => $typography_base,
-		'scale'        => $typography_scale,
+		'mode'            => $typography_mode,
+		'heading_font'    => isset( $_POST['dsf_typography_heading_font'] ) ? DSF_Frontend::sanitize_font_family( wp_unslash( $_POST['dsf_typography_heading_font'] ) ) : '',
+		'body_font'       => isset( $_POST['dsf_typography_body_font'] ) ? DSF_Frontend::sanitize_font_family( wp_unslash( $_POST['dsf_typography_body_font'] ) ) : '',
+		'base'            => $typography_base,
+		'scale'           => $typography_scale,
+		'size_p'          => $dsf_clamp_size( 'dsf_size_p' ),
+		'size_h1'         => $dsf_clamp_size( 'dsf_size_h1' ),
+		'size_h2'         => $dsf_clamp_size( 'dsf_size_h2' ),
+		'size_h3'         => $dsf_clamp_size( 'dsf_size_h3' ),
+		'size_h4'         => $dsf_clamp_size( 'dsf_size_h4' ),
+		'container_width' => $container_width,
 	);
 	update_option( 'dsf_typography', $typography );
 
@@ -112,7 +130,7 @@ $default_colors       = get_option(
 );
 $recaptcha_enabled    = (bool) get_option( 'dsf_recaptcha_enabled', false );
 $recaptcha_site_key   = get_option( 'dsf_recaptcha_site_key', '' );
-$recaptcha_secret_key = get_option( 'dsf_recaptcha_secret_key', '' );
+$recaptcha_secret_key = DSF_Crypto::decrypt( get_option( 'dsf_recaptcha_secret_key', '' ) );
 $recaptcha_threshold  = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
 $notification_bar     = DSF_Notification_Bar::get_settings();
 $previous_theme_value = get_option( 'dsf_previous_theme_defaults', array() );
@@ -133,6 +151,19 @@ $typography_hfont  = $typography_option['heading_font'] ?? '';
 $typography_bfont  = $typography_option['body_font'] ?? '';
 $typography_base   = floatval( $typography_option['base'] ?? 16 );
 $typography_scale  = floatval( $typography_option['scale'] ?? 1.25 );
+
+// Normalized values (per-element sizes + container width) for the form fields.
+$typography_norm     = DSF_Frontend::get_typography_option();
+$size_field_value    = static function ( $value ) {
+	$value = floatval( $value );
+	return $value > 0 ? (string) ( 0 === fmod( $value, 1.0 ) ? (int) $value : $value ) : '';
+};
+$size_p_val          = $size_field_value( $typography_norm['size_p'] );
+$size_h1_val         = $size_field_value( $typography_norm['size_h1'] );
+$size_h2_val         = $size_field_value( $typography_norm['size_h2'] );
+$size_h3_val         = $size_field_value( $typography_norm['size_h3'] );
+$size_h4_val         = $size_field_value( $typography_norm['size_h4'] );
+$container_width_val = (int) $typography_norm['container_width'];
 
 $scale_options = array(
 	'1.125' => 'Minor Second (1.125)',
@@ -343,6 +374,58 @@ $font_options = array(
 					});
 				})();
 				</script>
+			</div>
+
+			<!-- Content Sizing -->
+			<div class="dsf-card" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
+				<h2 style="margin-top: 0;">Content Sizing</h2>
+				<p class="description">Set the base font size for body text and each heading level, plus the maximum width of the page content. Leave a size blank to use the automatic value from the scale above.</p>
+
+				<table class="form-table">
+					<tr>
+						<th scope="row"><label for="dsf_size_p">Paragraph (p)</label></th>
+						<td>
+							<input type="number" id="dsf_size_p" name="dsf_size_p" min="8" max="200" step="1" value="<?php echo esc_attr( $size_p_val ); ?>" placeholder="auto">
+							<span class="description" style="margin-left: 8px;">px</span>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="dsf_size_h1">Heading 1 (h1)</label></th>
+						<td>
+							<input type="number" id="dsf_size_h1" name="dsf_size_h1" min="8" max="200" step="1" value="<?php echo esc_attr( $size_h1_val ); ?>" placeholder="auto">
+							<span class="description" style="margin-left: 8px;">px</span>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="dsf_size_h2">Heading 2 (h2)</label></th>
+						<td>
+							<input type="number" id="dsf_size_h2" name="dsf_size_h2" min="8" max="200" step="1" value="<?php echo esc_attr( $size_h2_val ); ?>" placeholder="auto">
+							<span class="description" style="margin-left: 8px;">px</span>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="dsf_size_h3">Heading 3 (h3)</label></th>
+						<td>
+							<input type="number" id="dsf_size_h3" name="dsf_size_h3" min="8" max="200" step="1" value="<?php echo esc_attr( $size_h3_val ); ?>" placeholder="auto">
+							<span class="description" style="margin-left: 8px;">px</span>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="dsf_size_h4">Heading 4 (h4)</label></th>
+						<td>
+							<input type="number" id="dsf_size_h4" name="dsf_size_h4" min="8" max="200" step="1" value="<?php echo esc_attr( $size_h4_val ); ?>" placeholder="auto">
+							<span class="description" style="margin-left: 8px;">px</span>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="dsf_container_width">Container max width</label></th>
+						<td>
+							<input type="number" id="dsf_container_width" name="dsf_container_width" min="320" max="3000" step="10" value="<?php echo esc_attr( (string) $container_width_val ); ?>">
+							<span class="description" style="margin-left: 8px;">px</span>
+							<p class="description">Maximum width of the main page container. Individual pages can override this in the editor's Theme panel.</p>
+						</td>
+					</tr>
+				</table>
 			</div>
 
 			<div class="dsf-card" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">

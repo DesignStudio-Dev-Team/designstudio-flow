@@ -133,9 +133,9 @@ useLandingMotion(root, props.isEditor)
 .dsf-trust.is-audience { background: #f3f0e9; }
 .dsf-trust.is-workflow { background: var(--dsf-theme-background, #f7f4ed); }
 .dsf-trust__heading { width: min(820px, 100%); margin: 0 auto clamp(42px, 5vw, 70px); text-align: center; }
-.dsf-trust__heading > span { color: var(--blue); font-size: 13px; font-weight: 850; letter-spacing: 0.12em; text-transform: uppercase; }
+.dsf-trust__heading > span { color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 14px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
 /* Security sits on a blue field, so its eyebrow stays white for contrast. */
-.dsf-trust.is-security .dsf-trust__heading > span { color: #fff; }
+.dsf-trust.is-security .dsf-trust__heading > span { color: var(--dsf-eyebrow-color, #fff); }
 .dsf-trust__heading h2 { margin: 13px 0 18px; font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); font-size: clamp(38px, 4.7vw, 63px); line-height: 1.04; letter-spacing: -0.045em; text-wrap: balance; }
 .dsf-trust__heading p { max-width: 690px; margin: 0 auto; color: #5d6a76; font-size: 20px; line-height: 1.58; }
 .dsf-trust.is-security .dsf-trust__heading p { color: rgba(255,255,255,0.82); }

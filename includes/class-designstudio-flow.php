@@ -41,6 +41,7 @@ final class DesignStudio_Flow {
 	 */
 	private function load_dependencies() {
 		// Core classes.
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-crypto.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-post-type.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-admin.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-editor.php';
@@ -54,6 +55,7 @@ final class DesignStudio_Flow {
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-entries.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-import-export.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-redirects.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-mail-smtp.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-update-checker.php';
 	}
 
@@ -96,6 +98,8 @@ final class DesignStudio_Flow {
 		DSF_Connections::get_instance();
 		// Redirects run on the frontend (template_redirect) and admin (admin-post).
 		DSF_Redirects::get_instance();
+		// Mail / SMTP hooks phpmailer_init, which fires anywhere wp_mail() is used.
+		DSF_Mail_SMTP::get_instance();
 
 		if ( is_admin() ) {
 			DSF_Entries::get_instance();
@@ -126,6 +130,11 @@ final class DesignStudio_Flow {
 	 * Plugin deactivation
 	 */
 	public function deactivate() {
+		// Stop the email-log pruning cron.
+		if ( class_exists( 'DSF_Mail_SMTP' ) ) {
+			wp_clear_scheduled_hook( DSF_Mail_SMTP::CLEANUP_HOOK );
+		}
+
 		flush_rewrite_rules();
 	}
 

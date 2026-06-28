@@ -6,7 +6,7 @@
           v-if="settings.eyebrow"
           tagName="p"
           class="dsf-pricing-preview__eyebrow"
-          :style="{ color: accentColor }"
+          :style="{ color: eyebrowColor }"
           v-model="settings.eyebrow"
           :is-editor="isEditor"
           placeholder="Pricing"
@@ -121,6 +121,7 @@ const props = defineProps({
 const billingCycle = ref('monthly')
 const accentColor = computed(() => props.settings.accentColor || '#4F36F5')
 const mutedColor = computed(() => props.settings.mutedColor || '#4B5563')
+const eyebrowColor = computed(() => props.settings.eyebrowColor || accentColor.value)
 const borderColor = computed(() => `${accentColor.value}2E`)
 const plans = computed(() => Array.isArray(props.settings.plans) ? props.settings.plans.slice(0, 4) : [])
 
@@ -173,8 +174,12 @@ function cardStyle(plan) {
 }
 
 function buttonStyle(plan) {
+  // Filled (popular) button gets its own background + text color, independent of
+  // the accent. Outline buttons keep the accent for border + label.
+  const fill = props.settings?.buttonColor || accentColor.value
+  const fillText = props.settings?.buttonTextColor || '#FFFFFF'
   return plan.popular
-    ? { backgroundColor: accentColor.value, borderColor: accentColor.value, color: '#FFFFFF' }
+    ? { backgroundColor: fill, borderColor: fill, color: fillText }
     : { borderColor: `${accentColor.value}55`, color: accentColor.value }
 }
 
@@ -213,9 +218,11 @@ function handleLinkClick(event, url) {
 
 .dsf-pricing-preview__eyebrow {
   margin: 0 0 12px;
-  font-size: var(--dsf-theme-p-size, 16px);
-  font-weight: 700;
+  font-size: var(--dsf-eyebrow-size, 14px);
+  font-weight: 850;
   line-height: 1.4;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
 }
 
 .dsf-pricing-preview__title {

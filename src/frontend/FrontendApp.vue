@@ -63,6 +63,8 @@ import LandingBlockReadyPreview from '../components/blocks/LandingBlockReadyPrev
 import LandingProductStoryPreview from '../components/blocks/LandingProductStoryPreview.vue'
 import LandingTrustWorkflowPreview from '../components/blocks/LandingTrustWorkflowPreview.vue'
 import LandingEngagementSuitePreview from '../components/blocks/LandingEngagementSuitePreview.vue'
+import LandingRedirectToolPreview from '../components/blocks/LandingRedirectToolPreview.vue'
+import LandingMailToolPreview from '../components/blocks/LandingMailToolPreview.vue'
 import LandingMarketingFooterPreview from '../components/blocks/LandingMarketingFooterPreview.vue'
 import GenericBlockPreview from '../components/blocks/GenericBlockPreview.vue'
 import FlowModal from '../components/common/FlowModal.vue'
@@ -120,6 +122,8 @@ const previewComponents = {
   'landing-product-story': LandingProductStoryPreview,
   'landing-trust-workflow': LandingTrustWorkflowPreview,
   'landing-engagement-suite': LandingEngagementSuitePreview,
+  'landing-redirect-tool': LandingRedirectToolPreview,
+  'landing-mail-tool': LandingMailToolPreview,
   'landing-marketing-footer': LandingMarketingFooterPreview,
 }
 
