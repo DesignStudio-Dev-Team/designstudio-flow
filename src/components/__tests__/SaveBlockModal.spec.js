@@ -18,7 +18,7 @@ describe('SaveBlockModal', () => {
 
     const events = wrapper.emitted('save')
     expect(events).toHaveLength(1)
-    expect(events[0][0]).toEqual({ name: 'Hero', id: null })
+    expect(events[0][0]).toEqual({ name: 'Hero', id: null, category: '' })
   })
 
   it('offers update mode and emits the chosen existing id', async () => {
@@ -44,5 +44,18 @@ describe('SaveBlockModal', () => {
     const wrapper = mountOpen({ existing: [] })
     await wrapper.setProps({ visible: true })
     expect(wrapper.find('.dsf-savemodal__modes').exists()).toBe(false)
+  })
+
+  it('shows a folder field only when enabled, and emits the folder as category', async () => {
+    const hidden = mountOpen()
+    await hidden.setProps({ visible: true })
+    expect(hidden.find('#dsf-savemodal-folder').exists()).toBe(false)
+
+    const wrapper = mountOpen({ showFolder: true, folders: ['Heroes'] })
+    await wrapper.setProps({ visible: true })
+    await wrapper.find('#dsf-savemodal-folder').setValue('Footers')
+    await wrapper.find('.dsf-savemodal__btn--save').trigger('click')
+
+    expect(wrapper.emitted('save')[0][0].category).toBe('Footers')
   })
 })

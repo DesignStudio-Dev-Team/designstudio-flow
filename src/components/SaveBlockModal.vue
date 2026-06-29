@@ -19,6 +19,22 @@
             @keyup.enter="onSave"
           />
 
+          <template v-if="showFolder">
+            <label class="dsf-savemodal__label" for="dsf-savemodal-folder">Folder <span class="dsf-savemodal__optional">(optional)</span></label>
+            <input
+              id="dsf-savemodal-folder"
+              v-model="folder"
+              type="text"
+              class="dsf-savemodal__input"
+              list="dsf-savemodal-folders"
+              placeholder="e.g. Heroes, Footers, Client X"
+              @keyup.enter="onSave"
+            />
+            <datalist id="dsf-savemodal-folders">
+              <option v-for="f in folders" :key="f" :value="f" />
+            </datalist>
+          </template>
+
           <fieldset v-if="existing.length" class="dsf-savemodal__modes">
             <label class="dsf-savemodal__radio">
               <input type="radio" value="new" v-model="mode" />
@@ -56,11 +72,15 @@ const props = defineProps({
   suggestedName: { type: String, default: '' },
   // Existing items of the same kind (offered for "update existing").
   existing: { type: Array, default: () => [] },
+  // Optional "folder" field (saved blocks only) + suggestions for its datalist.
+  showFolder: { type: Boolean, default: false },
+  folders: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['save', 'cancel'])
 
 const name = ref('')
+const folder = ref('')
 const mode = ref('new')
 const updateId = ref(null)
 const nameInput = ref(null)
@@ -70,6 +90,7 @@ watch(
   (open) => {
     if (open) {
       name.value = props.suggestedName
+      folder.value = ''
       mode.value = 'new'
       updateId.value = props.existing.length ? props.existing[0].id : null
       nextTick(() => nameInput.value?.focus())
@@ -77,11 +98,14 @@ watch(
   }
 )
 
-// Picking a block to update pulls its name into the field for an easy rename.
+// Picking an item to update pulls its name (and folder) into the fields.
 watch(updateId, (id) => {
   if (mode.value !== 'update') return
   const match = props.existing.find((item) => item.id === id)
-  if (match) name.value = match.name
+  if (match) {
+    name.value = match.name
+    folder.value = match.category || ''
+  }
 })
 
 function onSave() {
@@ -89,6 +113,7 @@ function onSave() {
   emit('save', {
     name: finalName,
     id: mode.value === 'update' ? updateId.value : null,
+    category: props.showFolder ? folder.value.trim() : '',
   })
 }
 </script>
@@ -144,6 +169,15 @@ function onSave() {
   border-radius: 8px;
   font-size: 0.875rem;
   background: var(--dsf-gray-50, #f9fafb);
+}
+
+.dsf-savemodal__input + .dsf-savemodal__label {
+  margin-top: 1rem;
+}
+
+.dsf-savemodal__optional {
+  font-weight: 400;
+  color: var(--dsf-gray-400, #9ca3af);
 }
 
 .dsf-savemodal__input:focus,
