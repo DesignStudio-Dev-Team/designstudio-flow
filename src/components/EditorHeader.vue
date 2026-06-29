@@ -2,6 +2,15 @@
   <header class="dsf-header">
     <!-- Left: Logo & Title -->
     <div class="dsf-header__left">
+      <a
+        v-if="adminUrl"
+        :href="adminUrl"
+        class="dsf-header__back"
+        title="Back to WordPress admin"
+        aria-label="Back to WordPress admin"
+      >
+        <ArrowLeft :size="18" />
+      </a>
       <div class="dsf-header__brand">
         <div class="dsf-header__logo" aria-hidden="true">
           <img :src="logoUrl" alt="" />
@@ -93,7 +102,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Monitor, Tablet, Smartphone, Palette, Settings, ExternalLink, Save, LayoutTemplate } from 'lucide-vue-next'
+import { Monitor, Tablet, Smartphone, Palette, Settings, ExternalLink, Save, LayoutTemplate, ArrowLeft } from 'lucide-vue-next'
 
 const props = defineProps({
   title: String,
@@ -115,6 +124,8 @@ const logoUrl = computed(() => {
   const baseUrl = window.dsfEditorData?.pluginUrl || ''
   return `${baseUrl}assets/images/dsflow-logo.png`
 })
+
+const adminUrl = computed(() => window.dsfEditorData?.adminUrl || '')
 
 const subtitleText = computed(() => {
   if (props.postType === 'dsf_layout') {
@@ -138,6 +149,24 @@ const saveLabel = computed(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.dsf-header__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--dsf-radius-md, 8px);
+  color: var(--dsf-gray-500, #6b7280);
+  background: var(--dsf-gray-100, #f3f4f6);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.dsf-header__back:hover {
+  color: var(--dsf-gray-900, #111827);
+  background: var(--dsf-gray-200, #e5e7eb);
 }
 
 .dsf-header__brand {

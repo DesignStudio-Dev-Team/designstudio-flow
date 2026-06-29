@@ -17,8 +17,8 @@
     "file": "js/_plugin-vue_export-helper-BX2j1iFb.js",
     "name": "_plugin-vue_export-helper"
   },
-  "_main-B_PiEx3e.js": {
-    "file": "js/main-B_PiEx3e.js",
+  "_main-DQaR9CCG.js": {
+    "file": "js/main-DQaR9CCG.js",
     "name": "main",
     "imports": [
       "__plugin-vue_export-helper-BX2j1iFb.js"
@@ -51,7 +51,7 @@
     "isEntry": true,
     "imports": [
       "__plugin-vue_export-helper-BX2j1iFb.js",
-      "_main-B_PiEx3e.js"
+      "_main-DQaR9CCG.js"
     ]
   },
   "src/frontend/notificationBar.js": {
@@ -70,7 +70,7 @@
     "isEntry": true,
     "imports": [
       "__plugin-vue_export-helper-BX2j1iFb.js",
-      "_main-B_PiEx3e.js",
+      "_main-DQaR9CCG.js",
       "_ColorPicker-1tXBcG8z.js"
     ],
     "css": [

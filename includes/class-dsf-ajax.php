@@ -544,6 +544,14 @@ class DSF_Ajax {
 		$settings_data['popupId'] = isset( $settings_data['popupId'] ) ? absint( $settings_data['popupId'] ) : 0;
 
 		$post_type = get_post_type( $post_id );
+
+		// Saved blocks + templates are edited in Flow but persist to their own
+		// meta (not _dsf_blocks). This sends the JSON response and exits.
+		if ( in_array( $post_type, array( 'dsf_saved_block', 'dsf_template' ), true ) ) {
+			$this->save_flow_library_item( $post_id, $post_type, $blocks_data, $settings_data, $title );
+			return;
+		}
+
 		if ( 'dsf_layout' === $post_type ) {
 			$current_layout_type = in_array( $layout_type, array( 'header', 'footer' ), true )
 				? $layout_type
@@ -613,6 +621,59 @@ class DSF_Ajax {
 				'post_parent' => $post ? (int) $post->post_parent : 0,
 				'permalink'   => $permalink,
 				'preview_url' => $preview_url,
+			)
+		);
+	}
+
+	/**
+	 * Persist a saved block / template edited in the Flow editor back to its own
+	 * meta, then send the JSON response. Blocks are already per-type sanitized.
+	 */
+	private function save_flow_library_item( $post_id, $post_type, $blocks_data, $settings_data, $title ) {
+		if ( 'dsf_template' === $post_type ) {
+			$tpl_blocks = array();
+			foreach ( (array) $blocks_data as $block ) {
+				if ( ! is_array( $block ) || empty( $block['type'] ) ) {
+					continue;
+				}
+				$tpl_blocks[] = array(
+					'type'     => sanitize_key( $block['type'] ),
+					'settings' => ( isset( $block['settings'] ) && is_array( $block['settings'] ) ) ? $block['settings'] : array(),
+				);
+			}
+			update_post_meta( $post_id, '_dsf_template_blocks', $tpl_blocks );
+			$theme = ( isset( $settings_data['theme'] ) && is_array( $settings_data['theme'] ) ) ? $settings_data['theme'] : array();
+			update_post_meta( $post_id, '_dsf_template_theme', $theme );
+			$kind = get_post_meta( $post_id, '_dsf_template_kind', true );
+			update_post_meta( $post_id, '_dsf_template_kind', $kind ? $kind : 'page' );
+		} else { // dsf_saved_block — persist the first block only.
+			$first = ( isset( $blocks_data[0] ) && is_array( $blocks_data[0] ) ) ? $blocks_data[0] : null;
+			if ( $first && ! empty( $first['type'] ) ) {
+				update_post_meta( $post_id, '_dsf_block_type', sanitize_key( $first['type'] ) );
+				update_post_meta( $post_id, '_dsf_block_settings', ( isset( $first['settings'] ) && is_array( $first['settings'] ) ) ? $first['settings'] : array() );
+			}
+		}
+
+		$post_update = array(
+			'ID'                => $post_id,
+			'post_modified'     => current_time( 'mysql' ),
+			'post_modified_gmt' => current_time( 'mysql', 1 ),
+		);
+		if ( '' !== $title ) {
+			$post_update['post_title'] = $title;
+		}
+		wp_update_post( $post_update );
+
+		wp_send_json_success(
+			array(
+				'message'     => 'Saved successfully',
+				'post_id'     => $post_id,
+				'post_status' => get_post_status( $post_id ),
+				'post_title'  => get_the_title( $post_id ),
+				'post_name'   => '',
+				'post_parent' => 0,
+				'permalink'   => '',
+				'preview_url' => '',
 			)
 		);
 	}

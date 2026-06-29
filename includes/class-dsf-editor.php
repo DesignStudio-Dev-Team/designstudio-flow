@@ -60,10 +60,10 @@ class DSF_Editor {
 			$post_id   = intval( $post_id );
 			$post_type = get_post_type( $post_id );
 
-			// Only redirect dsf_layout posts (DSFlow-only post type).
+			// Flow-only post types open in the Flow editor instead of the WP editor.
 			// Pages with _dsf_enabled keep their normal WP editor; the admin
 			// bar already provides a separate "DS Flow" shortcut.
-			if ( 'dsf_layout' === $post_type ) {
+			if ( in_array( $post_type, array( 'dsf_layout', 'dsf_saved_block', 'dsf_template' ), true ) ) {
 				wp_safe_redirect( admin_url( 'admin.php?page=dsf-editor&post_id=' . $post_id ) );
 				exit;
 			}
@@ -173,7 +173,7 @@ class DSF_Editor {
 			$query_post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 			$post_type       = $query_post_type ? sanitize_key( $query_post_type ) : 'page';
 		}
-		if ( ! in_array( $post_type, array( 'page', 'dsf_layout' ), true ) ) {
+		if ( ! in_array( $post_type, array( 'page', 'dsf_layout', 'dsf_saved_block', 'dsf_template' ), true ) ) {
 			$post_type = 'page';
 		}
 
@@ -344,6 +344,49 @@ class DSF_Editor {
 		if ( ! $post_id ) {
 			return array(
 				'blocks'   => array(),
+				'settings' => $this->get_default_settings(),
+			);
+		}
+
+		// Saved blocks + templates store their blocks in their own meta; map them
+		// onto the editor's blocks model (each needs a client id).
+		$library_type = get_post_type( $post_id );
+		if ( 'dsf_template' === $library_type ) {
+			$tpl_blocks = get_post_meta( $post_id, '_dsf_template_blocks', true );
+			$tpl_theme  = get_post_meta( $post_id, '_dsf_template_theme', true );
+			$blocks     = array();
+			foreach ( (array) $tpl_blocks as $index => $block ) {
+				if ( ! is_array( $block ) || empty( $block['type'] ) ) {
+					continue;
+				}
+				$blocks[] = array(
+					'id'       => 'block_tpl_' . $index . '_' . wp_generate_password( 6, false, false ),
+					'type'     => $block['type'],
+					'settings' => isset( $block['settings'] ) && is_array( $block['settings'] ) ? $block['settings'] : array(),
+				);
+			}
+			$settings = $this->get_default_settings();
+			if ( is_array( $tpl_theme ) && ! empty( $tpl_theme ) ) {
+				$settings['theme'] = $tpl_theme;
+			}
+			return array(
+				'blocks'   => $blocks,
+				'settings' => $settings,
+			);
+		}
+		if ( 'dsf_saved_block' === $library_type ) {
+			$type     = get_post_meta( $post_id, '_dsf_block_type', true );
+			$settings = get_post_meta( $post_id, '_dsf_block_settings', true );
+			$blocks   = array();
+			if ( $type ) {
+				$blocks[] = array(
+					'id'       => 'block_saved_' . $post_id,
+					'type'     => $type,
+					'settings' => is_array( $settings ) ? $settings : array(),
+				);
+			}
+			return array(
+				'blocks'   => $blocks,
 				'settings' => $this->get_default_settings(),
 			);
 		}
