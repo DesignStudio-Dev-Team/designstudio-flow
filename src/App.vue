@@ -535,10 +535,11 @@ function addBlock(blockDefinition) {
   const newBlock = {
     id: 'block_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
     type: blockDefinition.id,
-    // A saved block carries its own stored settings; a fresh block from the
-    // library starts from the definition defaults.
+    // A saved block/preset carries its own stored settings; layer them over the
+    // current defaults so keys added to the schema since it was saved still exist
+    // (the saved values win). A fresh block starts from defaults only.
     settings: blockDefinition.savedSettings
-      ? JSON.parse(JSON.stringify(blockDefinition.savedSettings))
+      ? { ...getDefaultSettings(blockDefinition), ...JSON.parse(JSON.stringify(blockDefinition.savedSettings)) }
       : getDefaultSettings(blockDefinition),
   }
   
@@ -724,7 +725,9 @@ function insertTemplate(template) {
     const newBlock = {
       id: 'block_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
       type: tplBlock.type,
-      settings: JSON.parse(JSON.stringify(tplBlock.settings || {})),
+      // Layer saved settings over current defaults (see addBlock) so the template
+      // survives block-schema changes.
+      settings: { ...getDefaultSettings(def), ...JSON.parse(JSON.stringify(tplBlock.settings || {})) },
     }
     blocks.value.push(newBlock)
     added++
