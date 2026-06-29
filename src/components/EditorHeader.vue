@@ -61,6 +61,16 @@
       </button>
 
       <button
+        v-if="postType !== 'dsf_layout'"
+        class="dsf-btn dsf-btn--secondary dsf-header__btn"
+        title="Save this page's blocks as a reusable template"
+        @click="$emit('save-as-template')"
+      >
+        <LayoutTemplate :size="16" />
+        Save as Template
+      </button>
+
+      <button
         class="dsf-btn dsf-btn--secondary dsf-header__btn"
         :disabled="postType === 'dsf_layout'"
         @click="$emit('view')"
@@ -83,7 +93,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Monitor, Tablet, Smartphone, Palette, Settings, ExternalLink, Save } from 'lucide-vue-next'
+import { Monitor, Tablet, Smartphone, Palette, Settings, ExternalLink, Save, LayoutTemplate } from 'lucide-vue-next'
 
 const props = defineProps({
   title: String,
@@ -99,7 +109,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['update:title', 'view', 'save', 'set-preview-mode', 'open-theme', 'open-settings'])
+defineEmits(['update:title', 'view', 'save', 'set-preview-mode', 'open-theme', 'open-settings', 'save-as-template'])
 
 const logoUrl = computed(() => {
   const baseUrl = window.dsfEditorData?.pluginUrl || ''

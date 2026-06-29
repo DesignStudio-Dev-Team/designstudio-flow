@@ -5,7 +5,7 @@
         <div class="dsf-savemodal" role="dialog" aria-modal="true" aria-labelledby="dsf-savemodal-title">
           <div class="dsf-savemodal__head">
             <Bookmark :size="18" />
-            <h3 id="dsf-savemodal-title">Save block to library</h3>
+            <h3 id="dsf-savemodal-title">{{ title }}</h3>
           </div>
 
           <label class="dsf-savemodal__label" for="dsf-savemodal-name">Name</label>
@@ -52,8 +52,9 @@ import { Bookmark } from 'lucide-vue-next'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
+  title: { type: String, default: 'Save block to library' },
   suggestedName: { type: String, default: '' },
-  // Existing saved blocks of the same type (offered for "update existing").
+  // Existing items of the same kind (offered for "update existing").
   existing: { type: Array, default: () => [] },
 })
 

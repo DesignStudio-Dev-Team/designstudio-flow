@@ -25,6 +25,46 @@
       
       <!-- Categories -->
       <div class="dsf-library-content">
+        <!-- Templates (saved groups of blocks) -->
+        <div v-if="filteredTemplates.length" class="dsf-library-category">
+          <button class="dsf-library-category__header" @click="templatesOpen = !templatesOpen">
+            <div class="dsf-library-category__left">
+              <LayoutTemplate :size="16" />
+              <span>Templates</span>
+              <span class="dsf-library-category__count">{{ filteredTemplates.length }}</span>
+            </div>
+            <ChevronDown
+              :size="16"
+              class="dsf-library-category__chevron"
+              :class="{ 'dsf-library-category__chevron--open': templatesOpen }"
+            />
+          </button>
+          <div class="dsf-library-blocks" v-show="templatesOpen">
+            <div v-for="tpl in filteredTemplates" :key="tpl.id" class="dsf-library-block dsf-library-block--saved">
+              <button class="dsf-library-block__main" @click="$emit('insert-template', tpl)">
+                <div class="dsf-library-block__preview">
+                  <BlockSchematic :type="templatePreviewType(tpl)" icon="layout-template" />
+                </div>
+                <div class="dsf-library-block__info">
+                  <LayoutTemplate :size="16" />
+                  <div class="dsf-library-block__text">
+                    <h4>{{ tpl.name }}</h4>
+                    <span>{{ tpl.blockCount }} block{{ tpl.blockCount === 1 ? '' : 's' }}</span>
+                  </div>
+                </div>
+              </button>
+              <button
+                class="dsf-library-block__delete"
+                title="Delete template"
+                aria-label="Delete template"
+                @click.stop="$emit('delete-template', tpl)"
+              >
+                <Trash2 :size="14" />
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Presets (curated starter library) -->
         <div v-if="filteredPresets.length" class="dsf-library-category">
           <button class="dsf-library-category__header" @click="presetsOpen = !presetsOpen">
@@ -203,14 +243,19 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  templates: {
+    type: Array,
+    default: () => [],
+  },
 })
 
-defineEmits(['close', 'add', 'insert-saved', 'delete-saved', 'insert-preset'])
+defineEmits(['close', 'add', 'insert-saved', 'delete-saved', 'insert-preset', 'insert-template', 'delete-template'])
 
 const searchQuery = ref('')
 const openCategories = ref([])
 const savedOpen = ref(true)
 const presetsOpen = ref(true)
+const templatesOpen = ref(true)
 
 const icons = {
   'layout-template': LayoutTemplate,
@@ -282,6 +327,17 @@ const filteredPresets = computed(() => {
   return list.filter((preset) => (preset.name || '').toLowerCase().includes(query))
 })
 
+const filteredTemplates = computed(() => {
+  const list = Array.isArray(props.templates) ? props.templates : []
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return list
+  return list.filter((tpl) => (tpl.name || '').toLowerCase().includes(query))
+})
+
+function templatePreviewType(tpl) {
+  return (Array.isArray(tpl.blocks) && tpl.blocks[0]?.type) || 'content'
+}
+
 function savedIcon(saved) {
   return blockDefById.value[saved.type]?.icon || 'bookmark'
 }
@@ -295,7 +351,8 @@ const noResults = computed(() => {
     searchQuery.value.trim() &&
     Object.keys(filteredCategories.value).length === 0 &&
     filteredSavedBlocks.value.length === 0 &&
-    filteredPresets.value.length === 0
+    filteredPresets.value.length === 0 &&
+    filteredTemplates.value.length === 0
   )
 })
 

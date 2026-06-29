@@ -13,6 +13,7 @@
       @set-preview-mode="setPreviewMode"
       @open-theme="showThemePanel = true"
       @open-settings="showPageSettings = true"
+      @save-as-template="openSaveTemplate"
     />
     
     <!-- Main Content -->
@@ -125,11 +126,14 @@
       :categories="blockCategories"
       :saved-blocks="availableSavedBlocks"
       :presets="blockPresets"
+      :templates="availableTemplates"
       @close="showBlockLibrary = false"
       @add="addBlock"
       @insert-saved="insertSavedBlock"
       @delete-saved="deleteSavedBlock"
       @insert-preset="insertPreset"
+      @insert-template="insertTemplate"
+      @delete-template="deleteTemplate"
     />
     
     <!-- Delete Confirmation Dialog -->
@@ -163,6 +167,28 @@
       variant="danger"
       @confirm="confirmDeleteSavedBlock"
       @cancel="cancelDeleteSavedBlock"
+    />
+
+    <!-- Save page as template -->
+    <SaveBlockModal
+      :visible="templateModalVisible"
+      title="Save page as template"
+      :suggested-name="templateSuggestedName"
+      :existing="[]"
+      @save="onSaveTemplateConfirm"
+      @cancel="templateModalVisible = false"
+    />
+
+    <!-- Delete template confirmation -->
+    <ConfirmDialog
+      :visible="templateDeleteVisible"
+      title="Delete template?"
+      :message="`This removes &quot;${templateToDelete?.name || ''}&quot; from the library for everyone. This cannot be undone.`"
+      confirm-text="Delete"
+      cancel-text="Cancel"
+      variant="danger"
+      @confirm="confirmDeleteTemplate"
+      @cancel="cancelDeleteTemplate"
     />
 
     <!-- Transient toast -->
@@ -625,6 +651,125 @@ function insertPreset(preset) {
     return
   }
   addBlock({ ...def, id: preset.type, savedSettings: preset.settings || {} })
+}
+
+// ---- Templates (reusable groups of blocks) ----
+
+const availableTemplates = ref([])
+const templateModalVisible = ref(false)
+const templateSuggestedName = ref('')
+
+async function loadTemplates() {
+  if (!wpData.ajaxUrl) return
+  try {
+    const formData = new FormData()
+    formData.append('action', 'dsf_list_templates')
+    formData.append('nonce', wpData.nonce)
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json.success && Array.isArray(json.data?.templates)) {
+      availableTemplates.value = json.data.templates
+    }
+  } catch (e) {
+    // Non-fatal: picker simply shows no templates.
+  }
+}
+
+function openSaveTemplate() {
+  if (!blocks.value.length) {
+    showToast('Add some blocks before saving a template.', 'error')
+    return
+  }
+  templateSuggestedName.value = pageTitle.value && pageTitle.value !== 'Untitled Page'
+    ? `${pageTitle.value} template`
+    : 'Page template'
+  templateModalVisible.value = true
+}
+
+async function onSaveTemplateConfirm({ name }) {
+  templateModalVisible.value = false
+  // Persist type + settings only; ids are regenerated on insert.
+  const payloadBlocks = blocks.value.map((b) => ({ type: b.type, settings: b.settings || {} }))
+  try {
+    const formData = new FormData()
+    formData.append('action', 'dsf_save_template')
+    formData.append('nonce', wpData.nonce)
+    formData.append('name', name)
+    formData.append('kind', 'page')
+    formData.append('blocks', JSON.stringify(payloadBlocks))
+    formData.append('theme', JSON.stringify(pageSettings.value?.theme || {}))
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json.success && json.data) {
+      const idx = availableTemplates.value.findIndex((t) => t.id === json.data.id)
+      if (idx >= 0) availableTemplates.value.splice(idx, 1, json.data)
+      else availableTemplates.value = [...availableTemplates.value, json.data]
+      availableTemplates.value.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      showToast('Page saved as template')
+    } else {
+      showToast(json.data?.message || 'Could not save this template.', 'error')
+    }
+  } catch (e) {
+    showToast('Could not save this template.', 'error')
+  }
+}
+
+function insertTemplate(template) {
+  const list = Array.isArray(template?.blocks) ? template.blocks : []
+  if (!list.length) return
+  let added = 0
+  list.forEach((tplBlock) => {
+    const def = (wpData.blocks || {})[tplBlock.type]
+    if (!def) return // skip block types not available on this site
+    const newBlock = {
+      id: 'block_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      type: tplBlock.type,
+      settings: JSON.parse(JSON.stringify(tplBlock.settings || {})),
+    }
+    blocks.value.push(newBlock)
+    added++
+  })
+  showBlockLibrary.value = false
+  showToast(added ? `Inserted ${added} block${added === 1 ? '' : 's'} from template` : 'No usable blocks in this template', added ? 'success' : 'error')
+}
+
+// Template deletion via the shared confirm dialog.
+const templateDeleteVisible = ref(false)
+const templateToDelete = ref(null)
+
+function deleteTemplate(template) {
+  if (!template?.id) return
+  templateToDelete.value = template
+  templateDeleteVisible.value = true
+}
+
+function cancelDeleteTemplate() {
+  templateDeleteVisible.value = false
+  templateToDelete.value = null
+}
+
+async function confirmDeleteTemplate() {
+  const template = templateToDelete.value
+  templateDeleteVisible.value = false
+  if (!template?.id) return
+  try {
+    const formData = new FormData()
+    formData.append('action', 'dsf_delete_template')
+    formData.append('nonce', wpData.nonce)
+    formData.append('id', template.id)
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json.success) {
+      availableTemplates.value = availableTemplates.value.filter((t) => t.id !== template.id)
+      showToast('Template deleted')
+    } else {
+      showToast(json.data?.message || 'Could not delete this template.', 'error')
+    }
+  } catch (e) {
+    showToast('Could not delete this template.', 'error')
+  } finally {
+    templateToDelete.value = null
+  }
 }
 
 // Saved-block deletion uses the shared confirm dialog instead of window.confirm.
@@ -1132,8 +1277,9 @@ onMounted(() => {
     syncThemeToBlocks(DEFAULT_THEME, pageSettings.value.theme)
   }
 
-  // Populate the reusable saved-block library for the picker.
+  // Populate the reusable saved-block + template libraries for the picker.
   loadSavedBlocks()
+  loadTemplates()
 
   if (!prefersReducedMotion()) {
     const root = editorRoot.value

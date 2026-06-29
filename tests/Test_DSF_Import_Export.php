@@ -35,6 +35,13 @@ class Test_DSF_Import_Export extends TestCase {
 		);
 	}
 
+	public function test_template_meta_keys() {
+		$this->assertSame(
+			array( '_dsf_template_blocks', '_dsf_template_theme', '_dsf_template_kind' ),
+			$this->invoke( 'get_meta_keys_for_type', 'dsf_template' )
+		);
+	}
+
 	public function test_page_and_layout_meta_keys_unchanged() {
 		$this->assertSame(
 			array( '_dsf_blocks', '_dsf_settings', '_dsf_theme_colors' ),
