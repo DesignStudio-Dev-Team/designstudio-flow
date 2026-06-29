@@ -296,6 +296,7 @@
       required: Boolean(field.required),
       placeholder: typeof field.placeholder === 'string' ? field.placeholder : defaults.placeholder,
       defaultValue: typeof field.defaultValue === 'string' ? field.defaultValue : defaults.defaultValue,
+      paramName: typeof field.paramName === 'string' ? field.paramName : defaults.paramName,
       helpText: typeof field.helpText === 'string' ? field.helpText : defaults.helpText,
       helpTextPosition: field.helpTextPosition === 'top' ? 'top' : 'bottom',
       options: Array.isArray(field.options)
@@ -347,6 +348,7 @@
       required: false,
       placeholder: '',
       defaultValue: '',
+      paramName: '',
       helpText: '',
       helpTextPosition: 'bottom',
       options: OPTION_FIELD_TYPES.has(type) ? [...DEFAULT_OPTIONS] : [],
@@ -1524,6 +1526,16 @@
       html += settingInput('Default Value', 'defaultValue', field.defaultValue || '')
     }
 
+    if (!['page_break', 'html', 'file_upload'].includes(field.type)) {
+      html += `
+        <div class="dsf-field-setting">
+          <label for="dsf-setting-paramName">Parameter Name</label>
+          <input id="dsf-setting-paramName" type="text" data-setting="paramName" value="${escapeHtml(field.paramName || '')}" placeholder="e.g. utm_source">
+          <p class="dsf-field-setting__hint" style="margin:6px 0 0;font-size:12px;color:#646970;">Pre-fill this field from a URL query parameter (e.g. <code>?utm_source=…</code>) or via JavaScript. Leave blank to disable.</p>
+        </div>
+      `
+    }
+
     if (field.type !== 'page_break' && field.type !== 'hidden' && field.type !== 'html') {
       html += settingTextarea('Help Text', 'helpText', field.helpText || '')
       const helpPosition = field.helpTextPosition === 'top' ? 'top' : 'bottom'
@@ -1857,6 +1869,12 @@
       } else {
         rule.value = event.target.value
       }
+      return
+    }
+
+    if (setting === 'paramName') {
+      field.paramName = String(event.target.value).replace(/[^A-Za-z0-9_.\-\[\]]/g, '')
+      event.target.value = field.paramName
       return
     }
 

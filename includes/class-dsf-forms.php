@@ -694,10 +694,14 @@ class DSF_Forms {
 	 */
 	private function render_field_markup( $field, $form_id, $page_index, $field_index, $field_id_to_name = array() ) {
 		$type = $field['type'] ?? 'single_line_text';
+
+		// JS pre-fill hook: forms.js reads ?param from the URL and fills the field.
+		$param_attr = ( ! empty( $field['paramName'] ) ) ? ' data-dsf-param="' . esc_attr( $field['paramName'] ) . '"' : '';
+
 		if ( 'hidden' === $type ) {
 			$name  = $field['name'] ?? 'hidden_field';
 			$value = $field['defaultValue'] ?? '';
-			return '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '">';
+			return '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '"' . $param_attr . '>';
 		}
 
 		$field_key = sanitize_title( $field['id'] ?? 'field' );
@@ -734,7 +738,7 @@ class DSF_Forms {
 		}
 		$field_name_attr = isset( $field['name'] ) ? ' data-dsf-field-name="' . esc_attr( $field['name'] ) . '"' : '';
 
-		$output = '<div class="dsf-form-field dsf-form-field--' . esc_attr( $type ) . '" data-field-type="' . esc_attr( $type ) . '"' . $field_name_attr . $group_required_attr . $conditional_attr . '>';
+		$output = '<div class="dsf-form-field dsf-form-field--' . esc_attr( $type ) . '" data-field-type="' . esc_attr( $type ) . '"' . $field_name_attr . $group_required_attr . $conditional_attr . $param_attr . '>';
 
 		if ( 'html' === $type ) {
 			$output .= '<div class="dsf-form-html">' . wp_kses_post( $html_value ) . '</div>';
@@ -1369,6 +1373,10 @@ class DSF_Forms {
 
 		$required = ! empty( $field['required'] );
 
+		// Optional URL query-parameter name used to pre-fill this field via JS.
+		$param_name = isset( $field['paramName'] ) ? sanitize_text_field( $field['paramName'] ) : '';
+		$param_name = preg_replace( '/[^A-Za-z0-9_.\-\[\]]/', '', $param_name );
+
 		$options = array();
 		if ( isset( $field['options'] ) && is_array( $field['options'] ) ) {
 			foreach ( $field['options'] as $option ) {
@@ -1403,6 +1411,7 @@ class DSF_Forms {
 			'required'           => $required,
 			'placeholder'        => isset( $field['placeholder'] ) ? sanitize_text_field( $field['placeholder'] ) : '',
 			'defaultValue'       => isset( $field['defaultValue'] ) ? sanitize_text_field( $field['defaultValue'] ) : '',
+			'paramName'          => $param_name,
 			'helpText'           => isset( $field['helpText'] ) ? sanitize_text_field( $field['helpText'] ) : '',
 			'helpTextPosition'   => ( isset( $field['helpTextPosition'] ) && 'top' === $field['helpTextPosition'] ) ? 'top' : 'bottom',
 			'options'            => $options,
