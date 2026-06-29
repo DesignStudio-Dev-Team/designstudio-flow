@@ -581,12 +581,31 @@ class DSF_Import_Export {
 			$name = 'imported-media';
 		}
 
+		// SVGs are sanitized before import (and require a temporary mime allowance,
+		// since WordPress blocks SVG uploads by default). If sanitizing fails, the
+		// original URL is kept rather than importing untrusted markup.
+		$is_svg = 'svg' === strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+		if ( $is_svg && ! $this->sanitize_svg_file( $tmp ) ) {
+			if ( file_exists( $tmp ) ) {
+				wp_delete_file( $tmp );
+			}
+			$cache[ $url ] = $url;
+			return $url;
+		}
+
 		$file_array = array(
 			'name'     => sanitize_file_name( $name ),
 			'tmp_name' => $tmp,
 		);
 
+		if ( $is_svg ) {
+			$this->allow_svg_uploads( true );
+		}
 		$attach_id = media_handle_sideload( $file_array, $post_id );
+		if ( $is_svg ) {
+			$this->allow_svg_uploads( false );
+		}
+
 		if ( is_wp_error( $attach_id ) ) {
 			if ( file_exists( $tmp ) ) {
 				wp_delete_file( $tmp );
@@ -598,6 +617,100 @@ class DSF_Import_Export {
 		$new_url       = wp_get_attachment_url( $attach_id );
 		$cache[ $url ] = $new_url ? $new_url : $url;
 		return $cache[ $url ];
+	}
+
+	/**
+	 * Toggle a temporary allowance for SVG uploads, scoped to a single sideload.
+	 */
+	private function allow_svg_uploads( $enable ) {
+		if ( $enable ) {
+			add_filter( 'upload_mimes', array( $this, 'filter_allow_svg_mime' ) );
+			add_filter( 'wp_check_filetype_and_ext', array( $this, 'filter_svg_filetype' ), 10, 4 );
+		} else {
+			remove_filter( 'upload_mimes', array( $this, 'filter_allow_svg_mime' ) );
+			remove_filter( 'wp_check_filetype_and_ext', array( $this, 'filter_svg_filetype' ), 10 );
+		}
+	}
+
+	public function filter_allow_svg_mime( $mimes ) {
+		$mimes['svg']  = 'image/svg+xml';
+		$mimes['svgz'] = 'image/svg+xml';
+		return $mimes;
+	}
+
+	public function filter_svg_filetype( $data, $file, $filename ) {
+		if ( '.svg' === strtolower( substr( (string) $filename, -4 ) ) ) {
+			$data['ext']  = 'svg';
+			$data['type'] = 'image/svg+xml';
+		}
+		return $data;
+	}
+
+	/**
+	 * Sanitize an SVG file in place: drop DOCTYPE/entities, script-bearing
+	 * elements, event-handler attributes, and javascript:/data: links. Returns
+	 * false if the file isn't a parseable SVG (caller then keeps the remote URL).
+	 */
+	private function sanitize_svg_file( $path ) {
+		$content = @file_get_contents( $path );
+		if ( false === $content || '' === trim( (string) $content ) || false === stripos( $content, '<svg' ) ) {
+			return false;
+		}
+
+		// Strip DOCTYPE (blocks inline entity definitions / XXE) before parsing.
+		$content = preg_replace( '/<!DOCTYPE.*?>/is', '', $content );
+
+		if ( ! class_exists( 'DOMDocument' ) ) {
+			return false;
+		}
+
+		$dom      = new DOMDocument();
+		$previous = libxml_use_internal_errors( true );
+		$loaded   = $dom->loadXML( $content, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING );
+		libxml_clear_errors();
+		libxml_use_internal_errors( $previous );
+		if ( ! $loaded ) {
+			return false;
+		}
+
+		$strip_tags = array( 'script', 'foreignobject', 'iframe', 'embed', 'object', 'audio', 'video', 'handler', 'listener', 'set', 'animate', 'animatemotion', 'animatetransform' );
+		$remove     = array();
+		$xpath      = new DOMXPath( $dom );
+
+		foreach ( $xpath->query( '//*' ) as $node ) {
+			if ( in_array( strtolower( $node->localName ), $strip_tags, true ) ) {
+				$remove[] = $node;
+				continue;
+			}
+			if ( ! $node->hasAttributes() ) {
+				continue;
+			}
+			$drop_attrs = array();
+			foreach ( $node->attributes as $attr ) {
+				$name  = strtolower( $attr->nodeName );
+				$value = preg_replace( '/\s+/', '', strtolower( (string) $attr->nodeValue ) );
+				if ( 0 === strpos( $name, 'on' ) ) {
+					$drop_attrs[] = $attr->nodeName;
+				} elseif ( in_array( $name, array( 'href', 'xlink:href', 'src' ), true ) && ( 0 === strpos( $value, 'javascript:' ) || 0 === strpos( $value, 'data:' ) ) ) {
+					$drop_attrs[] = $attr->nodeName;
+				}
+			}
+			foreach ( $drop_attrs as $attr_name ) {
+				$node->removeAttribute( $attr_name );
+			}
+		}
+
+		foreach ( $remove as $node ) {
+			if ( $node->parentNode ) {
+				$node->parentNode->removeChild( $node );
+			}
+		}
+
+		$clean = $dom->saveXML();
+		if ( ! $clean ) {
+			return false;
+		}
+		return false !== file_put_contents( $path, $clean );
 	}
 
 	/**
