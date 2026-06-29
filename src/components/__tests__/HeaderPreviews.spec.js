@@ -95,6 +95,7 @@ describe('header cleanup', () => {
       'Drag to reorder',
       'Open block settings',
       'Save block to library',
+      'Select for section template',
       'Move block up',
       'Move block down',
       'Delete block',
