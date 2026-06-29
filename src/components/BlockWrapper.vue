@@ -5,6 +5,7 @@
     :class="{
       'dsf-block--selected': isSelected,
       'dsf-block--landing': isLandingBlock,
+      'dsf-block--template-selected': isSelectedForTemplate,
     }"
     :style="wrapperStyle"
     @click.stop="$emit('select')"
@@ -19,6 +20,17 @@
       </button>
       <button type="button" class="dsf-block-toolbar__btn" title="Save block to library" aria-label="Save block to library" @click.stop="$emit('save-block')">
         <Bookmark :size="16" />
+      </button>
+      <button
+        type="button"
+        class="dsf-block-toolbar__btn"
+        :class="{ 'dsf-block-toolbar__btn--active': isSelectedForTemplate }"
+        :title="isSelectedForTemplate ? 'Selected for template' : 'Select for section template'"
+        :aria-label="isSelectedForTemplate ? 'Selected for template' : 'Select for section template'"
+        :aria-pressed="isSelectedForTemplate"
+        @click.stop="$emit('toggle-select')"
+      >
+        <component :is="isSelectedForTemplate ? CheckSquare : Square" :size="16" />
       </button>
       <button v-if="allowReorder" type="button" class="dsf-block-toolbar__btn" title="Move up" aria-label="Move block up" @click.stop="$emit('move-up')">
         <ChevronUp :size="16" />
@@ -44,7 +56,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { GripVertical, Settings, ChevronUp, ChevronDown, Trash2, Bookmark } from 'lucide-vue-next'
+import { GripVertical, Settings, ChevronUp, ChevronDown, Trash2, Bookmark, CheckSquare, Square } from 'lucide-vue-next'
 import { getResponsiveValue } from '../utils/responsiveSettings'
 
 // Block preview components
@@ -98,9 +110,13 @@ const props = defineProps({
     type: String,
     default: 'desktop',
   },
+  isSelectedForTemplate: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-defineEmits(['select', 'move-up', 'move-down', 'delete', 'open-settings', 'save-block'])
+defineEmits(['select', 'move-up', 'move-down', 'delete', 'open-settings', 'save-block', 'toggle-select'])
 
 const previewComponents = {
   'content': ContentPreview,

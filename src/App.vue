@@ -62,6 +62,8 @@
                 @delete="deleteBlock(index)"
                 @open-settings="openBlockSettings(element)"
                 @save-block="handleSaveBlock(element)"
+                :is-selected-for-template="selectedForTemplate.includes(element.id)"
+                @toggle-select="toggleSelectForTemplate(element)"
               />
             </template>
           </draggable>
@@ -193,6 +195,17 @@
       @confirm="confirmDeleteTemplate"
       @cancel="cancelDeleteTemplate"
     />
+
+    <!-- Section-template selection bar -->
+    <Teleport to="body">
+      <Transition name="dsf-toast">
+        <div v-if="selectedForTemplate.length" class="dsf-selectbar">
+          <span class="dsf-selectbar__count">{{ selectedForTemplate.length }} block{{ selectedForTemplate.length === 1 ? '' : 's' }} selected</span>
+          <button type="button" class="dsf-selectbar__btn dsf-selectbar__btn--primary" @click="saveSectionTemplate">Save as section template</button>
+          <button type="button" class="dsf-selectbar__btn" @click="clearTemplateSelection">Clear</button>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Transient toast -->
     <Teleport to="body">
@@ -717,29 +730,63 @@ async function loadTemplates() {
   }
 }
 
+// Blocks selected (by id) for "save as section template".
+const selectedForTemplate = ref([])
+const selectedBlocksForTemplate = computed(() =>
+  blocks.value.filter((b) => selectedForTemplate.value.includes(b.id))
+)
+// What the template modal will save (set when it opens).
+const pendingTemplateBlocks = ref([])
+const pendingTemplateKind = ref('page')
+
+function toggleSelectForTemplate(block) {
+  if (!block?.id) return
+  selectedForTemplate.value = selectedForTemplate.value.includes(block.id)
+    ? selectedForTemplate.value.filter((id) => id !== block.id)
+    : [...selectedForTemplate.value, block.id]
+}
+
+function clearTemplateSelection() {
+  selectedForTemplate.value = []
+}
+
 function openSaveTemplate() {
   if (!blocks.value.length) {
     showToast('Add some blocks before saving a template.', 'error')
     return
   }
+  pendingTemplateBlocks.value = blocks.value.slice()
+  pendingTemplateKind.value = 'page'
   templateSuggestedName.value = pageTitle.value && pageTitle.value !== 'Untitled Page'
     ? `${pageTitle.value} template`
     : 'Page template'
   templateModalVisible.value = true
 }
 
+function saveSectionTemplate() {
+  const selected = selectedBlocksForTemplate.value
+  if (!selected.length) return
+  pendingTemplateBlocks.value = selected
+  pendingTemplateKind.value = 'section'
+  templateSuggestedName.value = 'Section template'
+  templateModalVisible.value = true
+}
+
 async function onSaveTemplateConfirm({ name }) {
   templateModalVisible.value = false
+  const kind = pendingTemplateKind.value
   // Persist type + settings only; ids are regenerated on insert.
-  const payloadBlocks = blocks.value.map((b) => ({ type: b.type, settings: b.settings || {} }))
+  const payloadBlocks = pendingTemplateBlocks.value.map((b) => ({ type: b.type, settings: b.settings || {} }))
+  if (!payloadBlocks.length) return
   try {
     const formData = new FormData()
     formData.append('action', 'dsf_save_template')
     formData.append('nonce', wpData.nonce)
     formData.append('name', name)
-    formData.append('kind', 'page')
+    formData.append('kind', kind)
     formData.append('blocks', JSON.stringify(payloadBlocks))
-    formData.append('theme', JSON.stringify(pageSettings.value?.theme || {}))
+    // Only whole-page templates carry the page theme.
+    formData.append('theme', JSON.stringify(kind === 'page' ? (pageSettings.value?.theme || {}) : {}))
     const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
     const json = await response.json()
     if (json.success && json.data) {
@@ -747,7 +794,8 @@ async function onSaveTemplateConfirm({ name }) {
       if (idx >= 0) availableTemplates.value.splice(idx, 1, json.data)
       else availableTemplates.value = [...availableTemplates.value, json.data]
       availableTemplates.value.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-      showToast('Page saved as template')
+      showToast(kind === 'section' ? 'Section saved as template' : 'Page saved as template')
+      if (kind === 'section') clearTemplateSelection()
     } else {
       showToast(json.data?.message || 'Could not save this template.', 'error')
     }
@@ -1367,4 +1415,58 @@ onBeforeUnmount(() => {
 
 .dsf-toast-enter-from,
 .dsf-toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(8px); }
+
+/* Section-template selection bar (teleported to body, unscoped). */
+.dsf-selectbar {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 1190;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem 0.6rem 1rem;
+  border-radius: 12px;
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.dsf-selectbar__count {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.dsf-selectbar__btn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: #fff;
+}
+
+.dsf-selectbar__btn:hover { background: rgba(255, 255, 255, 0.12); }
+
+.dsf-selectbar__btn--primary {
+  background: #38bdf8;
+  border-color: #38bdf8;
+  color: #0f172a;
+}
+
+.dsf-selectbar__btn--primary:hover { background: #7dd3fc; }
+
+/* Block selected for a section template. */
+.dsf-block--template-selected {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.dsf-block-toolbar__btn--active {
+  background: #38bdf8 !important;
+  color: #0f172a !important;
+}
 </style>
