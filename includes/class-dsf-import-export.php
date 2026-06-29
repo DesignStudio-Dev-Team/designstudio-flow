@@ -17,6 +17,11 @@ class DSF_Import_Export {
 
 	private static $instance = null;
 
+	// Per-import media budget (set in handle_import).
+	private $media_files_remaining = null;
+	private $media_deadline        = 0;
+	private $media_skipped         = 0;
+
 	public static function get_instance() {
 		if ( null === self::$instance ) {
 			self::$instance = new self();
@@ -376,6 +381,16 @@ class DSF_Import_Export {
 		$status       = ( isset( $_POST['dsf_import_status'] ) && 'publish' === $_POST['dsf_import_status'] ) ? 'publish' : 'draft';
 		$import_media = isset( $_POST['dsf_import_media'] );
 
+		// Budget the whole import's media sideloading: a file cap and a wall-clock
+		// deadline, so a media-heavy import can't run past PHP's time limit. Any
+		// media beyond the budget keeps its original URL.
+		if ( $import_media ) {
+			$this->media_files_remaining = (int) apply_filters( 'dsf_import_media_max_files', 100 );
+			$time_budget                 = (int) apply_filters( 'dsf_import_media_time_budget', 25 );
+			$this->media_deadline        = $time_budget > 0 ? ( microtime( true ) + $time_budget ) : 0;
+			$this->media_skipped         = 0;
+		}
+
 		$imported = 0;
 		$skipped  = 0;
 		foreach ( $data['items'] as $item ) {
@@ -388,9 +403,10 @@ class DSF_Import_Export {
 
 		$url = add_query_arg(
 			array(
-				'dsf_import'         => 'done',
-				'dsf_import_count'   => $imported,
-				'dsf_import_skipped' => $skipped,
+				'dsf_import'             => 'done',
+				'dsf_import_count'       => $imported,
+				'dsf_import_skipped'     => $skipped,
+				'dsf_import_media_left'  => $import_media ? (int) $this->media_skipped : 0,
 			),
 			$redirect_base
 		);
@@ -522,6 +538,16 @@ class DSF_Import_Export {
 			return $url;
 		}
 
+		// Respect the import-wide media budget (file count + wall clock). Anything
+		// past the budget keeps its original URL so the import still completes.
+		if ( null !== $this->media_files_remaining ) {
+			if ( $this->media_files_remaining <= 0 || ( $this->media_deadline && microtime( true ) > $this->media_deadline ) ) {
+				$this->media_skipped++;
+				$cache[ $url ] = $url;
+				return $url;
+			}
+		}
+
 		// Skip oversized media when the server advertises a length over the cap.
 		$max_bytes = (int) apply_filters( 'dsf_import_media_max_bytes', 64 * 1024 * 1024 );
 		if ( $max_bytes > 0 ) {
@@ -533,6 +559,11 @@ class DSF_Import_Export {
 					return $url;
 				}
 			}
+		}
+
+		// Consume one slot from the file-count budget for this download attempt.
+		if ( null !== $this->media_files_remaining ) {
+			$this->media_files_remaining--;
 		}
 
 		require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -634,6 +665,25 @@ class DSF_Import_Export {
 						)
 					)
 				);
+
+				$media_left = isset( $_GET['dsf_import_media_left'] ) ? intval( $_GET['dsf_import_media_left'] ) : 0;
+				if ( $media_left > 0 ) {
+					printf(
+						'<div class="notice notice-warning is-dismissible"><p>%s</p></div>',
+						esc_html(
+							sprintf(
+								/* translators: %d: number of media files left as remote URLs */
+								_n(
+									'%d media file exceeded the import limit and was left as a remote URL. Re-run the import to fetch the rest.',
+									'%d media files exceeded the import limit and were left as remote URLs. Re-run the import to fetch the rest.',
+									$media_left,
+									'designstudio-flow'
+								),
+								$media_left
+							)
+						)
+					);
+				}
 			} elseif ( 'invalid' === $result ) {
 				printf(
 					'<div class="notice notice-error is-dismissible"><p>%s</p></div>',
