@@ -184,6 +184,36 @@ class DSF_Post_Type {
 				'show_in_rest'       => false,
 			)
 		);
+
+		// Templates — a saved group of blocks (a section, or a whole page's blocks
+		// plus its theme) reusable across pages. Site-wide, managed under the DSF menu.
+		register_post_type(
+			'dsf_template',
+			array(
+				'labels'             => array(
+					'name'               => _x( 'Templates', 'Post type general name', 'designstudio-flow' ),
+					'singular_name'      => _x( 'Template', 'Post type singular name', 'designstudio-flow' ),
+					'menu_name'          => __( 'Templates', 'designstudio-flow' ),
+					'all_items'          => __( 'Templates', 'designstudio-flow' ),
+					'edit_item'          => __( 'Edit Template', 'designstudio-flow' ),
+					'search_items'       => __( 'Search Templates', 'designstudio-flow' ),
+					'not_found'          => __( 'No templates yet.', 'designstudio-flow' ),
+					'not_found_in_trash' => __( 'No templates found in Trash.', 'designstudio-flow' ),
+				),
+				'public'             => false,
+				'publicly_queryable' => false,
+				'show_ui'            => true,
+				'show_in_menu'       => 'designstudio-flow',
+				'query_var'          => false,
+				'rewrite'            => false,
+				'capability_type'    => 'page',
+				'map_meta_cap'       => true,
+				'has_archive'        => false,
+				'hierarchical'       => false,
+				'supports'           => array( 'title' ),
+				'show_in_rest'       => false,
+			)
+		);
 	}
 
 	/**

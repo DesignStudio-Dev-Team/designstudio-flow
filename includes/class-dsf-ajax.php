@@ -53,6 +53,11 @@ class DSF_Ajax {
 		add_action( 'wp_ajax_dsf_save_block', array( $this, 'save_block' ) );
 		add_action( 'wp_ajax_dsf_list_saved_blocks', array( $this, 'list_saved_blocks' ) );
 		add_action( 'wp_ajax_dsf_delete_saved_block', array( $this, 'delete_saved_block' ) );
+
+		// Templates — reusable groups of blocks (section / whole page).
+		add_action( 'wp_ajax_dsf_save_template', array( $this, 'save_template' ) );
+		add_action( 'wp_ajax_dsf_list_templates', array( $this, 'list_templates' ) );
+		add_action( 'wp_ajax_dsf_delete_template', array( $this, 'delete_template' ) );
 	}
 
 	/**
@@ -207,6 +212,173 @@ class DSF_Ajax {
 
 		wp_trash_post( $id );
 		wp_send_json_success( array( 'id' => $id ) );
+	}
+
+	/* -----------------------------------------------------------------
+	 * Templates (reusable groups of blocks)
+	 * ----------------------------------------------------------------- */
+
+	/**
+	 * Save a group of blocks (a section or a whole page) as a reusable template.
+	 */
+	public function save_template() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+		$kind = isset( $_POST['kind'] ) ? sanitize_key( wp_unslash( $_POST['kind'] ) ) : 'page';
+		if ( ! in_array( $kind, array( 'page', 'section' ), true ) ) {
+			$kind = 'page';
+		}
+
+		$blocks_raw = isset( $_POST['blocks'] ) ? wp_unslash( $_POST['blocks'] ) : '[]';
+		$blocks     = $this->sanitize_template_blocks( json_decode( $blocks_raw, true ) );
+		if ( empty( $blocks ) ) {
+			wp_send_json_error( array( 'message' => 'No blocks to save' ), 400 );
+		}
+
+		$theme_raw = isset( $_POST['theme'] ) ? wp_unslash( $_POST['theme'] ) : '';
+		$theme     = $theme_raw ? json_decode( $theme_raw, true ) : array();
+		$theme     = is_array( $theme ) ? $this->sanitize_theme_value( $theme ) : array();
+
+		if ( '' === $name ) {
+			$name = __( 'Untitled template', 'designstudio-flow' );
+		}
+
+		$update_id = isset( $_POST['id'] ) ? intval( $_POST['id'] ) : 0;
+		if ( $update_id ) {
+			if ( 'dsf_template' !== get_post_type( $update_id ) ) {
+				wp_send_json_error( array( 'message' => 'Invalid template' ), 400 );
+			}
+			if ( ! current_user_can( 'edit_post', $update_id ) ) {
+				wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+			}
+			$post_id = wp_update_post( array( 'ID' => $update_id, 'post_title' => $name ), true );
+		} else {
+			$post_id = wp_insert_post( array( 'post_type' => 'dsf_template', 'post_status' => 'publish', 'post_title' => $name ), true );
+		}
+
+		if ( is_wp_error( $post_id ) || ! $post_id ) {
+			wp_send_json_error( array( 'message' => 'Could not save template' ), 500 );
+		}
+
+		update_post_meta( $post_id, '_dsf_template_blocks', $blocks );
+		update_post_meta( $post_id, '_dsf_template_theme', $theme );
+		update_post_meta( $post_id, '_dsf_template_kind', $kind );
+
+		wp_send_json_success( $this->format_template( get_post( $post_id ) ) );
+	}
+
+	/**
+	 * Return the site-wide list of templates for the editor picker.
+	 */
+	public function list_templates() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$posts = get_posts(
+			array(
+				'post_type'      => 'dsf_template',
+				'post_status'    => 'publish',
+				'posts_per_page' => 200,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+			)
+		);
+
+		$templates = array();
+		foreach ( $posts as $post ) {
+			$templates[] = $this->format_template( $post );
+		}
+
+		wp_send_json_success( array( 'templates' => $templates ) );
+	}
+
+	/**
+	 * Delete a template from the library.
+	 */
+	public function delete_template() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$id = isset( $_POST['id'] ) ? intval( $_POST['id'] ) : 0;
+		if ( ! $id || 'dsf_template' !== get_post_type( $id ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid template' ), 400 );
+		}
+		if ( ! current_user_can( 'delete_post', $id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+
+		wp_trash_post( $id );
+		wp_send_json_success( array( 'id' => $id ) );
+	}
+
+	private function format_template( $post ) {
+		if ( ! $post ) {
+			return array();
+		}
+		$blocks = get_post_meta( $post->ID, '_dsf_template_blocks', true );
+		$theme  = get_post_meta( $post->ID, '_dsf_template_theme', true );
+		$kind   = get_post_meta( $post->ID, '_dsf_template_kind', true );
+		$blocks = is_array( $blocks ) ? $blocks : array();
+
+		return array(
+			'id'         => $post->ID,
+			'name'       => $post->post_title,
+			'kind'       => $kind ? $kind : 'page',
+			'blockCount' => count( $blocks ),
+			'blocks'     => $blocks,
+			'theme'      => is_array( $theme ) ? $theme : array(),
+		);
+	}
+
+	/**
+	 * Validate + per-type sanitize a template's blocks (drops unknown types and
+	 * client-side ids; ids are regenerated when the template is inserted).
+	 */
+	private function sanitize_template_blocks( $blocks ) {
+		if ( ! is_array( $blocks ) ) {
+			return array();
+		}
+		$clean = array();
+		foreach ( $blocks as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+			$type = isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
+			if ( '' === $type || ! DSF_Blocks::get_instance()->get_block( $type ) ) {
+				continue;
+			}
+			$clean[] = array(
+				'type'     => $type,
+				'settings' => ( isset( $block['settings'] ) && is_array( $block['settings'] ) ) ? $block['settings'] : array(),
+			);
+		}
+		return $this->sanitize_known_block_settings( $clean );
+	}
+
+	/**
+	 * Recursively sanitize a stored theme/settings object (scalar leaves only),
+	 * preserving camelCase keys produced by the editor.
+	 */
+	private function sanitize_theme_value( $value ) {
+		if ( is_array( $value ) ) {
+			$out = array();
+			foreach ( $value as $key => $item ) {
+				$out[ (string) $key ] = $this->sanitize_theme_value( $item );
+			}
+			return $out;
+		}
+		if ( is_bool( $value ) || is_int( $value ) || is_float( $value ) ) {
+			return $value;
+		}
+		return sanitize_text_field( (string) $value );
 	}
 
 	/**

@@ -31,9 +31,11 @@ class DSF_Import_Export {
 		add_filter( 'bulk_actions-edit-page', array( $this, 'register_bulk_actions' ) );
 		add_filter( 'bulk_actions-edit-dsf_layout', array( $this, 'register_bulk_actions' ) );
 		add_filter( 'bulk_actions-edit-dsf_saved_block', array( $this, 'register_bulk_actions' ) );
+		add_filter( 'bulk_actions-edit-dsf_template', array( $this, 'register_bulk_actions' ) );
 		add_filter( 'handle_bulk_actions-edit-page', array( $this, 'handle_bulk_action' ), 10, 3 );
 		add_filter( 'handle_bulk_actions-edit-dsf_layout', array( $this, 'handle_bulk_action' ), 10, 3 );
 		add_filter( 'handle_bulk_actions-edit-dsf_saved_block', array( $this, 'handle_bulk_action' ), 10, 3 );
+		add_filter( 'handle_bulk_actions-edit-dsf_template', array( $this, 'handle_bulk_action' ), 10, 3 );
 
 		add_action( 'admin_post_' . self::SINGLE_ACTION, array( $this, 'handle_single_export' ) );
 		add_action( 'admin_post_' . self::IMPORT_ACTION, array( $this, 'handle_import' ) );
@@ -47,7 +49,7 @@ class DSF_Import_Export {
 			return false;
 		}
 
-		if ( in_array( $post->post_type, array( 'dsf_layout', 'dsf_saved_block' ), true ) ) {
+		if ( in_array( $post->post_type, array( 'dsf_layout', 'dsf_saved_block', 'dsf_template' ), true ) ) {
 			return true;
 		}
 
@@ -67,6 +69,9 @@ class DSF_Import_Export {
 		}
 		if ( 'dsf_saved_block' === $post_type ) {
 			return array( '_dsf_block_type', '_dsf_block_settings' );
+		}
+		if ( 'dsf_template' === $post_type ) {
+			return array( '_dsf_template_blocks', '_dsf_template_theme', '_dsf_template_kind' );
 		}
 		return array();
 	}
@@ -323,6 +328,7 @@ class DSF_Import_Export {
 					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_layout&dsf_layout_type=header' ) ); ?>"><?php esc_html_e( 'Headers', 'designstudio-flow' ); ?></a></li>
 					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_layout&dsf_layout_type=footer' ) ); ?>"><?php esc_html_e( 'Footers', 'designstudio-flow' ); ?></a></li>
 					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_saved_block' ) ); ?>"><?php esc_html_e( 'Saved Blocks', 'designstudio-flow' ); ?></a></li>
+					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_template' ) ); ?>"><?php esc_html_e( 'Templates', 'designstudio-flow' ); ?></a></li>
 				</ul>
 				<p class="description"><?php esc_html_e( 'Media (images, videos) is referenced by URL. On import you can pull it into the destination Media Library automatically — just keep the source site reachable while importing.', 'designstudio-flow' ); ?></p>
 			</div>
@@ -398,7 +404,7 @@ class DSF_Import_Export {
 		}
 
 		$post_type = isset( $item['post_type'] ) ? sanitize_key( $item['post_type'] ) : '';
-		if ( ! in_array( $post_type, array( 'page', 'dsf_page', 'dsf_layout', 'dsf_saved_block' ), true ) ) {
+		if ( ! in_array( $post_type, array( 'page', 'dsf_page', 'dsf_layout', 'dsf_saved_block', 'dsf_template' ), true ) ) {
 			return false;
 		}
 
@@ -428,7 +434,7 @@ class DSF_Import_Export {
 		$meta        = isset( $item['meta'] ) && is_array( $item['meta'] ) ? $item['meta'] : array();
 		$media_cache = array();
 		// Meta keys whose block settings may reference images/videos by URL.
-		$media_keys = array( '_dsf_blocks', '_dsf_block_settings', '_dsf_settings' );
+		$media_keys = array( '_dsf_blocks', '_dsf_block_settings', '_dsf_template_blocks', '_dsf_settings' );
 		foreach ( $this->get_meta_keys_for_type( $post_type ) as $key ) {
 			if ( ! array_key_exists( $key, $meta ) ) {
 				continue;
