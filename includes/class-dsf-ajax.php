@@ -53,6 +53,7 @@ class DSF_Ajax {
 		add_action( 'wp_ajax_dsf_save_block', array( $this, 'save_block' ) );
 		add_action( 'wp_ajax_dsf_list_saved_blocks', array( $this, 'list_saved_blocks' ) );
 		add_action( 'wp_ajax_dsf_delete_saved_block', array( $this, 'delete_saved_block' ) );
+		add_action( 'wp_ajax_dsf_feature_saved_block', array( $this, 'feature_saved_block' ) );
 
 		// Templates — reusable groups of blocks (section / whole page).
 		add_action( 'wp_ajax_dsf_save_template', array( $this, 'save_template' ) );
@@ -202,6 +203,7 @@ class DSF_Ajax {
 				'settings' => is_array( $settings ) ? $settings : array(),
 				'category' => (string) get_post_meta( $post->ID, '_dsf_block_category', true ),
 				'author'   => $this->saved_block_author_name( $post->ID ),
+				'featured' => (bool) get_post_meta( $post->ID, '_dsf_block_featured', true ),
 			);
 		}
 
@@ -227,6 +229,34 @@ class DSF_Ajax {
 
 		wp_trash_post( $id );
 		wp_send_json_success( array( 'id' => $id ) );
+	}
+
+	/**
+	 * Promote/demote a saved block into the shared Presets library.
+	 */
+	public function feature_saved_block() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$id = isset( $_POST['id'] ) ? intval( $_POST['id'] ) : 0;
+		if ( ! $id || 'dsf_saved_block' !== get_post_type( $id ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid saved block' ), 400 );
+		}
+		if ( ! current_user_can( 'edit_post', $id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+
+		$featured = ! empty( $_POST['featured'] ) && 'false' !== $_POST['featured'];
+		update_post_meta( $id, '_dsf_block_featured', $featured ? 1 : 0 );
+
+		wp_send_json_success(
+			array(
+				'id'       => $id,
+				'featured' => $featured,
+			)
+		);
 	}
 
 	/* -----------------------------------------------------------------

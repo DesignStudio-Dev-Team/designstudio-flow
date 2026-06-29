@@ -125,12 +125,13 @@
       v-if="showBlockLibrary"
       :categories="blockCategories"
       :saved-blocks="availableSavedBlocks"
-      :presets="blockPresets"
+      :presets="mergedPresets"
       :templates="availableTemplates"
       @close="showBlockLibrary = false"
       @add="addBlock"
       @insert-saved="insertSavedBlock"
       @delete-saved="deleteSavedBlock"
+      @toggle-feature="toggleFeature"
       @insert-preset="insertPreset"
       @insert-template="insertTemplate"
       @delete-template="deleteTemplate"
@@ -660,6 +661,38 @@ function insertPreset(preset) {
     return
   }
   addBlock({ ...def, id: preset.type, savedSettings: preset.settings || {} })
+}
+
+// Presets shown in the picker = curated code presets + saved blocks an editor
+// has promoted ("featured") into the shared library.
+const mergedPresets = computed(() => {
+  const featured = availableSavedBlocks.value
+    .filter((b) => b.featured)
+    .map((b) => ({ key: 'saved-' + b.id, id: b.id, name: b.name, type: b.type, settings: b.settings, icon: 'bookmark', isUser: true }))
+  return [...blockPresets, ...featured]
+})
+
+async function toggleFeature(saved) {
+  if (!saved?.id) return
+  const next = !saved.featured
+  try {
+    const formData = new FormData()
+    formData.append('action', 'dsf_feature_saved_block')
+    formData.append('nonce', wpData.nonce)
+    formData.append('id', saved.id)
+    formData.append('featured', next ? '1' : '0')
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json.success) {
+      const idx = availableSavedBlocks.value.findIndex((b) => b.id === saved.id)
+      if (idx >= 0) availableSavedBlocks.value.splice(idx, 1, { ...availableSavedBlocks.value[idx], featured: json.data.featured })
+      showToast(json.data.featured ? 'Added to Presets' : 'Removed from Presets')
+    } else {
+      showToast(json.data?.message || 'Could not update this block.', 'error')
+    }
+  } catch (e) {
+    showToast('Could not update this block.', 'error')
+  }
 }
 
 // ---- Templates (reusable groups of blocks) ----

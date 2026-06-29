@@ -131,6 +131,15 @@
                   </div>
                 </button>
                 <button
+                  class="dsf-library-block__star"
+                  :class="{ 'is-featured': saved.featured }"
+                  :title="saved.featured ? 'Remove from Presets' : 'Add to Presets'"
+                  :aria-label="saved.featured ? 'Remove from Presets' : 'Add to Presets'"
+                  @click.stop="$emit('toggle-feature', saved)"
+                >
+                  <Star :size="14" :fill="saved.featured ? 'currentColor' : 'none'" />
+                </button>
+                <button
                   class="dsf-library-block__delete"
                   title="Delete saved block"
                   aria-label="Delete saved block"
@@ -232,7 +241,8 @@ import {
   BadgeDollarSign,
   Bookmark,
   Trash2,
-  Sparkles
+  Sparkles,
+  Star
 } from 'lucide-vue-next'
 import BlockSchematic from './common/BlockSchematic.vue'
 
@@ -252,7 +262,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['close', 'add', 'insert-saved', 'delete-saved', 'insert-preset', 'insert-template', 'delete-template'])
+defineEmits(['close', 'add', 'insert-saved', 'delete-saved', 'toggle-feature', 'insert-preset', 'insert-template', 'delete-template'])
 
 const searchQuery = ref('')
 const openCategories = ref([])
@@ -675,6 +685,36 @@ function getBlockIcon(iconName) {
   border-color: #ef4444;
   color: #ef4444;
   background: #fef2f2;
+}
+
+.dsf-library-block__star {
+  position: absolute;
+  top: 8px;
+  right: 44px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--dsf-gray-200);
+  border-radius: var(--dsf-radius-md);
+  color: var(--dsf-gray-500);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dsf-library-block__star:hover {
+  border-color: #d97706;
+  color: #d97706;
+  background: #fffbeb;
+}
+
+.dsf-library-block__star.is-featured {
+  color: #d97706;
+  border-color: #fcd34d;
+  background: #fffbeb;
 }
 
 .dsf-library-empty {
