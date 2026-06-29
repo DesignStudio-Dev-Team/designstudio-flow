@@ -115,28 +115,31 @@
             />
           </button>
           <div class="dsf-library-blocks" v-show="savedOpen">
-            <div v-for="saved in filteredSavedBlocks" :key="saved.id" class="dsf-library-block dsf-library-block--saved">
-              <button class="dsf-library-block__main" @click="$emit('insert-saved', saved)">
-                <div class="dsf-library-block__preview">
-                  <BlockSchematic :type="saved.type" :icon="savedIcon(saved)" />
-                </div>
-                <div class="dsf-library-block__info">
-                  <component :is="getBlockIcon(savedIcon(saved))" :size="16" />
-                  <div class="dsf-library-block__text">
-                    <h4>{{ saved.name }}</h4>
-                    <span>{{ savedTypeLabel(saved) }}</span>
+            <template v-for="group in groupedSavedBlocks" :key="group.folder || '__ungrouped'">
+              <div v-if="group.folder" class="dsf-library-folder">{{ group.folder }}</div>
+              <div v-for="saved in group.items" :key="saved.id" class="dsf-library-block dsf-library-block--saved">
+                <button class="dsf-library-block__main" @click="$emit('insert-saved', saved)">
+                  <div class="dsf-library-block__preview">
+                    <BlockSchematic :type="saved.type" :icon="savedIcon(saved)" />
                   </div>
-                </div>
-              </button>
-              <button
-                class="dsf-library-block__delete"
-                title="Delete saved block"
-                aria-label="Delete saved block"
-                @click.stop="$emit('delete-saved', saved)"
-              >
-                <Trash2 :size="14" />
-              </button>
-            </div>
+                  <div class="dsf-library-block__info">
+                    <component :is="getBlockIcon(savedIcon(saved))" :size="16" />
+                    <div class="dsf-library-block__text">
+                      <h4>{{ saved.name }}</h4>
+                      <span>{{ savedTypeLabel(saved) }}<template v-if="saved.author"> · {{ saved.author }}</template></span>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  class="dsf-library-block__delete"
+                  title="Delete saved block"
+                  aria-label="Delete saved block"
+                  @click.stop="$emit('delete-saved', saved)"
+                >
+                  <Trash2 :size="14" />
+                </button>
+              </div>
+            </template>
           </div>
         </div>
 
@@ -325,6 +328,20 @@ const filteredPresets = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   if (!query) return list
   return list.filter((preset) => (preset.name || '').toLowerCase().includes(query))
+})
+
+// Group saved blocks by folder; named folders first (A→Z), ungrouped last.
+const groupedSavedBlocks = computed(() => {
+  const groups = {}
+  filteredSavedBlocks.value.forEach((block) => {
+    const key = block.category || ''
+    if (!groups[key]) groups[key] = []
+    groups[key].push(block)
+  })
+  const named = Object.keys(groups).filter((k) => k).sort((a, b) => a.localeCompare(b))
+  const result = named.map((folder) => ({ folder, items: groups[folder] }))
+  if (groups['']) result.push({ folder: '', items: groups[''] })
+  return result
 })
 
 const filteredTemplates = computed(() => {
@@ -606,6 +623,17 @@ function getBlockIcon(iconName) {
 
 .dsf-library-block:hover .dsf-library-block__text span {
   color: var(--dsf-primary-500);
+}
+
+/* Folder divider within the Saved Blocks list. */
+.dsf-library-folder {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dsf-gray-500);
+  margin: 0.5rem 0 0.375rem;
+  padding-left: 0.125rem;
 }
 
 /* Saved block cards: same card as a regular block, plus a delete overlay. */

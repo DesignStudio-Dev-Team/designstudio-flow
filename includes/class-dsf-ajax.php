@@ -88,8 +88,9 @@ class DSF_Ajax {
 		}
 		$this->verify_permissions();
 
-		$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
-		$type = isset( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
+		$name     = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+		$type     = isset( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
+		$category = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
 
 		if ( '' === $type || ! DSF_Blocks::get_instance()->get_block( $type ) ) {
 			wp_send_json_error( array( 'message' => 'Unknown block type' ), 400 );
@@ -145,6 +146,7 @@ class DSF_Ajax {
 
 		update_post_meta( $post_id, '_dsf_block_type', $type );
 		update_post_meta( $post_id, '_dsf_block_settings', $settings );
+		update_post_meta( $post_id, '_dsf_block_category', $category );
 
 		wp_send_json_success(
 			array(
@@ -152,8 +154,19 @@ class DSF_Ajax {
 				'name'     => $name,
 				'type'     => $type,
 				'settings' => $settings,
+				'category' => $category,
+				'author'   => $this->saved_block_author_name( $post_id ),
 			)
 		);
+	}
+
+	/**
+	 * Display name of a saved block's / template's author.
+	 */
+	private function saved_block_author_name( $post_id ) {
+		$author_id = (int) get_post_field( 'post_author', $post_id );
+		$name      = $author_id ? get_the_author_meta( 'display_name', $author_id ) : '';
+		return $name ? $name : '';
 	}
 
 	/**
@@ -187,6 +200,8 @@ class DSF_Ajax {
 				'name'     => $post->post_title,
 				'type'     => $type,
 				'settings' => is_array( $settings ) ? $settings : array(),
+				'category' => (string) get_post_meta( $post->ID, '_dsf_block_category', true ),
+				'author'   => $this->saved_block_author_name( $post->ID ),
 			);
 		}
 

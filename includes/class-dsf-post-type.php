@@ -21,6 +21,35 @@ class DSF_Post_Type {
 	private function __construct() {
 		add_action( 'init', array( $this, 'register_post_type' ) );
 		add_action( 'init', array( $this, 'register_meta' ) );
+
+		// Saved Blocks admin list: add a Folder column (Author comes from the
+		// 'author' support).
+		add_filter( 'manage_dsf_saved_block_posts_columns', array( $this, 'saved_block_columns' ) );
+		add_action( 'manage_dsf_saved_block_posts_custom_column', array( $this, 'saved_block_column' ), 10, 2 );
+	}
+
+	/**
+	 * Add a "Folder" column to the Saved Blocks admin list.
+	 */
+	public function saved_block_columns( $columns ) {
+		$reordered = array();
+		foreach ( $columns as $key => $label ) {
+			if ( 'date' === $key ) {
+				$reordered['dsf_folder'] = __( 'Folder', 'designstudio-flow' );
+			}
+			$reordered[ $key ] = $label;
+		}
+		if ( ! isset( $reordered['dsf_folder'] ) ) {
+			$reordered['dsf_folder'] = __( 'Folder', 'designstudio-flow' );
+		}
+		return $reordered;
+	}
+
+	public function saved_block_column( $column, $post_id ) {
+		if ( 'dsf_folder' === $column ) {
+			$folder = get_post_meta( $post_id, '_dsf_block_category', true );
+			echo $folder ? esc_html( $folder ) : '<span aria-hidden="true">—</span>';
+		}
 	}
 
 	/**
@@ -180,7 +209,7 @@ class DSF_Post_Type {
 				'map_meta_cap'       => true,
 				'has_archive'        => false,
 				'hierarchical'       => false,
-				'supports'           => array( 'title' ),
+				'supports'           => array( 'title', 'author' ),
 				'show_in_rest'       => false,
 			)
 		);
@@ -210,7 +239,7 @@ class DSF_Post_Type {
 				'map_meta_cap'       => true,
 				'has_archive'        => false,
 				'hierarchical'       => false,
-				'supports'           => array( 'title' ),
+				'supports'           => array( 'title', 'author' ),
 				'show_in_rest'       => false,
 			)
 		);

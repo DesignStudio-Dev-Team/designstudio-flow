@@ -153,6 +153,8 @@
       :visible="saveModalVisible"
       :suggested-name="saveModalSuggestedName"
       :existing="saveModalExisting"
+      :show-folder="true"
+      :folders="savedBlockFolders"
       @save="onSaveBlockConfirm"
       @cancel="saveModalVisible = false"
     />
@@ -592,6 +594,11 @@ const saveModalExisting = computed(() => {
   if (!type) return []
   return availableSavedBlocks.value.filter((b) => b.type === type)
 })
+const savedBlockFolders = computed(() => {
+  const set = new Set()
+  availableSavedBlocks.value.forEach((b) => { if (b.category) set.add(b.category) })
+  return [...set].sort((a, b) => a.localeCompare(b))
+})
 
 function handleSaveBlock(block) {
   if (!block?.type) return
@@ -601,7 +608,7 @@ function handleSaveBlock(block) {
   saveModalVisible.value = true
 }
 
-async function onSaveBlockConfirm({ name, id }) {
+async function onSaveBlockConfirm({ name, id, category }) {
   const block = saveModalBlock.value
   saveModalVisible.value = false
   if (!block?.type) return
@@ -613,6 +620,7 @@ async function onSaveBlockConfirm({ name, id }) {
     formData.append('name', name)
     formData.append('type', block.type)
     formData.append('settings', JSON.stringify(block.settings || {}))
+    formData.append('category', category || '')
     if (id) formData.append('id', id)
     const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
     const json = await response.json()
