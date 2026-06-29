@@ -115,6 +115,16 @@
             />
           </button>
           <div class="dsf-library-blocks" v-show="savedOpen">
+            <div v-if="allSavedTags.length" class="dsf-library-tagfilter">
+              <button
+                v-for="tag in allSavedTags"
+                :key="tag"
+                type="button"
+                class="dsf-library-tag"
+                :class="{ 'is-active': activeTags.includes(tag) }"
+                @click="toggleTagFilter(tag)"
+              >{{ tag }}</button>
+            </div>
             <template v-for="group in groupedSavedBlocks" :key="group.folder || '__ungrouped'">
               <div v-if="group.folder" class="dsf-library-folder">{{ group.folder }}</div>
               <div v-for="saved in group.items" :key="saved.id" class="dsf-library-block dsf-library-block--saved">
@@ -127,6 +137,9 @@
                     <div class="dsf-library-block__text">
                       <h4>{{ saved.name }}</h4>
                       <span>{{ savedTypeLabel(saved) }}<template v-if="saved.author"> · {{ saved.author }}</template></span>
+                      <div v-if="saved.tags && saved.tags.length" class="dsf-library-cardtags">
+                        <span v-for="tag in saved.tags" :key="tag" class="dsf-library-cardtag">{{ tag }}</span>
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -326,12 +339,32 @@ const blockDefById = computed(() => {
   return map
 })
 
+const activeTags = ref([])
+
 const filteredSavedBlocks = computed(() => {
   const list = Array.isArray(props.savedBlocks) ? props.savedBlocks : []
   const query = searchQuery.value.trim().toLowerCase()
-  if (!query) return list
-  return list.filter((saved) => (saved.name || '').toLowerCase().includes(query))
+  const tags = activeTags.value
+  return list.filter((saved) => {
+    const matchesQuery = !query || (saved.name || '').toLowerCase().includes(query)
+    const matchesTags = !tags.length || (Array.isArray(saved.tags) && saved.tags.some((t) => tags.includes(t)))
+    return matchesQuery && matchesTags
+  })
 })
+
+const allSavedTags = computed(() => {
+  const set = new Set()
+  ;(Array.isArray(props.savedBlocks) ? props.savedBlocks : []).forEach((b) => {
+    (b.tags || []).forEach((t) => set.add(t))
+  })
+  return [...set].sort((a, b) => a.localeCompare(b))
+})
+
+function toggleTagFilter(tag) {
+  activeTags.value = activeTags.value.includes(tag)
+    ? activeTags.value.filter((t) => t !== tag)
+    : [...activeTags.value, tag]
+}
 
 const filteredPresets = computed(() => {
   const list = Array.isArray(props.presets) ? props.presets : []
@@ -633,6 +666,49 @@ function getBlockIcon(iconName) {
 
 .dsf-library-block:hover .dsf-library-block__text span {
   color: var(--dsf-primary-500);
+}
+
+/* Tag filter row + tag chips. */
+.dsf-library-tagfilter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 0.625rem;
+}
+
+.dsf-library-tag {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--dsf-gray-600);
+  background: var(--dsf-gray-100);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dsf-library-tag:hover { background: var(--dsf-gray-200); }
+
+.dsf-library-tag.is-active {
+  background: var(--dsf-primary-500, #3b82f6);
+  color: #fff;
+}
+
+.dsf-library-cardtags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.375rem;
+}
+
+.dsf-library-cardtag {
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--dsf-gray-600);
+  background: var(--dsf-gray-100);
 }
 
 /* Folder divider within the Saved Blocks list. */

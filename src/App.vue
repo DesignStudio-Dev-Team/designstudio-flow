@@ -158,6 +158,7 @@
       :existing="saveModalExisting"
       :show-folder="true"
       :folders="savedBlockFolders"
+      :show-tags="true"
       @save="onSaveBlockConfirm"
       @cancel="saveModalVisible = false"
     />
@@ -622,7 +623,7 @@ function handleSaveBlock(block) {
   saveModalVisible.value = true
 }
 
-async function onSaveBlockConfirm({ name, id, category }) {
+async function onSaveBlockConfirm({ name, id, category, tags }) {
   const block = saveModalBlock.value
   saveModalVisible.value = false
   if (!block?.type) return
@@ -635,6 +636,7 @@ async function onSaveBlockConfirm({ name, id, category }) {
     formData.append('type', block.type)
     formData.append('settings', JSON.stringify(block.settings || {}))
     formData.append('category', category || '')
+    formData.append('tags', JSON.stringify(tags || []))
     if (id) formData.append('id', id)
     const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
     const json = await response.json()
