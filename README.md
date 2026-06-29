@@ -337,7 +337,19 @@ This gives WordPress the cleanest update path and ensures the backend updater ca
 
 ## 📝 Changelog
 
-### v1.1.12 (Current)
+### v1.5.0 (Current) — 2026-06-29
+- **Saved Blocks** — save any configured block (content + styles) to a site‑wide library and drop it onto any page; update an existing saved block in place; organize with folders, multi‑tags, and author tracking; manage from a new Saved Blocks admin screen
+- **Presets** — a curated starter library of pre‑configured blocks in the picker; promote your own saved blocks into the shared Presets library
+- **Templates** — save a whole page, or a selected section of blocks, as a reusable template (Save as Template + on‑canvas multi‑select) and insert it on any page; managed via a new Templates admin screen
+- **Block picker** — visual schematic previews for Presets, Templates, and Saved Blocks, plus folder grouping and tag filtering
+- **Import / Export** — export and import Saved Blocks and Templates as JSON (per‑row and bulk actions); media (images, videos, and sanitized SVGs) referenced in blocks is pulled into the destination Media Library on import, reusing media already present
+- **Editor UX** — saving and deleting now use in‑editor modals and toasts instead of browser dialogs
+- **Reliability** — saved block / preset / template settings are re‑normalized against current block defaults on insert, so they survive block‑schema changes
+- **Security** — media import guards against SSRF (refuses private/internal hosts), caps per‑file size and per‑import file/time budget, and sanitizes SVGs before adding them to the library
+- Extended the per‑block Text Color cascade fix to all landing block copy regions
+- Synced plugin header `Version` and `DSF_VERSION` to `1.5.0`
+
+### v1.1.12
 - Synced plugin header `Version` and `DSF_VERSION` constant to `1.1.12` for release validation
 
 ### v1.1.10
