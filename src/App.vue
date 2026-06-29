@@ -393,6 +393,7 @@ const blockCategories = computed(() => {
   const registeredBlocks = wpData.blocks || {}
   const categories = {
     heroes: { label: 'Heroes', icon: 'layout', blocks: [] },
+    headers: { label: 'Headers', icon: 'panel-top', blocks: [] },
     content: { label: 'Content', icon: 'file-text', blocks: [] },
     marketing: { label: 'Marketing', icon: 'target', blocks: [] },
     ecommerce: { label: 'Ecommerce', icon: 'shopping-cart', blocks: [] },
@@ -414,15 +415,19 @@ const blockCategories = computed(() => {
 
   // Define exact order for each category
   const heroOrder = ['hero', 'landing-hero', 'bento-hero', 'spotlight-hero', 'expander-hero', 'duo-hero', 'featured-promo-banner']
+  const headerOrder = ['landing-progress-header']
   const contentOrder = ['content', 'faq', 'text-image', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-engagement-suite', 'landing-trust-workflow', 'features-grid', 'testimonials', 'form-embed', 'form-with-content']
-  const marketingOrder = ['landing-progress-header', 'pricing', 'countdown', 'promo-banner', 'cta-banner', 'brand-carousel']
+  const marketingOrder = ['pricing', 'countdown', 'promo-banner', 'cta-banner', 'brand-carousel']
   const ecommerceOrder = ['ecommerce-showcase', 'featured-product-banner', 'product-grid']
   const footerOrder = ['landing-marketing-footer']
   const heroBlockIds = new Set(heroOrder)
+  const headerBlockIds = new Set(headerOrder)
 
   allowedBlocks.forEach(block => {
     if (heroBlockIds.has(block.id)) {
       categories.heroes.blocks.push(block)
+    } else if (headerBlockIds.has(block.id)) {
+      categories.headers.blocks.push(block)
     } else if (categories[block.category]) {
       categories[block.category].blocks.push(block)
     }
@@ -430,6 +435,7 @@ const blockCategories = computed(() => {
 
   // Sort blocks within categories
   categories.heroes.blocks.sort((a, b) => heroOrder.indexOf(a.id) - heroOrder.indexOf(b.id))
+  categories.headers.blocks.sort((a, b) => headerOrder.indexOf(a.id) - headerOrder.indexOf(b.id))
   categories.content.blocks.sort((a, b) => contentOrder.indexOf(a.id) - contentOrder.indexOf(b.id))
   categories.marketing.blocks.sort((a, b) => marketingOrder.indexOf(a.id) - marketingOrder.indexOf(b.id))
   categories.ecommerce.blocks.sort((a, b) => ecommerceOrder.indexOf(a.id) - ecommerceOrder.indexOf(b.id))

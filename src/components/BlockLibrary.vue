@@ -5,41 +5,185 @@
       <div class="dsf-library-header">
         <div class="dsf-library-header__title">
           <h2>Block Library</h2>
-          <p>Choose a block to add to your page</p>
+          <p>{{ tabSubtitle }}</p>
         </div>
         <button class="dsf-library-close" @click="$emit('close')">
           <X :size="18" />
         </button>
       </div>
-      
+
+      <!-- Tabs -->
+      <div class="dsf-library-tabs" role="tablist">
+        <button
+          v-for="t in tabs"
+          :key="t.key"
+          type="button"
+          role="tab"
+          :aria-selected="activeTab === t.key"
+          class="dsf-library-tab"
+          :class="{ 'is-active': activeTab === t.key }"
+          @click="activeTab = t.key"
+        >
+          <component :is="t.icon" :size="15" />
+          <span>{{ t.label }}</span>
+          <span v-if="t.count" class="dsf-library-tab__count">{{ t.count }}</span>
+        </button>
+      </div>
+
       <!-- Search -->
       <div class="dsf-library-search">
         <Search :size="16" class="dsf-library-search__icon" />
-        <input 
-          type="text" 
+        <input
+          type="text"
           v-model="searchQuery"
-          placeholder="Search blocks..."
+          :placeholder="searchPlaceholder"
           class="dsf-library-search__input"
         />
       </div>
-      
-      <!-- Categories -->
+
       <div class="dsf-library-content">
-        <!-- Templates (saved groups of blocks) -->
-        <div v-if="filteredTemplates.length" class="dsf-library-category">
-          <button class="dsf-library-category__header" @click="templatesOpen = !templatesOpen">
-            <div class="dsf-library-category__left">
-              <LayoutTemplate :size="16" />
-              <span>Templates</span>
-              <span class="dsf-library-category__count">{{ filteredTemplates.length }}</span>
+        <!-- ===== BLOCKS TAB ===== -->
+        <template v-if="activeTab === 'blocks'">
+          <!-- Saved Blocks (reusable library) -->
+          <div v-if="filteredSavedBlocks.length" class="dsf-library-category">
+            <button class="dsf-library-category__header" @click="savedOpen = !savedOpen">
+              <div class="dsf-library-category__left">
+                <Bookmark :size="16" />
+                <span>Saved Blocks</span>
+                <span class="dsf-library-category__count">{{ filteredSavedBlocks.length }}</span>
+              </div>
+              <ChevronDown
+                :size="16"
+                class="dsf-library-category__chevron"
+                :class="{ 'dsf-library-category__chevron--open': savedOpen || isSearching }"
+              />
+            </button>
+            <div class="dsf-library-blocks" v-show="savedOpen || isSearching">
+              <div v-if="allSavedTags.length" class="dsf-library-tagfilter">
+                <button
+                  v-for="tag in allSavedTags"
+                  :key="tag"
+                  type="button"
+                  class="dsf-library-tag"
+                  :class="{ 'is-active': activeTags.includes(tag) }"
+                  @click="toggleTagFilter(tag)"
+                >{{ tag }}</button>
+              </div>
+              <template v-for="group in groupedSavedBlocks" :key="group.folder || '__ungrouped'">
+                <div v-if="group.folder" class="dsf-library-folder">{{ group.folder }}</div>
+                <div v-for="saved in group.items" :key="saved.id" class="dsf-library-block dsf-library-block--saved">
+                  <button class="dsf-library-block__main" @click="$emit('insert-saved', saved)">
+                    <div class="dsf-library-block__preview">
+                      <BlockSchematic :type="saved.type" :icon="savedIcon(saved)" />
+                    </div>
+                    <div class="dsf-library-block__info">
+                      <component :is="getBlockIcon(savedIcon(saved))" :size="16" />
+                      <div class="dsf-library-block__text">
+                        <h4>{{ saved.name }}</h4>
+                        <span>{{ savedTypeLabel(saved) }}<template v-if="saved.author"> · {{ saved.author }}</template></span>
+                        <div v-if="saved.tags && saved.tags.length" class="dsf-library-cardtags">
+                          <span v-for="tag in saved.tags" :key="tag" class="dsf-library-cardtag">{{ tag }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                  <button
+                    class="dsf-library-block__star"
+                    :class="{ 'is-featured': saved.featured }"
+                    :title="saved.featured ? 'Remove from Presets' : 'Add to Presets'"
+                    :aria-label="saved.featured ? 'Remove from Presets' : 'Add to Presets'"
+                    @click.stop="$emit('toggle-feature', saved)"
+                  >
+                    <Star :size="14" :fill="saved.featured ? 'currentColor' : 'none'" />
+                  </button>
+                  <button
+                    class="dsf-library-block__delete"
+                    title="Delete saved block"
+                    aria-label="Delete saved block"
+                    @click.stop="$emit('delete-saved', saved)"
+                  >
+                    <Trash2 :size="14" />
+                  </button>
+                </div>
+              </template>
             </div>
-            <ChevronDown
-              :size="16"
-              class="dsf-library-category__chevron"
-              :class="{ 'dsf-library-category__chevron--open': templatesOpen }"
-            />
-          </button>
-          <div class="dsf-library-blocks" v-show="templatesOpen">
+          </div>
+
+          <!-- Categories -->
+          <div
+            v-for="(cat, key) in filteredCategories"
+            :key="key"
+            class="dsf-library-category"
+          >
+            <button class="dsf-library-category__header" @click="toggleCategory(key)">
+              <div class="dsf-library-category__left">
+                <component :is="getCategoryIcon(key)" :size="16" />
+                <span>{{ cat.label }}</span>
+                <span class="dsf-library-category__count">{{ cat.blocks.length }}</span>
+              </div>
+              <ChevronDown
+                :size="16"
+                class="dsf-library-category__chevron"
+                :class="{ 'dsf-library-category__chevron--open': openCategories.includes(key) || isSearching }"
+              />
+            </button>
+            <div class="dsf-library-blocks" v-show="openCategories.includes(key) || isSearching">
+              <button
+                v-for="block in cat.blocks"
+                :key="block.id"
+                class="dsf-library-block"
+                @click="$emit('add', block)"
+              >
+                <div class="dsf-library-block__preview">
+                  <BlockSchematic :type="block.id" :icon="block.icon" />
+                </div>
+                <div class="dsf-library-block__info">
+                  <component :is="getBlockIcon(block.icon)" :size="16" />
+                  <div class="dsf-library-block__text">
+                    <h4>{{ block.name }}</h4>
+                    <span>Click to add</span>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div v-if="blocksNoResults" class="dsf-library-empty">
+            <SearchX :size="32" />
+            <p>No blocks found for "{{ searchQuery }}"</p>
+          </div>
+        </template>
+
+        <!-- ===== PRESETS TAB ===== -->
+        <template v-else-if="activeTab === 'presets'">
+          <div v-if="filteredPresets.length" class="dsf-library-blocks dsf-library-blocks--flush">
+            <button
+              v-for="preset in filteredPresets"
+              :key="preset.key"
+              class="dsf-library-block"
+              @click="$emit('insert-preset', preset)"
+            >
+              <div class="dsf-library-block__preview">
+                <BlockSchematic :type="preset.type" :icon="preset.icon" />
+              </div>
+              <div class="dsf-library-block__info">
+                <component :is="getBlockIcon(preset.icon)" :size="16" />
+                <div class="dsf-library-block__text">
+                  <h4>{{ preset.name }}</h4>
+                  <span>Click to add</span>
+                </div>
+              </div>
+            </button>
+          </div>
+          <div v-else class="dsf-library-empty">
+            <Sparkles :size="32" />
+            <p>{{ isSearching ? `No presets found for "${searchQuery}"` : 'No presets yet' }}</p>
+          </div>
+        </template>
+
+        <!-- ===== TEMPLATES TAB ===== -->
+        <template v-else>
+          <div v-if="filteredTemplates.length" class="dsf-library-blocks dsf-library-blocks--flush">
             <div v-for="tpl in filteredTemplates" :key="tpl.id" class="dsf-library-block dsf-library-block--saved">
               <button class="dsf-library-block__main" @click="$emit('insert-template', tpl)">
                 <div class="dsf-library-block__preview">
@@ -63,166 +207,11 @@
               </button>
             </div>
           </div>
-        </div>
-
-        <!-- Presets (curated starter library) -->
-        <div v-if="filteredPresets.length" class="dsf-library-category">
-          <button class="dsf-library-category__header" @click="presetsOpen = !presetsOpen">
-            <div class="dsf-library-category__left">
-              <Sparkles :size="16" />
-              <span>Presets</span>
-              <span class="dsf-library-category__count">{{ filteredPresets.length }}</span>
-            </div>
-            <ChevronDown
-              :size="16"
-              class="dsf-library-category__chevron"
-              :class="{ 'dsf-library-category__chevron--open': presetsOpen }"
-            />
-          </button>
-          <div class="dsf-library-blocks" v-show="presetsOpen">
-            <button
-              v-for="preset in filteredPresets"
-              :key="preset.key"
-              class="dsf-library-block"
-              @click="$emit('insert-preset', preset)"
-            >
-              <div class="dsf-library-block__preview">
-                <BlockSchematic :type="preset.type" :icon="preset.icon" />
-              </div>
-              <div class="dsf-library-block__info">
-                <component :is="getBlockIcon(preset.icon)" :size="16" />
-                <div class="dsf-library-block__text">
-                  <h4>{{ preset.name }}</h4>
-                  <span>Click to add</span>
-                </div>
-              </div>
-            </button>
+          <div v-else class="dsf-library-empty">
+            <LayoutTemplate :size="32" />
+            <p>{{ isSearching ? `No templates found for "${searchQuery}"` : 'No templates yet — use “Save as Template” to create one' }}</p>
           </div>
-        </div>
-
-        <!-- Saved Blocks (reusable library) -->
-        <div v-if="filteredSavedBlocks.length" class="dsf-library-category">
-          <button class="dsf-library-category__header" @click="savedOpen = !savedOpen">
-            <div class="dsf-library-category__left">
-              <Bookmark :size="16" />
-              <span>Saved Blocks</span>
-              <span class="dsf-library-category__count">{{ filteredSavedBlocks.length }}</span>
-            </div>
-            <ChevronDown
-              :size="16"
-              class="dsf-library-category__chevron"
-              :class="{ 'dsf-library-category__chevron--open': savedOpen }"
-            />
-          </button>
-          <div class="dsf-library-blocks" v-show="savedOpen">
-            <div v-if="allSavedTags.length" class="dsf-library-tagfilter">
-              <button
-                v-for="tag in allSavedTags"
-                :key="tag"
-                type="button"
-                class="dsf-library-tag"
-                :class="{ 'is-active': activeTags.includes(tag) }"
-                @click="toggleTagFilter(tag)"
-              >{{ tag }}</button>
-            </div>
-            <template v-for="group in groupedSavedBlocks" :key="group.folder || '__ungrouped'">
-              <div v-if="group.folder" class="dsf-library-folder">{{ group.folder }}</div>
-              <div v-for="saved in group.items" :key="saved.id" class="dsf-library-block dsf-library-block--saved">
-                <button class="dsf-library-block__main" @click="$emit('insert-saved', saved)">
-                  <div class="dsf-library-block__preview">
-                    <BlockSchematic :type="saved.type" :icon="savedIcon(saved)" />
-                  </div>
-                  <div class="dsf-library-block__info">
-                    <component :is="getBlockIcon(savedIcon(saved))" :size="16" />
-                    <div class="dsf-library-block__text">
-                      <h4>{{ saved.name }}</h4>
-                      <span>{{ savedTypeLabel(saved) }}<template v-if="saved.author"> · {{ saved.author }}</template></span>
-                      <div v-if="saved.tags && saved.tags.length" class="dsf-library-cardtags">
-                        <span v-for="tag in saved.tags" :key="tag" class="dsf-library-cardtag">{{ tag }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-                <button
-                  class="dsf-library-block__star"
-                  :class="{ 'is-featured': saved.featured }"
-                  :title="saved.featured ? 'Remove from Presets' : 'Add to Presets'"
-                  :aria-label="saved.featured ? 'Remove from Presets' : 'Add to Presets'"
-                  @click.stop="$emit('toggle-feature', saved)"
-                >
-                  <Star :size="14" :fill="saved.featured ? 'currentColor' : 'none'" />
-                </button>
-                <button
-                  class="dsf-library-block__delete"
-                  title="Delete saved block"
-                  aria-label="Delete saved block"
-                  @click.stop="$emit('delete-saved', saved)"
-                >
-                  <Trash2 :size="14" />
-                </button>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <div
-          v-for="(cat, key) in filteredCategories"
-          :key="key"
-          class="dsf-library-category"
-        >
-          <!-- Category Header (collapsible) -->
-          <button 
-            class="dsf-library-category__header"
-            @click="toggleCategory(key)"
-          >
-            <div class="dsf-library-category__left">
-              <component :is="getCategoryIcon(key)" :size="16" />
-              <span>{{ cat.label }}</span>
-              <span class="dsf-library-category__count">{{ cat.blocks.length }}</span>
-            </div>
-            <ChevronDown 
-              :size="16" 
-              class="dsf-library-category__chevron"
-              :class="{ 'dsf-library-category__chevron--open': openCategories.includes(key) }"
-            />
-          </button>
-          
-          <!-- Blocks List -->
-          <div 
-            class="dsf-library-blocks"
-            v-show="openCategories.includes(key)"
-          >
-            <button 
-              v-for="block in cat.blocks"
-              :key="block.id"
-              class="dsf-library-block"
-              @click="$emit('add', block)"
-            >
-              <!-- Block Preview Schematic -->
-              <div class="dsf-library-block__preview">
-                <BlockSchematic 
-                  :type="block.id" 
-                  :icon="block.icon"
-                />
-              </div>
-              
-              <!-- Block Info -->
-              <div class="dsf-library-block__info">
-                <component :is="getBlockIcon(block.icon)" :size="16" />
-                <div class="dsf-library-block__text">
-                  <h4>{{ block.name }}</h4>
-                  <span>Click to add</span>
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
-        
-        <!-- No Results -->
-        <div v-if="noResults" class="dsf-library-empty">
-          <SearchX :size="32" />
-          <p>No blocks found for "{{ searchQuery }}"</p>
-        </div>
+        </template>
       </div>
     </div>
   </div>
@@ -230,14 +219,16 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { 
-  X, 
+import {
+  X,
   Search,
   SearchX,
   ChevronDown,
-  LayoutTemplate, 
-  FileText, 
-  ShoppingCart, 
+  LayoutTemplate,
+  LayoutGrid,
+  PanelTop,
+  FileText,
+  ShoppingCart,
   Target,
   Columns,
   Grid3x3,
@@ -277,11 +268,31 @@ const props = defineProps({
 
 defineEmits(['close', 'add', 'insert-saved', 'delete-saved', 'toggle-feature', 'insert-preset', 'insert-template', 'delete-template'])
 
+const activeTab = ref('blocks')
 const searchQuery = ref('')
 const openCategories = ref([])
-const savedOpen = ref(true)
-const presetsOpen = ref(true)
-const templatesOpen = ref(true)
+const savedOpen = ref(false)
+const activeTags = ref([])
+
+const isSearching = computed(() => !!searchQuery.value.trim())
+
+const tabs = computed(() => [
+  { key: 'blocks', label: 'Blocks', icon: LayoutGrid },
+  { key: 'presets', label: 'Presets', icon: Sparkles, count: (props.presets || []).length },
+  { key: 'templates', label: 'Templates', icon: LayoutTemplate, count: (props.templates || []).length },
+])
+
+const tabSubtitle = computed(() => ({
+  blocks: 'Choose a block to add to your page',
+  presets: 'Insert a ready-made, pre-styled block',
+  templates: 'Insert a saved group of blocks',
+}[activeTab.value]))
+
+const searchPlaceholder = computed(() => ({
+  blocks: 'Search blocks…',
+  presets: 'Search presets…',
+  templates: 'Search templates…',
+}[activeTab.value]))
 
 const icons = {
   'layout-template': LayoutTemplate,
@@ -291,6 +302,7 @@ const icons = {
   'columns': Columns,
   'grid-3x3': Grid3x3,
   'layout': Layout,
+  'panel-top': PanelTop,
   'message-circle': MessageCircle,
   'shopping-bag': ShoppingBag,
   'folder': Folder,
@@ -309,21 +321,21 @@ const filteredCategories = computed(() => {
   if (!searchQuery.value.trim()) {
     return props.categories
   }
-  
+
   const query = searchQuery.value.toLowerCase()
   const result = {}
-  
+
   for (const [key, cat] of Object.entries(props.categories)) {
-    const filteredBlocks = cat.blocks.filter(block => 
+    const filteredBlocks = cat.blocks.filter(block =>
       block.name.toLowerCase().includes(query) ||
       block.description.toLowerCase().includes(query)
     )
-    
+
     if (filteredBlocks.length > 0) {
       result[key] = { ...cat, blocks: filteredBlocks }
     }
   }
-  
+
   return result
 })
 
@@ -338,8 +350,6 @@ const blockDefById = computed(() => {
   }
   return map
 })
-
-const activeTags = ref([])
 
 const filteredSavedBlocks = computed(() => {
   const list = Array.isArray(props.savedBlocks) ? props.savedBlocks : []
@@ -406,13 +416,11 @@ function savedTypeLabel(saved) {
   return blockDefById.value[saved.type]?.name || 'Reusable block'
 }
 
-const noResults = computed(() => {
+const blocksNoResults = computed(() => {
   return (
-    searchQuery.value.trim() &&
+    isSearching.value &&
     Object.keys(filteredCategories.value).length === 0 &&
-    filteredSavedBlocks.value.length === 0 &&
-    filteredPresets.value.length === 0 &&
-    filteredTemplates.value.length === 0
+    filteredSavedBlocks.value.length === 0
   )
 })
 
@@ -428,6 +436,7 @@ function toggleCategory(key) {
 function getCategoryIcon(key) {
   const categoryIcons = {
     heroes: Layout,
+    headers: PanelTop,
     content: FileText,
     ecommerce: ShoppingCart,
     marketing: Target,
@@ -513,6 +522,52 @@ function getBlockIcon(iconName) {
 .dsf-library-close:hover {
   background: var(--dsf-gray-100);
   color: var(--dsf-gray-700);
+}
+
+/* Tabs: Blocks / Presets / Templates */
+.dsf-library-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--dsf-gray-100);
+}
+
+.dsf-library-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.625rem 0.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--dsf-gray-500);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dsf-library-tab:hover {
+  color: var(--dsf-gray-800);
+}
+
+.dsf-library-tab.is-active {
+  color: var(--dsf-primary-600, #2563eb);
+  border-bottom-color: var(--dsf-primary-500, #3b82f6);
+}
+
+.dsf-library-tab__count {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  background: var(--dsf-gray-100);
+  color: var(--dsf-gray-600);
+}
+
+.dsf-library-tab.is-active .dsf-library-tab__count {
+  background: var(--dsf-primary-500, #3b82f6);
+  color: #fff;
 }
 
 .dsf-library-search {
@@ -605,6 +660,10 @@ function getBlockIcon(iconName) {
 
 .dsf-library-blocks {
   padding: 0.25rem 0.75rem 0.75rem;
+}
+
+.dsf-library-blocks--flush {
+  padding-top: 0.75rem;
 }
 
 .dsf-library-block {
