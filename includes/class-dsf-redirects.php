@@ -107,6 +107,74 @@ class DSF_Redirects {
 	}
 
 	/**
+	 * Constrain the query-parameter handling mode.
+	 *
+	 * @param mixed $value Raw mode.
+	 * @return string 'exact', 'ignore', or 'pass'.
+	 */
+	public static function sanitize_query_mode( $value ) {
+		$value = strtolower( trim( (string) $value ) );
+		return in_array( $value, array( 'exact', 'ignore', 'pass' ), true ) ? $value : 'ignore';
+	}
+
+	/**
+	 * Extract query parameters from a raw source string (the part after "?").
+	 *
+	 * @param string $source Raw source (path or URL, possibly with a query).
+	 * @return array Associative parameters.
+	 */
+	public static function parse_query_params( $source ) {
+		$source = (string) $source;
+		$pos    = strpos( $source, '?' );
+		if ( false === $pos ) {
+			return array();
+		}
+		$query  = strtok( substr( $source, $pos + 1 ), '#' );
+		$params = array();
+		parse_str( (string) $query, $params );
+		return is_array( $params ) ? $params : array();
+	}
+
+	/**
+	 * Canonical (key-sorted) query string for order-independent comparison.
+	 *
+	 * @param array $params Associative parameters.
+	 * @return string
+	 */
+	public static function canonical_query( $params ) {
+		$params = (array) $params;
+		ksort( $params );
+		return http_build_query( $params );
+	}
+
+	/**
+	 * Whether two parameter sets are equal regardless of order.
+	 *
+	 * @param array $a First set.
+	 * @param array $b Second set.
+	 * @return bool
+	 */
+	public static function query_params_match( $a, $b ) {
+		return self::canonical_query( $a ) === self::canonical_query( $b );
+	}
+
+	/**
+	 * Append a raw query string to a URL, choosing ? or & as needed.
+	 *
+	 * @param string $url   URL or path.
+	 * @param string $query Raw query string.
+	 * @return string
+	 */
+	public static function append_query( $url, $query ) {
+		$query = ltrim( (string) $query, '?&' );
+		if ( '' === $query ) {
+			return (string) $url;
+		}
+		$separator = ( false === strpos( (string) $url, '?' ) ) ? '?' : '&';
+		return $url . $separator . $query;
+	}
+
+	/**
 	 * Interpret common truthy spellings used in spreadsheets.
 	 *
 	 * @param mixed $value Raw value.
@@ -152,14 +220,43 @@ class DSF_Redirects {
 			return null;
 		}
 
+		$query_mode = self::sanitize_query_mode( isset( $raw['query'] ) ? $raw['query'] : 'ignore' );
+
+		// In "exact" mode, remember the source's query params. They may come as a
+		// stored array (re-sanitize) or be parsed from the raw source string.
+		$source_query = array();
+		if ( 'exact' === $query_mode ) {
+			if ( isset( $raw['source_query'] ) && is_array( $raw['source_query'] ) ) {
+				$source_query = $raw['source_query'];
+			} else {
+				$source_query = self::parse_query_params( isset( $raw['source'] ) ? $raw['source'] : '' );
+			}
+		}
+
 		return array(
-			'id'      => ( isset( $raw['id'] ) && $raw['id'] ) ? preg_replace( '/[^a-z0-9_]/', '', strtolower( (string) $raw['id'] ) ) : self::make_id(),
-			'source'  => $source,
-			'target'  => $target,
-			'type'    => self::sanitize_type( isset( $raw['type'] ) ? $raw['type'] : 301 ),
-			'enabled' => self::truthy( isset( $raw['enabled'] ) ? $raw['enabled'] : true ),
-			'hits'    => isset( $raw['hits'] ) ? max( 0, (int) $raw['hits'] ) : 0,
+			'id'           => ( isset( $raw['id'] ) && $raw['id'] ) ? preg_replace( '/[^a-z0-9_]/', '', strtolower( (string) $raw['id'] ) ) : self::make_id(),
+			'source'       => $source,
+			'target'       => $target,
+			'type'         => self::sanitize_type( isset( $raw['type'] ) ? $raw['type'] : 301 ),
+			'enabled'      => self::truthy( isset( $raw['enabled'] ) ? $raw['enabled'] : true ),
+			'query'        => $query_mode,
+			'source_query' => $source_query,
+			'hits'         => isset( $raw['hits'] ) ? max( 0, (int) $raw['hits'] ) : 0,
 		);
+	}
+
+	/**
+	 * Stable identity for de-duplication: source path plus, for exact mode, its
+	 * canonical query. Two exact rules on the same path with different params are
+	 * therefore distinct; ignore/pass rules dedupe by path alone.
+	 *
+	 * @param array $redirect Redirect record.
+	 * @return string
+	 */
+	public static function match_key( $redirect ) {
+		$mode  = isset( $redirect['query'] ) ? $redirect['query'] : 'ignore';
+		$query = ( 'exact' === $mode && isset( $redirect['source_query'] ) ) ? self::canonical_query( $redirect['source_query'] ) : '';
+		return ( isset( $redirect['source'] ) ? $redirect['source'] : '' ) . '|' . $query;
 	}
 
 	/**
@@ -195,6 +292,7 @@ class DSF_Redirects {
 					'target'  => isset( $cols[1] ) ? $cols[1] : '',
 					'type'    => isset( $cols[2] ) ? $cols[2] : 301,
 					'enabled' => isset( $cols[3] ) ? $cols[3] : true,
+					'query'   => isset( $cols[4] ) ? $cols[4] : 'ignore',
 				)
 			);
 
@@ -213,13 +311,19 @@ class DSF_Redirects {
 	 * @return string
 	 */
 	public static function to_csv( $redirects ) {
-		$rows   = array( array( 'source', 'target', 'type', 'enabled' ) );
+		$rows   = array( array( 'source', 'target', 'type', 'enabled', 'query' ) );
 		foreach ( (array) $redirects as $r ) {
+			$mode   = self::sanitize_query_mode( isset( $r['query'] ) ? $r['query'] : 'ignore' );
+			$source = isset( $r['source'] ) ? $r['source'] : '';
+			if ( 'exact' === $mode && ! empty( $r['source_query'] ) ) {
+				$source = self::append_query( $source, self::canonical_query( $r['source_query'] ) );
+			}
 			$rows[] = array(
-				isset( $r['source'] ) ? $r['source'] : '',
+				$source,
 				isset( $r['target'] ) ? $r['target'] : '',
 				self::sanitize_type( isset( $r['type'] ) ? $r['type'] : 301 ),
 				! empty( $r['enabled'] ) ? '1' : '0',
+				$mode,
 			);
 		}
 
@@ -297,7 +401,7 @@ class DSF_Redirects {
 
 		foreach ( $redirects as $index => $existing ) {
 			$same_id     = ! empty( $redirect['id'] ) && $existing['id'] === $redirect['id'];
-			$same_source = $existing['source'] === $redirect['source'];
+			$same_source = self::match_key( $existing ) === self::match_key( $redirect );
 			if ( $same_id || $same_source ) {
 				$redirect['id']      = $existing['id'];
 				$redirect['hits']    = $existing['hits'];
@@ -328,16 +432,30 @@ class DSF_Redirects {
 			return;
 		}
 
-		$request = $this->current_path();
+		$request       = $this->current_path();
+		$request_query = $this->current_query();
+		$request_qs    = $this->current_query_string();
 
 		foreach ( $redirects as $redirect ) {
 			if ( empty( $redirect['enabled'] ) || $redirect['source'] !== $request ) {
 				continue;
 			}
 
+			$mode = isset( $redirect['query'] ) ? $redirect['query'] : 'ignore';
+
+			// Exact mode: the request's params must match the source's, any order.
+			if ( 'exact' === $mode && ! self::query_params_match( isset( $redirect['source_query'] ) ? $redirect['source_query'] : array(), $request_query ) ) {
+				continue;
+			}
+
 			$target = $redirect['target'];
 			if ( ! preg_match( '#^https?://#i', $target ) && 0 !== strpos( $target, '//' ) ) {
 				$target = home_url( $target );
+			}
+
+			// Pass mode: forward the original query string onto the target.
+			if ( 'pass' === $mode && '' !== $request_qs ) {
+				$target = self::append_query( $target, $request_qs );
 			}
 
 			$this->record_hit( $redirect['id'] );
@@ -359,6 +477,17 @@ class DSF_Redirects {
 		}
 
 		return $path;
+	}
+
+	private function current_query_string() {
+		$uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		return (string) wp_parse_url( $uri, PHP_URL_QUERY );
+	}
+
+	private function current_query() {
+		$params = array();
+		parse_str( $this->current_query_string(), $params );
+		return is_array( $params ) ? $params : array();
 	}
 
 	private function record_hit( $id ) {
@@ -406,6 +535,7 @@ class DSF_Redirects {
 				'target'  => isset( $_POST['target'] ) ? wp_unslash( $_POST['target'] ) : '',
 				'type'    => isset( $_POST['type'] ) ? wp_unslash( $_POST['type'] ) : 301,
 				'enabled' => isset( $_POST['enabled'] ),
+				'query'   => isset( $_POST['query'] ) ? wp_unslash( $_POST['query'] ) : 'ignore',
 			)
 		);
 
@@ -487,6 +617,31 @@ class DSF_Redirects {
 	 * Admin UI (rendered inside the Tools page "Redirects" tab)
 	 * ----------------------------------------------------------------- */
 
+	/**
+	 * Human label for a query-handling mode.
+	 */
+	private function query_mode_label( $mode ) {
+		switch ( $mode ) {
+			case 'exact':
+				return __( 'Exact match', 'designstudio-flow' );
+			case 'pass':
+				return __( 'Pass to target', 'designstudio-flow' );
+			default:
+				return __( 'Ignore', 'designstudio-flow' );
+		}
+	}
+
+	/**
+	 * Source shown in the list — includes the matched params for exact mode.
+	 */
+	private function display_source( $redirect ) {
+		$source = isset( $redirect['source'] ) ? $redirect['source'] : '';
+		if ( 'exact' === ( isset( $redirect['query'] ) ? $redirect['query'] : 'ignore' ) && ! empty( $redirect['source_query'] ) ) {
+			$source = self::append_query( $source, self::canonical_query( $redirect['source_query'] ) );
+		}
+		return $source;
+	}
+
 	public function render_admin_tab() {
 		if ( ! current_user_can( self::CAP ) ) {
 			echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'You need the Administrator role to manage redirects.', 'designstudio-flow' ) . '</p></div>';
@@ -501,7 +656,7 @@ class DSF_Redirects {
 		<div class="dsf-tools-grid" style="display:grid;gap:20px;max-width:980px;margin-top:16px;">
 			<div class="card" style="padding:20px;">
 				<h2 style="margin-top:0;"><?php esc_html_e( 'Add a redirect', 'designstudio-flow' ); ?></h2>
-				<p class="description"><?php esc_html_e( 'Source is a path on this site (for example /old-page). Target can be a path or a full URL.', 'designstudio-flow' ); ?></p>
+				<p class="description"><?php esc_html_e( 'Source is a path on this site (for example /old-page). Target can be a path or a full URL. For exact query matching, include the parameters on the source, e.g. /old-page?ref=email.', 'designstudio-flow' ); ?></p>
 				<form method="post" action="<?php echo esc_url( $post_url ); ?>">
 					<?php wp_nonce_field( self::SAVE_ACTION ); ?>
 					<input type="hidden" name="action" value="<?php echo esc_attr( self::SAVE_ACTION ); ?>">
@@ -513,6 +668,19 @@ class DSF_Redirects {
 						<tr>
 							<th scope="row"><label for="dsf-redirect-target"><?php esc_html_e( 'Target', 'designstudio-flow' ); ?></label></th>
 							<td><input type="text" id="dsf-redirect-target" name="target" class="regular-text" placeholder="/new-page" required></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="dsf-redirect-query"><?php esc_html_e( 'Query parameters', 'designstudio-flow' ); ?></label></th>
+							<td>
+								<select id="dsf-redirect-query" name="query">
+									<option value="ignore"><?php esc_html_e( 'Ignore all parameters', 'designstudio-flow' ); ?></option>
+									<option value="exact"><?php esc_html_e( 'Exact match in any order', 'designstudio-flow' ); ?></option>
+									<option value="pass"><?php esc_html_e( 'Ignore, but pass parameters to the target', 'designstudio-flow' ); ?></option>
+								</select>
+								<p class="description" style="margin-top:6px;">
+									<?php esc_html_e( 'Ignore: match the path regardless of ?params. Exact: the request must carry the same params as the source (any order). Pass: match the path and forward the original ?params onto the target.', 'designstudio-flow' ); ?>
+								</p>
+							</td>
 						</tr>
 						<tr>
 							<th scope="row"><label for="dsf-redirect-type"><?php esc_html_e( 'Type', 'designstudio-flow' ); ?></label></th>
@@ -540,6 +708,7 @@ class DSF_Redirects {
 								<th><?php esc_html_e( 'Source', 'designstudio-flow' ); ?></th>
 								<th><?php esc_html_e( 'Target', 'designstudio-flow' ); ?></th>
 								<th><?php esc_html_e( 'Type', 'designstudio-flow' ); ?></th>
+								<th><?php esc_html_e( 'Query', 'designstudio-flow' ); ?></th>
 								<th><?php esc_html_e( 'Hits', 'designstudio-flow' ); ?></th>
 								<th><?php esc_html_e( 'Status', 'designstudio-flow' ); ?></th>
 								<th><?php esc_html_e( 'Actions', 'designstudio-flow' ); ?></th>
@@ -564,9 +733,10 @@ class DSF_Redirects {
 								);
 								?>
 								<tr>
-									<td><code><?php echo esc_html( $redirect['source'] ); ?></code></td>
+									<td><code><?php echo esc_html( $this->display_source( $redirect ) ); ?></code></td>
 									<td><?php echo esc_html( $redirect['target'] ); ?></td>
 									<td><?php echo esc_html( (string) $redirect['type'] ); ?></td>
+									<td><?php echo esc_html( $this->query_mode_label( isset( $redirect['query'] ) ? $redirect['query'] : 'ignore' ) ); ?></td>
 									<td><?php echo esc_html( (string) $redirect['hits'] ); ?></td>
 									<td>
 										<?php if ( ! empty( $redirect['enabled'] ) ) : ?>
@@ -589,7 +759,7 @@ class DSF_Redirects {
 
 			<div class="card" style="padding:20px;">
 				<h2 style="margin-top:0;"><?php esc_html_e( 'Import / Export CSV', 'designstudio-flow' ); ?></h2>
-				<p class="description"><?php esc_html_e( 'CSV columns: source, target, type, enabled. Rows are matched by source — an existing source is updated, new ones are added.', 'designstudio-flow' ); ?></p>
+				<p class="description"><?php esc_html_e( 'CSV columns: source, target, type, enabled, query. The query column is one of ignore, exact, or pass (defaults to ignore). For exact, include the params on the source, e.g. /old-page?ref=email.', 'designstudio-flow' ); ?></p>
 				<form method="post" action="<?php echo esc_url( $post_url ); ?>" enctype="multipart/form-data" style="margin-bottom:16px;">
 					<?php wp_nonce_field( self::IMPORT_ACTION ); ?>
 					<input type="hidden" name="action" value="<?php echo esc_attr( self::IMPORT_ACTION ); ?>">
