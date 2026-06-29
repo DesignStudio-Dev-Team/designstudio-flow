@@ -419,6 +419,21 @@
   flex: 1;
 }
 
+.dsf-options-editor__check {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.dsf-options-editor__check input {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.dsf-options-editor__value {
+  max-width: 40%;
+}
+
 .dsf-options-editor__add {
   align-self: flex-start;
   border: 1px solid #c7d2e6;
