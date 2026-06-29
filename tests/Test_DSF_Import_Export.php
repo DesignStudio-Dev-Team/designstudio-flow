@@ -91,6 +91,34 @@ class Test_DSF_Import_Export extends TestCase {
 		);
 	}
 
+	public function test_svg_sanitizer_strips_scripts_and_handlers() {
+		$tmp = tempnam( sys_get_temp_dir(), 'dsfsvg' );
+		file_put_contents(
+			$tmp,
+			'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+			. '<script>alert(1)</script><rect onload="evil()" x="0" y="0" width="10" height="10"/>'
+			. '<a xlink:href="javascript:alert(2)">x</a></svg>'
+		);
+
+		$ok    = $this->invoke( 'sanitize_svg_file', $tmp );
+		$clean = file_get_contents( $tmp );
+		unlink( $tmp );
+
+		$this->assertTrue( $ok );
+		$this->assertStringNotContainsStringIgnoringCase( '<script', $clean );
+		$this->assertStringNotContainsStringIgnoringCase( 'onload', $clean );
+		$this->assertStringNotContainsStringIgnoringCase( 'javascript:', $clean );
+		$this->assertStringContainsString( '<rect', $clean ); // legit content preserved
+	}
+
+	public function test_svg_sanitizer_rejects_non_svg() {
+		$tmp = tempnam( sys_get_temp_dir(), 'dsfsvg' );
+		file_put_contents( $tmp, 'definitely not an svg' );
+		$result = $this->invoke( 'sanitize_svg_file', $tmp );
+		unlink( $tmp );
+		$this->assertFalse( $result );
+	}
+
 	private function invoke( $method_name, ...$arguments ) {
 		$reflection = new ReflectionClass( 'DSF_Import_Export' );
 		$instance   = $reflection->newInstanceWithoutConstructor();
