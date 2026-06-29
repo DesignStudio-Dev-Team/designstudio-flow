@@ -112,4 +112,49 @@ class Test_DSF_Redirects extends TestCase {
 		$this->assertStringContainsString( '"/a,b"', $csv );
 		$this->assertStringContainsString( '"/c""d"', $csv );
 	}
+
+	public function test_sanitize_query_mode_constrains_to_known_modes() {
+		$this->assertSame( 'exact', DSF_Redirects::sanitize_query_mode( 'exact' ) );
+		$this->assertSame( 'ignore', DSF_Redirects::sanitize_query_mode( 'IGNORE' ) );
+		$this->assertSame( 'pass', DSF_Redirects::sanitize_query_mode( ' pass ' ) );
+		$this->assertSame( 'ignore', DSF_Redirects::sanitize_query_mode( 'nonsense' ) );
+	}
+
+	public function test_query_params_match_is_order_independent() {
+		$this->assertTrue( DSF_Redirects::query_params_match( array( 'a' => '1', 'b' => '2' ), array( 'b' => '2', 'a' => '1' ) ) );
+		$this->assertFalse( DSF_Redirects::query_params_match( array( 'a' => '1' ), array( 'a' => '1', 'b' => '2' ) ) );
+		$this->assertFalse( DSF_Redirects::query_params_match( array( 'a' => '1' ), array( 'a' => '2' ) ) );
+	}
+
+	public function test_parse_query_params_extracts_from_source() {
+		$this->assertSame( array( 'ref' => 'email', 'id' => '7' ), DSF_Redirects::parse_query_params( '/old-page?ref=email&id=7' ) );
+		$this->assertSame( array(), DSF_Redirects::parse_query_params( '/old-page' ) );
+	}
+
+	public function test_append_query_chooses_separator() {
+		$this->assertSame( '/t?a=1', DSF_Redirects::append_query( '/t', 'a=1' ) );
+		$this->assertSame( '/t?x=1&a=1', DSF_Redirects::append_query( '/t?x=1', 'a=1' ) );
+		$this->assertSame( '/t', DSF_Redirects::append_query( '/t', '' ) );
+	}
+
+	public function test_exact_mode_records_source_query_and_distinct_match_key() {
+		$exact = DSF_Redirects::sanitize_redirect(
+			array( 'source' => '/old?ref=email', 'target' => '/new', 'query' => 'exact' )
+		);
+		$this->assertSame( 'exact', $exact['query'] );
+		$this->assertSame( array( 'ref' => 'email' ), $exact['source_query'] );
+
+		// Same path, different exact params => different identity (both can exist).
+		$other = DSF_Redirects::sanitize_redirect(
+			array( 'source' => '/old?ref=ads', 'target' => '/promo', 'query' => 'exact' )
+		);
+		$this->assertNotSame( DSF_Redirects::match_key( $exact ), DSF_Redirects::match_key( $other ) );
+
+		// Ignore mode keeps no params and dedupes by path alone.
+		$ignore = DSF_Redirects::sanitize_redirect(
+			array( 'source' => '/old?ref=email', 'target' => '/new', 'query' => 'ignore' )
+		);
+		$this->assertSame( array(), $ignore['source_query'] );
+		$this->assertSame( '/old|', DSF_Redirects::match_key( $ignore ) );
+	}
 }
