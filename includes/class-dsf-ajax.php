@@ -92,6 +92,7 @@ class DSF_Ajax {
 		$name     = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
 		$type     = isset( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
 		$category = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
+		$tags     = $this->sanitize_tag_list( isset( $_POST['tags'] ) ? wp_unslash( $_POST['tags'] ) : '' );
 
 		if ( '' === $type || ! DSF_Blocks::get_instance()->get_block( $type ) ) {
 			wp_send_json_error( array( 'message' => 'Unknown block type' ), 400 );
@@ -148,6 +149,7 @@ class DSF_Ajax {
 		update_post_meta( $post_id, '_dsf_block_type', $type );
 		update_post_meta( $post_id, '_dsf_block_settings', $settings );
 		update_post_meta( $post_id, '_dsf_block_category', $category );
+		update_post_meta( $post_id, '_dsf_block_tags', $tags );
 
 		wp_send_json_success(
 			array(
@@ -156,9 +158,32 @@ class DSF_Ajax {
 				'type'     => $type,
 				'settings' => $settings,
 				'category' => $category,
+				'tags'     => $tags,
 				'author'   => $this->saved_block_author_name( $post_id ),
 			)
 		);
+	}
+
+	/**
+	 * Parse a tag payload (JSON array or comma-separated string) into a clean,
+	 * de-duplicated list (max 20).
+	 */
+	private function sanitize_tag_list( $raw ) {
+		$items = json_decode( (string) $raw, true );
+		if ( ! is_array( $items ) ) {
+			$items = '' === trim( (string) $raw ) ? array() : explode( ',', (string) $raw );
+		}
+		$tags = array();
+		foreach ( $items as $item ) {
+			$tag = sanitize_text_field( (string) $item );
+			if ( '' !== $tag && ! in_array( $tag, $tags, true ) ) {
+				$tags[] = $tag;
+			}
+			if ( count( $tags ) >= 20 ) {
+				break;
+			}
+		}
+		return $tags;
 	}
 
 	/**
@@ -202,6 +227,7 @@ class DSF_Ajax {
 				'type'     => $type,
 				'settings' => is_array( $settings ) ? $settings : array(),
 				'category' => (string) get_post_meta( $post->ID, '_dsf_block_category', true ),
+				'tags'     => array_values( (array) get_post_meta( $post->ID, '_dsf_block_tags', true ) ),
 				'author'   => $this->saved_block_author_name( $post->ID ),
 				'featured' => (bool) get_post_meta( $post->ID, '_dsf_block_featured', true ),
 			);

@@ -18,7 +18,7 @@ describe('SaveBlockModal', () => {
 
     const events = wrapper.emitted('save')
     expect(events).toHaveLength(1)
-    expect(events[0][0]).toEqual({ name: 'Hero', id: null, category: '' })
+    expect(events[0][0]).toEqual({ name: 'Hero', id: null, category: '', tags: [] })
   })
 
   it('offers update mode and emits the chosen existing id', async () => {
@@ -57,5 +57,14 @@ describe('SaveBlockModal', () => {
     await wrapper.find('.dsf-savemodal__btn--save').trigger('click')
 
     expect(wrapper.emitted('save')[0][0].category).toBe('Footers')
+  })
+
+  it('parses comma-separated tags into a deduped array when enabled', async () => {
+    const wrapper = mountOpen({ showTags: true })
+    await wrapper.setProps({ visible: true })
+    await wrapper.find('#dsf-savemodal-tags').setValue('dark, promo , dark, ')
+    await wrapper.find('.dsf-savemodal__btn--save').trigger('click')
+
+    expect(wrapper.emitted('save')[0][0].tags).toEqual(['dark', 'promo'])
   })
 })

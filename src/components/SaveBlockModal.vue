@@ -35,6 +35,18 @@
             </datalist>
           </template>
 
+          <template v-if="showTags">
+            <label class="dsf-savemodal__label" for="dsf-savemodal-tags">Tags <span class="dsf-savemodal__optional">(comma separated)</span></label>
+            <input
+              id="dsf-savemodal-tags"
+              v-model="tagsText"
+              type="text"
+              class="dsf-savemodal__input"
+              placeholder="e.g. dark, promo, client-x"
+              @keyup.enter="onSave"
+            />
+          </template>
+
           <fieldset v-if="existing.length" class="dsf-savemodal__modes">
             <label class="dsf-savemodal__radio">
               <input type="radio" value="new" v-model="mode" />
@@ -75,12 +87,15 @@ const props = defineProps({
   // Optional "folder" field (saved blocks only) + suggestions for its datalist.
   showFolder: { type: Boolean, default: false },
   folders: { type: Array, default: () => [] },
+  // Optional comma-separated "tags" field (saved blocks only).
+  showTags: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['save', 'cancel'])
 
 const name = ref('')
 const folder = ref('')
+const tagsText = ref('')
 const mode = ref('new')
 const updateId = ref(null)
 const nameInput = ref(null)
@@ -91,6 +106,7 @@ watch(
     if (open) {
       name.value = props.suggestedName
       folder.value = ''
+      tagsText.value = ''
       mode.value = 'new'
       updateId.value = props.existing.length ? props.existing[0].id : null
       nextTick(() => nameInput.value?.focus())
@@ -98,15 +114,24 @@ watch(
   }
 )
 
-// Picking an item to update pulls its name (and folder) into the fields.
+// Picking an item to update pulls its name, folder and tags into the fields.
 watch(updateId, (id) => {
   if (mode.value !== 'update') return
   const match = props.existing.find((item) => item.id === id)
   if (match) {
     name.value = match.name
     folder.value = match.category || ''
+    tagsText.value = Array.isArray(match.tags) ? match.tags.join(', ') : ''
   }
 })
+
+function parseTags(text) {
+  const seen = new Set()
+  return text
+    .split(',')
+    .map((t) => t.trim())
+    .filter((t) => t && !seen.has(t) && seen.add(t))
+}
 
 function onSave() {
   const finalName = name.value.trim() || props.suggestedName
@@ -114,6 +139,7 @@ function onSave() {
     name: finalName,
     id: mode.value === 'update' ? updateId.value : null,
     category: props.showFolder ? folder.value.trim() : '',
+    tags: props.showTags ? parseTags(tagsText.value) : [],
   })
 }
 </script>
