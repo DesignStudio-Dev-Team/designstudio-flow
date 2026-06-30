@@ -104,6 +104,19 @@
   to { visibility: visible; }
 }
 
+/* When a block has an explicit responsive Height, the wrapper carries the
+   min-height; stretch the block's own root to fill it so its background (and
+   content) grow to the chosen height instead of leaving an empty gap. */
+.dsf-block--has-height {
+  display: flex;
+  flex-direction: column;
+}
+
+.dsf-block--has-height > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 /* Keep landing-page display copy balanced without inserting brittle manual line breaks. */
 .dsf-block--landing h1,
 .dsf-block--landing h2,

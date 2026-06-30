@@ -6,6 +6,7 @@
       'dsf-block--selected': isSelected,
       'dsf-block--landing': isLandingBlock,
       'dsf-block--template-selected': isSelectedForTemplate,
+      'dsf-block--has-height': hasHeight,
     }"
     :style="wrapperStyle"
     @click.stop="$emit('select')"
@@ -57,7 +58,7 @@
 <script setup>
 import { computed } from 'vue'
 import { GripVertical, Settings, ChevronUp, ChevronDown, Trash2, Bookmark, CheckSquare, Square } from 'lucide-vue-next'
-import { getResponsiveValue } from '../utils/responsiveSettings'
+import { blockWrapperStyle, hasResponsiveKey } from '../utils/responsiveSettings'
 
 // Block preview components
 import ContentPreview from './blocks/ContentPreview.vue'
@@ -168,39 +169,12 @@ const defaultMargin = computed(() => (
   templateBlockTypes.has(props.block?.type) ? 0 : 25
 ))
 
-const marginY = computed(() =>
-  getResponsiveValue(props.block?.settings || {}, props.previewMode, 'marginY') ?? defaultMargin.value
+const hasHeight = computed(() => hasResponsiveKey(props.block?.settings || {}, 'height'))
+
+const wrapperStyle = computed(() =>
+  blockWrapperStyle(props.block?.settings || {}, props.previewMode, {
+    type: props.block?.type,
+    marginFallback: defaultMargin.value,
+  })
 )
-
-const paddingX = computed(() =>
-  getResponsiveValue(props.block?.settings || {}, props.previewMode, 'paddingX') ?? 0
-)
-
-const heightValue = computed(() =>
-  getResponsiveValue(props.block?.settings || {}, props.previewMode, 'height')
-)
-
-const hasExplicitHeight = computed(() => {
-  const settings = props.block?.settings || {}
-  if (settings.height !== undefined && settings.height !== null) return true
-  const responsive = settings.responsive || {}
-  return ['desktop', 'tablet', 'mobile'].some(
-    (key) => responsive[key]?.height !== undefined && responsive[key]?.height !== null
-  )
-})
-
-const wrapperStyle = computed(() => {
-  const style = {
-    marginTop: `${marginY.value}px`,
-    marginBottom: `${marginY.value}px`,
-    paddingLeft: `${paddingX.value}px`,
-    paddingRight: `${paddingX.value}px`,
-  }
-
-  if (hasExplicitHeight.value && heightValue.value !== undefined && heightValue.value !== null) {
-    style.minHeight = `${heightValue.value}px`
-  }
-
-  return style
-})
 </script>
