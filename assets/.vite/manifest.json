@@ -1,9 +1,9 @@
 {
-  "_ColorPicker-1tXBcG8z.js": {
-    "file": "js/ColorPicker-1tXBcG8z.js",
+  "_ColorPicker-DbpNaYoG.js": {
+    "file": "js/ColorPicker-DbpNaYoG.js",
     "name": "ColorPicker",
     "imports": [
-      "__plugin-vue_export-helper-BX2j1iFb.js"
+      "__plugin-vue_export-helper-r1sO_cA-.js"
     ],
     "css": [
       "css/ColorPicker.css"
@@ -13,15 +13,15 @@
     "file": "css/ColorPicker.css",
     "src": "_ColorPicker.css"
   },
-  "__plugin-vue_export-helper-BX2j1iFb.js": {
-    "file": "js/_plugin-vue_export-helper-BX2j1iFb.js",
+  "__plugin-vue_export-helper-r1sO_cA-.js": {
+    "file": "js/_plugin-vue_export-helper-r1sO_cA-.js",
     "name": "_plugin-vue_export-helper"
   },
-  "_main-D9Nzih_w.js": {
-    "file": "js/main-D9Nzih_w.js",
+  "_main-Xcofk21K.js": {
+    "file": "js/main-Xcofk21K.js",
     "name": "main",
     "imports": [
-      "__plugin-vue_export-helper-BX2j1iFb.js"
+      "__plugin-vue_export-helper-r1sO_cA-.js"
     ],
     "css": [
       "css/main.css"
@@ -37,8 +37,8 @@
     "src": "src/admin/popupEditor.js",
     "isEntry": true,
     "imports": [
-      "__plugin-vue_export-helper-BX2j1iFb.js",
-      "_ColorPicker-1tXBcG8z.js"
+      "__plugin-vue_export-helper-r1sO_cA-.js",
+      "_ColorPicker-DbpNaYoG.js"
     ],
     "css": [
       "css/popup-editor.css"
@@ -50,8 +50,8 @@
     "src": "src/frontend/main.js",
     "isEntry": true,
     "imports": [
-      "__plugin-vue_export-helper-BX2j1iFb.js",
-      "_main-D9Nzih_w.js"
+      "__plugin-vue_export-helper-r1sO_cA-.js",
+      "_main-Xcofk21K.js"
     ]
   },
   "src/frontend/notificationBar.js": {
@@ -69,9 +69,9 @@
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
-      "__plugin-vue_export-helper-BX2j1iFb.js",
-      "_main-D9Nzih_w.js",
-      "_ColorPicker-1tXBcG8z.js"
+      "__plugin-vue_export-helper-r1sO_cA-.js",
+      "_main-Xcofk21K.js",
+      "_ColorPicker-DbpNaYoG.js"
     ],
     "css": [
       "css/editor.css"

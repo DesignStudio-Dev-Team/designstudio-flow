@@ -32,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import ContentPreview from '../components/blocks/ContentPreview.vue'
 import FaqPreview from '../components/blocks/FaqPreview.vue'
 import HeroPreview from '../components/blocks/HeroCenteredPreview.vue'
@@ -51,6 +51,12 @@ import NewsletterPreview from '../components/blocks/NewsletterPreview.vue'
 import BrandLogosPreview from '../components/blocks/BrandLogosPreview.vue'
 import PromoBannerPreview from '../components/blocks/PromoBannerPreview.vue'
 import FeaturedProductBannerPreview from '../components/blocks/FeaturedProductBannerPreview.vue'
+import ProductSummaryPreview from '../components/blocks/ProductSummaryPreview.vue'
+import ProductGalleryPreview from '../components/blocks/ProductGalleryPreview.vue'
+import ProductDescriptionPreview from '../components/blocks/ProductDescriptionPreview.vue'
+import ProductSpecsPreview from '../components/blocks/ProductSpecsPreview.vue'
+import ProductTabsPreview from '../components/blocks/ProductTabsPreview.vue'
+import ProductAddToCartPreview from '../components/blocks/ProductAddToCartPreview.vue'
 import DuoHeroPreview from '../components/blocks/DuoHeroPreview.vue'
 import FeaturedPromoBannerPreview from '../components/blocks/FeaturedPromoBannerPreview.vue'
 import HeaderMegaMenuPreview from '../components/blocks/HeaderMegaMenuPreview.vue'
@@ -110,6 +116,12 @@ const previewComponents = {
   'brand-carousel': BrandLogosPreview,
   'promo-banner': PromoBannerPreview,
   'featured-product-banner': FeaturedProductBannerPreview,
+  'product-summary': ProductSummaryPreview,
+  'product-gallery': ProductGalleryPreview,
+  'product-description': ProductDescriptionPreview,
+  'product-specs': ProductSpecsPreview,
+  'product-tabs': ProductTabsPreview,
+  'product-add-to-cart': ProductAddToCartPreview,
   'duo-hero': DuoHeroPreview,
   'featured-promo-banner': FeaturedPromoBannerPreview,
   'header-mega-menu': HeaderMegaMenuPreview,
@@ -138,6 +150,12 @@ const { modalState: modal, openModalAction: openModal, closeModalAction: closeMo
   createModalController()
 
 provideFlowModal({ openModal, closeModal })
+
+// Product blocks (in a product template) read the viewed product from this context.
+const currentProduct = ref(
+  (typeof window !== 'undefined' && window.dsfFrontendData?.currentProduct) || null
+)
+provide('dsfProductContext', currentProduct)
 
 const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1200)
 let resizeHandler = null

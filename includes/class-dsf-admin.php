@@ -118,9 +118,10 @@ class DSF_Admin {
 			'edit.php?post_type=dsf_layout&dsf_layout_type=footer' => 3,  // Footers
 			'edit.php?post_type=dsf_saved_block'                   => 4,  // Saved Blocks
 			'edit.php?post_type=dsf_template'                      => 5,  // Templates
-			'edit.php?post_type=dsf_popup'                         => 6,  // Popups
-			'dsf-tools'                                            => 7,  // Tools
-			'dsf-settings'                                         => 8,  // Settings
+			'edit.php?post_type=dsf_product_template'              => 6,  // Product Templates
+			'edit.php?post_type=dsf_popup'                         => 7,  // Popups
+			'dsf-tools'                                            => 8,  // Tools
+			'dsf-settings'                                         => 9,  // Settings
 		);
 
 		// Decorate with rank + original index for a stable sort.

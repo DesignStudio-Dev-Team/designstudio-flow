@@ -96,4 +96,51 @@ class Test_DSF_Plugin extends TestCase {
 		$this->assertArrayHasKey( 'viewBox', $allowed['svg'] );
 		$this->assertArrayHasKey( 'opacity', $allowed['rect'] );
 	}
+
+	public function test_frontend_body_class_marks_dsnshowcase_theme() {
+		WP_Mock::userFunction(
+			'get_template',
+			array(
+				'return' => 'dsnshowcase',
+			)
+		);
+		WP_Mock::userFunction(
+			'get_stylesheet',
+			array(
+				'return' => 'dsnshowcase-child',
+			)
+		);
+
+		$ref      = new ReflectionClass( 'DSF_Frontend' );
+		$frontend = $ref->newInstanceWithoutConstructor();
+
+		$classes = $frontend->add_flow_theme_body_classes( array( 'page', 'dsf-theme-dsnshowcase-active' ) );
+
+		$this->assertContains( 'dsf-theme-form-repair-active', $classes );
+		$this->assertContains( 'dsf-theme-dsnshowcase-active', $classes );
+		$this->assertSame( 1, count( array_keys( $classes, 'dsf-theme-dsnshowcase-active', true ) ) );
+	}
+
+	public function test_frontend_body_class_skips_other_themes() {
+		WP_Mock::userFunction(
+			'get_template',
+			array(
+				'return' => 'twentytwentysix',
+			)
+		);
+		WP_Mock::userFunction(
+			'get_stylesheet',
+			array(
+				'return' => 'twentytwentysix',
+			)
+		);
+
+		$ref      = new ReflectionClass( 'DSF_Frontend' );
+		$frontend = $ref->newInstanceWithoutConstructor();
+
+		$classes = $frontend->add_flow_theme_body_classes( array( 'page' ) );
+
+		$this->assertNotContains( 'dsf-theme-form-repair-active', $classes );
+		$this->assertNotContains( 'dsf-theme-dsnshowcase-active', $classes );
+	}
 }

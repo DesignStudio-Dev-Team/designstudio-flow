@@ -59,6 +59,55 @@ class DSF_Ajax {
 		add_action( 'wp_ajax_dsf_save_template', array( $this, 'save_template' ) );
 		add_action( 'wp_ajax_dsf_list_templates', array( $this, 'list_templates' ) );
 		add_action( 'wp_ajax_dsf_delete_template', array( $this, 'delete_template' ) );
+
+		// Product templates — fetch a sample product's live data for the editor preview.
+		add_action( 'wp_ajax_dsf_get_product_context', array( $this, 'get_product_context' ) );
+	}
+
+	/**
+	 * Return the live data payload for a product so the editor can preview product
+	 * blocks against a real product. Editor-only: requires a valid editor nonce and
+	 * page-editing capability.
+	 */
+	public function get_product_context() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			wp_send_json_error( array( 'message' => 'WooCommerce not active' ) );
+		}
+
+		$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+
+		// Fall back to the most recent published product when none is chosen yet, so
+		// the editor still shows representative data.
+		if ( ! $product_id ) {
+			$recent     = get_posts(
+				array(
+					'post_type'      => 'product',
+					'post_status'    => 'publish',
+					'posts_per_page' => 1,
+					'orderby'        => 'date',
+					'order'          => 'DESC',
+					'fields'         => 'ids',
+					'no_found_rows'  => true,
+				)
+			);
+			$product_id = ! empty( $recent ) ? absint( $recent[0] ) : 0;
+		}
+
+		if ( ! $product_id || 'product' !== get_post_type( $product_id ) ) {
+			wp_send_json_error( array( 'message' => 'Product not found' ), 404 );
+		}
+
+		$context = DSF_Product_Templates::build_product_context( $product_id );
+		if ( empty( $context ) ) {
+			wp_send_json_error( array( 'message' => 'Product not found' ), 404 );
+		}
+
+		wp_send_json_success( array( 'product' => $context ) );
 	}
 
 	/**
@@ -552,6 +601,14 @@ class DSF_Ajax {
 			return;
 		}
 
+		// Product templates store blocks/settings like a page, plus the assignment
+		// rule, the live toggle, and the editor-only preview product. This sends the
+		// JSON response and exits without touching any product's slug/parent/title.
+		if ( 'dsf_product_template' === $post_type ) {
+			$this->save_product_template_item( $post_id, $blocks_data, $settings_data, $title, $status );
+			return;
+		}
+
 		if ( 'dsf_layout' === $post_type ) {
 			$current_layout_type = in_array( $layout_type, array( 'header', 'footer' ), true )
 				? $layout_type
@@ -596,7 +653,9 @@ class DSF_Ajax {
 			$post_update['post_parent'] = $this->get_valid_page_parent_id( $parent_id, $post_id );
 		}
 
-		if ( 'draft' === $status ) {
+		if ( 'page' === $post_type ) {
+			$post_update['post_status'] = 'publish';
+		} elseif ( 'draft' === $status ) {
 			$post_update['post_status'] = 'draft';
 		} elseif ( 'publish' === $status ) {
 			$post_update['post_status'] = 'publish';
@@ -679,6 +738,71 @@ class DSF_Ajax {
 	}
 
 	/**
+	 * Persist a product template edited in the Flow editor.
+	 *
+	 * Stores blocks/settings to the same meta a page uses, plus the product-template
+	 * configuration (assignment rule, live toggle, editor-only preview product). It
+	 * never touches any product's own post fields.
+	 *
+	 * @param int    $post_id       Product template post ID.
+	 * @param array  $blocks_data   Sanitized blocks.
+	 * @param array  $settings_data Sanitized page settings (may carry a productTemplate key).
+	 * @param string $title         Submitted title.
+	 * @param string $status        Requested status ('draft' | 'publish' | '').
+	 */
+	private function save_product_template_item( $post_id, $blocks_data, $settings_data, $title, $status ) {
+		$config = ( isset( $settings_data['productTemplate'] ) && is_array( $settings_data['productTemplate'] ) )
+			? $settings_data['productTemplate']
+			: array();
+
+		$assignment = DSF_Product_Templates::sanitize_assignment( $config['assignment'] ?? array() );
+		$active     = empty( $config['active'] ) ? '' : '1';
+		$preview_id = isset( $config['previewProduct'] ) ? absint( $config['previewProduct'] ) : 0;
+		if ( $preview_id && 'product' !== get_post_type( $preview_id ) ) {
+			$preview_id = 0;
+		}
+
+		update_post_meta( $post_id, '_dsf_pt_assignment', $assignment );
+		update_post_meta( $post_id, '_dsf_pt_active', $active );
+		update_post_meta( $post_id, '_dsf_pt_preview_product', $preview_id );
+
+		// The product-template config is editor transport only — keep it out of the
+		// stored page settings (theme/layout/popup remain).
+		unset( $settings_data['productTemplate'] );
+
+		update_post_meta( $post_id, '_dsf_blocks', $blocks_data );
+		update_post_meta( $post_id, '_dsf_settings', $settings_data );
+
+		$post_update = array(
+			'ID'                => $post_id,
+			'post_modified'     => current_time( 'mysql' ),
+			'post_modified_gmt' => current_time( 'mysql', 1 ),
+		);
+		if ( '' !== $title ) {
+			$post_update['post_title'] = $title;
+		}
+		if ( 'draft' === $status ) {
+			$post_update['post_status'] = 'draft';
+		} elseif ( 'publish' === $status ) {
+			$post_update['post_status'] = 'publish';
+		}
+		wp_update_post( $post_update );
+
+		wp_send_json_success(
+			array(
+				'message'     => 'Product template saved',
+				'post_id'     => $post_id,
+				'post_status' => get_post_status( $post_id ),
+				'post_title'  => get_the_title( $post_id ),
+				'post_name'   => '',
+				'post_parent' => 0,
+				'permalink'   => '',
+				'preview_url' => '',
+			)
+		);
+	}
+
+	/**
 	 * Sanitize settings for blocks with dedicated save-time contracts.
 	 *
 	 * @param array $blocks Saved page blocks.
@@ -711,6 +835,30 @@ class DSF_Ajax {
 			}
 			if ( 'expander-hero' === ( $block['type'] ?? '' ) ) {
 				$block['settings'] = $this->sanitize_expander_hero_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-summary' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_summary_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-gallery' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_gallery_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-description' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_description_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-specs' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_specs_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-tabs' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_tabs_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-add-to-cart' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_add_to_cart_settings( $block['settings'] ?? array() );
 				continue;
 			}
 			if ( in_array( $block['type'] ?? '', array( 'form-embed', 'form-with-content' ), true ) ) {
@@ -756,6 +904,236 @@ class DSF_Ajax {
 		unset( $block );
 
 		return $blocks;
+	}
+
+	/**
+	 * Sanitize the Product Summary block settings.
+	 *
+	 * Only presentation options are saved — the product data itself is read live
+	 * from the current product at render time and is never trusted from the client.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_summary_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'showTitle'            => ! isset( $settings['showTitle'] ) || ! empty( $settings['showTitle'] ),
+			'headingTag'           => in_array( $settings['headingTag'] ?? '', array( 'h1', 'h2' ), true ) ? $settings['headingTag'] : 'h1',
+			'showPrice'            => ! isset( $settings['showPrice'] ) || ! empty( $settings['showPrice'] ),
+			'showShortDescription' => ! isset( $settings['showShortDescription'] ) || ! empty( $settings['showShortDescription'] ),
+			'showSku'              => ! empty( $settings['showSku'] ),
+			'showStock'            => ! isset( $settings['showStock'] ) || ! empty( $settings['showStock'] ),
+			'showRating'           => ! isset( $settings['showRating'] ) || ! empty( $settings['showRating'] ),
+			'alignment'            => in_array( $settings['alignment'] ?? '', array( 'left', 'center' ), true ) ? $settings['alignment'] : 'left',
+			'maxWidth'             => max( 320, min( 1200, absint( $settings['maxWidth'] ?? 640 ) ) ),
+			'padding'              => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'             => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'              => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+		);
+
+		foreach ( array( 'titleColor', 'priceColor', 'textColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		$clean['responsive'] = array();
+		foreach ( array( 'desktop', 'tablet', 'mobile' ) as $breakpoint ) {
+			$values                             = is_array( $settings['responsive'][ $breakpoint ] ?? null ) ? $settings['responsive'][ $breakpoint ] : array();
+			$clean['responsive'][ $breakpoint ] = array();
+			if ( isset( $values['padding'] ) ) {
+				$clean['responsive'][ $breakpoint ]['padding'] = max( 0, min( 160, absint( $values['padding'] ) ) );
+			}
+			if ( isset( $values['paddingX'] ) ) {
+				$clean['responsive'][ $breakpoint ]['paddingX'] = max( 0, min( 120, absint( $values['paddingX'] ) ) );
+			}
+			if ( isset( $values['marginY'] ) ) {
+				$clean['responsive'][ $breakpoint ]['marginY'] = max( 0, min( 100, absint( $values['marginY'] ) ) );
+			}
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Add to Cart block settings (presentation only — the cart form
+	 * itself is rendered server-side from the current product).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_add_to_cart_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'alignment' => in_array( $settings['alignment'] ?? '', array( 'left', 'center' ), true ) ? $settings['alignment'] : 'left',
+			'maxWidth'  => max( 280, min( 900, absint( $settings['maxWidth'] ?? 460 ) ) ),
+			'padding'   => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'  => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'   => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive' => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'buttonColor', 'buttonTextColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Bound the per-breakpoint spacing overrides shared by the product blocks.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_responsive_spacing( $settings ) {
+		$raw        = ( isset( $settings['responsive'] ) && is_array( $settings['responsive'] ) ) ? $settings['responsive'] : array();
+		$responsive = array();
+
+		foreach ( array( 'desktop', 'tablet', 'mobile' ) as $breakpoint ) {
+			$values                    = is_array( $raw[ $breakpoint ] ?? null ) ? $raw[ $breakpoint ] : array();
+			$responsive[ $breakpoint ] = array();
+			if ( isset( $values['padding'] ) ) {
+				$responsive[ $breakpoint ]['padding'] = max( 0, min( 160, absint( $values['padding'] ) ) );
+			}
+			if ( isset( $values['paddingX'] ) ) {
+				$responsive[ $breakpoint ]['paddingX'] = max( 0, min( 120, absint( $values['paddingX'] ) ) );
+			}
+			if ( isset( $values['marginY'] ) ) {
+				$responsive[ $breakpoint ]['marginY'] = max( 0, min( 100, absint( $values['marginY'] ) ) );
+			}
+		}
+
+		return $responsive;
+	}
+
+	/**
+	 * Sanitize the Product Gallery block settings (presentation only).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_gallery_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$layouts  = array( 'thumbs-bottom', 'thumbs-left', 'grid', 'carousel', 'single' );
+		$aspects  = array( 'square', 'portrait', 'landscape', 'natural' );
+
+		return array(
+			'layout'         => in_array( $settings['layout'] ?? '', $layouts, true ) ? $settings['layout'] : 'thumbs-bottom',
+			'aspectRatio'    => in_array( $settings['aspectRatio'] ?? '', $aspects, true ) ? $settings['aspectRatio'] : 'square',
+			'enableLightbox' => ! isset( $settings['enableLightbox'] ) || ! empty( $settings['enableLightbox'] ),
+			'showThumbs'     => ! isset( $settings['showThumbs'] ) || ! empty( $settings['showThumbs'] ),
+			'thumbColumns'   => max( 2, min( 8, absint( $settings['thumbColumns'] ?? 5 ) ) ),
+			'gap'            => max( 0, min( 40, absint( $settings['gap'] ?? 12 ) ) ),
+			'maxWidth'       => max( 320, min( 1200, absint( $settings['maxWidth'] ?? 640 ) ) ),
+			'padding'        => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'       => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'        => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'     => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+	}
+
+	/**
+	 * Sanitize the Product Description block settings.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_description_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'showHeading' => ! isset( $settings['showHeading'] ) || ! empty( $settings['showHeading'] ),
+			'headingText' => sanitize_text_field( $settings['headingText'] ?? 'Description' ),
+			'maxWidth'    => max( 320, min( 1400, absint( $settings['maxWidth'] ?? 900 ) ) ),
+			'padding'     => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'    => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'     => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'  => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'headingColor', 'textColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Product Specs block settings.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_specs_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$layouts  = array( 'striped', 'cards', 'inline', 'bordered' );
+
+		$clean = array(
+			'layout'      => in_array( $settings['layout'] ?? '', $layouts, true ) ? $settings['layout'] : 'striped',
+			'showHeading' => ! isset( $settings['showHeading'] ) || ! empty( $settings['showHeading'] ),
+			'headingText' => sanitize_text_field( $settings['headingText'] ?? 'Specifications' ),
+			'columns'     => max( 1, min( 3, absint( $settings['columns'] ?? 1 ) ) ),
+			'maxWidth'    => max( 320, min( 1200, absint( $settings['maxWidth'] ?? 760 ) ) ),
+			'padding'     => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'    => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'     => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'  => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'headingColor', 'labelColor', 'valueColor', 'accentColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Product Tabs block settings, including per-tab custom content.
+	 *
+	 * Tabs are capped, labels are plain text, sources are allowlisted, and only
+	 * custom tabs keep rich content (wp_kses_post). Live tab data (description /
+	 * specs) is read from the current product at render time, never from the client.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_tabs_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$styles   = array( 'underline', 'pills', 'boxed' );
+		$sources  = array( 'description', 'specs', 'reviews', 'custom' );
+
+		$raw_tabs = is_array( $settings['tabs'] ?? null ) ? $settings['tabs'] : array();
+		$tabs     = array();
+		foreach ( array_slice( $raw_tabs, 0, 10 ) as $tab ) {
+			if ( ! is_array( $tab ) ) {
+				continue;
+			}
+			$source = in_array( $tab['source'] ?? '', $sources, true ) ? $tab['source'] : 'description';
+			$tabs[] = array(
+				'label'   => sanitize_text_field( $tab['label'] ?? '' ),
+				'source'  => $source,
+				'content' => 'custom' === $source ? wp_kses_post( (string) ( $tab['content'] ?? '' ) ) : '',
+			);
+		}
+
+		$accent = sanitize_hex_color( $settings['accentColor'] ?? '' );
+
+		return array(
+			'style'       => in_array( $settings['style'] ?? '', $styles, true ) ? $settings['style'] : 'underline',
+			'tabs'        => $tabs,
+			'accentColor' => $accent ? $accent : '',
+			'maxWidth'    => max( 320, min( 1400, absint( $settings['maxWidth'] ?? 900 ) ) ),
+			'padding'     => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'    => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'     => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'  => $this->sanitize_product_responsive_spacing( $settings ),
+		);
 	}
 
 	/**
