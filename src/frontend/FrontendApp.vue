@@ -4,7 +4,10 @@
       v-for="block in blocks"
       :key="block.id"
       class="dsf-block"
-      :class="{ 'dsf-block--landing': block.type?.startsWith('landing-') }"
+      :class="{
+        'dsf-block--landing': block.type?.startsWith('landing-'),
+        'dsf-block--has-height': hasResponsiveKey(block.settings, 'height'),
+      }"
       :style="getBlockStyle(block)"
     >
       <component
@@ -71,7 +74,7 @@ import FlowModal from '../components/common/FlowModal.vue'
 import PagePopup from '../components/common/PagePopup.vue'
 import { provideFlowModal } from '../components/common/useFlowModal'
 import { createModalController } from './modalController'
-import { getResponsiveValue } from '../utils/responsiveSettings'
+import { blockWrapperStyle, hasResponsiveKey } from '../utils/responsiveSettings'
 
 const props = defineProps({
   blocks: {
@@ -159,20 +162,6 @@ onUnmounted(() => {
   }
 })
 
-function getResponsiveField(settings, key, fallback) {
-  const value = getResponsiveValue(settings || {}, breakpoint.value, key)
-  return value ?? fallback
-}
-
-function hasExplicitResponsiveValue(settings, key) {
-  if (!settings) return false
-  if (settings[key] !== undefined && settings[key] !== null) return true
-  const responsive = settings.responsive || {}
-  return ['desktop', 'tablet', 'mobile'].some(
-    (breakpointKey) => responsive[breakpointKey]?.[key] !== undefined && responsive[breakpointKey]?.[key] !== null
-  )
-}
-
 function getDefaultMarginByType(blockType) {
   if (blockType === 'header-mega-menu' || blockType === 'header-showcase-mega' || blockType === 'header-cutout-mega' || blockType === 'footer-dealers' || blockType?.startsWith('landing-')) {
     return 0
@@ -181,22 +170,9 @@ function getDefaultMarginByType(blockType) {
 }
 
 function getBlockStyle(block) {
-  const settings = block?.settings || {}
-  const marginFallback = getDefaultMarginByType(block?.type)
-  const style = {
-    marginTop: `${getResponsiveField(settings, 'marginY', marginFallback)}px`,
-    marginBottom: `${getResponsiveField(settings, 'marginY', marginFallback)}px`,
-    paddingLeft: `${getResponsiveField(settings, 'paddingX', 0)}px`,
-    paddingRight: `${getResponsiveField(settings, 'paddingX', 0)}px`,
-  }
-
-  if (hasExplicitResponsiveValue(settings, 'height')) {
-    const heightValue = getResponsiveValue(settings || {}, breakpoint.value, 'height')
-    if (heightValue !== undefined && heightValue !== null) {
-      style.minHeight = `${heightValue}px`
-    }
-  }
-
-  return style
+  return blockWrapperStyle(block?.settings || {}, breakpoint.value, {
+    type: block?.type,
+    marginFallback: getDefaultMarginByType(block?.type),
+  })
 }
 </script>

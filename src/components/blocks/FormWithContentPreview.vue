@@ -175,6 +175,7 @@ import {
   watch,
 } from "vue";
 import InlineText from "../common/InlineText.vue";
+import { getResponsiveValue } from "../../utils/responsiveSettings";
 
 const props = defineProps({
   settings: { type: Object, default: () => ({}) },
@@ -204,10 +205,14 @@ const formSource = computed(() => props.settings?.formSource || "dsf");
 
 const isDsfFormSource = computed(() => formSource.value !== "embed");
 
-const blockStyle = computed(() => ({
-  backgroundColor: props.settings?.backgroundColor || "#FFFFFF",
-  padding: `${props.settings?.padding ?? 60}px ${props.settings?.paddingX ?? 24}px`,
-}));
+const blockStyle = computed(() => {
+  const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 60;
+  const paddingX = getResponsiveValue(props.settings || {}, props.previewMode, 'paddingX') ?? 24;
+  return {
+    backgroundColor: props.settings?.backgroundColor || "#FFFFFF",
+    padding: `${paddingY}px ${paddingX}px`,
+  };
+});
 
 const gridCols = computed(() => {
   const ratio = props.settings?.columnRatio || "1-1";
