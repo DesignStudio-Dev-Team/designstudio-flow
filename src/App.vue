@@ -117,6 +117,9 @@
         :popups="availablePopups"
         :popup-create-url="popupCreateUrl"
         :popup-edit-url-base="popupEditUrlBase"
+        :is-product-template="isProductTemplate"
+        :product-template="pageSettings.productTemplate || null"
+        :product-categories="productCategories"
         @close="showPageSettings = false"
         @save="updatePageDetails"
       />
@@ -218,7 +221,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, createApp, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, createApp, nextTick, watch, provide } from 'vue'
 import draggable from 'vuedraggable'
 import { Plus, LayoutTemplate } from 'lucide-vue-next'
 import { gsap } from 'gsap'
@@ -241,6 +244,9 @@ const wpData = window.dsfEditorData || {}
 const postType = wpData.postType === 'dsf_layout' ? 'dsf_layout' : 'page'
 const layoutType = wpData.layoutType === 'footer' ? 'footer' : 'header'
 const isTemplateEditor = postType === 'dsf_layout'
+// A product template designs a reusable single-product page; its product blocks
+// bind to a sample product in the editor and to the viewed product on the frontend.
+const isProductTemplate = wpData.isProductTemplate === true
 const layoutTemplates = computed(() => wpData.layoutTemplates || { headers: [], footers: [] })
 const layoutCreateUrls = computed(() => wpData.layoutCreateUrls || {})
 const availableForms = Array.isArray(wpData.forms) ? wpData.forms : []
@@ -352,12 +358,44 @@ function syncThemeToBlocks(oldTheme, newTheme, forceChangedThemeKeys = false) {
 // State
 const blocks = ref(normalizeTemplateBlocks(wpData.pageData?.blocks, postType, layoutType))
 const initialSettings = wpData.pageData?.settings || {}
+const DEFAULT_PRODUCT_TEMPLATE = {
+  active: false,
+  assignment: { mode: 'all', categoryIds: [] },
+  previewProduct: 0,
+}
 const pageSettings = ref({
   theme: { ...DEFAULT_THEME, ...(initialSettings.theme || {}) },
   layout: { ...DEFAULT_LAYOUT, ...(initialSettings.layout || {}) },
   popup: { ...(initialSettings.popup || {}) },
   popupId: Number.parseInt(initialSettings.popupId, 10) || 0,
+  ...(isProductTemplate
+    ? { productTemplate: { ...DEFAULT_PRODUCT_TEMPLATE, ...(wpData.productTemplate || {}) } }
+    : {}),
 })
+
+// Live product data the product blocks render from. In the editor this is the
+// sample product; the frontend uses the viewed product. Blocks read it via inject.
+const productContext = ref(wpData.currentProduct || null)
+provide('dsfProductContext', productContext)
+provide('dsfIsProductTemplate', isProductTemplate)
+
+async function refreshProductContext(productId) {
+  if (!isProductTemplate || !wpData.ajaxUrl) return
+  try {
+    const body = new URLSearchParams({
+      action: 'dsf_get_product_context',
+      nonce: wpData.nonce || '',
+      product_id: String(productId || 0),
+    })
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json?.success && json.data?.product) {
+      productContext.value = json.data.product
+    }
+  } catch (error) {
+    // Non-fatal — keep the previously loaded sample product.
+  }
+}
 
 const availablePopups = ref(Array.isArray(wpData.popups) ? wpData.popups : [])
 const availableSavedBlocks = ref([])
@@ -372,6 +410,7 @@ const currentPreviewUrl = ref(wpData.previewUrl || '')
 const pageSlug = ref(wpData.postSlug || '')
 const pageParentId = ref(Number.parseInt(wpData.postParent, 10) || 0)
 const parentPages = computed(() => Array.isArray(wpData.parentPages) ? wpData.parentPages : [])
+const productCategories = computed(() => Array.isArray(wpData.categories) ? wpData.categories : [])
 const isSaving = ref(false)
 const previewMode = ref('desktop')
 const selectedBlock = ref(null)
@@ -397,6 +436,7 @@ const blockCategories = computed(() => {
     content: { label: 'Content', icon: 'file-text', blocks: [] },
     marketing: { label: 'Marketing', icon: 'target', blocks: [] },
     ecommerce: { label: 'Ecommerce', icon: 'shopping-cart', blocks: [] },
+    product: { label: 'Product Page', icon: 'shopping-bag', blocks: [] },
     footers: { label: 'Footers', icon: 'layout-template', blocks: [] },
   }
 
@@ -419,6 +459,7 @@ const blockCategories = computed(() => {
   const contentOrder = ['content', 'faq', 'text-image', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-engagement-suite', 'landing-trust-workflow', 'features-grid', 'testimonials', 'form-embed', 'form-with-content']
   const marketingOrder = ['pricing', 'countdown', 'promo-banner', 'cta-banner', 'brand-carousel']
   const ecommerceOrder = ['ecommerce-showcase', 'featured-product-banner', 'product-grid']
+  const productOrder = ['product-gallery', 'product-summary', 'product-add-to-cart', 'product-description', 'product-specs', 'product-tabs']
   const footerOrder = ['landing-marketing-footer']
   const heroBlockIds = new Set(heroOrder)
   const headerBlockIds = new Set(headerOrder)
@@ -439,6 +480,7 @@ const blockCategories = computed(() => {
   categories.content.blocks.sort((a, b) => contentOrder.indexOf(a.id) - contentOrder.indexOf(b.id))
   categories.marketing.blocks.sort((a, b) => marketingOrder.indexOf(a.id) - marketingOrder.indexOf(b.id))
   categories.ecommerce.blocks.sort((a, b) => ecommerceOrder.indexOf(a.id) - ecommerceOrder.indexOf(b.id))
+  categories.product.blocks.sort((a, b) => productOrder.indexOf(a.id) - productOrder.indexOf(b.id))
   categories.footers.blocks.sort((a, b) => footerOrder.indexOf(a.id) - footerOrder.indexOf(b.id))
 
   return categories
@@ -982,11 +1024,18 @@ function getBlockScope(blockDefinition) {
 function isBlockAllowedInCurrentEditor(blockDefinition) {
   const scope = getBlockScope(blockDefinition)
 
-  if (!isTemplateEditor) {
-    return scope === 'page'
+  if (isTemplateEditor) {
+    return scope === layoutType
   }
 
-  return scope === layoutType
+  // Product blocks (scope 'product') bind to a product context, so they are only
+  // offered inside a product template. Product templates also allow ordinary page
+  // blocks. Regular pages only allow page blocks.
+  if (isProductTemplate) {
+    return scope === 'page' || scope === 'product'
+  }
+
+  return scope === 'page'
 }
 
 function openBlockLibrary() {
@@ -1015,11 +1064,20 @@ function updatePageDetails(details) {
   pageSlug.value = details.slug || ''
   currentPostStatus.value = details.status === 'publish' ? 'publish' : 'draft'
   pageParentId.value = Number.parseInt(details.parentId, 10) || 0
-  pageSettings.value = {
+  const nextSettings = {
     ...pageSettings.value,
     popup: { ...(details.popup || {}) },
     popupId: Number.parseInt(details.popupId, 10) || 0,
   }
+  if (isProductTemplate && details.productTemplate) {
+    const previousPreview = pageSettings.value.productTemplate?.previewProduct || 0
+    nextSettings.productTemplate = { ...DEFAULT_PRODUCT_TEMPLATE, ...details.productTemplate }
+    const nextPreview = Number.parseInt(nextSettings.productTemplate.previewProduct, 10) || 0
+    if (nextPreview && nextPreview !== previousPreview) {
+      refreshProductContext(nextPreview)
+    }
+  }
+  pageSettings.value = nextSettings
   showPageSettings.value = false
 }
 
@@ -1120,7 +1178,9 @@ async function savePage(options = {}) {
     pageTitle.value = enteredTitle
   }
 
-  const statusToSave = status || currentPostStatus.value || 'draft'
+  const statusToSave = postType === 'page' && !isProductTemplate
+    ? 'publish'
+    : (status || currentPostStatus.value || 'draft')
 
   let htmlSnapshot = ''
   if (!skipSnapshot) {

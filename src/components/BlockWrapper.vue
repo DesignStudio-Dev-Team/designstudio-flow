@@ -79,6 +79,12 @@ import NewsletterPreview from './blocks/NewsletterPreview.vue'
 import BrandLogosPreview from './blocks/BrandLogosPreview.vue'
 import PromoBannerPreview from './blocks/PromoBannerPreview.vue'
 import FeaturedProductBannerPreview from './blocks/FeaturedProductBannerPreview.vue'
+import ProductSummaryPreview from './blocks/ProductSummaryPreview.vue'
+import ProductGalleryPreview from './blocks/ProductGalleryPreview.vue'
+import ProductDescriptionPreview from './blocks/ProductDescriptionPreview.vue'
+import ProductSpecsPreview from './blocks/ProductSpecsPreview.vue'
+import ProductTabsPreview from './blocks/ProductTabsPreview.vue'
+import ProductAddToCartPreview from './blocks/ProductAddToCartPreview.vue'
 import DuoHeroPreview from './blocks/DuoHeroPreview.vue'
 import FeaturedPromoBannerPreview from './blocks/FeaturedPromoBannerPreview.vue'
 import HeaderMegaMenuPreview from './blocks/HeaderMegaMenuPreview.vue'
@@ -138,6 +144,12 @@ const previewComponents = {
   'brand-carousel': BrandLogosPreview,
   'promo-banner': PromoBannerPreview,
   'featured-product-banner': FeaturedProductBannerPreview,
+  'product-summary': ProductSummaryPreview,
+  'product-gallery': ProductGalleryPreview,
+  'product-description': ProductDescriptionPreview,
+  'product-specs': ProductSpecsPreview,
+  'product-tabs': ProductTabsPreview,
+  'product-add-to-cart': ProductAddToCartPreview,
   'duo-hero': DuoHeroPreview,
   'featured-promo-banner': FeaturedPromoBannerPreview,
   'header-mega-menu': HeaderMegaMenuPreview,

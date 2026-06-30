@@ -243,6 +243,40 @@ class DSF_Post_Type {
 				'show_in_rest'       => false,
 			)
 		);
+
+		// Product Templates — a reusable single-product page design (theme-builder
+		// style). One template is assigned to all products or to specific product
+		// categories; its blocks bind to whichever product is being viewed. Managed
+		// under the DSF menu. WooCommerce templates are never modified.
+		register_post_type(
+			'dsf_product_template',
+			array(
+				'labels'             => array(
+					'name'               => _x( 'Product Templates', 'Post type general name', 'designstudio-flow' ),
+					'singular_name'      => _x( 'Product Template', 'Post type singular name', 'designstudio-flow' ),
+					'menu_name'          => __( 'Product Templates', 'designstudio-flow' ),
+					'all_items'          => __( 'Product Templates', 'designstudio-flow' ),
+					'add_new'            => __( 'Add New Product Template', 'designstudio-flow' ),
+					'add_new_item'       => __( 'Add New Product Template', 'designstudio-flow' ),
+					'edit_item'          => __( 'Edit Product Template', 'designstudio-flow' ),
+					'search_items'       => __( 'Search Product Templates', 'designstudio-flow' ),
+					'not_found'          => __( 'No product templates yet.', 'designstudio-flow' ),
+					'not_found_in_trash' => __( 'No product templates found in Trash.', 'designstudio-flow' ),
+				),
+				'public'             => false,
+				'publicly_queryable' => false,
+				'show_ui'            => true,
+				'show_in_menu'       => 'designstudio-flow',
+				'query_var'          => false,
+				'rewrite'            => false,
+				'capability_type'    => 'page',
+				'map_meta_cap'       => true,
+				'has_archive'        => false,
+				'hierarchical'       => false,
+				'supports'           => array( 'title', 'author' ),
+				'show_in_rest'       => false,
+			)
+		);
 	}
 
 	/**
@@ -388,6 +422,70 @@ class DSF_Post_Type {
 				'auth_callback' => function () {
 					return current_user_can( 'edit_posts' );
 				},
+			)
+		);
+
+		$product_template_auth = function () {
+			return current_user_can( 'edit_pages' );
+		};
+
+		register_post_meta(
+			'dsf_product_template',
+			'_dsf_blocks',
+			array(
+				'type'          => 'array',
+				'description'   => 'Product template blocks data',
+				'single'        => true,
+				'show_in_rest'  => false,
+				'auth_callback' => $product_template_auth,
+			)
+		);
+
+		register_post_meta(
+			'dsf_product_template',
+			'_dsf_settings',
+			array(
+				'type'          => 'array',
+				'description'   => 'Product template settings',
+				'single'        => true,
+				'show_in_rest'  => false,
+				'auth_callback' => $product_template_auth,
+			)
+		);
+
+		register_post_meta(
+			'dsf_product_template',
+			'_dsf_pt_assignment',
+			array(
+				'type'          => 'array',
+				'description'   => 'Which products this template applies to',
+				'single'        => true,
+				'show_in_rest'  => false,
+				'auth_callback' => $product_template_auth,
+			)
+		);
+
+		register_post_meta(
+			'dsf_product_template',
+			'_dsf_pt_active',
+			array(
+				'type'          => 'string',
+				'description'   => 'Whether this product template is live',
+				'single'        => true,
+				'show_in_rest'  => false,
+				'auth_callback' => $product_template_auth,
+			)
+		);
+
+		register_post_meta(
+			'dsf_product_template',
+			'_dsf_pt_preview_product',
+			array(
+				'type'          => 'integer',
+				'description'   => 'Editor-only sample product used for preview',
+				'single'        => true,
+				'show_in_rest'  => false,
+				'auth_callback' => $product_template_auth,
 			)
 		);
 	}

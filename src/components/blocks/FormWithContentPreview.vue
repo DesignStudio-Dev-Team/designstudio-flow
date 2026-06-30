@@ -367,62 +367,86 @@ function injectGravityFormOverrides() {
   const style = document.createElement("style");
   style.id = gravityOverrideStyleId;
   style.textContent = `
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper *,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper.gravity-theme,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper.gravity-theme * {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper *,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper.gravity-theme,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper.gravity-theme * {
   font-family: var(--dsf-theme-body-font, inherit) !important;
   line-height: 1.65 !important;
-  margin-bottom: 5px !important; 
+  box-sizing: border-box !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper p,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper label,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper legend,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform-field-label,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_label,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_description,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gchoice,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gchoice label,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_checkbox label,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_radio label,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_container input,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_container textarea,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_container select,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_button,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_next_button,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_previous_button,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gf_progressbar_title {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper p,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper label,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper legend,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform-field-label,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_label,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_description,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gchoice,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gchoice label,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_checkbox label,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_radio label,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_container input,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_container textarea,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_container select,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_button,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_next_button,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_previous_button,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gf_progressbar_title {
   font-family: var(--dsf-theme-body-font, inherit) !important;
   font-size: var(--dsf-theme-text-base, 16px) !important;
   line-height: 1.65 !important;
 }
 
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_body,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_fields,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gfield,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .ginput_container {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield {
+  margin: 0 !important;
+  padding: 0 !important;
+  text-indent: 0 !important;
+}
+
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_checkbox,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_radio {
+  display: grid !important;
+  gap: .4rem !important;
+  margin: .35rem 0 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
 /* Field-level labels are always bold (every field type). Individual checkbox/radio
    choice labels are intentionally left at normal weight. */
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_label,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper legend.gfield_label,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform-field-label:not(.gform-field-label--type-inline) {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_label,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper legend.gfield_label,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform-field-label:not(.gform-field-label--type-inline) {
   font-weight: 700 !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gchoice label,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_checkbox label,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_radio label,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform-field-label--type-inline {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gchoice label,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_checkbox label,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gfield_radio label,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform-field-label--type-inline {
   font-weight: 400 !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] legend,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper legend.gfield_label,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper.gravity-theme legend.gfield_label {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] legend,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper legend.gfield_label,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper.gravity-theme legend.gfield_label {
   margin-bottom: 0 !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_ajax_spinner,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform-loader,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] [id^="gform_ajax_spinner_"] {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_ajax_spinner,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform-loader,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] [id^="gform_ajax_spinner_"] {
   width: 16px !important;
   height: 16px !important;
   max-width: 16px !important;
@@ -433,64 +457,110 @@ body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf
   border-width: 2px !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice {
   display: flex !important;
   align-items: center !important;
-  gap: .625rem !important;
-  line-height: 1.35 !important;
+  gap: .5rem !important;
+  line-height: 1.3 !important;
   margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  padding: 0 !important;
+  text-indent: 0 !important;
+  list-style: none !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > input[type="checkbox"],
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > input[type="radio"] {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper input[type="checkbox"],
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper input[type="radio"],
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > input[type="checkbox"],
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > input[type="radio"] {
   position: static !important;
   display: inline-block !important;
-  width: 25px !important;
-  height: 25px !important;
-  min-width: 25px !important;
-  min-height: 25px !important;
-  flex: 0 0 25px !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  flex: 0 0 20px !important;
   margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
   opacity: 1 !important;
   appearance: auto !important;
   -webkit-appearance: auto !important;
   accent-color: #aaa !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > label {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gchoice > label {
   margin: 0 !important;
   display: inline-flex !important;
   align-items: center !important;
   min-width: 0 !important;
-  line-height: 1.35 !important;
+  padding: 0 !important;
+  text-indent: 0 !important;
+  line-height: 1.3 !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .akismet-fields-container {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="image"]),
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper select,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper textarea {
+  box-sizing: border-box !important;
+  max-width: 100% !important;
+  min-height: 42px !important;
+  padding: .65rem .8rem !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 6px !important;
+  background: #fff !important;
+  color: inherit !important;
+  box-shadow: none !important;
+  text-indent: 0 !important;
+}
+
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper textarea {
+  min-height: 110px !important;
+}
+
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_button,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_next_button,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_previous_button {
+  margin: .75rem .5rem 0 0 !important;
+  padding: .75rem 1.2rem !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  text-indent: 0 !important;
+}
+
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .akismet-fields-container {
   display: none !important;
   visibility: hidden !important;
   height: 0 !important;
   overflow: hidden !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gf_progressbar_title {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gf_progressbar_title {
   display: flex !important;
   align-items: baseline !important;
-  gap: .75rem !important;
+  gap: .45rem !important;
+  margin: 0 0 .75rem !important;
+  padding: 0 !important;
+  color: var(--dsf-gray-600, #4B5563) !important;
+  font-size: .75rem !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .dsf-gform-required-legend--inline {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .dsf-gform-required-legend--inline {
   position: static !important;
   margin: 0 0 0 auto !important;
   padding: 0 !important;
   max-width: 48% !important;
   flex: 0 1 auto !important;
   color: var(--dsf-gray-600, #4B5563) !important;
-  font-size: .6875rem !important;
-  line-height: 1.4 !important;
+  font-size: .625rem !important;
+  line-height: 1.25 !important;
   text-align: right !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   column-gap: 16px !important;
@@ -498,9 +568,9 @@ body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf
   width: 100% !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex > span,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex > div:not(.gf_clear),
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .gform-grid-col {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex > span,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex > div:not(.gf_clear),
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .gform-grid-col {
   display: block !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -509,43 +579,43 @@ body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf
   margin-right: 0 !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .name_first,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_city,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_zip {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .name_first,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_city,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_zip {
   grid-column: 1 / span 1 !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .name_last,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_state {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .name_last,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_state {
   grid-column: 2 / span 1 !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .ginput_full,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_line_1,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_line_2,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_country {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .ginput_full,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_line_1,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_line_2,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .address_country {
   grid-column: 1 / -1 !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex input,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex select,
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex textarea {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex input,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex select,
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex textarea {
   width: 100% !important;
   max-width: 100% !important;
 }
 
-body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .gf_clear {
+body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .gf_clear {
   display: none !important;
 }
 
 @media (max-width: 700px) {
-  body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex {
+  body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex {
     grid-template-columns: 1fr !important;
   }
 
-  body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex > span,
-  body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex > div:not(.gf_clear),
-  body [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .gform-grid-col {
+  body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex > span,
+  body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex > div:not(.gf_clear),
+  body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .ginput_complex .gform-grid-col {
     grid-column: 1 / -1 !important;
   }
 }
@@ -1097,6 +1167,7 @@ onBeforeUnmount(() => {
 .dsf-form-with-content__form-frontend :deep(*) {
   font-family: var(--dsf-theme-body-font, inherit) !important;
   line-height: 1.65 !important;
+  box-sizing: border-box !important;
 }
 
 .dsf-form-with-content__form-frontend :deep(.gform-field-label),
@@ -1147,7 +1218,14 @@ onBeforeUnmount(() => {
 .dsf-form-with-content__form-frontend :deep(.gform_fields),
 .dsf-form-with-content__form-frontend :deep(.gfield),
 .dsf-form-with-content__form-frontend :deep(.ginput_container) {
-  min-width: 0;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper .gfield) {
+  margin: 0 !important;
+  padding: 0 !important;
+  text-indent: 0 !important;
 }
 
 .dsf-form-with-content__form-frontend :deep(legend),
@@ -1176,6 +1254,28 @@ onBeforeUnmount(() => {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+.dsf-form-with-content__form-frontend
+  :deep(
+    .gform_wrapper input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not(
+        [type="button"]
+      ):not([type="image"])
+  ),
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper select),
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper textarea) {
+  min-height: 42px !important;
+  padding: 0.65rem 0.8rem !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 6px !important;
+  background: #fff !important;
+  color: inherit !important;
+  box-shadow: none !important;
+  text-indent: 0 !important;
+}
+
+.dsf-form-with-content__form-frontend :deep(.gform_wrapper textarea) {
+  min-height: 110px !important;
 }
 
 /* Honor Gravity Forms native field size classes (legacy + 2.5+). */
@@ -1306,7 +1406,13 @@ onBeforeUnmount(() => {
 .dsf-form-with-content__form-frontend :deep(.gf_progressbar_title) {
   display: flex;
   align-items: baseline;
-  gap: 0.75rem;
+  gap: 0.45rem;
+  margin: 0 0 0.75rem !important;
+  padding: 0 !important;
+  color: var(--dsf-gray-600, #4B5563) !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
 }
 
 .dsf-form-with-content__form-frontend :deep(.gform_heading .gform_required_legend),
@@ -1316,8 +1422,8 @@ onBeforeUnmount(() => {
   right: 0;
   margin: 0;
   padding: 0;
-  font-size: 0.6875rem;
-  line-height: 1.4;
+  font-size: 0.625rem;
+  line-height: 1.25;
   color: var(--dsf-gray-600, #4B5563);
   text-align: right;
   max-width: 50%;
@@ -1347,27 +1453,42 @@ onBeforeUnmount(() => {
 
 .dsf-form-with-content__form-frontend :deep(input[type="checkbox"]),
 .dsf-form-with-content__form-frontend :deep(input[type="radio"]) {
-  position: static;
-  display: inline-block;
-  width: 25px !important;
-  height: 25px !important;
-  min-width: 25px !important;
-  min-height: 25px !important;
+  position: static !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
   margin: 0 !important;
-  opacity: 1;
-  appearance: auto;
-  -webkit-appearance: auto;
-  accent-color: #aaa;
-  vertical-align: middle;
-  flex: 0 0 25px !important;
+  padding: 0 !important;
+  opacity: 1 !important;
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  accent-color: #aaa !important;
+  vertical-align: middle !important;
+  transform: none !important;
+  flex: 0 0 20px !important;
+}
+
+.dsf-form-with-content__form-frontend :deep(.gfield_checkbox),
+.dsf-form-with-content__form-frontend :deep(.gfield_radio) {
+  display: grid !important;
+  gap: 0.4rem !important;
+  margin: 0.35rem 0 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
 }
 
 /* Keep the checkbox/radio inline with its label inside Gravity Forms choices. */
 .dsf-form-with-content__form-frontend :deep(.gchoice) {
   display: flex !important;
   align-items: center;
-  gap: 0.625rem;
-  line-height: 1.35;
+  gap: 0.5rem !important;
+  line-height: 1.3 !important;
+  margin-left: 0 !important;
+  padding: 0 !important;
+  text-indent: 0 !important;
+  list-style: none !important;
 }
 
 .dsf-form-with-content__form-frontend :deep(.gchoice > label),
@@ -1376,7 +1497,9 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   min-width: 0;
-  line-height: 1.35 !important;
+  padding: 0 !important;
+  text-indent: 0 !important;
+  line-height: 1.3 !important;
 }
 
 /* ── Responsive: stack below 680px ─────────────────── */
