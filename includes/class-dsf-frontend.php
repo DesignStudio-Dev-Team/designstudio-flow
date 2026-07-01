@@ -1270,10 +1270,10 @@ class DSF_Frontend {
 	/**
 	 * Render the DSF product-template blocks mount for the current product.
 	 *
-	 * Layout/theme come from the template; the visible data is the current product,
-	 * hydrated by Vue from dsfFrontendData.currentProduct. A minimal server-rendered
-	 * fallback (image, title, price, short description) keeps the page meaningful for
-	 * crawlers and no-JS visitors. Full per-block server rendering is a later pass.
+	 * Layout/theme come from the template; the visible data is the current product.
+	 * The product blocks are rendered server-side (real content, real add-to-cart
+	 * form) so the page is meaningful and purchasable for crawlers and no-JS
+	 * visitors; Vue then hydrates the same content for the interactive experience.
 	 *
 	 * @param int $template_id Product template post ID.
 	 * @param int $product_id  Current product post ID.
@@ -1298,17 +1298,196 @@ class DSF_Frontend {
 			$inner_class .= ' dsf-page-content__inner--fullwidth';
 		}
 
-		$fallback = $this->build_product_seo_fallback( $product_id );
+		$blocks_meta = get_post_meta( $template_id, '_dsf_blocks', true );
+		if ( is_array( $blocks_meta ) ) {
+			$blocks = $blocks_meta;
+		} else {
+			$decoded = $blocks_meta ? json_decode( $blocks_meta, true ) : array();
+			$blocks  = is_array( $decoded ) ? $decoded : array();
+		}
+
+		$needs   = $this->product_blocks_need_fragments( $blocks );
+		$context = DSF_Product_Templates::build_product_context(
+			$product_id,
+			array(
+				'add_to_cart' => $needs['add_to_cart'],
+				'reviews'     => $needs['reviews'],
+			)
+		);
+
+		$server_html = $this->render_product_blocks_server( $blocks, $context );
+		if ( '' === $server_html ) {
+			$server_html = $this->build_product_seo_fallback( $product_id );
+		}
 
 		$output  = '<div class="' . esc_attr( $outer_class ) . '" style="' . esc_attr( $theme_style ) . '">';
 		$output .= '<div class="' . esc_attr( $inner_class ) . '">';
 		$output .= '<div id="dsf-frontend-app" class="dsf-wrapper" data-post-id="' . intval( $product_id ) . '" data-product-template="' . intval( $template_id ) . '">';
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped/kses'd fragments in build_product_seo_fallback().
-		$output .= $fallback;
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped/kses'd fragments in the render_product_*_server() helpers.
+		$output .= $server_html;
 		$output .= '</div>';
 		$output .= '</div></div>';
 
 		return $output;
+	}
+
+	/**
+	 * Server-render the product blocks of a template for the current product.
+	 *
+	 * Only the product blocks are rendered (other block types hydrate via Vue). Each
+	 * fragment is escaped or already sanitized server-side, so the assembled string
+	 * is safe to echo.
+	 *
+	 * @param array $blocks  Template blocks.
+	 * @param array $context Current product context.
+	 * @return string
+	 */
+	private function render_product_blocks_server( $blocks, $context ) {
+		if ( empty( $context ) || ! is_array( $blocks ) ) {
+			return '';
+		}
+
+		$html = '';
+		foreach ( $blocks as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+			$type     = isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
+			$settings = ( isset( $block['settings'] ) && is_array( $block['settings'] ) ) ? $block['settings'] : array();
+			$html    .= $this->render_one_product_block_server( $type, $settings, $context );
+		}
+
+		return '' === $html ? '' : '<div class="dsf-product-ssr">' . $html . '</div>';
+	}
+
+	/**
+	 * Server-render a single product block.
+	 *
+	 * @param string $type     Block type.
+	 * @param array  $settings Block settings (already sanitized at save time).
+	 * @param array  $context  Current product context.
+	 * @return string
+	 */
+	private function render_one_product_block_server( $type, $settings, $context ) {
+		switch ( $type ) {
+			case 'product-gallery':
+				$image = isset( $context['gallery'][0] ) && is_array( $context['gallery'][0] ) ? $context['gallery'][0] : null;
+				if ( ! $image || empty( $image['full'] ) ) {
+					return '';
+				}
+				return '<figure class="dsf-ssr-gallery"><img src="' . esc_url( $image['full'] ) . '" alt="' . esc_attr( $image['alt'] ?? '' ) . '" fetchpriority="high" /></figure>';
+
+			case 'product-summary':
+				$tag = ( 'h2' === ( $settings['headingTag'] ?? 'h1' ) ) ? 'h2' : 'h1';
+				$out = '<div class="dsf-ssr-summary">';
+				if ( false !== ( $settings['showTitle'] ?? true ) ) {
+					$out .= '<' . $tag . '>' . esc_html( $context['name'] ?? '' ) . '</' . $tag . '>';
+				}
+				if ( false !== ( $settings['showPrice'] ?? true ) && ! empty( $context['priceHtml'] ) ) {
+					$out .= '<div class="dsf-ssr-price">' . wp_kses_post( $context['priceHtml'] ) . '</div>';
+				}
+				if ( false !== ( $settings['showShortDescription'] ?? true ) && ! empty( $context['shortDescriptionHtml'] ) ) {
+					$out .= '<div class="dsf-ssr-excerpt">' . wp_kses_post( $context['shortDescriptionHtml'] ) . '</div>';
+				}
+				return $out . '</div>';
+
+			case 'product-add-to-cart':
+				// Already sanitized with the Woo-form allowlist; echoing makes the page
+				// purchasable without JavaScript.
+				return ! empty( $context['addToCartHtml'] ) ? '<div class="dsf-ssr-cart">' . $context['addToCartHtml'] . '</div>' : '';
+
+			case 'product-description':
+				if ( empty( $context['descriptionHtml'] ) ) {
+					return '';
+				}
+				$out = '<div class="dsf-ssr-description">';
+				if ( false !== ( $settings['showHeading'] ?? true ) ) {
+					$out .= '<h2>' . esc_html( sanitize_text_field( $settings['headingText'] ?? 'Description' ) ) . '</h2>';
+				}
+				return $out . wp_kses_post( $context['descriptionHtml'] ) . '</div>';
+
+			case 'product-specs':
+				return $this->render_specs_table_server( $settings, $context );
+
+			case 'product-tabs':
+				return $this->render_tabs_server( $settings, $context );
+
+			default:
+				return '';
+		}
+	}
+
+	/**
+	 * Server-render the specs table fragment.
+	 *
+	 * @param array $settings Block settings.
+	 * @param array $context  Current product context.
+	 * @return string
+	 */
+	private function render_specs_table_server( $settings, $context ) {
+		$specs = ( isset( $context['specs'] ) && is_array( $context['specs'] ) ) ? $context['specs'] : array();
+		if ( empty( $specs ) ) {
+			return '';
+		}
+
+		$out = '<div class="dsf-ssr-specs">';
+		if ( false !== ( $settings['showHeading'] ?? true ) ) {
+			$out .= '<h2>' . esc_html( sanitize_text_field( $settings['headingText'] ?? 'Specifications' ) ) . '</h2>';
+		}
+		$out .= '<table><tbody>';
+		foreach ( $specs as $spec ) {
+			if ( ! is_array( $spec ) ) {
+				continue;
+			}
+			$out .= '<tr><th scope="row">' . esc_html( $spec['name'] ?? '' ) . '</th><td>' . esc_html( $spec['value'] ?? '' ) . '</td></tr>';
+		}
+		return $out . '</tbody></table></div>';
+	}
+
+	/**
+	 * Server-render the tabs fragment (all panels stacked under their labels so the
+	 * content is fully crawlable without JavaScript).
+	 *
+	 * @param array $settings Block settings.
+	 * @param array $context  Current product context.
+	 * @return string
+	 */
+	private function render_tabs_server( $settings, $context ) {
+		$tabs = ( isset( $settings['tabs'] ) && is_array( $settings['tabs'] ) ) ? $settings['tabs'] : array();
+		if ( empty( $tabs ) ) {
+			$tabs = array(
+				array(
+					'label'  => 'Description',
+					'source' => 'description',
+				),
+			);
+		}
+
+		$out = '<div class="dsf-ssr-tabs">';
+		foreach ( $tabs as $tab ) {
+			if ( ! is_array( $tab ) ) {
+				continue;
+			}
+			$label  = sanitize_text_field( $tab['label'] ?? '' );
+			$source = $tab['source'] ?? 'description';
+			$out   .= '<section class="dsf-ssr-tab">';
+			if ( '' !== $label ) {
+				$out .= '<h2>' . esc_html( $label ) . '</h2>';
+			}
+			if ( 'description' === $source ) {
+				$out .= wp_kses_post( $context['descriptionHtml'] ?? '' );
+			} elseif ( 'specs' === $source ) {
+				$out .= $this->render_specs_table_server( array( 'showHeading' => false ), $context );
+			} elseif ( 'reviews' === $source ) {
+				// Already sanitized with the Woo-form allowlist in build_reviews_html().
+				$out .= $context['reviewsHtml'] ?? '';
+			} elseif ( 'custom' === $source ) {
+				$out .= wp_kses_post( $tab['content'] ?? '' );
+			}
+			$out .= '</section>';
+		}
+
+		return $out . '</div>';
 	}
 
 	/**

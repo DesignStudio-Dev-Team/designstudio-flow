@@ -101,4 +101,39 @@ class Test_DSF_Product_Templates extends TestCase {
 		$this->assertSame( 'all', $result['mode'] );
 		$this->assertSame( array(), $result['categoryIds'] );
 	}
+
+	public function test_woo_form_html_keeps_controls_but_strips_scripts() {
+		// Mock wp_kses to mirror the real intent: keep allowed structure/attrs,
+		// drop <script> and inline event handlers.
+		WP_Mock::userFunction(
+			'wp_kses',
+			array(
+				'return' => static function ( $html ) {
+					$html = preg_replace( '#<script\b[^>]*>.*?</script>#is', '', (string) $html );
+					return preg_replace( '/\s+on[a-z]+\s*=\s*(["\']).*?\1/i', '', $html );
+				},
+			)
+		);
+
+		$method = new ReflectionMethod( 'DSF_Product_Templates', 'sanitize_woo_form_html' );
+		$method->setAccessible( true );
+
+		$raw = '<form class="variations_form cart" data-product_variations="[{&quot;id&quot;:1}]">'
+			. '<select name="attribute_color"><option value="red">Red</option></select>'
+			. '<button type="submit" onclick="evil()">Add</button>'
+			. '<script>steal()</script></form>';
+
+		$clean = $method->invoke( null, $raw );
+
+		$this->assertStringNotContainsString( '<script', $clean );
+		$this->assertStringNotContainsString( 'onclick', $clean );
+		$this->assertStringContainsString( 'data-product_variations', $clean );
+		$this->assertStringContainsString( '<select name="attribute_color"', $clean );
+	}
+
+	public function test_woo_form_html_empty_input_returns_empty() {
+		$method = new ReflectionMethod( 'DSF_Product_Templates', 'sanitize_woo_form_html' );
+		$method->setAccessible( true );
+		$this->assertSame( '', $method->invoke( null, '   ' ) );
+	}
 }
