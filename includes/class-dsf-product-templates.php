@@ -324,32 +324,29 @@ class DSF_Product_Templates {
 			return '';
 		}
 
-		$common = array(
-			'class'       => true,
-			'id'          => true,
-			'style'       => true,
-			'title'       => true,
-			'role'        => true,
-			'hidden'      => true,
-			'data-*'      => true,
-			'aria-*'      => true,
-		);
+		$common = array_fill_keys( array( 'class', 'id', 'style', 'title', 'role', 'hidden', 'data-*', 'aria-*' ), true );
+
+		// Each tag's allowed attributes = the common set plus its own (as a list of
+		// names). array_fill_keys keeps this readable and standards-compliant.
+		$attr = static function ( array $extra ) use ( $common ) {
+			return array_merge( $common, array_fill_keys( $extra, true ) );
+		};
 
 		$allowed = array(
-			'form'     => array_merge( $common, array( 'action' => true, 'method' => true, 'enctype' => true, 'name' => true, 'novalidate' => true ) ),
-			'input'    => array_merge( $common, array( 'type' => true, 'name' => true, 'value' => true, 'placeholder' => true, 'min' => true, 'max' => true, 'step' => true, 'size' => true, 'maxlength' => true, 'pattern' => true, 'inputmode' => true, 'required' => true, 'readonly' => true, 'disabled' => true, 'checked' => true, 'autocomplete' => true ) ),
-			'select'   => array_merge( $common, array( 'name' => true, 'multiple' => true, 'required' => true, 'disabled' => true ) ),
-			'option'   => array_merge( $common, array( 'value' => true, 'selected' => true, 'disabled' => true ) ),
-			'textarea' => array_merge( $common, array( 'name' => true, 'rows' => true, 'cols' => true, 'placeholder' => true, 'required' => true, 'maxlength' => true ) ),
-			'label'    => array_merge( $common, array( 'for' => true ) ),
-			'button'   => array_merge( $common, array( 'type' => true, 'name' => true, 'value' => true, 'disabled' => true ) ),
+			'form'     => $attr( array( 'action', 'method', 'enctype', 'name', 'novalidate' ) ),
+			'input'    => $attr( array( 'type', 'name', 'value', 'placeholder', 'min', 'max', 'step', 'size', 'maxlength', 'pattern', 'inputmode', 'required', 'readonly', 'disabled', 'checked', 'autocomplete' ) ),
+			'select'   => $attr( array( 'name', 'multiple', 'required', 'disabled' ) ),
+			'option'   => $attr( array( 'value', 'selected', 'disabled' ) ),
+			'textarea' => $attr( array( 'name', 'rows', 'cols', 'placeholder', 'required', 'maxlength' ) ),
+			'label'    => $attr( array( 'for' ) ),
+			'button'   => $attr( array( 'type', 'name', 'value', 'disabled' ) ),
 			'table'    => $common,
 			'tbody'    => $common,
 			'thead'    => $common,
 			'tfoot'    => $common,
 			'tr'       => $common,
-			'td'       => array_merge( $common, array( 'colspan' => true, 'rowspan' => true ) ),
-			'th'       => array_merge( $common, array( 'colspan' => true, 'rowspan' => true, 'scope' => true ) ),
+			'td'       => $attr( array( 'colspan', 'rowspan' ) ),
+			'th'       => $attr( array( 'colspan', 'rowspan', 'scope' ) ),
 			'div'      => $common,
 			'section'  => $common,
 			'span'     => $common,
@@ -361,14 +358,14 @@ class DSF_Product_Templates {
 			'i'        => $common,
 			'br'       => array(),
 			'ul'       => $common,
-			'ol'       => array_merge( $common, array( 'reversed' => true, 'start' => true ) ),
+			'ol'       => $attr( array( 'reversed', 'start' ) ),
 			'li'       => $common,
 			'h2'       => $common,
 			'h3'       => $common,
-			'a'        => array_merge( $common, array( 'href' => true, 'target' => true, 'rel' => true ) ),
-			'img'      => array_merge( $common, array( 'src' => true, 'srcset' => true, 'sizes' => true, 'alt' => true, 'width' => true, 'height' => true, 'loading' => true, 'decoding' => true ) ),
-			'time'     => array_merge( $common, array( 'datetime' => true ) ),
-			'abbr'     => array_merge( $common, array( 'title' => true ) ),
+			'a'        => $attr( array( 'href', 'target', 'rel' ) ),
+			'img'      => $attr( array( 'src', 'srcset', 'sizes', 'alt', 'width', 'height', 'loading', 'decoding' ) ),
+			'time'     => $attr( array( 'datetime' ) ),
+			'abbr'     => $attr( array( 'title' ) ),
 		);
 
 		return wp_kses( $html, $allowed, array( 'http', 'https', 'mailto', 'tel' ) );

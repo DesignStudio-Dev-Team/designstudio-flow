@@ -967,11 +967,11 @@ class DSF_Ajax {
 		$settings = is_array( $settings ) ? $settings : array();
 
 		$clean = array(
-			'alignment' => in_array( $settings['alignment'] ?? '', array( 'left', 'center' ), true ) ? $settings['alignment'] : 'left',
-			'maxWidth'  => max( 280, min( 900, absint( $settings['maxWidth'] ?? 460 ) ) ),
-			'padding'   => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
-			'paddingX'  => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
-			'marginY'   => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'alignment'  => in_array( $settings['alignment'] ?? '', array( 'left', 'center' ), true ) ? $settings['alignment'] : 'left',
+			'maxWidth'   => max( 280, min( 900, absint( $settings['maxWidth'] ?? 460 ) ) ),
+			'padding'    => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'   => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'    => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
 			'responsive' => $this->sanitize_product_responsive_spacing( $settings ),
 		);
 
