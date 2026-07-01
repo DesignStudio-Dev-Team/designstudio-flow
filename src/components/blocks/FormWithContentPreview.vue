@@ -395,7 +395,7 @@ body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-for
 body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_previous_button,
 body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gf_progressbar_title {
   font-family: var(--dsf-theme-body-font, inherit) !important;
-  font-size: var(--dsf-theme-text-base, 16px) !important;
+  font-size: 16px !important;
   line-height: 1.65 !important;
 }
 
@@ -539,7 +539,7 @@ body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-for
 body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gf_progressbar_title {
   display: flex !important;
   align-items: baseline !important;
-  gap: .45rem !important;
+  gap: .25rem !important;
   margin: 0 0 .75rem !important;
   padding: 0 !important;
   color: var(--dsf-gray-600, #4B5563) !important;
