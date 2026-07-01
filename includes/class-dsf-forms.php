@@ -694,10 +694,14 @@ class DSF_Forms {
 	 */
 	private function render_field_markup( $field, $form_id, $page_index, $field_index, $field_id_to_name = array() ) {
 		$type = $field['type'] ?? 'single_line_text';
+
+		// JS pre-fill hook: forms.js reads ?param from the URL and fills the field.
+		$param_attr = ( ! empty( $field['paramName'] ) ) ? ' data-dsf-param="' . esc_attr( $field['paramName'] ) . '"' : '';
+
 		if ( 'hidden' === $type ) {
 			$name  = $field['name'] ?? 'hidden_field';
 			$value = $field['defaultValue'] ?? '';
-			return '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '">';
+			return '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '"' . $param_attr . '>';
 		}
 
 		$field_key = sanitize_title( $field['id'] ?? 'field' );
@@ -734,7 +738,7 @@ class DSF_Forms {
 		}
 		$field_name_attr = isset( $field['name'] ) ? ' data-dsf-field-name="' . esc_attr( $field['name'] ) . '"' : '';
 
-		$output = '<div class="dsf-form-field dsf-form-field--' . esc_attr( $type ) . '" data-field-type="' . esc_attr( $type ) . '"' . $field_name_attr . $group_required_attr . $conditional_attr . '>';
+		$output = '<div class="dsf-form-field dsf-form-field--' . esc_attr( $type ) . '" data-field-type="' . esc_attr( $type ) . '"' . $field_name_attr . $group_required_attr . $conditional_attr . $param_attr . '>';
 
 		if ( 'html' === $type ) {
 			$output .= '<div class="dsf-form-html">' . wp_kses_post( $html_value ) . '</div>';
@@ -752,10 +756,11 @@ class DSF_Forms {
 			case 'checkboxes':
 				$output .= '<div class="dsf-form-options">';
 				foreach ( $options as $index => $option ) {
+					list( $opt_label, $opt_value, $opt_selected ) = $this->option_parts( $option );
 					$option_id = $field_id . '-cb-' . intval( $index );
 					$output   .= '<label class="dsf-form-option" for="' . esc_attr( $option_id ) . '">';
-					$output   .= '<input type="checkbox" id="' . esc_attr( $option_id ) . '" name="' . esc_attr( $name ) . '[]" value="' . esc_attr( $option ) . '">';
-					$output   .= '<span>' . esc_html( $option ) . '</span>';
+					$output   .= '<input type="checkbox" id="' . esc_attr( $option_id ) . '" name="' . esc_attr( $name ) . '[]" value="' . esc_attr( $opt_value ) . '"' . ( $opt_selected ? ' checked' : '' ) . '>';
+					$output   .= '<span>' . esc_html( $opt_label ) . '</span>';
 					$output   .= '</label>';
 				}
 				$output .= '</div>';
@@ -763,10 +768,11 @@ class DSF_Forms {
 			case 'radio_buttons':
 				$output .= '<div class="dsf-form-options">';
 				foreach ( $options as $index => $option ) {
+					list( $opt_label, $opt_value, $opt_selected ) = $this->option_parts( $option );
 					$option_id = $field_id . '-rb-' . intval( $index );
 					$output   .= '<label class="dsf-form-option" for="' . esc_attr( $option_id ) . '">';
-					$output   .= '<input type="radio" id="' . esc_attr( $option_id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( $option ) . '">';
-					$output   .= '<span>' . esc_html( $option ) . '</span>';
+					$output   .= '<input type="radio" id="' . esc_attr( $option_id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( $opt_value ) . '"' . ( $opt_selected ? ' checked' : '' ) . '>';
+					$output   .= '<span>' . esc_html( $opt_label ) . '</span>';
 					$output   .= '</label>';
 				}
 				$output .= '</div>';
@@ -775,7 +781,8 @@ class DSF_Forms {
 				$output .= '<select id="' . esc_attr( $field_id ) . '" name="' . esc_attr( $name ) . '"' . $required_attr . '>';
 				$output .= '<option value="">' . esc_html__( 'Select an option', 'designstudio-flow' ) . '</option>';
 				foreach ( $options as $option ) {
-					$output .= '<option value="' . esc_attr( $option ) . '">' . esc_html( $option ) . '</option>';
+					list( $opt_label, $opt_value, $opt_selected ) = $this->option_parts( $option );
+					$output .= '<option value="' . esc_attr( $opt_value ) . '"' . ( $opt_selected ? ' selected' : '' ) . '>' . esc_html( $opt_label ) . '</option>';
 				}
 				$output .= '</select>';
 				break;
@@ -1369,12 +1376,16 @@ class DSF_Forms {
 
 		$required = ! empty( $field['required'] );
 
+		// Optional URL query-parameter name used to pre-fill this field via JS.
+		$param_name = isset( $field['paramName'] ) ? sanitize_text_field( $field['paramName'] ) : '';
+		$param_name = preg_replace( '/[^A-Za-z0-9_.\-\[\]]/', '', $param_name );
+
 		$options = array();
 		if ( isset( $field['options'] ) && is_array( $field['options'] ) ) {
 			foreach ( $field['options'] as $option ) {
-				$option = sanitize_text_field( $option );
-				if ( '' !== $option ) {
-					$options[] = $option;
+				$normalized = $this->normalize_field_option( $option );
+				if ( null !== $normalized ) {
+					$options[] = $normalized;
 				}
 				if ( count( $options ) >= 50 ) {
 					break;
@@ -1383,7 +1394,26 @@ class DSF_Forms {
 		}
 
 		if ( empty( $options ) ) {
-			$options = $this->get_default_options( $type );
+			foreach ( $this->get_default_options( $type ) as $option ) {
+				$normalized = $this->normalize_field_option( $option );
+				if ( null !== $normalized ) {
+					$options[] = $normalized;
+				}
+			}
+		}
+
+		// Radio buttons and drop-downs may pre-select only one option.
+		if ( in_array( $type, array( 'radio_buttons', 'drop_down' ), true ) ) {
+			$seen_selected = false;
+			foreach ( $options as $opt_index => $opt ) {
+				if ( ! empty( $opt['selected'] ) ) {
+					if ( $seen_selected ) {
+						$options[ $opt_index ]['selected'] = false;
+					} else {
+						$seen_selected = true;
+					}
+				}
+			}
 		}
 
 		$page_break_animation = isset( $field['pageBreakAnimation'] ) ? sanitize_key( $field['pageBreakAnimation'] ) : 'slide-left';
@@ -1403,6 +1433,7 @@ class DSF_Forms {
 			'required'           => $required,
 			'placeholder'        => isset( $field['placeholder'] ) ? sanitize_text_field( $field['placeholder'] ) : '',
 			'defaultValue'       => isset( $field['defaultValue'] ) ? sanitize_text_field( $field['defaultValue'] ) : '',
+			'paramName'          => $param_name,
 			'helpText'           => isset( $field['helpText'] ) ? sanitize_text_field( $field['helpText'] ) : '',
 			'helpTextPosition'   => ( isset( $field['helpTextPosition'] ) && 'top' === $field['helpTextPosition'] ) ? 'top' : 'bottom',
 			'options'            => $options,
@@ -1513,6 +1544,52 @@ class DSF_Forms {
 	/**
 	 * Default options for option-based fields.
 	 */
+	/**
+	 * Normalize a choice option to { label, value, selected }, accepting either a
+	 * legacy plain string or the richer object shape. Returns null when empty.
+	 */
+	private function normalize_field_option( $option ) {
+		if ( is_string( $option ) ) {
+			$label = sanitize_text_field( $option );
+			return ( '' === $label ) ? null : array(
+				'label'    => $label,
+				'value'    => '',
+				'selected' => false,
+			);
+		}
+		if ( is_array( $option ) ) {
+			$label = isset( $option['label'] ) ? sanitize_text_field( $option['label'] ) : '';
+			$value = isset( $option['value'] ) ? sanitize_text_field( $option['value'] ) : '';
+			if ( '' === $label && '' === $value ) {
+				return null;
+			}
+			if ( '' === $label ) {
+				$label = $value;
+			}
+			return array(
+				'label'    => $label,
+				'value'    => $value,
+				'selected' => ! empty( $option['selected'] ),
+			);
+		}
+		return null;
+	}
+
+	/**
+	 * Resolve an option (object or legacy string) to [ label, value, selected ].
+	 * The submitted value falls back to the label when no explicit value is set.
+	 */
+	private function option_parts( $option ) {
+		if ( is_array( $option ) ) {
+			$label    = isset( $option['label'] ) ? (string) $option['label'] : '';
+			$value    = ( isset( $option['value'] ) && '' !== $option['value'] ) ? (string) $option['value'] : $label;
+			$selected = ! empty( $option['selected'] );
+			return array( $label, $value, $selected );
+		}
+		$label = (string) $option;
+		return array( $label, $label, false );
+	}
+
 	private function get_default_options( $type ) {
 		if ( in_array( $type, array( 'checkboxes', 'radio_buttons', 'drop_down' ), true ) ) {
 			return array(

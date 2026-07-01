@@ -21,6 +21,8 @@ class DSF_Admin {
 	private function __construct() {
 		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
 		add_action( 'admin_menu', array( $this, 'add_settings_submenu' ), 80 );
+		// Run after all submenus (incl. auto-added CPT items) are registered.
+		add_action( 'admin_menu', array( $this, 'reorder_flow_submenu' ), 9999 );
 		add_action( 'admin_init', array( $this, 'handle_disable_flow' ) );
 		add_action( 'pre_get_posts', array( $this, 'filter_layout_admin_list' ) );
 		add_action( 'current_screen', array( $this, 'set_layout_screen_labels' ) );
@@ -95,6 +97,56 @@ class DSF_Admin {
 			__( 'Popups', 'designstudio-flow' ),
 			'edit_pages',
 			'edit.php?post_type=dsf_popup'
+		);
+	}
+
+	/**
+	 * Order the DesignStudio Flow submenu deterministically: Dashboard first,
+	 * Saved Blocks + Templates right after Footers, regardless of when WordPress
+	 * auto-adds the CPT submenu items.
+	 */
+	public function reorder_flow_submenu() {
+		global $submenu;
+		if ( empty( $submenu['designstudio-flow'] ) || ! is_array( $submenu['designstudio-flow'] ) ) {
+			return;
+		}
+
+		$rank = array(
+			'designstudio-flow'                                    => 0,  // Dashboard
+			$this->get_flow_pages_admin_url()                      => 1,  // Pages
+			'edit.php?post_type=dsf_layout&dsf_layout_type=header' => 2,  // Headers
+			'edit.php?post_type=dsf_layout&dsf_layout_type=footer' => 3,  // Footers
+			'edit.php?post_type=dsf_saved_block'                   => 4,  // Saved Blocks
+			'edit.php?post_type=dsf_template'                      => 5,  // Templates
+			'edit.php?post_type=dsf_product_template'              => 6,  // Product Templates
+			'edit.php?post_type=dsf_popup'                         => 7,  // Popups
+			'dsf-tools'                                            => 8,  // Tools
+			'dsf-settings'                                         => 9,  // Settings
+		);
+
+		// Decorate with rank + original index for a stable sort.
+		$decorated = array();
+		foreach ( array_values( $submenu['designstudio-flow'] ) as $index => $item ) {
+			$slug          = isset( $item[2] ) ? $item[2] : '';
+			$decorated[]   = array(
+				'rank'  => isset( $rank[ $slug ] ) ? $rank[ $slug ] : 50,
+				'index' => $index,
+				'item'  => $item,
+			);
+		}
+
+		usort(
+			$decorated,
+			static function ( $a, $b ) {
+				return ( $a['rank'] <=> $b['rank'] ) ?: ( $a['index'] <=> $b['index'] );
+			}
+		);
+
+		$submenu['designstudio-flow'] = array_map(
+			static function ( $entry ) {
+				return $entry['item'];
+			},
+			$decorated
 		);
 	}
 

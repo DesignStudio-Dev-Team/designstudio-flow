@@ -21,6 +21,35 @@ class DSF_Post_Type {
 	private function __construct() {
 		add_action( 'init', array( $this, 'register_post_type' ) );
 		add_action( 'init', array( $this, 'register_meta' ) );
+
+		// Saved Blocks admin list: add a Folder column (Author comes from the
+		// 'author' support).
+		add_filter( 'manage_dsf_saved_block_posts_columns', array( $this, 'saved_block_columns' ) );
+		add_action( 'manage_dsf_saved_block_posts_custom_column', array( $this, 'saved_block_column' ), 10, 2 );
+	}
+
+	/**
+	 * Add a "Folder" column to the Saved Blocks admin list.
+	 */
+	public function saved_block_columns( $columns ) {
+		$reordered = array();
+		foreach ( $columns as $key => $label ) {
+			if ( 'date' === $key ) {
+				$reordered['dsf_folder'] = __( 'Folder', 'designstudio-flow' );
+			}
+			$reordered[ $key ] = $label;
+		}
+		if ( ! isset( $reordered['dsf_folder'] ) ) {
+			$reordered['dsf_folder'] = __( 'Folder', 'designstudio-flow' );
+		}
+		return $reordered;
+	}
+
+	public function saved_block_column( $column, $post_id ) {
+		if ( 'dsf_folder' === $column ) {
+			$folder = get_post_meta( $post_id, '_dsf_block_category', true );
+			echo $folder ? esc_html( $folder ) : '<span aria-hidden="true">—</span>';
+		}
 	}
 
 	/**
@@ -151,6 +180,101 @@ class DSF_Post_Type {
 				'has_archive'         => false,
 				'supports'            => array( 'title' ),
 				'show_in_rest'        => false,
+			)
+		);
+
+		// Saved Blocks — a site-wide library of reusable blocks (a block's type +
+		// full settings) editors can drop onto any page. Managed via its own admin
+		// list under the DesignStudio Flow menu.
+		register_post_type(
+			'dsf_saved_block',
+			array(
+				'labels'             => array(
+					'name'               => _x( 'Saved Blocks', 'Post type general name', 'designstudio-flow' ),
+					'singular_name'      => _x( 'Saved Block', 'Post type singular name', 'designstudio-flow' ),
+					'menu_name'          => __( 'Saved Blocks', 'designstudio-flow' ),
+					'all_items'          => __( 'Saved Blocks', 'designstudio-flow' ),
+					'edit_item'          => __( 'Edit Saved Block', 'designstudio-flow' ),
+					'search_items'       => __( 'Search Saved Blocks', 'designstudio-flow' ),
+					'not_found'          => __( 'No saved blocks yet.', 'designstudio-flow' ),
+					'not_found_in_trash' => __( 'No saved blocks found in Trash.', 'designstudio-flow' ),
+				),
+				'public'             => false,
+				'publicly_queryable' => false,
+				'show_ui'            => true,
+				'show_in_menu'       => 'designstudio-flow',
+				'query_var'          => false,
+				'rewrite'            => false,
+				'capability_type'    => 'page',
+				'map_meta_cap'       => true,
+				'has_archive'        => false,
+				'hierarchical'       => false,
+				'supports'           => array( 'title', 'author' ),
+				'show_in_rest'       => false,
+			)
+		);
+
+		// Templates — a saved group of blocks (a section, or a whole page's blocks
+		// plus its theme) reusable across pages. Site-wide, managed under the DSF menu.
+		register_post_type(
+			'dsf_template',
+			array(
+				'labels'             => array(
+					'name'               => _x( 'Templates', 'Post type general name', 'designstudio-flow' ),
+					'singular_name'      => _x( 'Template', 'Post type singular name', 'designstudio-flow' ),
+					'menu_name'          => __( 'Templates', 'designstudio-flow' ),
+					'all_items'          => __( 'Templates', 'designstudio-flow' ),
+					'edit_item'          => __( 'Edit Template', 'designstudio-flow' ),
+					'search_items'       => __( 'Search Templates', 'designstudio-flow' ),
+					'not_found'          => __( 'No templates yet.', 'designstudio-flow' ),
+					'not_found_in_trash' => __( 'No templates found in Trash.', 'designstudio-flow' ),
+				),
+				'public'             => false,
+				'publicly_queryable' => false,
+				'show_ui'            => true,
+				'show_in_menu'       => 'designstudio-flow',
+				'query_var'          => false,
+				'rewrite'            => false,
+				'capability_type'    => 'page',
+				'map_meta_cap'       => true,
+				'has_archive'        => false,
+				'hierarchical'       => false,
+				'supports'           => array( 'title', 'author' ),
+				'show_in_rest'       => false,
+			)
+		);
+
+		// Product Templates — a reusable single-product page design (theme-builder
+		// style). One template is assigned to all products or to specific product
+		// categories; its blocks bind to whichever product is being viewed. Managed
+		// under the DSF menu. WooCommerce templates are never modified.
+		register_post_type(
+			'dsf_product_template',
+			array(
+				'labels'             => array(
+					'name'               => _x( 'Product Templates', 'Post type general name', 'designstudio-flow' ),
+					'singular_name'      => _x( 'Product Template', 'Post type singular name', 'designstudio-flow' ),
+					'menu_name'          => __( 'Product Templates', 'designstudio-flow' ),
+					'all_items'          => __( 'Product Templates', 'designstudio-flow' ),
+					'add_new'            => __( 'Add New Product Template', 'designstudio-flow' ),
+					'add_new_item'       => __( 'Add New Product Template', 'designstudio-flow' ),
+					'edit_item'          => __( 'Edit Product Template', 'designstudio-flow' ),
+					'search_items'       => __( 'Search Product Templates', 'designstudio-flow' ),
+					'not_found'          => __( 'No product templates yet.', 'designstudio-flow' ),
+					'not_found_in_trash' => __( 'No product templates found in Trash.', 'designstudio-flow' ),
+				),
+				'public'             => false,
+				'publicly_queryable' => false,
+				'show_ui'            => true,
+				'show_in_menu'       => 'designstudio-flow',
+				'query_var'          => false,
+				'rewrite'            => false,
+				'capability_type'    => 'page',
+				'map_meta_cap'       => true,
+				'has_archive'        => false,
+				'hierarchical'       => false,
+				'supports'           => array( 'title', 'author' ),
+				'show_in_rest'       => false,
 			)
 		);
 	}
@@ -298,6 +422,70 @@ class DSF_Post_Type {
 				'auth_callback' => function () {
 					return current_user_can( 'edit_posts' );
 				},
+			)
+		);
+
+		$product_template_auth = function () {
+			return current_user_can( 'edit_pages' );
+		};
+
+		register_post_meta(
+			'dsf_product_template',
+			'_dsf_blocks',
+			array(
+				'type'          => 'array',
+				'description'   => 'Product template blocks data',
+				'single'        => true,
+				'show_in_rest'  => false,
+				'auth_callback' => $product_template_auth,
+			)
+		);
+
+		register_post_meta(
+			'dsf_product_template',
+			'_dsf_settings',
+			array(
+				'type'          => 'array',
+				'description'   => 'Product template settings',
+				'single'        => true,
+				'show_in_rest'  => false,
+				'auth_callback' => $product_template_auth,
+			)
+		);
+
+		register_post_meta(
+			'dsf_product_template',
+			'_dsf_pt_assignment',
+			array(
+				'type'          => 'array',
+				'description'   => 'Which products this template applies to',
+				'single'        => true,
+				'show_in_rest'  => false,
+				'auth_callback' => $product_template_auth,
+			)
+		);
+
+		register_post_meta(
+			'dsf_product_template',
+			'_dsf_pt_active',
+			array(
+				'type'          => 'string',
+				'description'   => 'Whether this product template is live',
+				'single'        => true,
+				'show_in_rest'  => false,
+				'auth_callback' => $product_template_auth,
+			)
+		);
+
+		register_post_meta(
+			'dsf_product_template',
+			'_dsf_pt_preview_product',
+			array(
+				'type'          => 'integer',
+				'description'   => 'Editor-only sample product used for preview',
+				'single'        => true,
+				'show_in_rest'  => false,
+				'auth_callback' => $product_template_auth,
 			)
 		);
 	}

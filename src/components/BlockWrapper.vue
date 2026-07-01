@@ -5,6 +5,8 @@
     :class="{
       'dsf-block--selected': isSelected,
       'dsf-block--landing': isLandingBlock,
+      'dsf-block--template-selected': isSelectedForTemplate,
+      'dsf-block--has-height': hasHeight,
     }"
     :style="wrapperStyle"
     @click.stop="$emit('select')"
@@ -16,6 +18,20 @@
       </button>
       <button type="button" class="dsf-block-toolbar__btn" title="Settings" aria-label="Open block settings" @click.stop="$emit('open-settings')">
         <Settings :size="16" />
+      </button>
+      <button type="button" class="dsf-block-toolbar__btn" title="Save block to library" aria-label="Save block to library" @click.stop="$emit('save-block')">
+        <Bookmark :size="16" />
+      </button>
+      <button
+        type="button"
+        class="dsf-block-toolbar__btn"
+        :class="{ 'dsf-block-toolbar__btn--active': isSelectedForTemplate }"
+        :title="isSelectedForTemplate ? 'Selected for template' : 'Select for section template'"
+        :aria-label="isSelectedForTemplate ? 'Selected for template' : 'Select for section template'"
+        :aria-pressed="isSelectedForTemplate"
+        @click.stop="$emit('toggle-select')"
+      >
+        <component :is="isSelectedForTemplate ? CheckSquare : Square" :size="16" />
       </button>
       <button v-if="allowReorder" type="button" class="dsf-block-toolbar__btn" title="Move up" aria-label="Move block up" @click.stop="$emit('move-up')">
         <ChevronUp :size="16" />
@@ -41,8 +57,8 @@
 
 <script setup>
 import { computed } from 'vue'
-import { GripVertical, Settings, ChevronUp, ChevronDown, Trash2 } from 'lucide-vue-next'
-import { getResponsiveValue } from '../utils/responsiveSettings'
+import { GripVertical, Settings, ChevronUp, ChevronDown, Trash2, Bookmark, CheckSquare, Square } from 'lucide-vue-next'
+import { blockWrapperStyle, hasResponsiveKey } from '../utils/responsiveSettings'
 
 // Block preview components
 import ContentPreview from './blocks/ContentPreview.vue'
@@ -63,6 +79,12 @@ import NewsletterPreview from './blocks/NewsletterPreview.vue'
 import BrandLogosPreview from './blocks/BrandLogosPreview.vue'
 import PromoBannerPreview from './blocks/PromoBannerPreview.vue'
 import FeaturedProductBannerPreview from './blocks/FeaturedProductBannerPreview.vue'
+import ProductSummaryPreview from './blocks/ProductSummaryPreview.vue'
+import ProductGalleryPreview from './blocks/ProductGalleryPreview.vue'
+import ProductDescriptionPreview from './blocks/ProductDescriptionPreview.vue'
+import ProductSpecsPreview from './blocks/ProductSpecsPreview.vue'
+import ProductTabsPreview from './blocks/ProductTabsPreview.vue'
+import ProductAddToCartPreview from './blocks/ProductAddToCartPreview.vue'
 import DuoHeroPreview from './blocks/DuoHeroPreview.vue'
 import FeaturedPromoBannerPreview from './blocks/FeaturedPromoBannerPreview.vue'
 import HeaderMegaMenuPreview from './blocks/HeaderMegaMenuPreview.vue'
@@ -95,9 +117,13 @@ const props = defineProps({
     type: String,
     default: 'desktop',
   },
+  isSelectedForTemplate: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-defineEmits(['select', 'move-up', 'move-down', 'delete', 'open-settings'])
+defineEmits(['select', 'move-up', 'move-down', 'delete', 'open-settings', 'save-block', 'toggle-select'])
 
 const previewComponents = {
   'content': ContentPreview,
@@ -118,6 +144,12 @@ const previewComponents = {
   'brand-carousel': BrandLogosPreview,
   'promo-banner': PromoBannerPreview,
   'featured-product-banner': FeaturedProductBannerPreview,
+  'product-summary': ProductSummaryPreview,
+  'product-gallery': ProductGalleryPreview,
+  'product-description': ProductDescriptionPreview,
+  'product-specs': ProductSpecsPreview,
+  'product-tabs': ProductTabsPreview,
+  'product-add-to-cart': ProductAddToCartPreview,
   'duo-hero': DuoHeroPreview,
   'featured-promo-banner': FeaturedPromoBannerPreview,
   'header-mega-menu': HeaderMegaMenuPreview,
@@ -149,39 +181,12 @@ const defaultMargin = computed(() => (
   templateBlockTypes.has(props.block?.type) ? 0 : 25
 ))
 
-const marginY = computed(() =>
-  getResponsiveValue(props.block?.settings || {}, props.previewMode, 'marginY') ?? defaultMargin.value
+const hasHeight = computed(() => hasResponsiveKey(props.block?.settings || {}, 'height'))
+
+const wrapperStyle = computed(() =>
+  blockWrapperStyle(props.block?.settings || {}, props.previewMode, {
+    type: props.block?.type,
+    marginFallback: defaultMargin.value,
+  })
 )
-
-const paddingX = computed(() =>
-  getResponsiveValue(props.block?.settings || {}, props.previewMode, 'paddingX') ?? 0
-)
-
-const heightValue = computed(() =>
-  getResponsiveValue(props.block?.settings || {}, props.previewMode, 'height')
-)
-
-const hasExplicitHeight = computed(() => {
-  const settings = props.block?.settings || {}
-  if (settings.height !== undefined && settings.height !== null) return true
-  const responsive = settings.responsive || {}
-  return ['desktop', 'tablet', 'mobile'].some(
-    (key) => responsive[key]?.height !== undefined && responsive[key]?.height !== null
-  )
-})
-
-const wrapperStyle = computed(() => {
-  const style = {
-    marginTop: `${marginY.value}px`,
-    marginBottom: `${marginY.value}px`,
-    paddingLeft: `${paddingX.value}px`,
-    paddingRight: `${paddingX.value}px`,
-  }
-
-  if (hasExplicitHeight.value && heightValue.value !== undefined && heightValue.value !== null) {
-    style.minHeight = `${heightValue.value}px`
-  }
-
-  return style
-})
 </script>

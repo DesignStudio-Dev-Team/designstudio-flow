@@ -211,6 +211,12 @@
       @update:modelValue="$emit('update', $event)"
     />
 
+    <ProductTabsField
+      v-else-if="config.type === 'product_tabs'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+
     <ExpanderCardsField
       v-else-if="config.type === 'expander_cards'"
       :modelValue="value"
@@ -327,6 +333,7 @@ import ProductsSelector from './selectors/ProductsSelector.vue'
 import ProductAttributeFiltersField from './common/ProductAttributeFiltersField.vue'
 import ProductTagsFilterField from './common/ProductTagsFilterField.vue'
 import FaqItemsField from './common/FaqItemsField.vue'
+import ProductTabsField from './common/ProductTabsField.vue'
 import ExpanderCardsField from './common/ExpanderCardsField.vue'
 import GalleryItemsField from './common/GalleryItemsField.vue'
 import IconItemsField from './common/IconItemsField.vue'

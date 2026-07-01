@@ -50,6 +50,36 @@
   const DEFAULT_OPTIONS = ['Option 1', 'Option 2']
   const NON_SPLIT_FIELD_TYPES = new Set(['page_break', 'hidden'])
 
+  // Choice options are { label, value, selected }. Accepts legacy plain strings.
+  function normalizeOption(opt) {
+    if (typeof opt === 'string') {
+      return { label: opt, value: '', selected: false }
+    }
+    if (opt && typeof opt === 'object') {
+      const label = typeof opt.label === 'string' ? opt.label : (typeof opt.value === 'string' ? opt.value : '')
+      return {
+        label,
+        value: typeof opt.value === 'string' ? opt.value : '',
+        selected: Boolean(opt.selected)
+      }
+    }
+    return { label: '', value: '', selected: false }
+  }
+
+  function normalizeOptions(list) {
+    return (Array.isArray(list) ? list : [])
+      .map(normalizeOption)
+      .filter((opt) => opt.label !== '' || opt.value !== '')
+  }
+
+  function optionLabel(opt) {
+    return opt && opt.label !== '' ? opt.label : (opt ? opt.value : '')
+  }
+
+  function optionValue(opt) {
+    return opt && opt.value !== '' ? opt.value : (opt ? opt.label : '')
+  }
+
   // Field types that can NOT be a *source* in a conditional rule.
   const CONDITIONAL_INELIGIBLE_SOURCE_TYPES = new Set(['page_break', 'html', 'file_upload', 'hidden'])
 
@@ -296,11 +326,12 @@
       required: Boolean(field.required),
       placeholder: typeof field.placeholder === 'string' ? field.placeholder : defaults.placeholder,
       defaultValue: typeof field.defaultValue === 'string' ? field.defaultValue : defaults.defaultValue,
+      paramName: typeof field.paramName === 'string' ? field.paramName : defaults.paramName,
       helpText: typeof field.helpText === 'string' ? field.helpText : defaults.helpText,
       helpTextPosition: field.helpTextPosition === 'top' ? 'top' : 'bottom',
-      options: Array.isArray(field.options)
-        ? field.options.map((value) => String(value)).filter((value) => value.trim().length > 0)
-        : defaults.options,
+      options: OPTION_FIELD_TYPES.has(type)
+        ? (normalizeOptions(field.options).length ? normalizeOptions(field.options) : defaults.options)
+        : [],
       html: typeof field.html === 'string' ? field.html : defaults.html,
       pageBreakAnimation: normalizePageBreakAnimation(field.pageBreakAnimation),
       conditionalLogic: normalizeConditionalLogic(field.conditionalLogic)
@@ -347,9 +378,10 @@
       required: false,
       placeholder: '',
       defaultValue: '',
+      paramName: '',
       helpText: '',
       helpTextPosition: 'bottom',
-      options: OPTION_FIELD_TYPES.has(type) ? [...DEFAULT_OPTIONS] : [],
+      options: OPTION_FIELD_TYPES.has(type) ? normalizeOptions(DEFAULT_OPTIONS) : [],
       html: type === 'html' ? '<p>Custom HTML block</p>' : '',
       pageBreakAnimation: 'slide-left',
       conditionalLogic: { enabled: false, action: 'show', logicType: 'all', rules: [] }
@@ -970,8 +1002,8 @@
         control = `<div class="dsf-form-options">${options
           .map(
             (option) =>
-              `<label class="dsf-form-option"><input type="checkbox" disabled><span>${escapeHtml(
-                option
+              `<label class="dsf-form-option"><input type="checkbox" disabled ${normalizeOption(option).selected ? 'checked' : ''}><span>${escapeHtml(
+                optionLabel(normalizeOption(option))
               )}</span></label>`
           )
           .join('')}</div>`
@@ -980,15 +1012,15 @@
         control = `<div class="dsf-form-options">${options
           .map(
             (option) =>
-              `<label class="dsf-form-option"><input type="radio" disabled><span>${escapeHtml(
-                option
+              `<label class="dsf-form-option"><input type="radio" disabled ${normalizeOption(option).selected ? 'checked' : ''}><span>${escapeHtml(
+                optionLabel(normalizeOption(option))
               )}</span></label>`
           )
           .join('')}</div>`
         break
       case 'drop_down':
         control = `<select disabled><option>Select an option</option>${options
-          .map((option) => `<option>${escapeHtml(option)}</option>`)
+          .map((option) => `<option ${normalizeOption(option).selected ? 'selected' : ''}>${escapeHtml(optionLabel(normalizeOption(option)))}</option>`)
           .join('')}</select>`
         break
       case 'number':
@@ -1431,7 +1463,8 @@
     }
 
     if (Array.isArray(source.options)) {
-      clonedField.options = [...source.options]
+      // Deep-copy options so the clone doesn't share option object references.
+      clonedField.options = source.options.map(normalizeOption)
     }
 
     if (source.conditionalLogic) {
@@ -1522,6 +1555,16 @@
 
     if (DEFAULT_VALUE_FIELD_TYPES.has(field.type)) {
       html += settingInput('Default Value', 'defaultValue', field.defaultValue || '')
+    }
+
+    if (!['page_break', 'html', 'file_upload'].includes(field.type)) {
+      html += `
+        <div class="dsf-field-setting">
+          <label for="dsf-setting-paramName">Parameter Name</label>
+          <input id="dsf-setting-paramName" type="text" data-setting="paramName" value="${escapeHtml(field.paramName || '')}" placeholder="e.g. utm_source">
+          <p class="dsf-field-setting__hint" style="margin:6px 0 0;font-size:12px;color:#646970;">Pre-fill this field from a URL query parameter (e.g. <code>?utm_source=…</code>) or via JavaScript. Leave blank to disable.</p>
+        </div>
+      `
     }
 
     if (field.type !== 'page_break' && field.type !== 'hidden' && field.type !== 'html') {
@@ -1657,7 +1700,11 @@
       valueControl = ''
     } else if (sourceField && OPTION_FIELD_TYPES.has(sourceField.type) && Array.isArray(sourceField.options)) {
       const choices = sourceField.options
-        .map((opt) => `<option value="${escapeHtml(opt)}" ${rule.value === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>`)
+        .map((opt) => {
+          const normalized = normalizeOption(opt)
+          const value = optionValue(normalized)
+          return `<option value="${escapeHtml(value)}" ${rule.value === value ? 'selected' : ''}>${escapeHtml(optionLabel(normalized))}</option>`
+        })
         .join('')
       valueControl = `
         <select data-setting="conditionalRuleValue" data-rule-index="${index}">
@@ -1730,12 +1777,18 @@
   }
 
   function renderOptionsEditor(field) {
-    const options = Array.isArray(field.options) && field.options.length ? field.options : [...DEFAULT_OPTIONS]
+    const options = Array.isArray(field.options) && field.options.length ? field.options : normalizeOptions(DEFAULT_OPTIONS)
+    const selectType = field.type === 'checkboxes' ? 'checkbox' : 'radio'
+    const selectTitle = field.type === 'checkboxes' ? 'Checked by default' : 'Selected by default'
     const rows = options
       .map(
         (option, index) => `
         <div class="dsf-options-editor__item">
-          <input type="text" data-setting="option" data-option-index="${index}" value="${escapeHtml(option)}">
+          <label class="dsf-options-editor__check" title="${escapeHtml(selectTitle)}">
+            <input type="${selectType}" data-setting="optionSelected" data-option-index="${index}" ${option.selected ? 'checked' : ''}>
+          </label>
+          <input type="text" class="dsf-options-editor__label" data-setting="optionLabel" data-option-index="${index}" value="${escapeHtml(option.label || '')}" placeholder="Label">
+          <input type="text" class="dsf-options-editor__value" data-setting="optionValue" data-option-index="${index}" value="${escapeHtml(option.value || '')}" placeholder="Value (optional)">
           <button class="dsf-canvas-icon-btn dsf-canvas-icon-btn--danger" type="button" data-action="remove-option" data-option-index="${index}" title="Remove option">
             <span class="dashicons dashicons-no-alt"></span>
           </button>
@@ -1747,6 +1800,7 @@
     return `
       <div class="dsf-field-setting">
         <label>Options</label>
+        <p class="dsf-field-setting__hint" style="margin:0 0 8px;font-size:12px;color:#646970;">Set a label and an optional value (the value is submitted; it falls back to the label). Use the ${field.type === 'checkboxes' ? 'checkboxes' : 'radios'} to pre-select.</p>
         <div class="dsf-options-editor">
           ${rows}
           <button type="button" class="dsf-options-editor__add" data-action="add-option">Add Option</button>
@@ -1785,13 +1839,28 @@
       return
     }
 
-    if (setting === 'option') {
+    if (setting === 'optionLabel' || setting === 'optionValue' || setting === 'optionSelected') {
       const index = Number.parseInt(event.target.dataset.optionIndex || '-1', 10)
       if (!Array.isArray(field.options)) {
-        field.options = [...DEFAULT_OPTIONS]
+        field.options = normalizeOptions(DEFAULT_OPTIONS)
       }
-      if (index >= 0) {
-        field.options[index] = event.target.value
+      field.options = field.options.map(normalizeOption)
+      const option = field.options[index]
+      if (!option) return
+
+      if (setting === 'optionLabel') {
+        option.label = event.target.value
+      } else if (setting === 'optionValue') {
+        option.value = event.target.value
+      } else {
+        const checked = Boolean(event.target.checked)
+        // Radio + drop-down allow only one pre-selected option.
+        if (checked && field.type !== 'checkboxes') {
+          field.options.forEach((opt, i) => { opt.selected = i === index })
+        } else {
+          option.selected = checked
+        }
+        renderDrawer()
       }
       renderCanvas()
       return
@@ -1860,6 +1929,12 @@
       return
     }
 
+    if (setting === 'paramName') {
+      field.paramName = String(event.target.value).replace(/[^A-Za-z0-9_.\-\[\]]/g, '')
+      event.target.value = field.paramName
+      return
+    }
+
     if (setting === 'name') {
       field.name = toFieldName(event.target.value)
       event.target.value = field.name
@@ -1884,8 +1959,8 @@
     }
 
     if (action === 'add-option') {
-      field.options = Array.isArray(field.options) ? field.options : []
-      field.options.push(`Option ${field.options.length + 1}`)
+      field.options = Array.isArray(field.options) ? field.options.map(normalizeOption) : []
+      field.options.push({ label: `Option ${field.options.length + 1}`, value: '', selected: false })
       renderDrawer()
       renderCanvas()
       return
@@ -1896,7 +1971,7 @@
       if (!Array.isArray(field.options) || index < 0) return
       field.options.splice(index, 1)
       if (!field.options.length) {
-        field.options = [...DEFAULT_OPTIONS]
+        field.options = normalizeOptions(DEFAULT_OPTIONS)
       }
       renderDrawer()
       renderCanvas()

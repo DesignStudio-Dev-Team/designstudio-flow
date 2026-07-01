@@ -217,7 +217,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { X, FileText, Palette, ShoppingBag, Smartphone, ChevronDown } from 'lucide-vue-next'
 import SettingField from './SettingField.vue'
 import { getResponsiveValue, setResponsiveValue } from '../utils/responsiveSettings'
@@ -236,7 +236,23 @@ let dragStartX = 0, dragStartY = 0, dragStartPosX = 0, dragStartPosY = 0, isDrag
 onMounted(() => {
   pos.x = Math.max(0, window.innerWidth - 420)
   pos.y = 80
+  measureBlockHeight()
 })
+
+// The selected block's actual rendered height in the canvas. Used so the
+// Height slider starts at the block's real height instead of a generic 200,
+// so the first drag doesn't make the block jump.
+const measuredBlockHeight = ref(0)
+function measureBlockHeight() {
+  const id = props.block?.id
+  if (!id || typeof document === 'undefined') return
+  nextTick(() => {
+    const el = document.getElementById('block-' + id)
+    if (el && el.offsetHeight > 0) {
+      measuredBlockHeight.value = Math.round(el.offsetHeight)
+    }
+  })
+}
 
 onUnmounted(() => {
   document.removeEventListener('mousemove', onDrag)
@@ -292,9 +308,6 @@ const responsiveFieldDefaults = {
 }
 
 const blockId = computed(() => props.blockDefinition?.id || props.block?.type || '')
-const responsiveFieldVisibility = {
-  gap: new Set(['bento-hero', 'spotlight-hero']),
-}
 
 const hasMobileTab = computed(() => ['header-mega-menu', 'header-showcase-mega'].includes(blockId.value))
 
@@ -308,9 +321,14 @@ const heightDefaultsByBlock = {
 }
 
 function isResponsiveFieldEnabled(key) {
-  const allowed = responsiveFieldVisibility[key]
-  if (!allowed) return true
-  return allowed.has(blockId.value)
+  // marginY / paddingX / height apply via the block wrapper for every block.
+  // Vertical padding and gap only do something when the block defines (and thus
+  // consumes) them, so only surface those sliders where they actually work.
+  if (key === 'padding' || key === 'gap') {
+    const settings = props.blockDefinition?.settings || {}
+    return settings[key] !== undefined
+  }
+  return true
 }
 
 // Split settings into tabs
@@ -369,8 +387,15 @@ const responsiveFieldConfigs = computed(() => {
     const fallback = responsiveFieldDefaults[key] || {}
     const config = { ...fallback, ...baseConfig }
     if (key === 'height') {
+      // Prefer the block's real measured height so the slider starts there;
+      // fall back to a per-block default, then the generic default.
+      const measured = measuredBlockHeight.value
       const blockDefault = heightDefaultsByBlock[blockId.value]
-      if ((config.default === undefined || config.default === null) && blockDefault !== undefined) {
+      if (measured > 0) {
+        config.default = measured
+        config.min = Math.min(config.min ?? 200, measured)
+        config.max = Math.max(config.max ?? 1000, measured)
+      } else if ((config.default === undefined || config.default === null) && blockDefault !== undefined) {
         config.default = blockDefault
       }
     }
@@ -469,6 +494,8 @@ watch(blockId, () => {
   expandedContentSections.value = {}
   expandedStyleSections.value = {}
   expandedMobileSections.value = {}
+  measuredBlockHeight.value = 0
+  measureBlockHeight()
 })
 
 function normalizeIdList(value) {

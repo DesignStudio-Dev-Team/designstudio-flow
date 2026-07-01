@@ -6,7 +6,6 @@
 export function landingBlockStyle(settings = {}) {
   const style = {}
   const safeColor = (value) => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : ''
-  const boundedSpace = (value) => Math.max(0, Math.min(80, Number.parseInt(value, 10) || 0))
   const background = safeColor(settings.backgroundColor)
   const text = safeColor(settings.textColor)
   const accent = safeColor(settings.accentColor)
@@ -41,15 +40,9 @@ export function landingBlockStyle(settings = {}) {
   if (eyebrow) style['--dsf-eyebrow-color'] = eyebrow
   if (eyebrowLine) style['--dsf-eyebrow-line-color'] = eyebrowLine
 
-  const paddingX = boundedSpace(settings.paddingX)
-  const marginY = boundedSpace(settings.marginY)
-  if (paddingX) {
-    style.paddingLeft = `${paddingX}px`
-    style.paddingRight = `${paddingX}px`
-  }
-  if (marginY) {
-    style.marginTop = `${marginY}px`
-    style.marginBottom = `${marginY}px`
-  }
+  // marginY + paddingX are intentionally NOT applied here: the block wrapper
+  // (.dsf-block) applies them per breakpoint. Doing it here too would double the
+  // spacing, and this util only sees flat (non-responsive) settings — letting
+  // the wrapper own them keeps the Desktop/Tablet/Mobile sliders working.
   return style
 }
