@@ -16,11 +16,15 @@ describe('landing block style settings', () => {
       '--dsf-theme-text': '#fefefe',
       '--dsf-landing-text': '#fefefe',
       '--dsf-theme-primary': '#ff6600',
-      paddingLeft: '28px',
-      paddingRight: '28px',
-      marginTop: '16px',
-      marginBottom: '16px',
     }))
+  })
+
+  it('does not apply margin/padding — the block wrapper owns responsive spacing', () => {
+    const style = landingBlockStyle({ paddingX: 28, marginY: 16 })
+    expect(style).not.toHaveProperty('paddingLeft')
+    expect(style).not.toHaveProperty('paddingRight')
+    expect(style).not.toHaveProperty('marginTop')
+    expect(style).not.toHaveProperty('marginBottom')
   })
 
   it('text color drives only the theme text variable, never a blanket inline color', () => {
@@ -41,7 +45,7 @@ describe('landing block style settings', () => {
 
     expect(style).not.toHaveProperty('backgroundColor')
     expect(style).not.toHaveProperty('color')
-    expect(style.paddingLeft).toBe('80px')
+    expect(style).not.toHaveProperty('paddingLeft')
     expect(style).not.toHaveProperty('marginTop')
   })
 })

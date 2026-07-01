@@ -48,6 +48,66 @@ class DSF_Ajax {
 
 		// List reusable popups for the page-settings picker.
 		add_action( 'wp_ajax_dsf_list_popups', array( $this, 'list_popups' ) );
+
+		// Saved Blocks — reusable block library.
+		add_action( 'wp_ajax_dsf_save_block', array( $this, 'save_block' ) );
+		add_action( 'wp_ajax_dsf_list_saved_blocks', array( $this, 'list_saved_blocks' ) );
+		add_action( 'wp_ajax_dsf_delete_saved_block', array( $this, 'delete_saved_block' ) );
+		add_action( 'wp_ajax_dsf_feature_saved_block', array( $this, 'feature_saved_block' ) );
+
+		// Templates — reusable groups of blocks (section / whole page).
+		add_action( 'wp_ajax_dsf_save_template', array( $this, 'save_template' ) );
+		add_action( 'wp_ajax_dsf_list_templates', array( $this, 'list_templates' ) );
+		add_action( 'wp_ajax_dsf_delete_template', array( $this, 'delete_template' ) );
+
+		// Product templates — fetch a sample product's live data for the editor preview.
+		add_action( 'wp_ajax_dsf_get_product_context', array( $this, 'get_product_context' ) );
+	}
+
+	/**
+	 * Return the live data payload for a product so the editor can preview product
+	 * blocks against a real product. Editor-only: requires a valid editor nonce and
+	 * page-editing capability.
+	 */
+	public function get_product_context() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			wp_send_json_error( array( 'message' => 'WooCommerce not active' ) );
+		}
+
+		$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+
+		// Fall back to the most recent published product when none is chosen yet, so
+		// the editor still shows representative data.
+		if ( ! $product_id ) {
+			$recent     = get_posts(
+				array(
+					'post_type'      => 'product',
+					'post_status'    => 'publish',
+					'posts_per_page' => 1,
+					'orderby'        => 'date',
+					'order'          => 'DESC',
+					'fields'         => 'ids',
+					'no_found_rows'  => true,
+				)
+			);
+			$product_id = ! empty( $recent ) ? absint( $recent[0] ) : 0;
+		}
+
+		if ( ! $product_id || 'product' !== get_post_type( $product_id ) ) {
+			wp_send_json_error( array( 'message' => 'Product not found' ), 404 );
+		}
+
+		$context = DSF_Product_Templates::build_product_context( $product_id );
+		if ( empty( $context ) ) {
+			wp_send_json_error( array( 'message' => 'Product not found' ), 404 );
+		}
+
+		wp_send_json_success( array( 'product' => $context ) );
 	}
 
 	/**
@@ -63,6 +123,382 @@ class DSF_Ajax {
 		}
 
 		wp_send_json_success( array( 'popups' => DSF_Popup::get_popup_list() ) );
+	}
+
+	/* -----------------------------------------------------------------
+	 * Saved Blocks (reusable block library)
+	 * ----------------------------------------------------------------- */
+
+	/**
+	 * Save the current block (type + full settings) as a reusable saved block.
+	 */
+	public function save_block() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$name     = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+		$type     = isset( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
+		$category = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
+		$tags     = $this->sanitize_tag_list( isset( $_POST['tags'] ) ? wp_unslash( $_POST['tags'] ) : '' );
+
+		if ( '' === $type || ! DSF_Blocks::get_instance()->get_block( $type ) ) {
+			wp_send_json_error( array( 'message' => 'Unknown block type' ), 400 );
+		}
+
+		$settings_raw = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : '{}';
+		$settings     = json_decode( $settings_raw, true );
+		if ( ! is_array( $settings ) ) {
+			$settings = array();
+		}
+
+		// Run through the same per-type sanitizer used when saving a page.
+		$sanitized = $this->sanitize_known_block_settings( array( array( 'type' => $type, 'settings' => $settings ) ) );
+		$settings  = isset( $sanitized[0]['settings'] ) && is_array( $sanitized[0]['settings'] ) ? $sanitized[0]['settings'] : array();
+
+		if ( '' === $name ) {
+			$def  = DSF_Blocks::get_instance()->get_block( $type );
+			$name = isset( $def['name'] ) ? $def['name'] : __( 'Saved block', 'designstudio-flow' );
+		}
+
+		// An optional id updates an existing saved block in place (re-save), rather
+		// than creating a duplicate.
+		$update_id = isset( $_POST['id'] ) ? intval( $_POST['id'] ) : 0;
+
+		if ( $update_id ) {
+			if ( 'dsf_saved_block' !== get_post_type( $update_id ) ) {
+				wp_send_json_error( array( 'message' => 'Invalid saved block' ), 400 );
+			}
+			if ( ! current_user_can( 'edit_post', $update_id ) ) {
+				wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+			}
+			$post_id = wp_update_post(
+				array(
+					'ID'         => $update_id,
+					'post_title' => $name,
+				),
+				true
+			);
+		} else {
+			$post_id = wp_insert_post(
+				array(
+					'post_type'   => 'dsf_saved_block',
+					'post_status' => 'publish',
+					'post_title'  => $name,
+				),
+				true
+			);
+		}
+
+		if ( is_wp_error( $post_id ) || ! $post_id ) {
+			wp_send_json_error( array( 'message' => 'Could not save block' ), 500 );
+		}
+
+		update_post_meta( $post_id, '_dsf_block_type', $type );
+		update_post_meta( $post_id, '_dsf_block_settings', $settings );
+		update_post_meta( $post_id, '_dsf_block_category', $category );
+		update_post_meta( $post_id, '_dsf_block_tags', $tags );
+
+		wp_send_json_success(
+			array(
+				'id'       => $post_id,
+				'name'     => $name,
+				'type'     => $type,
+				'settings' => $settings,
+				'category' => $category,
+				'tags'     => $tags,
+				'author'   => $this->saved_block_author_name( $post_id ),
+			)
+		);
+	}
+
+	/**
+	 * Parse a tag payload (JSON array or comma-separated string) into a clean,
+	 * de-duplicated list (max 20).
+	 */
+	private function sanitize_tag_list( $raw ) {
+		$items = json_decode( (string) $raw, true );
+		if ( ! is_array( $items ) ) {
+			$items = '' === trim( (string) $raw ) ? array() : explode( ',', (string) $raw );
+		}
+		$tags = array();
+		foreach ( $items as $item ) {
+			$tag = sanitize_text_field( (string) $item );
+			if ( '' !== $tag && ! in_array( $tag, $tags, true ) ) {
+				$tags[] = $tag;
+			}
+			if ( count( $tags ) >= 20 ) {
+				break;
+			}
+		}
+		return $tags;
+	}
+
+	/**
+	 * Display name of a saved block's / template's author.
+	 */
+	private function saved_block_author_name( $post_id ) {
+		$author_id = (int) get_post_field( 'post_author', $post_id );
+		$name      = $author_id ? get_the_author_meta( 'display_name', $author_id ) : '';
+		return $name ? $name : '';
+	}
+
+	/**
+	 * Return the site-wide library of saved blocks for the editor picker.
+	 */
+	public function list_saved_blocks() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$posts = get_posts(
+			array(
+				'post_type'      => 'dsf_saved_block',
+				'post_status'    => 'publish',
+				'posts_per_page' => 200,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+			)
+		);
+
+		$blocks = array();
+		foreach ( $posts as $post ) {
+			$type = (string) get_post_meta( $post->ID, '_dsf_block_type', true );
+			if ( '' === $type ) {
+				continue;
+			}
+			$settings = get_post_meta( $post->ID, '_dsf_block_settings', true );
+			$blocks[] = array(
+				'id'       => $post->ID,
+				'name'     => $post->post_title,
+				'type'     => $type,
+				'settings' => is_array( $settings ) ? $settings : array(),
+				'category' => (string) get_post_meta( $post->ID, '_dsf_block_category', true ),
+				'tags'     => array_values( (array) get_post_meta( $post->ID, '_dsf_block_tags', true ) ),
+				'author'   => $this->saved_block_author_name( $post->ID ),
+				'featured' => (bool) get_post_meta( $post->ID, '_dsf_block_featured', true ),
+			);
+		}
+
+		wp_send_json_success( array( 'savedBlocks' => $blocks ) );
+	}
+
+	/**
+	 * Delete a saved block from the library.
+	 */
+	public function delete_saved_block() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$id = isset( $_POST['id'] ) ? intval( $_POST['id'] ) : 0;
+		if ( ! $id || 'dsf_saved_block' !== get_post_type( $id ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid saved block' ), 400 );
+		}
+		if ( ! current_user_can( 'delete_post', $id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+
+		wp_trash_post( $id );
+		wp_send_json_success( array( 'id' => $id ) );
+	}
+
+	/**
+	 * Promote/demote a saved block into the shared Presets library.
+	 */
+	public function feature_saved_block() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$id = isset( $_POST['id'] ) ? intval( $_POST['id'] ) : 0;
+		if ( ! $id || 'dsf_saved_block' !== get_post_type( $id ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid saved block' ), 400 );
+		}
+		if ( ! current_user_can( 'edit_post', $id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+
+		$featured = ! empty( $_POST['featured'] ) && 'false' !== $_POST['featured'];
+		update_post_meta( $id, '_dsf_block_featured', $featured ? 1 : 0 );
+
+		wp_send_json_success(
+			array(
+				'id'       => $id,
+				'featured' => $featured,
+			)
+		);
+	}
+
+	/* -----------------------------------------------------------------
+	 * Templates (reusable groups of blocks)
+	 * ----------------------------------------------------------------- */
+
+	/**
+	 * Save a group of blocks (a section or a whole page) as a reusable template.
+	 */
+	public function save_template() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+		$kind = isset( $_POST['kind'] ) ? sanitize_key( wp_unslash( $_POST['kind'] ) ) : 'page';
+		if ( ! in_array( $kind, array( 'page', 'section' ), true ) ) {
+			$kind = 'page';
+		}
+
+		$blocks_raw = isset( $_POST['blocks'] ) ? wp_unslash( $_POST['blocks'] ) : '[]';
+		$blocks     = $this->sanitize_template_blocks( json_decode( $blocks_raw, true ) );
+		if ( empty( $blocks ) ) {
+			wp_send_json_error( array( 'message' => 'No blocks to save' ), 400 );
+		}
+
+		$theme_raw = isset( $_POST['theme'] ) ? wp_unslash( $_POST['theme'] ) : '';
+		$theme     = $theme_raw ? json_decode( $theme_raw, true ) : array();
+		$theme     = is_array( $theme ) ? $this->sanitize_theme_value( $theme ) : array();
+
+		if ( '' === $name ) {
+			$name = __( 'Untitled template', 'designstudio-flow' );
+		}
+
+		$update_id = isset( $_POST['id'] ) ? intval( $_POST['id'] ) : 0;
+		if ( $update_id ) {
+			if ( 'dsf_template' !== get_post_type( $update_id ) ) {
+				wp_send_json_error( array( 'message' => 'Invalid template' ), 400 );
+			}
+			if ( ! current_user_can( 'edit_post', $update_id ) ) {
+				wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+			}
+			$post_id = wp_update_post( array( 'ID' => $update_id, 'post_title' => $name ), true );
+		} else {
+			$post_id = wp_insert_post( array( 'post_type' => 'dsf_template', 'post_status' => 'publish', 'post_title' => $name ), true );
+		}
+
+		if ( is_wp_error( $post_id ) || ! $post_id ) {
+			wp_send_json_error( array( 'message' => 'Could not save template' ), 500 );
+		}
+
+		update_post_meta( $post_id, '_dsf_template_blocks', $blocks );
+		update_post_meta( $post_id, '_dsf_template_theme', $theme );
+		update_post_meta( $post_id, '_dsf_template_kind', $kind );
+
+		wp_send_json_success( $this->format_template( get_post( $post_id ) ) );
+	}
+
+	/**
+	 * Return the site-wide list of templates for the editor picker.
+	 */
+	public function list_templates() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$posts = get_posts(
+			array(
+				'post_type'      => 'dsf_template',
+				'post_status'    => 'publish',
+				'posts_per_page' => 200,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+			)
+		);
+
+		$templates = array();
+		foreach ( $posts as $post ) {
+			$templates[] = $this->format_template( $post );
+		}
+
+		wp_send_json_success( array( 'templates' => $templates ) );
+	}
+
+	/**
+	 * Delete a template from the library.
+	 */
+	public function delete_template() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$id = isset( $_POST['id'] ) ? intval( $_POST['id'] ) : 0;
+		if ( ! $id || 'dsf_template' !== get_post_type( $id ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid template' ), 400 );
+		}
+		if ( ! current_user_can( 'delete_post', $id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+
+		wp_trash_post( $id );
+		wp_send_json_success( array( 'id' => $id ) );
+	}
+
+	private function format_template( $post ) {
+		if ( ! $post ) {
+			return array();
+		}
+		$blocks = get_post_meta( $post->ID, '_dsf_template_blocks', true );
+		$theme  = get_post_meta( $post->ID, '_dsf_template_theme', true );
+		$kind   = get_post_meta( $post->ID, '_dsf_template_kind', true );
+		$blocks = is_array( $blocks ) ? $blocks : array();
+
+		return array(
+			'id'         => $post->ID,
+			'name'       => $post->post_title,
+			'kind'       => $kind ? $kind : 'page',
+			'blockCount' => count( $blocks ),
+			'blocks'     => $blocks,
+			'theme'      => is_array( $theme ) ? $theme : array(),
+		);
+	}
+
+	/**
+	 * Validate + per-type sanitize a template's blocks (drops unknown types and
+	 * client-side ids; ids are regenerated when the template is inserted).
+	 */
+	private function sanitize_template_blocks( $blocks ) {
+		if ( ! is_array( $blocks ) ) {
+			return array();
+		}
+		$clean = array();
+		foreach ( $blocks as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+			$type = isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
+			if ( '' === $type || ! DSF_Blocks::get_instance()->get_block( $type ) ) {
+				continue;
+			}
+			$clean[] = array(
+				'type'     => $type,
+				'settings' => ( isset( $block['settings'] ) && is_array( $block['settings'] ) ) ? $block['settings'] : array(),
+			);
+		}
+		return $this->sanitize_known_block_settings( $clean );
+	}
+
+	/**
+	 * Recursively sanitize a stored theme/settings object (scalar leaves only),
+	 * preserving camelCase keys produced by the editor.
+	 */
+	private function sanitize_theme_value( $value ) {
+		if ( is_array( $value ) ) {
+			$out = array();
+			foreach ( $value as $key => $item ) {
+				$out[ (string) $key ] = $this->sanitize_theme_value( $item );
+			}
+			return $out;
+		}
+		if ( is_bool( $value ) || is_int( $value ) || is_float( $value ) ) {
+			return $value;
+		}
+		return sanitize_text_field( (string) $value );
 	}
 
 	/**
@@ -157,6 +593,22 @@ class DSF_Ajax {
 		$settings_data['popupId'] = isset( $settings_data['popupId'] ) ? absint( $settings_data['popupId'] ) : 0;
 
 		$post_type = get_post_type( $post_id );
+
+		// Saved blocks + templates are edited in Flow but persist to their own
+		// meta (not _dsf_blocks). This sends the JSON response and exits.
+		if ( in_array( $post_type, array( 'dsf_saved_block', 'dsf_template' ), true ) ) {
+			$this->save_flow_library_item( $post_id, $post_type, $blocks_data, $settings_data, $title );
+			return;
+		}
+
+		// Product templates store blocks/settings like a page, plus the assignment
+		// rule, the live toggle, and the editor-only preview product. This sends the
+		// JSON response and exits without touching any product's slug/parent/title.
+		if ( 'dsf_product_template' === $post_type ) {
+			$this->save_product_template_item( $post_id, $blocks_data, $settings_data, $title, $status );
+			return;
+		}
+
 		if ( 'dsf_layout' === $post_type ) {
 			$current_layout_type = in_array( $layout_type, array( 'header', 'footer' ), true )
 				? $layout_type
@@ -201,7 +653,9 @@ class DSF_Ajax {
 			$post_update['post_parent'] = $this->get_valid_page_parent_id( $parent_id, $post_id );
 		}
 
-		if ( 'draft' === $status ) {
+		if ( 'page' === $post_type ) {
+			$post_update['post_status'] = 'publish';
+		} elseif ( 'draft' === $status ) {
 			$post_update['post_status'] = 'draft';
 		} elseif ( 'publish' === $status ) {
 			$post_update['post_status'] = 'publish';
@@ -226,6 +680,124 @@ class DSF_Ajax {
 				'post_parent' => $post ? (int) $post->post_parent : 0,
 				'permalink'   => $permalink,
 				'preview_url' => $preview_url,
+			)
+		);
+	}
+
+	/**
+	 * Persist a saved block / template edited in the Flow editor back to its own
+	 * meta, then send the JSON response. Blocks are already per-type sanitized.
+	 */
+	private function save_flow_library_item( $post_id, $post_type, $blocks_data, $settings_data, $title ) {
+		if ( 'dsf_template' === $post_type ) {
+			$tpl_blocks = array();
+			foreach ( (array) $blocks_data as $block ) {
+				if ( ! is_array( $block ) || empty( $block['type'] ) ) {
+					continue;
+				}
+				$tpl_blocks[] = array(
+					'type'     => sanitize_key( $block['type'] ),
+					'settings' => ( isset( $block['settings'] ) && is_array( $block['settings'] ) ) ? $block['settings'] : array(),
+				);
+			}
+			update_post_meta( $post_id, '_dsf_template_blocks', $tpl_blocks );
+			$theme = ( isset( $settings_data['theme'] ) && is_array( $settings_data['theme'] ) ) ? $settings_data['theme'] : array();
+			update_post_meta( $post_id, '_dsf_template_theme', $theme );
+			$kind = get_post_meta( $post_id, '_dsf_template_kind', true );
+			update_post_meta( $post_id, '_dsf_template_kind', $kind ? $kind : 'page' );
+		} else { // dsf_saved_block — persist the first block only.
+			$first = ( isset( $blocks_data[0] ) && is_array( $blocks_data[0] ) ) ? $blocks_data[0] : null;
+			if ( $first && ! empty( $first['type'] ) ) {
+				update_post_meta( $post_id, '_dsf_block_type', sanitize_key( $first['type'] ) );
+				update_post_meta( $post_id, '_dsf_block_settings', ( isset( $first['settings'] ) && is_array( $first['settings'] ) ) ? $first['settings'] : array() );
+			}
+		}
+
+		$post_update = array(
+			'ID'                => $post_id,
+			'post_modified'     => current_time( 'mysql' ),
+			'post_modified_gmt' => current_time( 'mysql', 1 ),
+		);
+		if ( '' !== $title ) {
+			$post_update['post_title'] = $title;
+		}
+		wp_update_post( $post_update );
+
+		wp_send_json_success(
+			array(
+				'message'     => 'Saved successfully',
+				'post_id'     => $post_id,
+				'post_status' => get_post_status( $post_id ),
+				'post_title'  => get_the_title( $post_id ),
+				'post_name'   => '',
+				'post_parent' => 0,
+				'permalink'   => '',
+				'preview_url' => '',
+			)
+		);
+	}
+
+	/**
+	 * Persist a product template edited in the Flow editor.
+	 *
+	 * Stores blocks/settings to the same meta a page uses, plus the product-template
+	 * configuration (assignment rule, live toggle, editor-only preview product). It
+	 * never touches any product's own post fields.
+	 *
+	 * @param int    $post_id       Product template post ID.
+	 * @param array  $blocks_data   Sanitized blocks.
+	 * @param array  $settings_data Sanitized page settings (may carry a productTemplate key).
+	 * @param string $title         Submitted title.
+	 * @param string $status        Requested status ('draft' | 'publish' | '').
+	 */
+	private function save_product_template_item( $post_id, $blocks_data, $settings_data, $title, $status ) {
+		$config = ( isset( $settings_data['productTemplate'] ) && is_array( $settings_data['productTemplate'] ) )
+			? $settings_data['productTemplate']
+			: array();
+
+		$assignment = DSF_Product_Templates::sanitize_assignment( $config['assignment'] ?? array() );
+		$active     = empty( $config['active'] ) ? '' : '1';
+		$preview_id = isset( $config['previewProduct'] ) ? absint( $config['previewProduct'] ) : 0;
+		if ( $preview_id && 'product' !== get_post_type( $preview_id ) ) {
+			$preview_id = 0;
+		}
+
+		update_post_meta( $post_id, '_dsf_pt_assignment', $assignment );
+		update_post_meta( $post_id, '_dsf_pt_active', $active );
+		update_post_meta( $post_id, '_dsf_pt_preview_product', $preview_id );
+
+		// The product-template config is editor transport only — keep it out of the
+		// stored page settings (theme/layout/popup remain).
+		unset( $settings_data['productTemplate'] );
+
+		update_post_meta( $post_id, '_dsf_blocks', $blocks_data );
+		update_post_meta( $post_id, '_dsf_settings', $settings_data );
+
+		$post_update = array(
+			'ID'                => $post_id,
+			'post_modified'     => current_time( 'mysql' ),
+			'post_modified_gmt' => current_time( 'mysql', 1 ),
+		);
+		if ( '' !== $title ) {
+			$post_update['post_title'] = $title;
+		}
+		if ( 'draft' === $status ) {
+			$post_update['post_status'] = 'draft';
+		} elseif ( 'publish' === $status ) {
+			$post_update['post_status'] = 'publish';
+		}
+		wp_update_post( $post_update );
+
+		wp_send_json_success(
+			array(
+				'message'     => 'Product template saved',
+				'post_id'     => $post_id,
+				'post_status' => get_post_status( $post_id ),
+				'post_title'  => get_the_title( $post_id ),
+				'post_name'   => '',
+				'post_parent' => 0,
+				'permalink'   => '',
+				'preview_url' => '',
 			)
 		);
 	}
@@ -263,6 +835,30 @@ class DSF_Ajax {
 			}
 			if ( 'expander-hero' === ( $block['type'] ?? '' ) ) {
 				$block['settings'] = $this->sanitize_expander_hero_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-summary' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_summary_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-gallery' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_gallery_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-description' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_description_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-specs' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_specs_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-tabs' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_tabs_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-add-to-cart' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_add_to_cart_settings( $block['settings'] ?? array() );
 				continue;
 			}
 			if ( in_array( $block['type'] ?? '', array( 'form-embed', 'form-with-content' ), true ) ) {
@@ -308,6 +904,236 @@ class DSF_Ajax {
 		unset( $block );
 
 		return $blocks;
+	}
+
+	/**
+	 * Sanitize the Product Summary block settings.
+	 *
+	 * Only presentation options are saved — the product data itself is read live
+	 * from the current product at render time and is never trusted from the client.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_summary_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'showTitle'            => ! isset( $settings['showTitle'] ) || ! empty( $settings['showTitle'] ),
+			'headingTag'           => in_array( $settings['headingTag'] ?? '', array( 'h1', 'h2' ), true ) ? $settings['headingTag'] : 'h1',
+			'showPrice'            => ! isset( $settings['showPrice'] ) || ! empty( $settings['showPrice'] ),
+			'showShortDescription' => ! isset( $settings['showShortDescription'] ) || ! empty( $settings['showShortDescription'] ),
+			'showSku'              => ! empty( $settings['showSku'] ),
+			'showStock'            => ! isset( $settings['showStock'] ) || ! empty( $settings['showStock'] ),
+			'showRating'           => ! isset( $settings['showRating'] ) || ! empty( $settings['showRating'] ),
+			'alignment'            => in_array( $settings['alignment'] ?? '', array( 'left', 'center' ), true ) ? $settings['alignment'] : 'left',
+			'maxWidth'             => max( 320, min( 1200, absint( $settings['maxWidth'] ?? 640 ) ) ),
+			'padding'              => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'             => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'              => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+		);
+
+		foreach ( array( 'titleColor', 'priceColor', 'textColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		$clean['responsive'] = array();
+		foreach ( array( 'desktop', 'tablet', 'mobile' ) as $breakpoint ) {
+			$values                             = is_array( $settings['responsive'][ $breakpoint ] ?? null ) ? $settings['responsive'][ $breakpoint ] : array();
+			$clean['responsive'][ $breakpoint ] = array();
+			if ( isset( $values['padding'] ) ) {
+				$clean['responsive'][ $breakpoint ]['padding'] = max( 0, min( 160, absint( $values['padding'] ) ) );
+			}
+			if ( isset( $values['paddingX'] ) ) {
+				$clean['responsive'][ $breakpoint ]['paddingX'] = max( 0, min( 120, absint( $values['paddingX'] ) ) );
+			}
+			if ( isset( $values['marginY'] ) ) {
+				$clean['responsive'][ $breakpoint ]['marginY'] = max( 0, min( 100, absint( $values['marginY'] ) ) );
+			}
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Add to Cart block settings (presentation only — the cart form
+	 * itself is rendered server-side from the current product).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_add_to_cart_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'alignment'  => in_array( $settings['alignment'] ?? '', array( 'left', 'center' ), true ) ? $settings['alignment'] : 'left',
+			'maxWidth'   => max( 280, min( 900, absint( $settings['maxWidth'] ?? 460 ) ) ),
+			'padding'    => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'   => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'    => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive' => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'buttonColor', 'buttonTextColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Bound the per-breakpoint spacing overrides shared by the product blocks.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_responsive_spacing( $settings ) {
+		$raw        = ( isset( $settings['responsive'] ) && is_array( $settings['responsive'] ) ) ? $settings['responsive'] : array();
+		$responsive = array();
+
+		foreach ( array( 'desktop', 'tablet', 'mobile' ) as $breakpoint ) {
+			$values                    = is_array( $raw[ $breakpoint ] ?? null ) ? $raw[ $breakpoint ] : array();
+			$responsive[ $breakpoint ] = array();
+			if ( isset( $values['padding'] ) ) {
+				$responsive[ $breakpoint ]['padding'] = max( 0, min( 160, absint( $values['padding'] ) ) );
+			}
+			if ( isset( $values['paddingX'] ) ) {
+				$responsive[ $breakpoint ]['paddingX'] = max( 0, min( 120, absint( $values['paddingX'] ) ) );
+			}
+			if ( isset( $values['marginY'] ) ) {
+				$responsive[ $breakpoint ]['marginY'] = max( 0, min( 100, absint( $values['marginY'] ) ) );
+			}
+		}
+
+		return $responsive;
+	}
+
+	/**
+	 * Sanitize the Product Gallery block settings (presentation only).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_gallery_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$layouts  = array( 'thumbs-bottom', 'thumbs-left', 'grid', 'carousel', 'single' );
+		$aspects  = array( 'square', 'portrait', 'landscape', 'natural' );
+
+		return array(
+			'layout'         => in_array( $settings['layout'] ?? '', $layouts, true ) ? $settings['layout'] : 'thumbs-bottom',
+			'aspectRatio'    => in_array( $settings['aspectRatio'] ?? '', $aspects, true ) ? $settings['aspectRatio'] : 'square',
+			'enableLightbox' => ! isset( $settings['enableLightbox'] ) || ! empty( $settings['enableLightbox'] ),
+			'showThumbs'     => ! isset( $settings['showThumbs'] ) || ! empty( $settings['showThumbs'] ),
+			'thumbColumns'   => max( 2, min( 8, absint( $settings['thumbColumns'] ?? 5 ) ) ),
+			'gap'            => max( 0, min( 40, absint( $settings['gap'] ?? 12 ) ) ),
+			'maxWidth'       => max( 320, min( 1200, absint( $settings['maxWidth'] ?? 640 ) ) ),
+			'padding'        => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'       => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'        => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'     => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+	}
+
+	/**
+	 * Sanitize the Product Description block settings.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_description_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'showHeading' => ! isset( $settings['showHeading'] ) || ! empty( $settings['showHeading'] ),
+			'headingText' => sanitize_text_field( $settings['headingText'] ?? 'Description' ),
+			'maxWidth'    => max( 320, min( 1400, absint( $settings['maxWidth'] ?? 900 ) ) ),
+			'padding'     => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'    => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'     => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'  => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'headingColor', 'textColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Product Specs block settings.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_specs_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$layouts  = array( 'striped', 'cards', 'inline', 'bordered' );
+
+		$clean = array(
+			'layout'      => in_array( $settings['layout'] ?? '', $layouts, true ) ? $settings['layout'] : 'striped',
+			'showHeading' => ! isset( $settings['showHeading'] ) || ! empty( $settings['showHeading'] ),
+			'headingText' => sanitize_text_field( $settings['headingText'] ?? 'Specifications' ),
+			'columns'     => max( 1, min( 3, absint( $settings['columns'] ?? 1 ) ) ),
+			'maxWidth'    => max( 320, min( 1200, absint( $settings['maxWidth'] ?? 760 ) ) ),
+			'padding'     => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'    => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'     => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'  => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'headingColor', 'labelColor', 'valueColor', 'accentColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Product Tabs block settings, including per-tab custom content.
+	 *
+	 * Tabs are capped, labels are plain text, sources are allowlisted, and only
+	 * custom tabs keep rich content (wp_kses_post). Live tab data (description /
+	 * specs) is read from the current product at render time, never from the client.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_tabs_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$styles   = array( 'underline', 'pills', 'boxed' );
+		$sources  = array( 'description', 'specs', 'reviews', 'custom' );
+
+		$raw_tabs = is_array( $settings['tabs'] ?? null ) ? $settings['tabs'] : array();
+		$tabs     = array();
+		foreach ( array_slice( $raw_tabs, 0, 10 ) as $tab ) {
+			if ( ! is_array( $tab ) ) {
+				continue;
+			}
+			$source = in_array( $tab['source'] ?? '', $sources, true ) ? $tab['source'] : 'description';
+			$tabs[] = array(
+				'label'   => sanitize_text_field( $tab['label'] ?? '' ),
+				'source'  => $source,
+				'content' => 'custom' === $source ? wp_kses_post( (string) ( $tab['content'] ?? '' ) ) : '',
+			);
+		}
+
+		$accent = sanitize_hex_color( $settings['accentColor'] ?? '' );
+
+		return array(
+			'style'       => in_array( $settings['style'] ?? '', $styles, true ) ? $settings['style'] : 'underline',
+			'tabs'        => $tabs,
+			'accentColor' => $accent ? $accent : '',
+			'maxWidth'    => max( 320, min( 1400, absint( $settings['maxWidth'] ?? 900 ) ) ),
+			'padding'     => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'    => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'     => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'  => $this->sanitize_product_responsive_spacing( $settings ),
+		);
 	}
 
 	/**

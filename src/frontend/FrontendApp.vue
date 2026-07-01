@@ -4,7 +4,10 @@
       v-for="block in blocks"
       :key="block.id"
       class="dsf-block"
-      :class="{ 'dsf-block--landing': block.type?.startsWith('landing-') }"
+      :class="{
+        'dsf-block--landing': block.type?.startsWith('landing-'),
+        'dsf-block--has-height': hasResponsiveKey(block.settings, 'height'),
+      }"
       :style="getBlockStyle(block)"
     >
       <component
@@ -29,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import ContentPreview from '../components/blocks/ContentPreview.vue'
 import FaqPreview from '../components/blocks/FaqPreview.vue'
 import HeroPreview from '../components/blocks/HeroCenteredPreview.vue'
@@ -48,6 +51,12 @@ import NewsletterPreview from '../components/blocks/NewsletterPreview.vue'
 import BrandLogosPreview from '../components/blocks/BrandLogosPreview.vue'
 import PromoBannerPreview from '../components/blocks/PromoBannerPreview.vue'
 import FeaturedProductBannerPreview from '../components/blocks/FeaturedProductBannerPreview.vue'
+import ProductSummaryPreview from '../components/blocks/ProductSummaryPreview.vue'
+import ProductGalleryPreview from '../components/blocks/ProductGalleryPreview.vue'
+import ProductDescriptionPreview from '../components/blocks/ProductDescriptionPreview.vue'
+import ProductSpecsPreview from '../components/blocks/ProductSpecsPreview.vue'
+import ProductTabsPreview from '../components/blocks/ProductTabsPreview.vue'
+import ProductAddToCartPreview from '../components/blocks/ProductAddToCartPreview.vue'
 import DuoHeroPreview from '../components/blocks/DuoHeroPreview.vue'
 import FeaturedPromoBannerPreview from '../components/blocks/FeaturedPromoBannerPreview.vue'
 import HeaderMegaMenuPreview from '../components/blocks/HeaderMegaMenuPreview.vue'
@@ -71,7 +80,7 @@ import FlowModal from '../components/common/FlowModal.vue'
 import PagePopup from '../components/common/PagePopup.vue'
 import { provideFlowModal } from '../components/common/useFlowModal'
 import { createModalController } from './modalController'
-import { getResponsiveValue } from '../utils/responsiveSettings'
+import { blockWrapperStyle, hasResponsiveKey } from '../utils/responsiveSettings'
 
 const props = defineProps({
   blocks: {
@@ -107,6 +116,12 @@ const previewComponents = {
   'brand-carousel': BrandLogosPreview,
   'promo-banner': PromoBannerPreview,
   'featured-product-banner': FeaturedProductBannerPreview,
+  'product-summary': ProductSummaryPreview,
+  'product-gallery': ProductGalleryPreview,
+  'product-description': ProductDescriptionPreview,
+  'product-specs': ProductSpecsPreview,
+  'product-tabs': ProductTabsPreview,
+  'product-add-to-cart': ProductAddToCartPreview,
   'duo-hero': DuoHeroPreview,
   'featured-promo-banner': FeaturedPromoBannerPreview,
   'header-mega-menu': HeaderMegaMenuPreview,
@@ -136,6 +151,12 @@ const { modalState: modal, openModalAction: openModal, closeModalAction: closeMo
 
 provideFlowModal({ openModal, closeModal })
 
+// Product blocks (in a product template) read the viewed product from this context.
+const currentProduct = ref(
+  (typeof window !== 'undefined' && window.dsfFrontendData?.currentProduct) || null
+)
+provide('dsfProductContext', currentProduct)
+
 const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1200)
 let resizeHandler = null
 
@@ -159,20 +180,6 @@ onUnmounted(() => {
   }
 })
 
-function getResponsiveField(settings, key, fallback) {
-  const value = getResponsiveValue(settings || {}, breakpoint.value, key)
-  return value ?? fallback
-}
-
-function hasExplicitResponsiveValue(settings, key) {
-  if (!settings) return false
-  if (settings[key] !== undefined && settings[key] !== null) return true
-  const responsive = settings.responsive || {}
-  return ['desktop', 'tablet', 'mobile'].some(
-    (breakpointKey) => responsive[breakpointKey]?.[key] !== undefined && responsive[breakpointKey]?.[key] !== null
-  )
-}
-
 function getDefaultMarginByType(blockType) {
   if (blockType === 'header-mega-menu' || blockType === 'header-showcase-mega' || blockType === 'header-cutout-mega' || blockType === 'footer-dealers' || blockType?.startsWith('landing-')) {
     return 0
@@ -181,22 +188,9 @@ function getDefaultMarginByType(blockType) {
 }
 
 function getBlockStyle(block) {
-  const settings = block?.settings || {}
-  const marginFallback = getDefaultMarginByType(block?.type)
-  const style = {
-    marginTop: `${getResponsiveField(settings, 'marginY', marginFallback)}px`,
-    marginBottom: `${getResponsiveField(settings, 'marginY', marginFallback)}px`,
-    paddingLeft: `${getResponsiveField(settings, 'paddingX', 0)}px`,
-    paddingRight: `${getResponsiveField(settings, 'paddingX', 0)}px`,
-  }
-
-  if (hasExplicitResponsiveValue(settings, 'height')) {
-    const heightValue = getResponsiveValue(settings || {}, breakpoint.value, 'height')
-    if (heightValue !== undefined && heightValue !== null) {
-      style.minHeight = `${heightValue}px`
-    }
-  }
-
-  return style
+  return blockWrapperStyle(block?.settings || {}, breakpoint.value, {
+    type: block?.type,
+    marginFallback: getDefaultMarginByType(block?.type),
+  })
 }
 </script>

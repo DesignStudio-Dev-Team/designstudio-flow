@@ -3203,6 +3203,482 @@ class DSF_Blocks {
 			)
 		);
 
+		// PRODUCT PAGE Category — blocks that bind to the current product. Only
+		// available inside a Product Template (template_scope => 'product').
+		$this->register_block(
+			array(
+				'id'             => 'product-summary',
+				'name'           => 'Product Summary',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'shopping-bag',
+				'description'    => 'Title, price, and short description for the current product.',
+				'settings'       => array(
+					'showTitle'            => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Title',
+						'default' => true,
+					),
+					'headingTag'           => array(
+						'type'    => 'select',
+						'label'   => 'Title Heading Level',
+						'default' => 'h1',
+						'options' => array(
+							'H1' => 'h1',
+							'H2' => 'h2',
+						),
+					),
+					'showPrice'            => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Price',
+						'default' => true,
+					),
+					'showShortDescription' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Short Description',
+						'default' => true,
+					),
+					'showSku'              => array(
+						'type'    => 'toggle',
+						'label'   => 'Show SKU',
+						'default' => false,
+					),
+					'showStock'            => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Stock Status',
+						'default' => true,
+					),
+					'showRating'           => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Rating',
+						'default' => true,
+					),
+					'alignment'            => array(
+						'type'    => 'select',
+						'label'   => 'Alignment',
+						'default' => 'left',
+						'options' => array(
+							'Left'   => 'left',
+							'Center' => 'center',
+						),
+					),
+					'titleColor'           => array(
+						'type'    => 'color',
+						'label'   => 'Title Color',
+						'default' => '',
+					),
+					'priceColor'           => array(
+						'type'    => 'color',
+						'label'   => 'Price Color',
+						'default' => '',
+					),
+					'textColor'            => array(
+						'type'    => 'color',
+						'label'   => 'Text Color',
+						'default' => '',
+					),
+					'maxWidth'             => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 640,
+						'min'     => 320,
+						'max'     => 1200,
+					),
+					'padding'              => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'             => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'              => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'product-gallery',
+				'name'           => 'Product Gallery',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'image',
+				'description'    => 'The current product gallery, with multiple layouts and an optional lightbox.',
+				'settings'       => array(
+					'layout'         => array(
+						'type'    => 'select',
+						'label'   => 'Layout',
+						'default' => 'thumbs-bottom',
+						'options' => array(
+							'Main + Thumbnails (below)' => 'thumbs-bottom',
+							'Main + Thumbnails (left)'  => 'thumbs-left',
+							'Mosaic Grid'               => 'grid',
+							'Carousel'                  => 'carousel',
+							'Single Image'              => 'single',
+						),
+					),
+					'aspectRatio'    => array(
+						'type'    => 'select',
+						'label'   => 'Image Shape',
+						'default' => 'square',
+						'options' => array(
+							'Square'    => 'square',
+							'Portrait'  => 'portrait',
+							'Landscape' => 'landscape',
+							'Natural'   => 'natural',
+						),
+					),
+					'enableLightbox' => array(
+						'type'    => 'toggle',
+						'label'   => 'Enable Lightbox',
+						'default' => true,
+					),
+					'showThumbs'     => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Thumbnails',
+						'default' => true,
+					),
+					'thumbColumns'   => array(
+						'type'    => 'slider',
+						'label'   => 'Thumbnail Columns',
+						'default' => 5,
+						'min'     => 2,
+						'max'     => 8,
+					),
+					'gap'            => array(
+						'type'    => 'slider',
+						'label'   => 'Gap',
+						'default' => 12,
+						'min'     => 0,
+						'max'     => 40,
+					),
+					'maxWidth'       => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 640,
+						'min'     => 320,
+						'max'     => 1200,
+					),
+					'padding'        => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'       => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'        => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'product-description',
+				'name'           => 'Product Description',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'file-text',
+				'description'    => 'The current product long description.',
+				'settings'       => array(
+					'showHeading'  => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Heading',
+						'default' => true,
+					),
+					'headingText'  => array(
+						'type'    => 'text',
+						'label'   => 'Heading Text',
+						'default' => 'Description',
+					),
+					'headingColor' => array(
+						'type'    => 'color',
+						'label'   => 'Heading Color',
+						'default' => '',
+					),
+					'textColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Text Color',
+						'default' => '',
+					),
+					'maxWidth'     => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 900,
+						'min'     => 320,
+						'max'     => 1400,
+					),
+					'padding'      => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'     => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'      => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'product-specs',
+				'name'           => 'Product Specs',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'list-checks',
+				'description'    => 'The current product attributes as a specs table, in several styles.',
+				'settings'       => array(
+					'layout'       => array(
+						'type'    => 'select',
+						'label'   => 'Style',
+						'default' => 'striped',
+						'options' => array(
+							'Striped Rows' => 'striped',
+							'Card Grid'    => 'cards',
+							'Inline Pills' => 'inline',
+							'Bordered'     => 'bordered',
+						),
+					),
+					'showHeading'  => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Heading',
+						'default' => true,
+					),
+					'headingText'  => array(
+						'type'    => 'text',
+						'label'   => 'Heading Text',
+						'default' => 'Specifications',
+					),
+					'columns'      => array(
+						'type'    => 'slider',
+						'label'   => 'Card Columns',
+						'default' => 1,
+						'min'     => 1,
+						'max'     => 3,
+					),
+					'headingColor' => array(
+						'type'    => 'color',
+						'label'   => 'Heading Color',
+						'default' => '',
+					),
+					'labelColor'   => array(
+						'type'    => 'color',
+						'label'   => 'Label Color',
+						'default' => '',
+					),
+					'valueColor'   => array(
+						'type'    => 'color',
+						'label'   => 'Value Color',
+						'default' => '',
+					),
+					'accentColor'  => array(
+						'type'    => 'color',
+						'label'   => 'Accent / Stripe Color',
+						'default' => '',
+					),
+					'maxWidth'     => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 760,
+						'min'     => 320,
+						'max'     => 1200,
+					),
+					'padding'      => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'     => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'      => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'product-tabs',
+				'name'           => 'Product Tabs',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'layout-template',
+				'description'    => 'A custom tab system. Each tab shows the description, specs, or your own content.',
+				'settings'       => array(
+					'style'       => array(
+						'type'    => 'select',
+						'label'   => 'Tab Style',
+						'default' => 'underline',
+						'options' => array(
+							'Underline' => 'underline',
+							'Pills'     => 'pills',
+							'Boxed'     => 'boxed',
+						),
+					),
+					'tabs'        => array(
+						'type'    => 'product_tabs',
+						'label'   => 'Tabs',
+						'default' => array(
+							array(
+								'label'   => 'Description',
+								'source'  => 'description',
+								'content' => '',
+							),
+							array(
+								'label'   => 'Specifications',
+								'source'  => 'specs',
+								'content' => '',
+							),
+						),
+					),
+					'accentColor' => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'maxWidth'    => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 900,
+						'min'     => 320,
+						'max'     => 1400,
+					),
+					'padding'     => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'    => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'     => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'product-add-to-cart',
+				'name'           => 'Add to Cart',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'shopping-cart',
+				'description'    => "WooCommerce's native add-to-cart form (quantity, variations, AJAX).",
+				'settings'       => array(
+					'alignment'       => array(
+						'type'    => 'select',
+						'label'   => 'Alignment',
+						'default' => 'left',
+						'options' => array(
+							'Left'   => 'left',
+							'Center' => 'center',
+						),
+					),
+					'buttonColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Button Color',
+						'default' => '',
+					),
+					'buttonTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Button Text Color',
+						'default' => '',
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 460,
+						'min'     => 280,
+						'max'     => 900,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
 		$this->register_block(
 			array(
 				'id'          => 'ecommerce-showcase',

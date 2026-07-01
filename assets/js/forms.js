@@ -400,6 +400,67 @@
     })
   }
 
+  // Pre-fill fields whose builder "Parameter Name" matches a URL query param.
+  function prefillFromParams(form) {
+    let params
+    try {
+      params = new URLSearchParams(window.location.search)
+    } catch (e) {
+      return
+    }
+    let hasAny = false
+    params.forEach(() => { hasAny = true })
+    if (!hasAny) return
+
+    form.querySelectorAll('[data-dsf-param]').forEach((node) => {
+      const param = node.getAttribute('data-dsf-param')
+      if (!param || !params.has(param)) return
+      applyPrefill(node, params.getAll(param))
+    })
+  }
+
+  function applyPrefill(node, values) {
+    const value = values.length ? String(values[0]) : ''
+    const tag = node.tagName ? node.tagName.toLowerCase() : ''
+
+    // Hidden inputs carry data-dsf-param directly.
+    if (tag === 'input' || tag === 'select' || tag === 'textarea') {
+      setControlValue(node, value)
+      return
+    }
+
+    // Field wrappers: target the appropriate control(s).
+    const radios = node.querySelectorAll('input[type="radio"]')
+    if (radios.length) {
+      radios.forEach((radio) => {
+        if (radio.value === value) radio.checked = true
+      })
+      return
+    }
+
+    const checkboxes = node.querySelectorAll('input[type="checkbox"]')
+    if (checkboxes.length) {
+      const wanted = new Set(values.length > 1 ? values : String(value).split(',').map((v) => v.trim()))
+      checkboxes.forEach((checkbox) => {
+        if (wanted.has(checkbox.value)) checkbox.checked = true
+      })
+      return
+    }
+
+    const control = node.querySelector('select, textarea, input')
+    if (control) setControlValue(control, value)
+  }
+
+  function setControlValue(el, value) {
+    const type = (el.type || '').toLowerCase()
+    if (type === 'checkbox' || type === 'radio') {
+      el.checked = true
+      return
+    }
+    if (type === 'file') return // file inputs cannot be pre-filled
+    el.value = value
+  }
+
   function mountForm(form) {
     if (form.dataset.dsfMounted === MOUNTED_FLAG) {
       return
@@ -445,6 +506,10 @@
     }
     form.addEventListener('input', handleConditionalChange)
     form.addEventListener('change', handleConditionalChange)
+
+    // Pre-fill fields from URL query parameters (data-dsf-param) before the
+    // first conditional-logic pass so prefilled values are accounted for.
+    prefillFromParams(form)
 
     // Initial evaluation after the form mounts. If the first page is hidden,
     // advance to the next visible page so the user doesn't see an empty form.

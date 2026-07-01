@@ -50,6 +50,8 @@ final class DesignStudio_Flow {
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-popup.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-notification-bar.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-blocks.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-product-templates.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-block-presets.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-forms.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-connections.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-entries.php';
@@ -81,6 +83,8 @@ final class DesignStudio_Flow {
 	public function init_components() {
 		// Initialize post type.
 		DSF_Post_Type::get_instance();
+		// Product templates resolve on the frontend and expose admin list helpers.
+		DSF_Product_Templates::get_instance();
 		$this->migrate_legacy_flow_pages();
 
 		// Initialize admin.

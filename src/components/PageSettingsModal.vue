@@ -15,6 +15,7 @@
 
           <div class="dsf-page-settings-modal__tabs" role="tablist" aria-label="Page settings sections">
             <button type="button" role="tab" :aria-selected="activeTab === 'general'" :class="{ 'is-active': activeTab === 'general' }" @click="activeTab = 'general'">General</button>
+            <button v-if="isProductTemplate" type="button" role="tab" :aria-selected="activeTab === 'product'" :class="{ 'is-active': activeTab === 'product' }" @click="activeTab = 'product'">Product</button>
             <button type="button" role="tab" :aria-selected="activeTab === 'popup'" :class="{ 'is-active': activeTab === 'popup' }" @click="activeTab = 'popup'">Popup</button>
           </div>
 
@@ -73,6 +74,56 @@
             </div>
             </template>
 
+            <div v-else-if="activeTab === 'product' && isProductTemplate" class="dsf-pt-settings">
+              <label class="dsf-pt-toggle">
+                <input type="checkbox" v-model="localPtActive" />
+                <span>
+                  <strong>Make this template live</strong>
+                  <small>When live and published, this design replaces the WooCommerce template for matching products.</small>
+                </span>
+              </label>
+
+              <div class="dsf-form-group">
+                <label class="dsf-label" for="dsf-pt-applies">Applies to</label>
+                <select id="dsf-pt-applies" class="dsf-input" v-model="localPtMode">
+                  <option value="all">All products</option>
+                  <option value="categories">Specific product categories</option>
+                </select>
+              </div>
+
+              <div v-if="localPtMode === 'categories'" class="dsf-form-group">
+                <label class="dsf-label">Product categories</label>
+                <div class="dsf-pt-categories">
+                  <label v-for="cat in productCategories" :key="cat.id" class="dsf-pt-category">
+                    <input type="checkbox" :value="cat.id" v-model="localPtCategoryIds" />
+                    <span>{{ cat.name }}</span>
+                  </label>
+                  <p v-if="!productCategories.length" class="dsf-page-settings-modal__hint">No product categories found.</p>
+                </div>
+                <p class="dsf-page-settings-modal__hint">Category-specific templates take priority over an "all products" template.</p>
+              </div>
+
+              <div class="dsf-form-group">
+                <label class="dsf-label" for="dsf-pt-preview">Preview product</label>
+                <div class="dsf-relative">
+                  <input
+                    id="dsf-pt-preview"
+                    class="dsf-input"
+                    type="text"
+                    :placeholder="selectedPreviewName || 'Search a product to preview…'"
+                    v-model="previewSearch"
+                    @input="debouncedPreviewSearch"
+                  />
+                  <ul v-if="previewResults.length" class="dsf-pt-results">
+                    <li v-for="product in previewResults" :key="product.id">
+                      <button type="button" @click="choosePreviewProduct(product)">{{ product.name }}</button>
+                    </li>
+                  </ul>
+                </div>
+                <p class="dsf-page-settings-modal__hint">Used only in the editor so product blocks show real data. It is never saved into the live page.</p>
+              </div>
+            </div>
+
             <div v-else class="dsf-popup-picker">
               <div class="dsf-form-group">
                 <label class="dsf-label" for="dsf-popup-pick">Popup for this page</label>
@@ -109,7 +160,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { X } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -157,6 +208,18 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  isProductTemplate: {
+    type: Boolean,
+    default: false,
+  },
+  productTemplate: {
+    type: Object,
+    default: null,
+  },
+  productCategories: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['close', 'save'])
@@ -170,6 +233,16 @@ const localPopupId = ref(0)
 const localPopups = ref([])
 const refreshing = ref(false)
 const activeTab = ref('general')
+
+// Product template controls.
+const localPtActive = ref(false)
+const localPtMode = ref('all')
+const localPtCategoryIds = ref([])
+const localPtPreviewId = ref(0)
+const selectedPreviewName = ref('')
+const previewSearch = ref('')
+const previewResults = ref([])
+let previewSearchTimer = null
 
 const selectedIsDraft = computed(() => {
   const match = localPopups.value.find((item) => item.id === localPopupId.value)
@@ -189,9 +262,49 @@ watch(
     localPopupId.value = Number.parseInt(props.popupId, 10) || 0
     localPopups.value = Array.isArray(props.popups) ? [...props.popups] : []
     activeTab.value = 'general'
+
+    const pt = props.productTemplate || {}
+    localPtActive.value = Boolean(pt.active)
+    localPtMode.value = pt.assignment?.mode === 'categories' ? 'categories' : 'all'
+    localPtCategoryIds.value = Array.isArray(pt.assignment?.categoryIds)
+      ? pt.assignment.categoryIds.map((id) => Number.parseInt(id, 10)).filter(Boolean)
+      : []
+    localPtPreviewId.value = Number.parseInt(pt.previewProduct, 10) || 0
+    selectedPreviewName.value = ''
+    previewSearch.value = ''
+    previewResults.value = []
   },
   { immediate: true }
 )
+
+function debouncedPreviewSearch() {
+  window.clearTimeout(previewSearchTimer)
+  previewSearchTimer = window.setTimeout(runPreviewSearch, 280)
+}
+
+async function runPreviewSearch() {
+  const data = typeof window !== 'undefined' ? window.dsfEditorData : null
+  const term = previewSearch.value.trim()
+  if (!data?.ajaxUrl || term.length < 2) {
+    previewResults.value = []
+    return
+  }
+  try {
+    const body = new URLSearchParams({ action: 'dsf_search_products', nonce: data.nonce || '', search: term })
+    const response = await fetch(data.ajaxUrl, { method: 'POST', body, credentials: 'same-origin' })
+    const json = await response.json()
+    previewResults.value = json?.success && Array.isArray(json.data?.products) ? json.data.products : []
+  } catch (error) {
+    previewResults.value = []
+  }
+}
+
+function choosePreviewProduct(product) {
+  localPtPreviewId.value = Number.parseInt(product.id, 10) || 0
+  selectedPreviewName.value = product.name || ''
+  previewSearch.value = ''
+  previewResults.value = []
+}
 
 async function refreshPopups() {
   const data = typeof window !== 'undefined' ? window.dsfEditorData : null
@@ -227,15 +340,30 @@ function generateSlug() {
 }
 
 function save() {
-  emit('save', {
+  const payload = {
     title: localTitle.value.trim(),
     slug: slugify(localSlug.value),
     status: localStatus.value === 'publish' ? 'publish' : 'draft',
     parentId: Number.parseInt(localParentId.value, 10) || 0,
     popup: { ...localPopup.value },
     popupId: Number.parseInt(localPopupId.value, 10) || 0,
-  })
+  }
+
+  if (props.isProductTemplate) {
+    payload.productTemplate = {
+      active: localPtActive.value === true,
+      assignment: {
+        mode: localPtMode.value === 'categories' ? 'categories' : 'all',
+        categoryIds: localPtCategoryIds.value.map((id) => Number.parseInt(id, 10)).filter(Boolean),
+      },
+      previewProduct: Number.parseInt(localPtPreviewId.value, 10) || 0,
+    }
+  }
+
+  emit('save', payload)
 }
+
+onBeforeUnmount(() => window.clearTimeout(previewSearchTimer))
 
 function close() {
   emit('close')
@@ -429,4 +557,17 @@ function close() {
 
 .dsf-popup-picker { display: grid; gap: 14px; }
 .dsf-popup-picker__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.dsf-pt-settings { display: grid; gap: 16px; }
+.dsf-pt-toggle { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.dsf-pt-toggle input { margin-top: 3px; }
+.dsf-pt-toggle span { display: grid; gap: 2px; }
+.dsf-pt-toggle small { color: var(--dsf-gray-500); font-size: 0.78rem; line-height: 1.4; }
+.dsf-pt-categories { display: grid; gap: 6px; max-height: 180px; overflow-y: auto; padding: 4px; border: 1px solid var(--dsf-gray-200); border-radius: 8px; }
+.dsf-pt-category { display: flex; gap: 8px; align-items: center; font-size: 0.85rem; }
+.dsf-relative { position: relative; }
+.dsf-pt-results { position: absolute; z-index: 5; left: 0; right: 0; margin: 4px 0 0; padding: 4px; list-style: none; background: #fff; border: 1px solid var(--dsf-gray-200); border-radius: 8px; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16); max-height: 220px; overflow-y: auto; }
+.dsf-pt-results li { margin: 0; }
+.dsf-pt-results button { display: block; width: 100%; text-align: left; padding: 7px 10px; border: 0; border-radius: 6px; background: transparent; cursor: pointer; font-size: 0.85rem; }
+.dsf-pt-results button:hover { background: var(--dsf-gray-100); }
 </style>

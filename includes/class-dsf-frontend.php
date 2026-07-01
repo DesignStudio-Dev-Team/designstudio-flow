@@ -29,6 +29,9 @@ class DSF_Frontend {
 	/** Current Flow post ID (set during enqueue, for head hints/filters). */
 	private $current_post_id = 0;
 
+	/** Resolved product template ID for the current product request (set in load_flow_template). */
+	private $current_product_template_id = 0;
+
 	/** First image URL found in the page blocks, preloaded as the LCP candidate. */
 	private $hero_image_url = '';
 
@@ -49,6 +52,7 @@ class DSF_Frontend {
 		add_action( 'wp_enqueue_scripts', array( $this, 'dequeue_default_bloat' ), 100 );
 		add_filter( 'template_include', array( $this, 'load_flow_template' ), 99 );
 		add_action( 'template_redirect', array( $this, 'redirect_legacy_flow_urls' ), 1 );
+		add_filter( 'body_class', array( $this, 'add_flow_theme_body_classes' ) );
 		add_filter( 'script_loader_tag', array( $this, 'add_module_type_to_scripts' ), 10, 3 );
 		add_filter( 'style_loader_tag', array( $this, 'make_styles_non_blocking' ), 10, 4 );
 		// Print resource hints and critical CSS early in <head> on Flow pages.
@@ -56,6 +60,55 @@ class DSF_Frontend {
 		add_filter( 'dsf_flow_show_header', array( $this, 'filter_show_header' ), 10, 2 );
 		add_filter( 'dsf_flow_show_footer', array( $this, 'filter_show_footer' ), 10, 2 );
 		add_action( 'admin_bar_menu', array( $this, 'add_admin_bar_edit_link' ), 80 );
+	}
+
+	/**
+	 * Add Flow-specific theme markers so targeted CSS fixes can be scoped to a
+	 * known active theme instead of becoming global form behavior.
+	 *
+	 * @param string[] $classes Existing body classes.
+	 * @return string[]
+	 */
+	public function add_flow_theme_body_classes( $classes ) {
+		$classes = is_array( $classes ) ? $classes : array();
+
+		if ( $this->is_gravity_form_theme_repair_active() ) {
+			$classes[] = 'dsf-theme-form-repair-active';
+			$classes[] = 'dsf-theme-dsnshowcase-active';
+		}
+
+		return array_values( array_unique( $classes ) );
+	}
+
+	/**
+	 * Whether the current site needs targeted Gravity Forms theme-repair CSS.
+	 *
+	 * @return bool
+	 */
+	private function is_gravity_form_theme_repair_active() {
+		$template   = function_exists( 'get_template' ) ? get_template() : '';
+		$stylesheet = function_exists( 'get_stylesheet' ) ? get_stylesheet() : '';
+		$theme_slugs = array( 'dsnshowcase', 'dsnshowcase-child' );
+
+		if ( function_exists( 'apply_filters' ) ) {
+			$theme_slugs = apply_filters( 'dsf_flow_gravity_form_theme_repair_slugs', $theme_slugs );
+		}
+
+		$theme_slugs = array_filter( array_map( array( $this, 'sanitize_theme_slug' ), (array) $theme_slugs ) );
+
+		return in_array( $this->sanitize_theme_slug( $template ), $theme_slugs, true )
+			|| in_array( $this->sanitize_theme_slug( $stylesheet ), $theme_slugs, true );
+	}
+
+	/**
+	 * Normalize a theme slug without relying on WordPress helpers in isolated tests.
+	 *
+	 * @param mixed $slug Theme slug.
+	 * @return string
+	 */
+	private function sanitize_theme_slug( $slug ) {
+		$slug = strtolower( (string) $slug );
+		return preg_replace( '/[^a-z0-9_\-]/', '', $slug );
 	}
 
 	/**
@@ -111,12 +164,19 @@ class DSF_Frontend {
 			return;
 		}
 
-		// Check if this is a Flow page or has Flow blocks
-		$is_flow = ( 'page' === $current_post->post_type ) && get_post_meta( $post_id, '_dsf_enabled', true );
+		// Page flow: a Flow-enabled WordPress page. Product flow: a single-product
+		// page that resolves to an active DSF product template. Product blocks read
+		// their data from the current product; their layout comes from the template.
+		$is_page_flow        = ( 'page' === $current_post->post_type ) && get_post_meta( $post_id, '_dsf_enabled', true );
+		$product_template_id = $is_page_flow ? 0 : $this->resolve_product_template_for_post( $post_id );
+		$is_product_flow     = ( 0 !== $product_template_id );
 
-		if ( ! $is_flow ) {
+		if ( ! $is_page_flow && ! $is_product_flow ) {
 			return;
 		}
+
+		// Blocks/settings come from the template on product pages, the page itself otherwise.
+		$blocks_source_id = $is_product_flow ? $product_template_id : $post_id;
 
 		// Production or development mode
 		$is_dev = defined( 'DSF_DEV_MODE' ) && DSF_DEV_MODE;
@@ -125,7 +185,7 @@ class DSF_Frontend {
 		$frontend_theme_version = $this->get_asset_version( 'assets/css/frontend.css' );
 		$frontend_js_version    = $this->get_asset_version( 'assets/js/frontend.js' );
 
-		$blocks_meta = get_post_meta( $post_id, '_dsf_blocks', true );
+		$blocks_meta = get_post_meta( $blocks_source_id, '_dsf_blocks', true );
 		if ( is_array( $blocks_meta ) ) {
 			$blocks = $blocks_meta;
 		} else {
@@ -134,16 +194,32 @@ class DSF_Frontend {
 				$blocks = array();
 			}
 		}
+
+		$current_product = array();
+		if ( $is_product_flow ) {
+			$fragment_needs  = $this->product_blocks_need_fragments( $blocks );
+			$current_product = DSF_Product_Templates::build_product_context(
+				$post_id,
+				array(
+					'add_to_cart' => $fragment_needs['add_to_cart'],
+					'reviews'     => $fragment_needs['reviews'],
+				)
+			);
+			$this->enqueue_woo_product_scripts( $fragment_needs, $post_id );
+		}
+
 		// Record state for the style/head filters (non-blocking CSS, hints).
 		$this->is_flow_page       = true;
 		$this->current_post_id    = $post_id;
-		$this->current_is_landing = $this->blocks_use_landing( $blocks );
-		$this->hero_image_url     = $this->find_hero_image_url( $blocks );
+		$this->current_is_landing = $is_product_flow ? false : $this->blocks_use_landing( $blocks );
+		$this->hero_image_url     = $is_product_flow
+			? ( isset( $current_product['gallery'][0]['full'] ) ? $current_product['gallery'][0]['full'] : '' )
+			: $this->find_hero_image_url( $blocks );
 
 		$blocks        = $this->prepare_blocks_for_frontend( $blocks );
-		$page_settings = $this->get_page_settings( $post_id );
+		$page_settings = $this->get_page_settings( $blocks_source_id );
 
-		$layout_templates = $this->get_assigned_layout_templates_data( $post_id );
+		$layout_templates = $this->get_assigned_layout_templates_data( $blocks_source_id );
 		$layout_templates = $this->prepare_layout_templates_for_frontend( $layout_templates );
 
 		wp_enqueue_style(
@@ -185,24 +261,24 @@ class DSF_Frontend {
 			);
 		}
 
-		wp_localize_script(
-			'dsf-frontend-app',
-			'dsfFrontendData',
-			array(
-				'postId'          => $post_id,
-				'pluginUrl'       => DSF_PLUGIN_URL,
-				'blocks'          => $blocks,
-				'popup'           => DSF_Popup::resolve_page_popup( $page_settings ),
-				'layoutTemplates' => $layout_templates,
-				'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
-				'nonce'           => wp_create_nonce( 'dsf_frontend_nonce' ),
-				'categories'      => $this->get_wc_categories(),
-				'productTags'     => $this->get_wc_product_tags(),
-				'isWooActive'     => class_exists( 'WooCommerce' ),
-				'wcAjaxUrl'       => class_exists( 'WooCommerce' ) ? \WC_AJAX::get_endpoint( 'add_to_cart' ) : '',
-				'wcCartNonce'     => class_exists( 'WooCommerce' ) ? wp_create_nonce( 'woocommerce-process_checkout' ) : '',
-			)
+		$frontend_data = array(
+			'postId'            => $post_id,
+			'pluginUrl'         => DSF_PLUGIN_URL,
+			'blocks'            => $blocks,
+			'popup'             => DSF_Popup::resolve_page_popup( $page_settings ),
+			'layoutTemplates'   => $layout_templates,
+			'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
+			'nonce'             => wp_create_nonce( 'dsf_frontend_nonce' ),
+			'categories'        => $this->get_wc_categories(),
+			'productTags'       => $this->get_wc_product_tags(),
+			'isWooActive'       => class_exists( 'WooCommerce' ),
+			'wcAjaxUrl'         => class_exists( 'WooCommerce' ) ? \WC_AJAX::get_endpoint( 'add_to_cart' ) : '',
+			'wcCartNonce'       => class_exists( 'WooCommerce' ) ? wp_create_nonce( 'woocommerce-process_checkout' ) : '',
+			'currentProduct'    => $is_product_flow ? $current_product : null,
+			'productTemplateId' => $is_product_flow ? $product_template_id : 0,
 		);
+
+		wp_localize_script( 'dsf-frontend-app', 'dsfFrontendData', $frontend_data );
 
 		wp_add_inline_script(
 			'dsf-frontend-app',
@@ -211,7 +287,88 @@ class DSF_Frontend {
 		);
 
 		// Enqueue Google Fonts if custom fonts are set
-		$this->enqueue_google_fonts( $post_id );
+		$this->enqueue_google_fonts( $blocks_source_id );
+	}
+
+	/**
+	 * Decide which heavier Woo fragments the template's blocks actually need, so we
+	 * only render the add-to-cart form / reviews when a block uses them.
+	 *
+	 * @param array $blocks Raw template blocks.
+	 * @return array{add_to_cart:bool,reviews:bool}
+	 */
+	private function product_blocks_need_fragments( $blocks ) {
+		$needs = array(
+			'add_to_cart' => false,
+			'reviews'     => false,
+		);
+
+		foreach ( (array) $blocks as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+			$type = isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
+
+			if ( 'product-add-to-cart' === $type ) {
+				$needs['add_to_cart'] = true;
+			}
+
+			if ( 'product-tabs' === $type ) {
+				$tabs = ( isset( $block['settings']['tabs'] ) && is_array( $block['settings']['tabs'] ) ) ? $block['settings']['tabs'] : array();
+				foreach ( $tabs as $tab ) {
+					if ( is_array( $tab ) && 'reviews' === ( $tab['source'] ?? '' ) ) {
+						$needs['reviews'] = true;
+						break;
+					}
+				}
+			}
+		}
+
+		return $needs;
+	}
+
+	/**
+	 * Enqueue the WooCommerce frontend scripts the product blocks rely on.
+	 *
+	 * @param array $needs      Fragment needs from product_blocks_need_fragments().
+	 * @param int   $product_id Current product ID.
+	 */
+	private function enqueue_woo_product_scripts( $needs, $product_id ) {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return;
+		}
+
+		if ( ! empty( $needs['add_to_cart'] ) ) {
+			wp_enqueue_script( 'wc-add-to-cart' );
+			wp_enqueue_script( 'wc-single-product' );
+
+			$product = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : null;
+			if ( $product && $product->is_type( 'variable' ) ) {
+				wp_enqueue_script( 'wc-add-to-cart-variation' );
+			}
+		}
+
+		if ( ! empty( $needs['reviews'] ) ) {
+			wp_enqueue_script( 'wc-single-product' );
+			if ( get_option( 'thread_comments' ) ) {
+				wp_enqueue_script( 'comment-reply' );
+			}
+		}
+	}
+
+	/**
+	 * Resolve the active DSF product template for a single-product request.
+	 *
+	 * @param int $post_id Queried post ID.
+	 * @return int Product template ID, or 0.
+	 */
+	private function resolve_product_template_for_post( $post_id ) {
+		$post_id = intval( $post_id );
+		if ( ! $post_id || ! class_exists( 'WooCommerce' ) || 'product' !== get_post_type( $post_id ) ) {
+			return 0;
+		}
+
+		return DSF_Product_Templates::get_instance()->resolve_template_for_product( $post_id );
 	}
 
 	/**
@@ -964,7 +1121,27 @@ class DSF_Frontend {
 		}
 
 		$post_type = get_post_type( $post_id );
-		$is_flow   = ( 'page' === $post_type ) && get_post_meta( $post_id, '_dsf_enabled', true );
+
+		// Single-product pages that resolve to an active DSF product template are
+		// rendered through our own template. Products with no template stay on the
+		// native WooCommerce template untouched.
+		if ( 'product' === $post_type && is_singular( 'product' ) ) {
+			$product_template_id = $this->resolve_product_template_for_post( $post_id );
+			if ( ! $product_template_id ) {
+				return $template;
+			}
+
+			$this->current_product_template_id = $product_template_id;
+
+			if ( is_user_logged_in() && current_user_can( 'edit_pages' ) && ! headers_sent() ) {
+				nocache_headers();
+			}
+
+			$product_template = DSF_PLUGIN_DIR . 'templates/flow-product.php';
+			return file_exists( $product_template ) ? $product_template : $template;
+		}
+
+		$is_flow = ( 'page' === $post_type ) && get_post_meta( $post_id, '_dsf_enabled', true );
 		if ( ! $is_flow ) {
 			return $template;
 		}
@@ -1088,6 +1265,270 @@ class DSF_Frontend {
 		$output .= '</div></div>';
 
 		return $output;
+	}
+
+	/**
+	 * Render the DSF product-template blocks mount for the current product.
+	 *
+	 * Layout/theme come from the template; the visible data is the current product.
+	 * The product blocks are rendered server-side (real content, real add-to-cart
+	 * form) so the page is meaningful and purchasable for crawlers and no-JS
+	 * visitors; Vue then hydrates the same content for the interactive experience.
+	 *
+	 * @param int $template_id Product template post ID.
+	 * @param int $product_id  Current product post ID.
+	 * @return string
+	 */
+	public function render_product_flow_blocks( $template_id, $product_id ) {
+		$template_id = intval( $template_id );
+		$product_id  = intval( $product_id );
+		if ( ! $template_id || ! $product_id ) {
+			return '';
+		}
+
+		$page_settings = $this->get_page_settings( $template_id );
+		$theme_style   = $this->build_theme_style( $page_settings );
+
+		$outer_class     = 'dsf-page-content dsf-product-content';
+		$inner_class     = 'dsf-page-content__inner';
+		$template_choice = $page_settings['layout']['template'] ?? 'default';
+		$template_choice = apply_filters( 'dsf_flow_template', $template_choice, $template_id );
+		if ( 'fullwidth' === $template_choice ) {
+			$outer_class .= ' dsf-page-content--fullwidth';
+			$inner_class .= ' dsf-page-content__inner--fullwidth';
+		}
+
+		$blocks_meta = get_post_meta( $template_id, '_dsf_blocks', true );
+		if ( is_array( $blocks_meta ) ) {
+			$blocks = $blocks_meta;
+		} else {
+			$decoded = $blocks_meta ? json_decode( $blocks_meta, true ) : array();
+			$blocks  = is_array( $decoded ) ? $decoded : array();
+		}
+
+		$needs   = $this->product_blocks_need_fragments( $blocks );
+		$context = DSF_Product_Templates::build_product_context(
+			$product_id,
+			array(
+				'add_to_cart' => $needs['add_to_cart'],
+				'reviews'     => $needs['reviews'],
+			)
+		);
+
+		$server_html = $this->render_product_blocks_server( $blocks, $context );
+		if ( '' === $server_html ) {
+			$server_html = $this->build_product_seo_fallback( $product_id );
+		}
+
+		$output  = '<div class="' . esc_attr( $outer_class ) . '" style="' . esc_attr( $theme_style ) . '">';
+		$output .= '<div class="' . esc_attr( $inner_class ) . '">';
+		$output .= '<div id="dsf-frontend-app" class="dsf-wrapper" data-post-id="' . intval( $product_id ) . '" data-product-template="' . intval( $template_id ) . '">';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped/kses'd fragments in the render_product_*_server() helpers.
+		$output .= $server_html;
+		$output .= '</div>';
+		$output .= '</div></div>';
+
+		return $output;
+	}
+
+	/**
+	 * Server-render the product blocks of a template for the current product.
+	 *
+	 * Only the product blocks are rendered (other block types hydrate via Vue). Each
+	 * fragment is escaped or already sanitized server-side, so the assembled string
+	 * is safe to echo.
+	 *
+	 * @param array $blocks  Template blocks.
+	 * @param array $context Current product context.
+	 * @return string
+	 */
+	private function render_product_blocks_server( $blocks, $context ) {
+		if ( empty( $context ) || ! is_array( $blocks ) ) {
+			return '';
+		}
+
+		$html = '';
+		foreach ( $blocks as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+			$type     = isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
+			$settings = ( isset( $block['settings'] ) && is_array( $block['settings'] ) ) ? $block['settings'] : array();
+			$html    .= $this->render_one_product_block_server( $type, $settings, $context );
+		}
+
+		return '' === $html ? '' : '<div class="dsf-product-ssr">' . $html . '</div>';
+	}
+
+	/**
+	 * Server-render a single product block.
+	 *
+	 * @param string $type     Block type.
+	 * @param array  $settings Block settings (already sanitized at save time).
+	 * @param array  $context  Current product context.
+	 * @return string
+	 */
+	private function render_one_product_block_server( $type, $settings, $context ) {
+		switch ( $type ) {
+			case 'product-gallery':
+				$image = isset( $context['gallery'][0] ) && is_array( $context['gallery'][0] ) ? $context['gallery'][0] : null;
+				if ( ! $image || empty( $image['full'] ) ) {
+					return '';
+				}
+				return '<figure class="dsf-ssr-gallery"><img src="' . esc_url( $image['full'] ) . '" alt="' . esc_attr( $image['alt'] ?? '' ) . '" fetchpriority="high" /></figure>';
+
+			case 'product-summary':
+				$tag = ( 'h2' === ( $settings['headingTag'] ?? 'h1' ) ) ? 'h2' : 'h1';
+				$out = '<div class="dsf-ssr-summary">';
+				if ( false !== ( $settings['showTitle'] ?? true ) ) {
+					$out .= '<' . $tag . '>' . esc_html( $context['name'] ?? '' ) . '</' . $tag . '>';
+				}
+				if ( false !== ( $settings['showPrice'] ?? true ) && ! empty( $context['priceHtml'] ) ) {
+					$out .= '<div class="dsf-ssr-price">' . wp_kses_post( $context['priceHtml'] ) . '</div>';
+				}
+				if ( false !== ( $settings['showShortDescription'] ?? true ) && ! empty( $context['shortDescriptionHtml'] ) ) {
+					$out .= '<div class="dsf-ssr-excerpt">' . wp_kses_post( $context['shortDescriptionHtml'] ) . '</div>';
+				}
+				return $out . '</div>';
+
+			case 'product-add-to-cart':
+				// Already sanitized with the Woo-form allowlist; echoing makes the page
+				// purchasable without JavaScript.
+				return ! empty( $context['addToCartHtml'] ) ? '<div class="dsf-ssr-cart">' . $context['addToCartHtml'] . '</div>' : '';
+
+			case 'product-description':
+				if ( empty( $context['descriptionHtml'] ) ) {
+					return '';
+				}
+				$out = '<div class="dsf-ssr-description">';
+				if ( false !== ( $settings['showHeading'] ?? true ) ) {
+					$out .= '<h2>' . esc_html( sanitize_text_field( $settings['headingText'] ?? 'Description' ) ) . '</h2>';
+				}
+				return $out . wp_kses_post( $context['descriptionHtml'] ) . '</div>';
+
+			case 'product-specs':
+				return $this->render_specs_table_server( $settings, $context );
+
+			case 'product-tabs':
+				return $this->render_tabs_server( $settings, $context );
+
+			default:
+				return '';
+		}
+	}
+
+	/**
+	 * Server-render the specs table fragment.
+	 *
+	 * @param array $settings Block settings.
+	 * @param array $context  Current product context.
+	 * @return string
+	 */
+	private function render_specs_table_server( $settings, $context ) {
+		$specs = ( isset( $context['specs'] ) && is_array( $context['specs'] ) ) ? $context['specs'] : array();
+		if ( empty( $specs ) ) {
+			return '';
+		}
+
+		$out = '<div class="dsf-ssr-specs">';
+		if ( false !== ( $settings['showHeading'] ?? true ) ) {
+			$out .= '<h2>' . esc_html( sanitize_text_field( $settings['headingText'] ?? 'Specifications' ) ) . '</h2>';
+		}
+		$out .= '<table><tbody>';
+		foreach ( $specs as $spec ) {
+			if ( ! is_array( $spec ) ) {
+				continue;
+			}
+			$out .= '<tr><th scope="row">' . esc_html( $spec['name'] ?? '' ) . '</th><td>' . esc_html( $spec['value'] ?? '' ) . '</td></tr>';
+		}
+		return $out . '</tbody></table></div>';
+	}
+
+	/**
+	 * Server-render the tabs fragment (all panels stacked under their labels so the
+	 * content is fully crawlable without JavaScript).
+	 *
+	 * @param array $settings Block settings.
+	 * @param array $context  Current product context.
+	 * @return string
+	 */
+	private function render_tabs_server( $settings, $context ) {
+		$tabs = ( isset( $settings['tabs'] ) && is_array( $settings['tabs'] ) ) ? $settings['tabs'] : array();
+		if ( empty( $tabs ) ) {
+			$tabs = array(
+				array(
+					'label'  => 'Description',
+					'source' => 'description',
+				),
+			);
+		}
+
+		$out = '<div class="dsf-ssr-tabs">';
+		foreach ( $tabs as $tab ) {
+			if ( ! is_array( $tab ) ) {
+				continue;
+			}
+			$label  = sanitize_text_field( $tab['label'] ?? '' );
+			$source = $tab['source'] ?? 'description';
+			$out   .= '<section class="dsf-ssr-tab">';
+			if ( '' !== $label ) {
+				$out .= '<h2>' . esc_html( $label ) . '</h2>';
+			}
+			if ( 'description' === $source ) {
+				$out .= wp_kses_post( $context['descriptionHtml'] ?? '' );
+			} elseif ( 'specs' === $source ) {
+				$out .= $this->render_specs_table_server( array( 'showHeading' => false ), $context );
+			} elseif ( 'reviews' === $source ) {
+				// Already sanitized with the Woo-form allowlist in build_reviews_html().
+				$out .= $context['reviewsHtml'] ?? '';
+			} elseif ( 'custom' === $source ) {
+				$out .= wp_kses_post( $tab['content'] ?? '' );
+			}
+			$out .= '</section>';
+		}
+
+		return $out . '</div>';
+	}
+
+	/**
+	 * Build a minimal sanitized server-side fallback for the current product.
+	 *
+	 * @param int $product_id Product post ID.
+	 * @return string
+	 */
+	private function build_product_seo_fallback( $product_id ) {
+		$context = DSF_Product_Templates::build_product_context( $product_id );
+		if ( empty( $context ) ) {
+			return '';
+		}
+
+		$html = '<div class="dsf-product-fallback">';
+
+		if ( ! empty( $context['gallery'][0]['full'] ) ) {
+			$html .= '<img class="dsf-product-fallback__image" src="' . esc_url( $context['gallery'][0]['full'] ) . '" alt="' . esc_attr( $context['gallery'][0]['alt'] ) . '" fetchpriority="high" />';
+		}
+
+		$html .= '<h1 class="dsf-product-fallback__title">' . esc_html( $context['name'] ) . '</h1>';
+
+		if ( ! empty( $context['priceHtml'] ) ) {
+			$html .= '<div class="dsf-product-fallback__price">' . wp_kses_post( $context['priceHtml'] ) . '</div>';
+		}
+		if ( ! empty( $context['shortDescriptionHtml'] ) ) {
+			$html .= '<div class="dsf-product-fallback__excerpt">' . wp_kses_post( $context['shortDescriptionHtml'] ) . '</div>';
+		}
+
+		$html .= '</div>';
+
+		return $html;
+	}
+
+	/**
+	 * Get the resolved product template ID for the current request (for the template file).
+	 *
+	 * @return int
+	 */
+	public function get_current_product_template_id() {
+		return intval( $this->current_product_template_id );
 	}
 
 	/**
