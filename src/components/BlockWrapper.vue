@@ -67,6 +67,7 @@ import HeroPreview from './blocks/HeroCenteredPreview.vue'
 import ProductGridPreview from './blocks/ProductGridPreview.vue'
 import EcommerceShowcasePreview from './blocks/EcommerceShowcasePreview.vue'
 import FeaturesGridPreview from './blocks/FeaturesGridPreview.vue'
+import CardColumnsPreview from './blocks/CardColumnsPreview.vue'
 import BentoHeroPreview from './blocks/BentoHeroPreview.vue'
 import SpotlightHeroPreview from './blocks/SpotlightHeroPreview.vue'
 import ExpanderHeroPreview from './blocks/ExpanderHeroPreview.vue'
@@ -85,6 +86,9 @@ import ProductDescriptionPreview from './blocks/ProductDescriptionPreview.vue'
 import ProductSpecsPreview from './blocks/ProductSpecsPreview.vue'
 import ProductTabsPreview from './blocks/ProductTabsPreview.vue'
 import ProductAddToCartPreview from './blocks/ProductAddToCartPreview.vue'
+import ProductHeroPreview from './blocks/ProductHeroPreview.vue'
+import ProductHighlightsPreview from './blocks/ProductHighlightsPreview.vue'
+import ProductRelatedPreview from './blocks/ProductRelatedPreview.vue'
 import DuoHeroPreview from './blocks/DuoHeroPreview.vue'
 import FeaturedPromoBannerPreview from './blocks/FeaturedPromoBannerPreview.vue'
 import HeaderMegaMenuPreview from './blocks/HeaderMegaMenuPreview.vue'
@@ -132,6 +136,7 @@ const previewComponents = {
   'product-grid': ProductGridPreview,
   'ecommerce-showcase': EcommerceShowcasePreview,
   'features-grid': FeaturesGridPreview,
+  'card-columns': CardColumnsPreview,
   'bento-hero': BentoHeroPreview,
   'spotlight-hero': SpotlightHeroPreview,
   'expander-hero': ExpanderHeroPreview,
@@ -150,6 +155,9 @@ const previewComponents = {
   'product-specs': ProductSpecsPreview,
   'product-tabs': ProductTabsPreview,
   'product-add-to-cart': ProductAddToCartPreview,
+  'product-hero': ProductHeroPreview,
+  'product-highlights': ProductHighlightsPreview,
+  'product-related': ProductRelatedPreview,
   'duo-hero': DuoHeroPreview,
   'featured-promo-banner': FeaturedPromoBannerPreview,
   'header-mega-menu': HeaderMegaMenuPreview,

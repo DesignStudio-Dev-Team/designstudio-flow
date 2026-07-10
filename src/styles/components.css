@@ -292,7 +292,34 @@
     font-size: var(--dsf-text-lg);
     color: var(--dsf-primary-500);
   }
-  
+
+  .dsf-slider-header {
+    @apply dsf-flex dsf-items-center dsf-gap-1 dsf-mb-2;
+  }
+
+  .dsf-slider-input {
+    width: 4.5rem;
+    padding: 4px 8px;
+    border: 1px solid var(--dsf-gray-300);
+    border-radius: 6px;
+    font-size: var(--dsf-text-base, 1rem);
+    font-weight: 600;
+    color: var(--dsf-primary-600, #0c5fa8);
+    text-align: right;
+    background: #fff;
+  }
+
+  .dsf-slider-input:focus {
+    outline: none;
+    border-color: var(--dsf-primary-500, #0c5fa8);
+    box-shadow: 0 0 0 2px rgb(12 95 168 / 18%);
+  }
+
+  .dsf-slider-unit {
+    font-size: var(--dsf-text-sm, 0.85rem);
+    color: var(--dsf-gray-500);
+  }
+
   .dsf-slider {
     @apply dsf-w-full dsf-appearance-none dsf-cursor-pointer;
     height: var(--dsf-slider-height);

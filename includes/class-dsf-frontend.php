@@ -32,6 +32,9 @@ class DSF_Frontend {
 	/** Resolved product template ID for the current product request (set in load_flow_template). */
 	private $current_product_template_id = 0;
 
+	/** Whether the current request is a non-DSF page using whole-site header/footer mode. */
+	private $is_global_hf_page = false;
+
 	/** First image URL found in the page blocks, preloaded as the LCP candidate. */
 	private $hero_image_url = '';
 
@@ -86,8 +89,8 @@ class DSF_Frontend {
 	 * @return bool
 	 */
 	private function is_gravity_form_theme_repair_active() {
-		$template   = function_exists( 'get_template' ) ? get_template() : '';
-		$stylesheet = function_exists( 'get_stylesheet' ) ? get_stylesheet() : '';
+		$template    = function_exists( 'get_template' ) ? get_template() : '';
+		$stylesheet  = function_exists( 'get_stylesheet' ) ? get_stylesheet() : '';
 		$theme_slugs = array( 'dsnshowcase', 'dsnshowcase-child' );
 
 		if ( function_exists( 'apply_filters' ) ) {
@@ -117,7 +120,32 @@ class DSF_Frontend {
 	 * @param WP_Admin_Bar $wp_admin_bar WordPress admin bar instance.
 	 */
 	public function add_admin_bar_edit_link( $wp_admin_bar ) {
-		if ( is_admin() || ! is_admin_bar_showing() || ! is_singular( 'page' ) ) {
+		if ( is_admin() || ! is_admin_bar_showing() ) {
+			return;
+		}
+
+		// Product pages: link to the DSF product template that styles this product.
+		if ( is_singular( 'product' ) ) {
+			$product_id  = get_queried_object_id();
+			$template_id = $product_id ? $this->resolve_product_template_for_post( $product_id ) : 0;
+			if ( ! $template_id || ! current_user_can( 'edit_pages' ) || ! current_user_can( 'edit_post', $template_id ) ) {
+				return;
+			}
+
+			$wp_admin_bar->add_node(
+				array(
+					'id'    => 'dsf-edit-with-flow',
+					'title' => __( 'DS Flow', 'designstudio-flow' ),
+					'href'  => admin_url( 'admin.php?page=dsf-editor&post_id=' . intval( $template_id ) ),
+					'meta'  => array(
+						'title' => __( 'Edit Product Template with DesignStudio Flow', 'designstudio-flow' ),
+					),
+				)
+			);
+			return;
+		}
+
+		if ( ! is_singular( 'page' ) ) {
 			return;
 		}
 
@@ -170,8 +198,11 @@ class DSF_Frontend {
 		$is_page_flow        = ( 'page' === $current_post->post_type ) && get_post_meta( $post_id, '_dsf_enabled', true );
 		$product_template_id = $is_page_flow ? 0 : $this->resolve_product_template_for_post( $post_id );
 		$is_product_flow     = ( 0 !== $product_template_id );
+		// Whole-site header/footer: a non-DSF page/post that should still get the
+		// site header/footer (no DSF page blocks — just the header/footer apps).
+		$is_global_hf = ( ! $is_page_flow && ! $is_product_flow && $this->should_apply_global_hf( $post_id ) );
 
-		if ( ! $is_page_flow && ! $is_product_flow ) {
+		if ( ! $is_page_flow && ! $is_product_flow && ! $is_global_hf ) {
 			return;
 		}
 
@@ -203,6 +234,7 @@ class DSF_Frontend {
 				array(
 					'add_to_cart' => $fragment_needs['add_to_cart'],
 					'reviews'     => $fragment_needs['reviews'],
+					'related'     => $fragment_needs['related'],
 				)
 			);
 			$this->enqueue_woo_product_scripts( $fragment_needs, $post_id );
@@ -210,6 +242,7 @@ class DSF_Frontend {
 
 		// Record state for the style/head filters (non-blocking CSS, hints).
 		$this->is_flow_page       = true;
+		$this->is_global_hf_page  = $is_global_hf;
 		$this->current_post_id    = $post_id;
 		$this->current_is_landing = $is_product_flow ? false : $this->blocks_use_landing( $blocks );
 		$this->hero_image_url     = $is_product_flow
@@ -301,20 +334,31 @@ class DSF_Frontend {
 		$needs = array(
 			'add_to_cart' => false,
 			'reviews'     => false,
+			'related'     => false,
 		);
 
 		foreach ( (array) $blocks as $block ) {
 			if ( ! is_array( $block ) ) {
 				continue;
 			}
-			$type = isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
+			$type     = isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
+			$settings = ( isset( $block['settings'] ) && is_array( $block['settings'] ) ) ? $block['settings'] : array();
 
 			if ( 'product-add-to-cart' === $type ) {
 				$needs['add_to_cart'] = true;
 			}
 
+			// The product hero embeds the add-to-cart form unless it is toggled off.
+			if ( 'product-hero' === $type && false !== ( $settings['showAddToCart'] ?? true ) ) {
+				$needs['add_to_cart'] = true;
+			}
+
+			if ( 'product-related' === $type ) {
+				$needs['related'] = true;
+			}
+
 			if ( 'product-tabs' === $type ) {
-				$tabs = ( isset( $block['settings']['tabs'] ) && is_array( $block['settings']['tabs'] ) ) ? $block['settings']['tabs'] : array();
+				$tabs = isset( $settings['tabs'] ) && is_array( $settings['tabs'] ) ? $settings['tabs'] : array();
 				foreach ( $tabs as $tab ) {
 					if ( is_array( $tab ) && 'reviews' === ( $tab['source'] ?? '' ) ) {
 						$needs['reviews'] = true;
@@ -354,6 +398,82 @@ class DSF_Frontend {
 				wp_enqueue_script( 'comment-reply' );
 			}
 		}
+	}
+
+	/**
+	 * Whether whole-site header/footer mode should wrap the current request.
+	 *
+	 * Opt-in (Settings → Theme). Applies to singular Pages and Posts the theme
+	 * would normally render — NOT DSF pages (handled elsewhere), products,
+	 * WooCommerce utility pages, or non-singular views (archives/search/404).
+	 *
+	 * @param int $post_id Queried post ID.
+	 * @return bool
+	 */
+	public function should_apply_global_hf( $post_id ) {
+		$post_id = intval( $post_id );
+		if ( ! $post_id || is_admin() || ! is_singular() ) {
+			return false;
+		}
+		if ( ! (bool) get_option( 'dsf_global_header_footer', false ) ) {
+			return false;
+		}
+		// Need at least one default header/footer configured.
+		if ( ! self::get_default_layout_id( 'header' ) && ! self::get_default_layout_id( 'footer' ) ) {
+			return false;
+		}
+
+		$post_type = get_post_type( $post_id );
+		if ( ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
+			return false;
+		}
+		// DSF-enabled pages already render the header/footer via their own template.
+		if ( 'page' === $post_type && get_post_meta( $post_id, '_dsf_enabled', true ) ) {
+			return false;
+		}
+		// WooCommerce cart/checkout/account/shop need their own templates.
+		if ( $this->is_woocommerce_utility_page( $post_id ) ) {
+			return false;
+		}
+
+		/**
+		 * Filter whether whole-site header/footer mode applies to a given request.
+		 *
+		 * @param bool $apply   Whether to wrap this request.
+		 * @param int  $post_id Queried post ID.
+		 */
+		return (bool) apply_filters( 'dsf_apply_global_header_footer', true, $post_id );
+	}
+
+	/**
+	 * Whether a post is a WooCommerce cart/checkout/account/shop page.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool
+	 */
+	private function is_woocommerce_utility_page( $post_id ) {
+		if ( ! class_exists( 'WooCommerce' ) || ! function_exists( 'wc_get_page_id' ) ) {
+			return false;
+		}
+		$ids = array_map(
+			'intval',
+			array(
+				wc_get_page_id( 'cart' ),
+				wc_get_page_id( 'checkout' ),
+				wc_get_page_id( 'myaccount' ),
+				wc_get_page_id( 'shop' ),
+			)
+		);
+		return in_array( (int) $post_id, $ids, true );
+	}
+
+	/**
+	 * Get the whole-site header/footer flag for the current request (for the template).
+	 *
+	 * @return bool
+	 */
+	public function is_global_hf_request() {
+		return (bool) $this->is_global_hf_page;
 	}
 
 	/**
@@ -944,6 +1064,12 @@ class DSF_Frontend {
 		if ( $this->current_is_landing ) {
 			echo '<style id="dsf-loader-critical">' . $this->get_loader_critical_css() . '</style>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static CSS string.
 		}
+
+		// Responsive typography: override the inline desktop tokens at laptop/mobile.
+		$responsive_typography = self::build_responsive_typography_css();
+		if ( '' !== $responsive_typography ) {
+			echo '<style id="dsf-responsive-typography">' . $responsive_typography . '</style>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- generated numeric CSS variables.
+		}
 	}
 
 	/**
@@ -1005,6 +1131,11 @@ class DSF_Frontend {
 	 */
 	public function dequeue_default_bloat() {
 		if ( ! $this->is_flow_page ) {
+			return;
+		}
+		// Whole-site header/footer pages still render the theme's post content, which
+		// may rely on Gutenberg/theme styles — keep them.
+		if ( $this->is_global_hf_page ) {
 			return;
 		}
 
@@ -1143,6 +1274,13 @@ class DSF_Frontend {
 
 		$is_flow = ( 'page' === $post_type ) && get_post_meta( $post_id, '_dsf_enabled', true );
 		if ( ! $is_flow ) {
+			// Whole-site header/footer: wrap a normal page/post with the DSF header
+			// and footer (its content still renders via the_content).
+			if ( $this->should_apply_global_hf( $post_id ) ) {
+				$this->is_global_hf_page = true;
+				$universal               = DSF_PLUGIN_DIR . 'templates/flow-universal.php';
+				return file_exists( $universal ) ? $universal : $template;
+			}
 			return $template;
 		}
 
@@ -1312,6 +1450,7 @@ class DSF_Frontend {
 			array(
 				'add_to_cart' => $needs['add_to_cart'],
 				'reviews'     => $needs['reviews'],
+				'related'     => $needs['related'],
 			)
 		);
 
@@ -1376,6 +1515,71 @@ class DSF_Frontend {
 					return '';
 				}
 				return '<figure class="dsf-ssr-gallery"><img src="' . esc_url( $image['full'] ) . '" alt="' . esc_attr( $image['alt'] ?? '' ) . '" fetchpriority="high" /></figure>';
+
+			case 'product-hero':
+				$out   = '<div class="dsf-ssr-hero">';
+				$image = isset( $context['gallery'][0] ) && is_array( $context['gallery'][0] ) ? $context['gallery'][0] : null;
+				if ( $image && ! empty( $image['full'] ) ) {
+					$out .= '<img src="' . esc_url( $image['full'] ) . '" alt="' . esc_attr( $image['alt'] ?? '' ) . '" fetchpriority="high" />';
+				}
+				$out .= '<h1>' . esc_html( $context['name'] ?? '' ) . '</h1>';
+				if ( false !== ( $settings['showPrice'] ?? true ) && ! empty( $context['priceHtml'] ) ) {
+					$out .= '<div class="dsf-ssr-price">' . wp_kses_post( $context['priceHtml'] ) . '</div>';
+				}
+				if ( false !== ( $settings['showShortDescription'] ?? true ) && ! empty( $context['shortDescriptionHtml'] ) ) {
+					$out .= '<div class="dsf-ssr-excerpt">' . wp_kses_post( $context['shortDescriptionHtml'] ) . '</div>';
+				}
+				if ( false !== ( $settings['showAddToCart'] ?? true ) && ! empty( $context['addToCartHtml'] ) ) {
+					// Already sanitized with the Woo-form allowlist.
+					$out .= '<div class="dsf-ssr-cart">' . $context['addToCartHtml'] . '</div>';
+				}
+				return $out . '</div>';
+
+			case 'product-highlights':
+				$items = ( isset( $settings['items'] ) && is_array( $settings['items'] ) ) ? $settings['items'] : array();
+				if ( empty( $items ) ) {
+					return '';
+				}
+				$out = '<ul class="dsf-ssr-highlights">';
+				foreach ( array_slice( $items, 0, 8 ) as $item ) {
+					if ( ! is_array( $item ) ) {
+						continue;
+					}
+					$title       = sanitize_text_field( $item['title'] ?? '' );
+					$description = sanitize_text_field( $item['description'] ?? '' );
+					if ( '' === $title && '' === $description ) {
+						continue;
+					}
+					$out .= '<li><strong>' . esc_html( $title ) . '</strong> ' . esc_html( $description ) . '</li>';
+				}
+				return $out . '</ul>';
+
+			case 'product-related':
+				$cards = ( isset( $context['relatedProducts'] ) && is_array( $context['relatedProducts'] ) ) ? $context['relatedProducts'] : array();
+				if ( empty( $cards ) ) {
+					return '';
+				}
+				$count = max( 2, min( 8, absint( $settings['count'] ?? 4 ) ) );
+				$out   = '<div class="dsf-ssr-related">';
+				if ( false !== ( $settings['showHeading'] ?? true ) ) {
+					$out .= '<h2>' . esc_html( sanitize_text_field( $settings['headingText'] ?? 'You may also like' ) ) . '</h2>';
+				}
+				$out .= '<ul>';
+				foreach ( array_slice( $cards, 0, $count ) as $card ) {
+					if ( ! is_array( $card ) ) {
+						continue;
+					}
+					$out .= '<li><a href="' . esc_url( $card['permalink'] ?? '' ) . '">';
+					if ( ! empty( $card['image'] ) ) {
+						$out .= '<img src="' . esc_url( $card['image'] ) . '" alt="' . esc_attr( $card['imageAlt'] ?? '' ) . '" loading="lazy" />';
+					}
+					$out .= '<span>' . esc_html( $card['name'] ?? '' ) . '</span>';
+					if ( ! empty( $card['priceHtml'] ) ) {
+						$out .= '<span class="dsf-ssr-price">' . wp_kses_post( $card['priceHtml'] ) . '</span>';
+					}
+					$out .= '</a></li>';
+				}
+				return $out . '</ul></div>';
 
 			case 'product-summary':
 				$tag = ( 'h2' === ( $settings['headingTag'] ?? 'h1' ) ) ? 'h2' : 'h1';
@@ -1618,6 +1822,11 @@ class DSF_Frontend {
 		$layout_key  = 'header' === $type ? 'headerTemplateId' : 'footerTemplateId';
 		$template_id = absint( $settings['layout'][ $layout_key ] ?? 0 );
 		if ( ! $template_id ) {
+			// The page hasn't picked one — fall back to the site-wide default
+			// header/footer chosen in DesignStudio Flow → Settings.
+			$template_id = self::get_default_layout_id( $type );
+		}
+		if ( ! $template_id ) {
 			return array();
 		}
 
@@ -1654,6 +1863,102 @@ class DSF_Frontend {
 			'blocks'   => $blocks,
 			'snapshot' => is_string( $snapshot ) ? $snapshot : '',
 		);
+	}
+
+	/**
+	 * Resolve the site-wide default header/footer layout ID from options.
+	 *
+	 * Validates the stored ID still points to an existing layout of the right type
+	 * (a deleted/retyped template falls back to "none"). Publish-status visibility
+	 * is intentionally NOT enforced here — the caller applies the same status check
+	 * used for explicitly-assigned templates, so a draft default still previews for
+	 * logged-in editors while staying hidden from the public.
+	 *
+	 * @param string $type 'header' or 'footer'.
+	 * @return int Layout post ID, or 0.
+	 */
+	public static function get_default_layout_id( $type ) {
+		$type = 'footer' === $type ? 'footer' : 'header';
+		$id   = absint( get_option( 'header' === $type ? 'dsf_default_header_id' : 'dsf_default_footer_id', 0 ) );
+		if ( ! $id ) {
+			return 0;
+		}
+
+		$post = get_post( $id );
+		if ( ! $post || 'dsf_layout' !== $post->post_type || 'trash' === $post->post_status ) {
+			return 0;
+		}
+
+		$stored_type = get_post_meta( $id, '_dsf_layout_type', true );
+		$stored_type = 'footer' === $stored_type ? 'footer' : 'header';
+
+		return $stored_type === $type ? $id : 0;
+	}
+
+	/**
+	 * Apply a header/footer layout to every DSF page + product template.
+	 *
+	 * Used when the site-wide default is saved in Settings so all existing pages
+	 * switch to the chosen header/footer (future pages inherit it via the default
+	 * fallback). Writes the explicit assignment so it renders through the same,
+	 * proven per-page path — independent of the fallback.
+	 *
+	 * @param string $type      'header' or 'footer'.
+	 * @param int    $layout_id Layout post ID (0 = no-op).
+	 * @return int Number of posts updated.
+	 */
+	public static function apply_layout_to_all_flow_content( $type, $layout_id ) {
+		$type      = 'footer' === $type ? 'footer' : 'header';
+		$key       = 'header' === $type ? 'headerTemplateId' : 'footerTemplateId';
+		$layout_id = absint( $layout_id );
+		if ( ! $layout_id ) {
+			return 0;
+		}
+
+		$statuses = array( 'publish', 'draft', 'pending', 'private', 'future' );
+
+		$page_ids = get_posts(
+			array(
+				'post_type'      => 'page',
+				'post_status'    => $statuses,
+				'posts_per_page' => 3000, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- one-off admin bulk apply.
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				'meta_key'       => '_dsf_enabled', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				'meta_value'     => '1', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+			)
+		);
+
+		$template_ids = get_posts(
+			array(
+				'post_type'      => 'dsf_product_template',
+				'post_status'    => $statuses,
+				'posts_per_page' => 500, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- one-off admin bulk apply.
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+			)
+		);
+
+		$updated = 0;
+		foreach ( array_merge( (array) $page_ids, (array) $template_ids ) as $post_id ) {
+			$post_id  = absint( $post_id );
+			$settings = get_post_meta( $post_id, '_dsf_settings', true );
+			if ( ! is_array( $settings ) ) {
+				$decoded  = $settings ? json_decode( $settings, true ) : array();
+				$settings = is_array( $decoded ) ? $decoded : array();
+			}
+			if ( ! isset( $settings['layout'] ) || ! is_array( $settings['layout'] ) ) {
+				$settings['layout'] = array();
+			}
+			if ( absint( $settings['layout'][ $key ] ?? 0 ) === $layout_id ) {
+				continue;
+			}
+			$settings['layout'][ $key ] = $layout_id;
+			update_post_meta( $post_id, '_dsf_settings', $settings );
+			++$updated;
+		}
+
+		return $updated;
 	}
 
 	private function get_default_settings() {
@@ -1827,8 +2132,13 @@ class DSF_Frontend {
 			}
 			return max( 8.0, min( 200.0, $value ) );
 		};
+		// Per-breakpoint base body size (0 = inherit desktop). Bounded like the base.
+		$clamp_base = static function ( $value ) {
+			$value = floatval( $value );
+			return $value > 0 ? max( 12.0, min( 22.0, $value ) ) : 0.0;
+		};
 
-		return array(
+		$normalized = array(
 			'mode'            => ( ( $option['mode'] ?? '' ) === 'override' ) ? 'override' : 'theme',
 			'heading_font'    => isset( $option['heading_font'] ) ? (string) $option['heading_font'] : '',
 			'body_font'       => isset( $option['body_font'] ) ? (string) $option['body_font'] : '',
@@ -1843,6 +2153,86 @@ class DSF_Frontend {
 				? max( 320, min( 3000, intval( $option['container_width'] ) ) )
 				: 1800,
 		);
+
+		// Laptop + mobile overrides (0 = inherit the desktop value for that element).
+		foreach ( array( 'laptop', 'mobile' ) as $bp ) {
+			$normalized[ 'base_' . $bp ] = $clamp_base( $option[ 'base_' . $bp ] ?? 0 );
+			foreach ( array( 'size_p', 'size_h1', 'size_h2', 'size_h3', 'size_h4' ) as $key ) {
+				$normalized[ $key . '_' . $bp ] = $clamp_size( $option[ $key . '_' . $bp ] ?? 0 );
+			}
+		}
+
+		return $normalized;
+	}
+
+	/**
+	 * Compute the typography CSS-variable token maps for each breakpoint.
+	 *
+	 * Desktop is the baseline; laptop/mobile inherit each unspecified value from
+	 * desktop, so authors only override what changes at smaller widths.
+	 *
+	 * @return array{desktop:array,laptop:array,mobile:array}
+	 */
+	public static function get_responsive_typography_tokens() {
+		$defaults = self::get_default_typography();
+		$option   = self::get_typography_option();
+		$scale    = $defaults['scale'];
+		$d_base   = $defaults['base'];
+		$d_over   = self::get_typography_size_overrides();
+
+		$maps = array(
+			'desktop' => self::compute_typography_tokens( $d_base, $scale, $d_over ),
+		);
+
+		foreach ( array( 'laptop', 'mobile' ) as $bp ) {
+			$bp_base   = floatval( $option[ 'base_' . $bp ] ?? 0 );
+			$base      = $bp_base > 0 ? $bp_base : $d_base;
+			$overrides = array();
+			foreach ( array( 'p' => 'size_p', 'h1' => 'size_h1', 'h2' => 'size_h2', 'h3' => 'size_h3', 'h4' => 'size_h4' ) as $el => $key ) {
+				$value            = floatval( $option[ $key . '_' . $bp ] ?? 0 );
+				$overrides[ $el ] = $value > 0 ? $value : ( $d_over[ $el ] ?? 0 );
+			}
+			$maps[ $bp ] = self::compute_typography_tokens( $base, $scale, $overrides );
+		}
+
+		return $maps;
+	}
+
+	/**
+	 * Build the `<style>` CSS that overrides typography tokens at laptop/mobile
+	 * widths. Only tokens that differ from desktop are emitted (with !important so
+	 * they beat the desktop values set inline on the page wrapper).
+	 *
+	 * @return string CSS (without the surrounding <style> tag).
+	 */
+	public static function build_responsive_typography_css() {
+		if ( 'override' !== self::get_typography_option()['mode'] ) {
+			return '';
+		}
+
+		$maps    = self::get_responsive_typography_tokens();
+		$desktop = $maps['desktop'];
+		$queries = array(
+			'laptop' => '(max-width: 1024px)',
+			'mobile' => '(max-width: 767px)',
+		);
+
+		$css = '';
+		foreach ( $queries as $bp => $query ) {
+			$declarations = '';
+			foreach ( $maps[ $bp ] as $var => $value ) {
+				if ( ! isset( $desktop[ $var ] ) || $desktop[ $var ] === $value ) {
+					continue;
+				}
+				// Var names come from a fixed internal set; values are formatted px.
+				$declarations .= $var . ':' . $value . ' !important;';
+			}
+			if ( '' !== $declarations ) {
+				$css .= '@media ' . $query . '{.dsf-page-content{' . $declarations . '}}';
+			}
+		}
+
+		return $css;
 	}
 
 	/**

@@ -155,19 +155,65 @@ class DSF_Connections {
 
 	/**
 	 * Shape the payload sent to every connection. Flat `fields` map makes this
-	 * Zapier-friendly out of the box; the metadata sits at the top level.
+	 * Zapier-friendly out of the box; the metadata sits at the top level, and
+	 * `fields_by_label` mirrors how Gravity Forms presents entries to Zapier so
+	 * zaps can map inputs by their human label.
 	 */
 	private function build_payload( $form_id, $entry_id, $submission, $is_test ) {
-		$form = $form_id ? get_post( $form_id ) : null;
+		$form   = $form_id ? get_post( $form_id ) : null;
+		$fields = is_array( $submission ) ? $submission : array();
+		$labels = $this->get_field_labels( $form_id );
+
+		$by_label = array();
+		foreach ( $fields as $name => $value ) {
+			$key = ( isset( $labels[ $name ] ) && '' !== $labels[ $name ] ) ? $labels[ $name ] : (string) $name;
+			// Two fields sharing a label must not overwrite each other.
+			if ( array_key_exists( $key, $by_label ) ) {
+				$key .= ' (' . $name . ')';
+			}
+			$by_label[ $key ] = $value;
+		}
+
 		return array(
-			'form_id'      => intval( $form_id ),
-			'form_title'   => $form ? $form->post_title : '',
-			'entry_id'     => intval( $entry_id ),
-			'submitted_at' => gmdate( 'c' ),
-			'site_url'     => home_url(),
-			'test'         => (bool) $is_test,
-			'fields'       => is_array( $submission ) ? $submission : array(),
+			'form_id'         => intval( $form_id ),
+			'form_title'      => $form ? $form->post_title : '',
+			'entry_id'        => intval( $entry_id ),
+			'submitted_at'    => gmdate( 'c' ),
+			'site_url'        => home_url(),
+			'test'            => (bool) $is_test,
+			'fields'          => $fields,
+			'field_labels'    => $labels,
+			'fields_by_label' => $by_label,
 		);
+	}
+
+	/**
+	 * Map of field machine names to their labels from the saved form schema.
+	 *
+	 * @param int $form_id Form post ID.
+	 * @return array<string,string>
+	 */
+	private function get_field_labels( $form_id ) {
+		if ( ! $form_id ) {
+			return array();
+		}
+
+		$rows = get_post_meta( $form_id, '_dsf_form_rows', true );
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$labels = array();
+		foreach ( $rows as $row ) {
+			$row_fields = is_array( $row['fields'] ?? null ) ? $row['fields'] : array();
+			foreach ( $row_fields as $field ) {
+				if ( is_array( $field ) && ! empty( $field['name'] ) ) {
+					$labels[ (string) $field['name'] ] = isset( $field['label'] ) ? (string) $field['label'] : '';
+				}
+			}
+		}
+
+		return $labels;
 	}
 
 	private function sample_submission() {
@@ -185,6 +231,11 @@ class DSF_Connections {
 	 * POST the payload to the endpoint with optional HMAC signature.
 	 */
 	private function dispatch( $connection, $payload ) {
+		$url = isset( $connection['endpointUrl'] ) ? (string) $connection['endpointUrl'] : '';
+		if ( '' === $url || ! wp_http_validate_url( $url ) ) {
+			return new WP_Error( 'dsf_connection_invalid_url', __( 'The endpoint URL is missing or not allowed.', 'designstudio-flow' ) );
+		}
+
 		$body    = wp_json_encode( $payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 		$timeout = max( 1, min( 120, intval( $connection['timeout'] ?? 8 ) ) );
 
@@ -199,8 +250,8 @@ class DSF_Connections {
 			$headers['X-DSForm-Signature-Ts'] = (string) time();
 		}
 
-		$response = wp_remote_post(
-			$connection['endpointUrl'],
+		$response = wp_safe_remote_post(
+			$url,
 			array(
 				'timeout'     => $timeout,
 				'redirection' => 3,

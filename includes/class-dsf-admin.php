@@ -116,12 +116,14 @@ class DSF_Admin {
 			$this->get_flow_pages_admin_url()                      => 1,  // Pages
 			'edit.php?post_type=dsf_layout&dsf_layout_type=header' => 2,  // Headers
 			'edit.php?post_type=dsf_layout&dsf_layout_type=footer' => 3,  // Footers
-			'edit.php?post_type=dsf_saved_block'                   => 4,  // Saved Blocks
-			'edit.php?post_type=dsf_template'                      => 5,  // Templates
-			'edit.php?post_type=dsf_product_template'              => 6,  // Product Templates
-			'edit.php?post_type=dsf_popup'                         => 7,  // Popups
-			'dsf-tools'                                            => 8,  // Tools
-			'dsf-settings'                                         => 9,  // Settings
+			'edit.php?post_type=dsf_popup'                         => 4,  // Popups
+			'edit.php?post_type=dsf_form'                          => 5,  // Forms
+			'dsf-entries'                                          => 6,  // Entries
+			'edit.php?post_type=dsf_saved_block'                   => 7,  // Saved Blocks
+			'edit.php?post_type=dsf_template'                      => 8,  // Templates
+			'edit.php?post_type=dsf_product_template'              => 9,  // Product Templates
+			'dsf-tools'                                            => 10, // Tools
+			'dsf-settings'                                         => 11, // Settings
 		);
 
 		// Decorate with rank + original index for a stable sort.
@@ -265,6 +267,44 @@ class DSF_Admin {
 		);
 		$forms       = $forms_query->posts;
 		$forms_total = (int) $forms_query->found_posts;
+
+		$saved_blocks_query = new WP_Query(
+			array(
+				'post_type'      => 'dsf_saved_block',
+				'post_status'    => $statuses,
+				'posts_per_page' => 6,
+				'orderby'        => 'modified',
+				'order'          => 'DESC',
+			)
+		);
+		$saved_blocks       = $saved_blocks_query->posts;
+		$saved_blocks_total = (int) $saved_blocks_query->found_posts;
+
+		$templates_query = new WP_Query(
+			array(
+				'post_type'      => 'dsf_template',
+				'post_status'    => $statuses,
+				'posts_per_page' => 6,
+				'orderby'        => 'modified',
+				'order'          => 'DESC',
+			)
+		);
+		$templates       = $templates_query->posts;
+		$templates_total = (int) $templates_query->found_posts;
+
+		$product_templates_query = new WP_Query(
+			array(
+				'post_type'      => 'dsf_product_template',
+				'post_status'    => $statuses,
+				'posts_per_page' => 6,
+				'orderby'        => 'modified',
+				'order'          => 'DESC',
+			)
+		);
+		$product_templates       = $product_templates_query->posts;
+		$product_templates_total = (int) $product_templates_query->found_posts;
+
+		$woo_active = class_exists( 'WooCommerce' );
 
 		include DSF_PLUGIN_DIR . 'templates/admin-dashboard.php';
 	}

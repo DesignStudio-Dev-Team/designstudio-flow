@@ -17,8 +17,8 @@
     "file": "js/_plugin-vue_export-helper-r1sO_cA-.js",
     "name": "_plugin-vue_export-helper"
   },
-  "_main-CZlKVUEq.js": {
-    "file": "js/main-CZlKVUEq.js",
+  "_main-CTyCqAg_.js": {
+    "file": "js/main-CTyCqAg_.js",
     "name": "main",
     "imports": [
       "__plugin-vue_export-helper-r1sO_cA-.js"
@@ -51,7 +51,7 @@
     "isEntry": true,
     "imports": [
       "__plugin-vue_export-helper-r1sO_cA-.js",
-      "_main-CZlKVUEq.js"
+      "_main-CTyCqAg_.js"
     ]
   },
   "src/frontend/notificationBar.js": {
@@ -70,7 +70,7 @@
     "isEntry": true,
     "imports": [
       "__plugin-vue_export-helper-r1sO_cA-.js",
-      "_main-CZlKVUEq.js",
+      "_main-CTyCqAg_.js",
       "_ColorPicker-DbpNaYoG.js"
     ],
     "css": [

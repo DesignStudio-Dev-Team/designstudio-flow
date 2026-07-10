@@ -56,6 +56,7 @@ final class DesignStudio_Flow {
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-connections.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-entries.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-import-export.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-gf-migration.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-redirects.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-mail-smtp.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-update-checker.php';
@@ -108,6 +109,7 @@ final class DesignStudio_Flow {
 		if ( is_admin() ) {
 			DSF_Entries::get_instance();
 			DSF_Import_Export::get_instance();
+			DSF_GF_Migration::get_instance();
 		}
 
 		// Initialize blocks.

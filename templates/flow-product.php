@@ -3,11 +3,10 @@
  * DesignStudio Flow Single-Product Template
  *
  * Renders a DSF product template (its blocks bound to the current product) in
- * place of WooCommerce's single-product template. WooCommerce's own template
- * files are never modified — this whole template is only used for products that
- * resolve to an active DSF product template; all other products keep the native
- * WooCommerce template. The standard theme header/footer are used so WooCommerce
- * notices, cart fragments, and structured data continue to work.
+ * place of WooCommerce's single-product template. Uses the DSF header/footer
+ * (the template's assigned one, or the site-wide default) when available, and
+ * falls back to the theme's shop header/footer otherwise. WooCommerce's own
+ * template files are never modified.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -18,12 +17,36 @@ $frontend            = DSF_Frontend::get_instance();
 $product_id          = get_queried_object_id();
 $product_template_id = $frontend->get_current_product_template_id();
 
-get_header( 'shop' );
+$show_header   = apply_filters( 'dsf_flow_show_header', true, $product_template_id );
+$show_footer   = apply_filters( 'dsf_flow_show_footer', true, $product_template_id );
+$custom_header = $show_header ? $frontend->render_assigned_layout_template( $product_template_id, 'header' ) : '';
+$custom_footer = $show_footer ? $frontend->render_assigned_layout_template( $product_template_id, 'footer' ) : '';
 
-/**
- * Keep WooCommerce's before/after single-product hooks so other plugins and Woo
- * itself (notices, structured data, sidebars) still run around our content.
- */
+$used_theme_header = false;
+if ( $show_header && '' === $custom_header ) {
+	get_header( 'shop' );
+	$used_theme_header = true;
+}
+
+if ( ! $used_theme_header ) {
+	?>
+<!DOCTYPE html>
+<html <?php language_attributes(); ?>>
+<head>
+	<meta charset="<?php bloginfo( 'charset' ); ?>">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<?php wp_head(); ?>
+</head>
+<body <?php body_class(); ?>>
+	<?php wp_body_open(); ?>
+	<?php
+}
+
+if ( $show_header && '' !== $custom_header ) {
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Layout snapshot is sanitized on save.
+	echo $custom_header;
+}
+
 if ( function_exists( 'wc_print_notices' ) ) {
 	wc_print_notices();
 }
@@ -37,4 +60,18 @@ echo '</main>';
 
 do_action( 'woocommerce_after_single_product' );
 
-get_footer( 'shop' );
+if ( $show_footer && '' !== $custom_footer ) {
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Layout snapshot is sanitized on save.
+	echo $custom_footer;
+}
+
+$used_theme_footer = false;
+if ( $show_footer && '' === $custom_footer ) {
+	get_footer( 'shop' );
+	$used_theme_footer = true;
+}
+
+if ( ! $used_theme_footer ) {
+	wp_footer();
+	echo '</body></html>';
+}

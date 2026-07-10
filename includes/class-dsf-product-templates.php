@@ -23,11 +23,26 @@ class DSF_Product_Templates {
 	/** Per-request cache of product_id => resolved template_id. */
 	private $resolved_cache = array();
 
+	/** Per-request cache of the active-template query (null until first use). */
+	private $active_templates = null;
+
 	public static function get_instance() {
 		if ( null === self::$instance ) {
 			self::$instance = new self();
 		}
 		return self::$instance;
+	}
+
+	/**
+	 * Whether the DesignStudio Flow editor is enabled for WooCommerce products.
+	 *
+	 * Controlled by the "Products" toggle in Settings → General. Defaults to on so
+	 * existing product-template setups keep working after an update.
+	 *
+	 * @return bool
+	 */
+	public static function is_enabled() {
+		return (bool) get_option( 'dsf_products_enabled', true );
 	}
 
 	private function __construct() {
@@ -57,7 +72,7 @@ class DSF_Product_Templates {
 		}
 
 		$template_id = 0;
-		if ( class_exists( 'WooCommerce' ) && 'product' === get_post_type( $product_id ) ) {
+		if ( self::is_enabled() && class_exists( 'WooCommerce' ) && 'product' === get_post_type( $product_id ) ) {
 			$template_id = $this->find_matching_template( $product_id );
 		}
 
@@ -80,18 +95,21 @@ class DSF_Product_Templates {
 	 * @return int
 	 */
 	private function find_matching_template( $product_id ) {
-		$templates = get_posts(
-			array(
-				'post_type'      => self::POST_TYPE,
-				'post_status'    => 'publish',
-				'posts_per_page' => 100,
-				'orderby'        => 'modified',
-				'order'          => 'DESC',
-				'no_found_rows'  => true,
-				'meta_key'       => '_dsf_pt_active', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
-				'meta_value'     => '1', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-			)
-		);
+		if ( null === $this->active_templates ) {
+			$this->active_templates = get_posts(
+				array(
+					'post_type'      => self::POST_TYPE,
+					'post_status'    => 'publish',
+					'posts_per_page' => 100,
+					'orderby'        => 'modified',
+					'order'          => 'DESC',
+					'no_found_rows'  => true,
+					'meta_key'       => '_dsf_pt_active', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+					'meta_value'     => '1', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+				)
+			);
+		}
+		$templates = $this->active_templates;
 
 		if ( empty( $templates ) ) {
 			return 0;
@@ -201,11 +219,12 @@ class DSF_Product_Templates {
 			array(
 				'add_to_cart' => true,
 				'reviews'     => false,
+				'related'     => false,
 			),
 			is_array( $args ) ? $args : array()
 		);
 
-		$cache_key = $product_id . '|' . ( $args['add_to_cart'] ? '1' : '0' ) . '|' . ( $args['reviews'] ? '1' : '0' );
+		$cache_key = $product_id . '|' . ( $args['add_to_cart'] ? '1' : '0' ) . '|' . ( $args['reviews'] ? '1' : '0' ) . '|' . ( $args['related'] ? '1' : '0' );
 		if ( isset( self::$context_cache[ $cache_key ] ) ) {
 			return self::$context_cache[ $cache_key ];
 		}
@@ -244,10 +263,51 @@ class DSF_Product_Templates {
 			'reviewCount'          => (int) $product->get_review_count(),
 			'addToCartHtml'        => $args['add_to_cart'] ? self::build_add_to_cart_html( $product ) : '',
 			'reviewsHtml'          => $args['reviews'] ? self::build_reviews_html( $product ) : '',
+			'relatedProducts'      => $args['related'] ? self::build_related_products( $product ) : array(),
 		);
 
 		self::$context_cache[ $cache_key ] = $context;
 		return $context;
+	}
+
+	/**
+	 * Build a lightweight card payload for the product's related products.
+	 *
+	 * @param WC_Product $product Product object.
+	 * @return array[]
+	 */
+	private static function build_related_products( $product ) {
+		if ( ! function_exists( 'wc_get_related_products' ) ) {
+			return array();
+		}
+
+		$related_ids = wc_get_related_products( $product->get_id(), 8 );
+		$cards       = array();
+
+		foreach ( array_map( 'absint', (array) $related_ids ) as $related_id ) {
+			$related = $related_id ? wc_get_product( $related_id ) : null;
+			if ( ! $related || ! $related->is_visible() ) {
+				continue;
+			}
+
+			$image_id  = (int) $related->get_image_id();
+			$image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'woocommerce_thumbnail' ) : '';
+			if ( ! $image_url && function_exists( 'wc_placeholder_img_src' ) ) {
+				$image_url = wc_placeholder_img_src( 'woocommerce_thumbnail' );
+			}
+
+			$cards[] = array(
+				'id'        => $related->get_id(),
+				'name'      => sanitize_text_field( $related->get_name() ),
+				'permalink' => get_permalink( $related->get_id() ),
+				'priceHtml' => wp_kses_post( (string) $related->get_price_html() ),
+				'image'     => esc_url_raw( (string) $image_url ),
+				'imageAlt'  => $image_id ? sanitize_text_field( (string) get_post_meta( $image_id, '_wp_attachment_image_alt', true ) ) : '',
+				'onSale'    => (bool) $related->is_on_sale(),
+			);
+		}
+
+		return $cards;
 	}
 
 	/**
@@ -485,12 +545,25 @@ class DSF_Product_Templates {
 	 * @return array
 	 */
 	public function add_edit_link( $actions, $post ) {
-		if ( ! $post || self::POST_TYPE !== $post->post_type || ! current_user_can( 'edit_pages', $post->ID ) ) {
+		if ( ! $post || ! current_user_can( 'edit_pages', $post->ID ) ) {
 			return $actions;
 		}
 
-		$url                 = admin_url( 'admin.php?page=dsf-editor&post_id=' . intval( $post->ID ) );
-		$actions['dsf_edit'] = '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Edit with DesignStudio Flow', 'designstudio-flow' ) . '</a>';
+		if ( self::POST_TYPE === $post->post_type ) {
+			$url                 = admin_url( 'admin.php?page=dsf-editor&post_id=' . intval( $post->ID ) );
+			$actions['dsf_edit'] = '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Edit with DesignStudio Flow', 'designstudio-flow' ) . '</a>';
+			return $actions;
+		}
+
+		// Product rows: shortcut to the DSF product template that styles this
+		// product (products are designed via a shared template, not per product).
+		if ( 'product' === $post->post_type && class_exists( 'WooCommerce' ) ) {
+			$template_id = $this->resolve_template_for_product( $post->ID );
+			if ( $template_id && current_user_can( 'edit_post', $template_id ) ) {
+				$url                          = admin_url( 'admin.php?page=dsf-editor&post_id=' . intval( $template_id ) );
+				$actions['dsf_edit_template'] = '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Edit Product Template (DS Flow)', 'designstudio-flow' ) . '</a>';
+			}
+		}
 
 		return $actions;
 	}

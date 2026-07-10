@@ -73,7 +73,7 @@ class DSF_Import_Export {
 			return array( '_dsf_blocks', '_dsf_settings', '_dsf_layout_type' );
 		}
 		if ( 'dsf_saved_block' === $post_type ) {
-			return array( '_dsf_block_type', '_dsf_block_settings' );
+			return array( '_dsf_block_type', '_dsf_block_settings', '_dsf_block_category', '_dsf_block_tags' );
 		}
 		if ( 'dsf_template' === $post_type ) {
 			return array( '_dsf_template_blocks', '_dsf_template_theme', '_dsf_template_kind' );
@@ -344,10 +344,13 @@ class DSF_Import_Export {
 	private function render_forms_tab() {
 		if ( class_exists( 'DSF_Entries' ) && method_exists( 'DSF_Entries', 'render_tools_content' ) ) {
 			DSF_Entries::get_instance()->render_tools_content();
-			return;
+		} else {
+			echo '<p style="margin-top:16px;">' . esc_html__( 'Forms import / export is unavailable.', 'designstudio-flow' ) . '</p>';
 		}
 
-		echo '<p style="margin-top:16px;">' . esc_html__( 'Forms import / export is unavailable.', 'designstudio-flow' ) . '</p>';
+		if ( class_exists( 'DSF_GF_Migration' ) ) {
+			DSF_GF_Migration::get_instance()->render_tools_section();
+		}
 	}
 
 	public function handle_import() {

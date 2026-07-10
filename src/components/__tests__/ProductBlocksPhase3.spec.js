@@ -39,7 +39,34 @@ describe('ProductAddToCartPreview', () => {
   it('applies center alignment and button color', () => {
     const w = mountCart({ alignment: 'center', buttonColor: '#ff0000' }, { addToCartHtml: CART_HTML }, { isEditor: true })
     expect(w.find('.dsf-product-cart').attributes('style')).toContain('text-align: center')
+    expect(w.find('.dsf-product-cart').classes()).toContain('dsf-product-cart--center')
     expect(w.find('.dsf-product-cart__inner').attributes('style')).toContain('--dsf-cart-btn-bg: #ff0000')
+  })
+
+  it('renders the amount next to the add-to-cart form in one row', () => {
+    const w = mountCart({}, { addToCartHtml: CART_HTML, priceHtml: '<span class="amount">$99.00</span>' }, { isEditor: true })
+    const row = w.find('.dsf-product-cart__row')
+    expect(row.exists()).toBe(true)
+    // Price and form are siblings inside the same row.
+    expect(row.find('.dsf-product-cart__price').html()).toContain('$99.00')
+    expect(row.find('form.cart').exists()).toBe(true)
+  })
+
+  it('can hide the price and applies a custom price color', () => {
+    const withColor = mountCart(
+      { priceColor: '#123456' },
+      { addToCartHtml: CART_HTML, priceHtml: '<span class="amount">$99.00</span>' },
+      { isEditor: true }
+    )
+    // jsdom serializes the hex color to rgb() in the inline style.
+    expect(withColor.find('.dsf-product-cart__price').attributes('style')).toContain('rgb(18, 52, 86)')
+
+    const hidden = mountCart(
+      { showPrice: false },
+      { addToCartHtml: CART_HTML, priceHtml: '<span class="amount">$99.00</span>' },
+      { isEditor: true }
+    )
+    expect(hidden.find('.dsf-product-cart__price').exists()).toBe(false)
   })
 
   it('does not initialize the variation form in the editor', () => {

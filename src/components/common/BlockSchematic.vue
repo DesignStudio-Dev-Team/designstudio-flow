@@ -79,6 +79,22 @@
       </div>
     </template>
     
+    <!-- Card Columns -->
+    <template v-else-if="type === 'card-columns'">
+      <div class="dsf-schematic__card-columns">
+        <div class="dsf-schematic__line dsf-schematic__line--center"></div>
+        <div class="dsf-schematic__grid-3">
+          <div class="dsf-schematic__card-column" v-for="i in 3" :key="i">
+            <div class="dsf-schematic__card-column-head">
+              <div class="dsf-schematic__card-icon"></div>
+              <div class="dsf-schematic__line dsf-schematic__line--xxs"></div>
+            </div>
+            <div class="dsf-schematic__card-column-img"></div>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- Text + Image -->
     <template v-else-if="type === 'text-image'">
       <div class="dsf-schematic__text-image">
@@ -519,6 +535,31 @@
       </div>
     </template>
 
+    <template v-else-if="type === 'product-hero'">
+      <div class="dsf-schematic__product-hero">
+        <div class="dsf-schematic__product-hero-img"></div>
+        <div class="dsf-schematic__product-hero-info">
+          <div class="dsf-schematic__line dsf-schematic__line--lg"></div>
+          <div class="dsf-schematic__line dsf-schematic__line--price"></div>
+          <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+          <b></b>
+        </div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'product-highlights'">
+      <div class="dsf-schematic__product-highlights">
+        <span v-for="i in 3" :key="i"><i></i><em></em></span>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'product-related'">
+      <div class="dsf-schematic__product-related">
+        <div class="dsf-schematic__line dsf-schematic__line--md"></div>
+        <div class="dsf-schematic__product-related-grid"><span v-for="i in 4" :key="i"></span></div>
+      </div>
+    </template>
+
     <!-- Default fallback -->
     <template v-else>
       <div class="dsf-schematic__default">
@@ -915,6 +956,39 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
   height: 14px;
   background: linear-gradient(135deg, var(--dsf-brand-blue) 0%, var(--dsf-brand-coral) 100%);
   border-radius: 50%;
+}
+
+/* Card Columns */
+.dsf-schematic__card-columns {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dsf-schematic__card-column {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  padding: 6px 6px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.dsf-schematic__card-column-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  justify-content: center;
+}
+
+.dsf-schematic__card-column-img {
+  width: 100%;
+  min-height: 16px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(135deg, #d1d5db, #9ca3af);
 }
 
 /* Text + Image */
@@ -1577,4 +1651,22 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
 .dsf-schematic__product-cart-row { display: flex; gap: 6px; align-items: center; width: 100%; }
 .dsf-schematic__product-cart-qty { width: 22px; height: 16px; border-radius: 3px; background: #e2e8f0; }
 .dsf-schematic__product-cart-btn { flex: 1; height: 16px; border-radius: 3px; background: #2c5f5d; }
+
+/* Product Hero */
+.dsf-schematic__product-hero { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; padding: 6px 8px; }
+.dsf-schematic__product-hero-img { border-radius: 5px; background: #cbd5e1; min-height: 52px; }
+.dsf-schematic__product-hero-info { display: flex; flex-direction: column; gap: 6px; }
+.dsf-schematic__product-hero-info .dsf-schematic__line--price { width: 42%; height: 10px; border-radius: 3px; background: #2c5f5d; }
+.dsf-schematic__product-hero-info b { width: 60%; height: 12px; border-radius: 3px; background: #2c5f5d; margin-top: auto; }
+
+/* Product Highlights */
+.dsf-schematic__product-highlights { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; padding: 8px; }
+.dsf-schematic__product-highlights span { display: flex; align-items: center; gap: 4px; padding: 6px; border: 1px solid #e2e8f0; border-radius: 5px; }
+.dsf-schematic__product-highlights i { width: 12px; height: 12px; border-radius: 4px; background: #2c5f5d; flex-shrink: 0; }
+.dsf-schematic__product-highlights em { flex: 1; height: 7px; border-radius: 2px; background: #e2e8f0; }
+
+/* Related Products */
+.dsf-schematic__product-related { display: flex; flex-direction: column; gap: 7px; width: 100%; padding: 6px 8px; }
+.dsf-schematic__product-related-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.dsf-schematic__product-related-grid span { aspect-ratio: 1 / 1; border-radius: 4px; background: #cbd5e1; }
 </style>

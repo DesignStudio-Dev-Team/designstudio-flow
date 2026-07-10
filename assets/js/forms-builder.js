@@ -37,7 +37,7 @@
     'website',
     'hidden'
   ])
-  const CONNECTION_TYPES = ['webhook', 'salesforce']
+  const CONNECTION_TYPES = ['webhook', 'zapier', 'salesforce']
   const PAGE_BREAK_ANIMATIONS = new Set([
     'slide-left',
     'slide-right',
@@ -644,6 +644,8 @@
       if (key === 'type') {
         const value = CONNECTION_TYPES.includes(event.target.value) ? event.target.value : 'webhook'
         state.settings.connections[index].type = value
+        // Re-render so type-specific placeholder/hints (e.g. Zapier) update.
+        renderConnections()
       }
     })
   }
@@ -656,7 +658,8 @@
       const card = document.createElement('div')
       card.className = 'dsf-connection-card'
 
-      const title = connection.label || 'Webhook'
+      const typeTitles = { webhook: 'Webhook', zapier: 'Zapier', salesforce: 'Salesforce' }
+      const title = connection.label || typeTitles[connection.type] || 'Webhook'
       card.innerHTML = `
         <div class="dsf-inline-heading dsf-inline-heading--tight">
           <strong>${escapeHtml(title)}</strong>
@@ -671,6 +674,7 @@
             <span>Connection Type</span>
             <select data-setting="type" data-connection-index="${index}">
               <option value="webhook" ${connection.type === 'webhook' ? 'selected' : ''}>Webhook</option>
+              <option value="zapier" ${connection.type === 'zapier' ? 'selected' : ''}>Zapier</option>
               <option value="salesforce" ${connection.type === 'salesforce' ? 'selected' : ''}>Salesforce</option>
             </select>
           </label>
@@ -681,7 +685,8 @@
         </div>
         <label class="dsf-field-block">
           <span>Endpoint URL</span>
-          <input type="url" data-setting="endpointUrl" data-connection-index="${index}" value="${escapeHtml(connection.endpointUrl || '')}" placeholder="https://example.com/webhook">
+          <input type="url" data-setting="endpointUrl" data-connection-index="${index}" value="${escapeHtml(connection.endpointUrl || '')}" placeholder="${connection.type === 'zapier' ? 'https://hooks.zapier.com/hooks/catch/…' : 'https://example.com/webhook'}">
+          ${connection.type === 'zapier' ? '<small class="dsf-field-hint">Create a Zapier “Webhooks by Zapier — Catch Hook” trigger and paste its URL here. Zapier URLs must start with https://hooks.zapier.com/.</small>' : ''}
         </label>
         <div class="dsf-field-grid dsf-field-grid--2">
           <label class="dsf-field-block">

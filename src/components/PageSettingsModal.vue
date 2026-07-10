@@ -32,7 +32,7 @@
               />
             </div>
 
-            <div class="dsf-form-group">
+            <div v-if="!isProductTemplate" class="dsf-form-group">
               <label class="dsf-label" for="dsf-page-slug">Slug</label>
               <div class="dsf-page-settings-modal__slug-row">
                 <input
@@ -58,7 +58,7 @@
                 </select>
               </div>
 
-              <div class="dsf-form-group">
+              <div v-if="!isProductTemplate" class="dsf-form-group">
                 <label class="dsf-label" for="dsf-page-parent">Parent Page</label>
                 <select id="dsf-page-parent" v-model.number="localParentId" class="dsf-input">
                   <option :value="0">No parent</option>

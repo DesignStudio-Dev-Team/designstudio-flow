@@ -112,9 +112,14 @@
   flex-direction: column;
 }
 
-.dsf-block--has-height > * {
+/* Stretch the block's root element to fill the chosen height so its background
+   and content grow/shrink with it. The editor toolbar is absolutely positioned
+   (excluded here explicitly too) so it never gets flex-sized. */
+.dsf-block--has-height > *:not(.dsf-block-toolbar) {
   flex: 1 1 auto;
   min-height: 0;
+  align-self: stretch;
+  width: 100%;
 }
 
 /* Keep landing-page display copy balanced without inserting brittle manual line breaks. */
@@ -194,3 +199,123 @@
     margin-bottom: 0;
   }
 }
+
+/* -------------------------------------------------------------------------
+   WooCommerce markup injected into DSF product blocks (price amounts, the
+   add-to-cart form) must use the DSF theme/typography — not WooCommerce's or
+   the theme's defaults — so product templates look consistent. Loaded in both
+   the editor and the frontend; !important beats WooCommerce/theme frontend CSS.
+   ------------------------------------------------------------------------- */
+.dsf-product-cart .woocommerce-Price-amount,
+.dsf-product-cart .amount,
+.dsf-product-hero .woocommerce-Price-amount,
+.dsf-product-hero .amount,
+.dsf-product-summary .woocommerce-Price-amount,
+.dsf-product-summary .amount,
+.dsf-product-related .woocommerce-Price-amount,
+.dsf-product-related .amount,
+.dsf-product-tabs .woocommerce-Price-amount,
+.dsf-product-tabs .amount {
+  font-family: var(--dsf-theme-body-font, inherit) !important;
+  font-size: inherit !important;
+}
+
+/* Form controls do not inherit font-family by default — force it. */
+.dsf-product-cart form.cart,
+.dsf-product-cart form.cart input,
+.dsf-product-cart form.cart select,
+.dsf-product-cart form.cart textarea,
+.dsf-product-cart form.cart label,
+.dsf-product-hero form.cart,
+.dsf-product-hero form.cart input,
+.dsf-product-hero form.cart select,
+.dsf-product-hero form.cart textarea,
+.dsf-product-hero form.cart label {
+  font-family: var(--dsf-theme-body-font, inherit) !important;
+}
+
+.dsf-product-cart form.cart input,
+.dsf-product-cart form.cart select,
+.dsf-product-cart form.cart .woocommerce-variation-price,
+.dsf-product-hero form.cart input,
+.dsf-product-hero form.cart select,
+.dsf-product-hero form.cart .woocommerce-variation-price {
+  font-size: var(--dsf-theme-text-base, 16px) !important;
+}
+
+/* Add-to-cart button always uses the DSF button color (block setting or theme
+   primary), never WooCommerce's default green/theme color. */
+.dsf-product-cart .single_add_to_cart_button {
+  background: var(--dsf-cart-btn-bg, var(--dsf-theme-primary, #2c5f5d)) !important;
+  color: var(--dsf-cart-btn-color, #fff) !important;
+  font-family: var(--dsf-theme-body-font, inherit) !important;
+  font-size: var(--dsf-theme-text-base, 16px) !important;
+}
+.dsf-product-hero .single_add_to_cart_button {
+  background: var(--dsf-cart-btn-bg, var(--dsf-hero-accent, var(--dsf-theme-primary, #2c5f5d))) !important;
+  color: var(--dsf-cart-btn-color, #fff) !important;
+  font-family: var(--dsf-theme-body-font, inherit) !important;
+  font-size: var(--dsf-theme-text-base, 16px) !important;
+}
+
+/* Keep the quantity input and the Add-to-Cart button on one line: [ 1 ][ Add to cart ].
+   WooCommerce's markup otherwise stacks them depending on the theme. For simple
+   products qty + button are direct children of form.cart; for variable products
+   they live inside .woocommerce-variation-add-to-cart. */
+.dsf-product-cart form.cart,
+.dsf-product-hero form.cart {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.75rem;
+  margin: 0;
+}
+/* Variation table + selected-variation block take their own full-width rows,
+   above the quantity + button. */
+.dsf-product-cart form.cart > table.variations,
+.dsf-product-cart form.cart > .single_variation_wrap,
+.dsf-product-hero form.cart > table.variations,
+.dsf-product-hero form.cart > .single_variation_wrap {
+  flex: 1 1 100%;
+  width: 100%;
+  margin: 0 0 0.5rem;
+}
+.dsf-product-cart form.cart .woocommerce-variation-add-to-cart,
+.dsf-product-hero form.cart .woocommerce-variation-add-to-cart {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.75rem;
+  width: 100%;
+}
+.dsf-product-cart form.cart .quantity,
+.dsf-product-hero form.cart .quantity {
+  margin: 0 !important;
+  display: inline-flex;
+}
+.dsf-product-cart form.cart .single_add_to_cart_button,
+.dsf-product-hero form.cart .single_add_to_cart_button {
+  margin: 0 !important;
+  flex: 0 0 auto;
+}
+
+/* Whole-site header/footer mode: readable content column for the wrapped
+   Page/Post between the DSF header and footer (flow-universal.php). */
+.dsf-flow-root--global .dsf-global-content {
+  max-width: var(--dsf-theme-container-width, 1200px);
+  margin: 0 auto;
+  padding: clamp(1.75rem, 5vw, 3.5rem) 20px;
+}
+.dsf-flow-root--global .dsf-global-title {
+  font-family: var(--dsf-theme-heading-font, inherit);
+  font-size: var(--dsf-theme-h1, 2.4rem);
+  line-height: 1.15;
+  margin: 0 0 1.25rem;
+}
+.dsf-flow-root--global .dsf-global-entry {
+  font-family: var(--dsf-theme-body-font, inherit);
+  font-size: var(--dsf-theme-text-base, 1rem);
+  line-height: 1.7;
+}
+.dsf-flow-root--global .dsf-global-entry > * { margin-top: 0; }
+.dsf-flow-root--global .dsf-global-entry img { max-width: 100%; height: auto; }

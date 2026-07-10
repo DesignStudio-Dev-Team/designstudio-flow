@@ -395,7 +395,7 @@ body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-for
 body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_previous_button,
 body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gf_progressbar_title {
   font-family: var(--dsf-theme-body-font, inherit) !important;
-  font-size: 16px !important;
+  font-size: var(--dsf-theme-text-base, 16px) !important;
   line-height: 1.65 !important;
 }
 

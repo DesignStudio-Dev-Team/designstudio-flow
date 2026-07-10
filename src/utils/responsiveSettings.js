@@ -6,7 +6,7 @@ const RESPONSIVE_KEYS = ['height', 'gap', 'padding', 'paddingX', 'marginY']
 // (their margin/paddingX were removed from landingBlockStyle for this reason).
 const SELF_PADDED_X_TYPES = new Set([
   'faq', 'featured-promo-banner', 'product-grid', 'brand-carousel', 'duo-hero',
-  'ecommerce-showcase', 'hero', 'countdown', 'features-grid', 'cta-banner',
+  'ecommerce-showcase', 'hero', 'countdown', 'features-grid', 'card-columns', 'cta-banner',
   'testimonials', 'expander-hero', 'newsletter', 'text-image', 'form-with-content',
 ])
 

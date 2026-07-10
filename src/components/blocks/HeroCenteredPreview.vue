@@ -74,6 +74,14 @@ const buttonHref = computed(() =>
   buttonAction.value === 'link' ? (props.settings?.buttonUrl || '#') : '#'
 )
 
+// The Height slider (per breakpoint) drives the hero's own min-height so the
+// background element grows with it and the content stays vertically centered.
+const heightValue = computed(() => {
+  const h = getResponsiveValue(props.settings || {}, props.previewMode, 'height')
+  const n = Number(h)
+  return Number.isFinite(n) && n > 0 ? n : 500
+})
+
 function getNumberSetting(key, fallback) {
   const value = Number.parseFloat(props.settings?.[key])
   return Number.isFinite(value) ? value : fallback
@@ -139,7 +147,7 @@ const previewStyle = computed(() => {
     backgroundPosition: 'center',
     display: 'flex',
     flexDirection: 'column',
-    minHeight: '500px',
+    minHeight: `${heightValue.value}px`,
     alignItems: isBottomSplit.value ? 'stretch' : (alignItemsMap[horizontal] || 'center'),
     justifyContent: justifyContentMap[vertical] || 'center',
   }
@@ -292,7 +300,8 @@ const textStyle = computed(() => {
 @container (max-width: 768px) {
   .dsf-hero-centered-preview:not(.dsf-hero-centered-preview--bottom-split) {
     padding: 64px 20px !important;
-    min-height: 360px !important;
+    /* Height comes from the (per-breakpoint) Height setting so the hero grows
+       with it; no fixed mobile floor that would override the chosen value. */
   }
 
   .dsf-hero-centered-preview__title { font-size: var(--dsf-theme-h3, 1.75rem); }

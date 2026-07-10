@@ -312,6 +312,7 @@ const blockId = computed(() => props.blockDefinition?.id || props.block?.type ||
 const hasMobileTab = computed(() => ['header-mega-menu', 'header-showcase-mega'].includes(blockId.value))
 
 const heightDefaultsByBlock = {
+  'hero': 500,
   'bento-hero': 400,
   'spotlight-hero': 460,
   'duo-hero': 500,

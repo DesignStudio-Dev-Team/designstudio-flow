@@ -65,16 +65,30 @@
       @update:modelValue="$emit('update', $event)"
     />
     
-    <!-- Slider -->
+    <!-- Slider (drag the knob or type an exact value) -->
     <div v-else-if="config.type === 'slider'" class="dsf-slider-group">
-      <div class="dsf-slider-value">{{ value }}{{ config.unit || 'px' }}</div>
-      <input 
+      <div class="dsf-slider-header">
+        <input
+          type="number"
+          class="dsf-slider-input"
+          :value="value"
+          :min="sliderMin"
+          :max="sliderMax"
+          :step="config.step || 1"
+          @input="onSliderNumberInput"
+          @blur="onSliderNumberBlur"
+          @keydown.enter.prevent="onSliderNumberBlur"
+        />
+        <span class="dsf-slider-unit">{{ config.unit || 'px' }}</span>
+      </div>
+      <input
         type="range"
         class="dsf-slider"
         :value="value"
-        :min="config.min || 0"
-        :max="config.max || 200"
-        @input="$emit('update', parseInt($event.target.value))"
+        :min="sliderMin"
+        :max="sliderMax"
+        :step="config.step || 1"
+        @input="commitSlider($event.target.value)"
       />
     </div>
     
@@ -235,6 +249,12 @@
       @update:modelValue="$emit('update', $event)"
     />
 
+    <CardColumnItemsField
+      v-else-if="config.type === 'card_column_items'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+
     <PricingPlansField
       v-else-if="config.type === 'pricing_plans'"
       :modelValue="value"
@@ -337,6 +357,7 @@ import ProductTabsField from './common/ProductTabsField.vue'
 import ExpanderCardsField from './common/ExpanderCardsField.vue'
 import GalleryItemsField from './common/GalleryItemsField.vue'
 import IconItemsField from './common/IconItemsField.vue'
+import CardColumnItemsField from './common/CardColumnItemsField.vue'
 import PricingPlansField from './common/PricingPlansField.vue'
 import ColorPicker from './common/ColorPicker.vue'
 import RepeaterField from './common/RepeaterField.vue'
@@ -362,6 +383,38 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update'])
+
+// Slider bounds — both the range knob and the number input share them so you can
+// drag OR type an exact value.
+const sliderMin = computed(() => Number(props.config?.min ?? 0))
+const sliderMax = computed(() => Number(props.config?.max ?? 200))
+
+function clampSlider(n) {
+  return Math.max(sliderMin.value, Math.min(sliderMax.value, n))
+}
+
+// Dragging the knob: always emit an in-range value.
+function commitSlider(raw) {
+  const n = Number(raw)
+  if (Number.isNaN(n)) return
+  emit('update', clampSlider(n))
+}
+
+// Typing in the number box: allow the field to be cleared/mid-edit, and don't
+// snap up to the minimum on every keystroke (only clamp the upper bound live).
+function onSliderNumberInput(event) {
+  const raw = event.target.value
+  if (raw === '' || raw === '-') return
+  const n = Number(raw)
+  if (Number.isNaN(n)) return
+  emit('update', Math.min(sliderMax.value, n))
+}
+
+// On blur / Enter, fully clamp to [min, max] (empty falls back to the minimum).
+function onSliderNumberBlur(event) {
+  const n = Number(event.target.value)
+  emit('update', Number.isNaN(n) ? sliderMin.value : clampSlider(n))
+}
 
 // Source options based on default value (determines context)
 const sourceOptions = computed(() => {

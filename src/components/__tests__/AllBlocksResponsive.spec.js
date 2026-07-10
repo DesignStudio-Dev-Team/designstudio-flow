@@ -9,12 +9,12 @@ beforeAll(() => {
 
 // Every registered block type (mirrors DSF_Blocks::get_registered_blocks()).
 const BLOCK_TYPES = [
-  'content', 'faq', 'hero', 'countdown', 'pricing', 'expander-hero', 'features-grid',
+  'content', 'faq', 'hero', 'countdown', 'pricing', 'expander-hero', 'features-grid', 'card-columns',
   'bento-hero', 'spotlight-hero', 'duo-hero', 'featured-promo-banner', 'text-image',
   'testimonials', 'form-embed', 'form-with-content', 'product-grid', 'ecommerce-showcase',
   'brand-carousel', 'promo-banner', 'featured-product-banner', 'product-summary',
   'product-gallery', 'product-description', 'product-specs', 'product-tabs',
-  'product-add-to-cart', 'header-mega-menu',
+  'product-add-to-cart', 'product-hero', 'product-highlights', 'product-related', 'header-mega-menu',
   'header-showcase-mega', 'header-cutout-mega', 'footer-dealers', 'cta-banner',
   'landing-progress-header', 'landing-hero', 'landing-block-explorer', 'landing-block-ready',
   'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite',
@@ -91,6 +91,26 @@ describe('responsive override reaches the frontend per breakpoint', () => {
     expect(block.classes()).toContain('dsf-block--has-height') // CSS stretches the child to fill
     expect(block.attributes('style') || '').toMatch(/min-height:\s*520px/)
     w.unmount()
+  })
+
+  it('every block type stretches to an explicit height (wrapper min-height + fill class)', () => {
+    const offenders = []
+    for (const type of BLOCK_TYPES) {
+      try {
+        const w = mountBlock(type, { height: 640, responsive: { desktop: { height: 640 } } })
+        const block = w.find('.dsf-block')
+        const style = block.attributes('style') || ''
+        if (!/min-height:\s*640px/.test(style)) offenders.push(`${type}: wrapper missing min-height`)
+        // The fill class makes the block root (and its background) stretch to
+        // the wrapper's min-height via the .dsf-block--has-height CSS.
+        if (!block.classes().includes('dsf-block--has-height')) offenders.push(`${type}: missing fill class`)
+        if (!w.find('.dsf-block > *:not(.dsf-block-toolbar)').exists()) offenders.push(`${type}: no root child to stretch`)
+        w.unmount()
+      } catch (e) {
+        offenders.push(`${type}: MOUNT ERROR ${String(e.message).slice(0, 60)}`)
+      }
+    }
+    expect(offenders, offenders.join('\n')).toEqual([])
   })
 
   it('no height set → no min-height and no fill class', () => {

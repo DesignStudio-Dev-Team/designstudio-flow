@@ -195,6 +195,17 @@ class DSF_Editor {
 		$view_url    = ( $post_id && 'dsf_layout' !== $post_type ) ? get_permalink( $post_id ) : '';
 		$post_status = $post ? $post->post_status : 'draft';
 
+		// A product template has no page of its own — "View" opens the preview
+		// product's real frontend URL (which uses this template once it is live).
+		if ( 'dsf_product_template' === $post_type ) {
+			$preview_product_id = $post_id ? absint( get_post_meta( $post_id, '_dsf_pt_preview_product', true ) ) : 0;
+			$product_url        = ( $preview_product_id && 'product' === get_post_type( $preview_product_id ) )
+				? get_permalink( $preview_product_id )
+				: '';
+			$view_url           = $product_url ? $product_url : '';
+			$preview_url        = $view_url;
+		}
+
 		wp_localize_script(
 			'dsf-editor',
 			'dsfEditorData',
@@ -212,6 +223,10 @@ class DSF_Editor {
 				'pageData'          => $this->get_page_data( $post_id ),
 				'parentPages'       => 'page' === $post_type ? $this->get_parent_page_options( $post_id ) : array(),
 				'layoutTemplates'   => $this->get_layout_templates(),
+				'defaultLayoutIds'  => array(
+					'header' => absint( get_option( 'dsf_default_header_id', 0 ) ),
+					'footer' => absint( get_option( 'dsf_default_footer_id', 0 ) ),
+				),
 				'layoutCreateUrls'  => array(
 					'header' => admin_url( 'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=header' ),
 					'footer' => admin_url( 'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=footer' ),
@@ -295,7 +310,7 @@ class DSF_Editor {
 			return null;
 		}
 
-		$context = DSF_Product_Templates::build_product_context( $product_id );
+		$context = DSF_Product_Templates::build_product_context( $product_id, array( 'related' => true ) );
 		return empty( $context ) ? null : $context;
 	}
 
@@ -372,7 +387,7 @@ class DSF_Editor {
 		if ( ! $post_id ) {
 			$post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 			$post_type = $post_type ? sanitize_key( $post_type ) : 'page';
-			if ( ! in_array( $post_type, array( 'page', 'dsf_layout' ), true ) ) {
+			if ( ! in_array( $post_type, array( 'page', 'dsf_layout', 'dsf_product_template' ), true ) ) {
 				$post_type = 'page';
 			}
 
@@ -382,9 +397,13 @@ class DSF_Editor {
 				$layout_type = 'header';
 			}
 
-			$default_title = 'dsf_layout' === $post_type
-				? ( 'footer' === $layout_type ? __( 'Untitled DSFlow Footer', 'designstudio-flow' ) : __( 'Untitled DSFlow Header', 'designstudio-flow' ) )
-				: __( 'Untitled Page', 'designstudio-flow' );
+			if ( 'dsf_layout' === $post_type ) {
+				$default_title = 'footer' === $layout_type ? __( 'Untitled DSFlow Footer', 'designstudio-flow' ) : __( 'Untitled DSFlow Header', 'designstudio-flow' );
+			} elseif ( 'dsf_product_template' === $post_type ) {
+				$default_title = __( 'Untitled Product Template', 'designstudio-flow' );
+			} else {
+				$default_title = __( 'Untitled Page', 'designstudio-flow' );
+			}
 
 			$post_id = wp_insert_post(
 				array(
@@ -834,13 +853,16 @@ class DSF_Editor {
 	private function get_theme_typography_payload() {
 		$defaults = DSF_Frontend::get_default_typography();
 		$option   = DSF_Frontend::get_typography_option();
+		$maps     = DSF_Frontend::get_responsive_typography_tokens();
 		return array(
-			'base'        => $defaults['base'],
-			'scale'       => $defaults['scale'],
-			'tokens'      => DSF_Frontend::compute_typography_tokens( $defaults['base'], $defaults['scale'], DSF_Frontend::get_typography_size_overrides() ),
-			'mode'        => $option['mode'],
-			'headingFont' => $option['heading_font'],
-			'bodyFont'    => $option['body_font'],
+			'base'         => $defaults['base'],
+			'scale'        => $defaults['scale'],
+			'tokens'       => $maps['desktop'],
+			'tokensLaptop' => $maps['laptop'],
+			'tokensMobile' => $maps['mobile'],
+			'mode'         => $option['mode'],
+			'headingFont'  => $option['heading_font'],
+			'bodyFont'     => $option['body_font'],
 		);
 	}
 

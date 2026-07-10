@@ -541,6 +541,20 @@
   font-weight: 750;
 }
 
+#dsf-editor-app .dsf-slider-input {
+  color: var(--dsf-brand-blue);
+  font-family: var(--dsf-font-display);
+  font-weight: 700;
+  border-color: #8c8f94;
+}
+
+/* Hide the native number spinners so the field reads like a clean value box. */
+#dsf-editor-app .dsf-slider-input::-webkit-outer-spin-button,
+#dsf-editor-app .dsf-slider-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 #dsf-editor-app .dsf-slider {
   background: linear-gradient(90deg, rgb(12 95 168 / 22%), var(--dsf-ui-border));
 }

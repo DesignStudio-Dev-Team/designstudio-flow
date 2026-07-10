@@ -181,7 +181,7 @@ $form_title = $form ? $form->post_title : __( 'Untitled Form', 'designstudio-flo
 						<button id="dsf-add-connection" type="button" class="dsf-link-btn"><?php esc_html_e( '+ Add Connection', 'designstudio-flow' ); ?></button>
 					</div>
 					<div id="dsf-connections-list" class="dsf-repeat-list"></div>
-					<p class="dsf-tab-card__hint"><?php esc_html_e( 'Use Zapier webhook URLs directly. Salesforce can be connected with a Flow/Apex endpoint or middleware webhook.', 'designstudio-flow' ); ?></p>
+					<p class="dsf-tab-card__hint"><?php esc_html_e( 'Zapier: add a "Webhooks by Zapier — Catch Hook" trigger to your Zap and paste its URL — the same flow Gravity Forms uses. Submissions arrive with fields keyed by name and by label, plus form title and entry metadata. Salesforce can be connected with a Flow/Apex endpoint or middleware webhook.', 'designstudio-flow' ); ?></p>
 					<p class="dsf-tab-card__hint"><?php esc_html_e( 'If a Secret is set, requests include X-DSForm-Signature.', 'designstudio-flow' ); ?></p>
 				</div>
 			</section>

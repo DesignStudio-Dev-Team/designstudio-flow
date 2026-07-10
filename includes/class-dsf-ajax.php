@@ -54,6 +54,7 @@ class DSF_Ajax {
 		add_action( 'wp_ajax_dsf_list_saved_blocks', array( $this, 'list_saved_blocks' ) );
 		add_action( 'wp_ajax_dsf_delete_saved_block', array( $this, 'delete_saved_block' ) );
 		add_action( 'wp_ajax_dsf_feature_saved_block', array( $this, 'feature_saved_block' ) );
+		add_action( 'wp_ajax_dsf_import_saved_block', array( $this, 'import_saved_block' ) );
 
 		// Templates — reusable groups of blocks (section / whole page).
 		add_action( 'wp_ajax_dsf_save_template', array( $this, 'save_template' ) );
@@ -62,6 +63,57 @@ class DSF_Ajax {
 
 		// Product templates — fetch a sample product's live data for the editor preview.
 		add_action( 'wp_ajax_dsf_get_product_context', array( $this, 'get_product_context' ) );
+
+		// Header/footer templates — set (or clear) the site-wide default.
+		add_action( 'wp_ajax_dsf_set_default_layout', array( $this, 'set_default_layout' ) );
+	}
+
+	/**
+	 * Set or clear the site-wide default header/footer layout.
+	 *
+	 * Pages that do not pick their own header/footer fall back to this default.
+	 */
+	public function set_default_layout() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$layout_id = isset( $_POST['layout_id'] ) ? absint( $_POST['layout_id'] ) : 0;
+		$type      = isset( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
+		$type      = 'footer' === $type ? 'footer' : 'header';
+		$enabled   = ! empty( $_POST['enabled'] );
+
+		$option_key = 'header' === $type ? 'dsf_default_header_id' : 'dsf_default_footer_id';
+
+		if ( ! $enabled ) {
+			// Only clear the default if this layout is the current one.
+			if ( $layout_id && absint( get_option( $option_key, 0 ) ) === $layout_id ) {
+				update_option( $option_key, 0 );
+			}
+			wp_send_json_success( array( 'defaultId' => absint( get_option( $option_key, 0 ) ) ) );
+		}
+
+		if ( ! $layout_id ) {
+			wp_send_json_error( array( 'message' => 'Invalid layout ID' ) );
+		}
+		if ( ! current_user_can( 'edit_post', $layout_id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+
+		$layout = get_post( $layout_id );
+		if ( ! $layout || 'dsf_layout' !== $layout->post_type ) {
+			wp_send_json_error( array( 'message' => 'Not a layout' ) );
+		}
+
+		$layout_type = get_post_meta( $layout_id, '_dsf_layout_type', true );
+		$layout_type = 'footer' === $layout_type ? 'footer' : 'header';
+		if ( $layout_type !== $type ) {
+			wp_send_json_error( array( 'message' => 'Layout type mismatch' ) );
+		}
+
+		update_option( $option_key, $layout_id );
+		wp_send_json_success( array( 'defaultId' => $layout_id ) );
 	}
 
 	/**
@@ -102,7 +154,7 @@ class DSF_Ajax {
 			wp_send_json_error( array( 'message' => 'Product not found' ), 404 );
 		}
 
-		$context = DSF_Product_Templates::build_product_context( $product_id );
+		$context = DSF_Product_Templates::build_product_context( $product_id, array( 'related' => true ) );
 		if ( empty( $context ) ) {
 			wp_send_json_error( array( 'message' => 'Product not found' ), 404 );
 		}
@@ -202,13 +254,14 @@ class DSF_Ajax {
 
 		wp_send_json_success(
 			array(
-				'id'       => $post_id,
-				'name'     => $name,
-				'type'     => $type,
-				'settings' => $settings,
-				'category' => $category,
-				'tags'     => $tags,
-				'author'   => $this->saved_block_author_name( $post_id ),
+				'id'        => $post_id,
+				'name'      => $name,
+				'type'      => $type,
+				'settings'  => $settings,
+				'category'  => $category,
+				'tags'      => $tags,
+				'author'    => $this->saved_block_author_name( $post_id ),
+				'exportUrl' => $this->saved_block_export_url( $post_id ),
 			)
 		);
 	}
@@ -271,14 +324,15 @@ class DSF_Ajax {
 			}
 			$settings = get_post_meta( $post->ID, '_dsf_block_settings', true );
 			$blocks[] = array(
-				'id'       => $post->ID,
-				'name'     => $post->post_title,
-				'type'     => $type,
-				'settings' => is_array( $settings ) ? $settings : array(),
-				'category' => (string) get_post_meta( $post->ID, '_dsf_block_category', true ),
-				'tags'     => array_values( (array) get_post_meta( $post->ID, '_dsf_block_tags', true ) ),
-				'author'   => $this->saved_block_author_name( $post->ID ),
-				'featured' => (bool) get_post_meta( $post->ID, '_dsf_block_featured', true ),
+				'id'        => $post->ID,
+				'name'      => $post->post_title,
+				'type'      => $type,
+				'settings'  => is_array( $settings ) ? $settings : array(),
+				'category'  => (string) get_post_meta( $post->ID, '_dsf_block_category', true ),
+				'tags'      => array_values( (array) get_post_meta( $post->ID, '_dsf_block_tags', true ) ),
+				'author'    => $this->saved_block_author_name( $post->ID ),
+				'featured'  => (bool) get_post_meta( $post->ID, '_dsf_block_featured', true ),
+				'exportUrl' => $this->saved_block_export_url( $post->ID ),
 			);
 		}
 
@@ -331,6 +385,148 @@ class DSF_Ajax {
 				'id'       => $id,
 				'featured' => $featured,
 			)
+		);
+	}
+
+	/**
+	 * Import saved blocks from an exported JSON payload uploaded in the editor
+	 * picker. Accepts the same file format the admin Tools export produces.
+	 */
+	public function import_saved_block() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$payload = isset( $_POST['payload'] ) ? wp_unslash( $_POST['payload'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON payload is validated and per-field sanitized in parse_saved_block_import().
+		$items   = $this->parse_saved_block_import( $payload );
+
+		if ( empty( $items ) ) {
+			wp_send_json_error( array( 'message' => 'No importable saved blocks found in this file.' ), 400 );
+		}
+
+		$imported = array();
+		foreach ( $items as $item ) {
+			$post_id = wp_insert_post(
+				array(
+					'post_type'   => 'dsf_saved_block',
+					'post_status' => 'publish',
+					'post_title'  => $item['name'],
+				),
+				true
+			);
+			if ( is_wp_error( $post_id ) || ! $post_id ) {
+				continue;
+			}
+
+			update_post_meta( $post_id, '_dsf_block_type', $item['type'] );
+			update_post_meta( $post_id, '_dsf_block_settings', $item['settings'] );
+			update_post_meta( $post_id, '_dsf_block_category', $item['category'] );
+			update_post_meta( $post_id, '_dsf_block_tags', $item['tags'] );
+
+			$imported[] = array(
+				'id'        => $post_id,
+				'name'      => $item['name'],
+				'type'      => $item['type'],
+				'settings'  => $item['settings'],
+				'category'  => $item['category'],
+				'tags'      => $item['tags'],
+				'author'    => $this->saved_block_author_name( $post_id ),
+				'featured'  => false,
+				'exportUrl' => $this->saved_block_export_url( $post_id ),
+			);
+		}
+
+		if ( empty( $imported ) ) {
+			wp_send_json_error( array( 'message' => 'Could not import any blocks.' ), 500 );
+		}
+
+		wp_send_json_success( array( 'savedBlocks' => $imported ) );
+	}
+
+	/**
+	 * Parse and sanitize an exported JSON payload into clean saved-block items.
+	 *
+	 * Only `dsf_saved_block` items with a registered block type survive; every
+	 * item is rebuilt from known keys and its settings run through the same
+	 * per-type sanitizer used when saving a page.
+	 *
+	 * @param mixed $payload Raw JSON string from the upload.
+	 * @return array[] List of { name, type, settings, category, tags }.
+	 */
+	private function parse_saved_block_import( $payload ) {
+		if ( ! is_string( $payload ) || '' === $payload || strlen( $payload ) > 5242880 ) {
+			return array();
+		}
+
+		$data = json_decode( $payload, true );
+		if ( ! is_array( $data ) || empty( $data['_dsf_export'] ) || ! isset( $data['items'] ) || ! is_array( $data['items'] ) ) {
+			return array();
+		}
+
+		$registered = class_exists( 'DSF_Blocks' ) ? DSF_Blocks::get_instance()->get_registered_blocks() : array();
+		$clean      = array();
+
+		foreach ( array_slice( $data['items'], 0, 20 ) as $item ) {
+			if ( ! is_array( $item ) || 'dsf_saved_block' !== ( $item['post_type'] ?? '' ) ) {
+				continue;
+			}
+
+			$meta = isset( $item['meta'] ) && is_array( $item['meta'] ) ? $item['meta'] : array();
+			$type = sanitize_key( is_string( $meta['_dsf_block_type'] ?? null ) ? $meta['_dsf_block_type'] : '' );
+			if ( '' === $type || ! isset( $registered[ $type ] ) ) {
+				continue;
+			}
+
+			$settings  = is_array( $meta['_dsf_block_settings'] ?? null ) ? $meta['_dsf_block_settings'] : array();
+			$sanitized = $this->sanitize_known_block_settings(
+				array(
+					array(
+						'type'     => $type,
+						'settings' => $settings,
+					),
+				)
+			);
+			$settings  = isset( $sanitized[0]['settings'] ) && is_array( $sanitized[0]['settings'] ) ? $sanitized[0]['settings'] : array();
+
+			$name = sanitize_text_field( is_string( $item['title'] ?? null ) ? $item['title'] : '' );
+			if ( '' === $name ) {
+				$name = isset( $registered[ $type ]['name'] ) ? $registered[ $type ]['name'] : 'Imported block';
+			}
+
+			$clean[] = array(
+				'name'     => $name,
+				'type'     => $type,
+				'settings' => $settings,
+				'category' => sanitize_text_field( is_string( $meta['_dsf_block_category'] ?? null ) ? $meta['_dsf_block_category'] : '' ),
+				'tags'     => $this->sanitize_tag_list( wp_json_encode( (array) ( $meta['_dsf_block_tags'] ?? array() ) ) ),
+			);
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Build the nonce'd admin-post URL that downloads a saved block as JSON,
+	 * reusing the DSF_Import_Export single-export handler.
+	 *
+	 * @param int $post_id Saved block post ID.
+	 * @return string
+	 */
+	private function saved_block_export_url( $post_id ) {
+		if ( ! class_exists( 'DSF_Import_Export' ) ) {
+			return '';
+		}
+
+		return wp_nonce_url(
+			add_query_arg(
+				array(
+					'action'  => DSF_Import_Export::SINGLE_ACTION,
+					'post_id' => (int) $post_id,
+				),
+				admin_url( 'admin-post.php' )
+			),
+			DSF_Import_Export::SINGLE_ACTION . '_' . (int) $post_id
 		);
 	}
 
@@ -837,6 +1033,10 @@ class DSF_Ajax {
 				$block['settings'] = $this->sanitize_expander_hero_settings( $block['settings'] ?? array() );
 				continue;
 			}
+			if ( 'card-columns' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_card_columns_settings( $block['settings'] ?? array() );
+				continue;
+			}
 			if ( 'product-summary' === ( $block['type'] ?? '' ) ) {
 				$block['settings'] = $this->sanitize_product_summary_settings( $block['settings'] ?? array() );
 				continue;
@@ -859,6 +1059,18 @@ class DSF_Ajax {
 			}
 			if ( 'product-add-to-cart' === ( $block['type'] ?? '' ) ) {
 				$block['settings'] = $this->sanitize_product_add_to_cart_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-hero' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_hero_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-highlights' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_highlights_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-related' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_related_settings( $block['settings'] ?? array() );
 				continue;
 			}
 			if ( in_array( $block['type'] ?? '', array( 'form-embed', 'form-with-content' ), true ) ) {
@@ -968,6 +1180,7 @@ class DSF_Ajax {
 
 		$clean = array(
 			'alignment'  => in_array( $settings['alignment'] ?? '', array( 'left', 'center' ), true ) ? $settings['alignment'] : 'left',
+			'showPrice'  => ! isset( $settings['showPrice'] ) || ! empty( $settings['showPrice'] ),
 			'maxWidth'   => max( 280, min( 900, absint( $settings['maxWidth'] ?? 460 ) ) ),
 			'padding'    => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
 			'paddingX'   => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
@@ -975,7 +1188,104 @@ class DSF_Ajax {
 			'responsive' => $this->sanitize_product_responsive_spacing( $settings ),
 		);
 
-		foreach ( array( 'buttonColor', 'buttonTextColor' ) as $key ) {
+		foreach ( array( 'priceColor', 'buttonColor', 'buttonTextColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Product Hero block settings (presentation only — product data
+	 * and the cart form are rendered server-side from the current product).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_hero_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'imageSide'            => 'right' === ( $settings['imageSide'] ?? '' ) ? 'right' : 'left',
+			'eyebrowText'          => sanitize_text_field( $settings['eyebrowText'] ?? '' ),
+			'showRating'           => ! isset( $settings['showRating'] ) || ! empty( $settings['showRating'] ),
+			'showPrice'            => ! isset( $settings['showPrice'] ) || ! empty( $settings['showPrice'] ),
+			'showShortDescription' => ! isset( $settings['showShortDescription'] ) || ! empty( $settings['showShortDescription'] ),
+			'showStock'            => ! isset( $settings['showStock'] ) || ! empty( $settings['showStock'] ),
+			'showSku'              => ! empty( $settings['showSku'] ),
+			'showAddToCart'        => ! isset( $settings['showAddToCart'] ) || ! empty( $settings['showAddToCart'] ),
+			'showSaleBadge'        => ! isset( $settings['showSaleBadge'] ) || ! empty( $settings['showSaleBadge'] ),
+			'saleBadgeText'        => sanitize_text_field( $settings['saleBadgeText'] ?? 'Sale' ),
+			'maxWidth'             => max( 720, min( 1600, absint( $settings['maxWidth'] ?? 1200 ) ) ),
+			'padding'              => max( 0, min( 160, absint( $settings['padding'] ?? 48 ) ) ),
+			'paddingX'             => max( 0, min( 120, absint( $settings['paddingX'] ?? 24 ) ) ),
+			'marginY'              => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'           => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'accentColor', 'titleColor', 'priceColor', 'buttonColor', 'buttonTextColor', 'backgroundColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Product Highlights block settings. Items reuse the landing
+	 * icon-item contract (allowlisted icon, plain-text title/description, cap 8).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_highlights_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'items'      => $this->sanitize_landing_icon_items( $settings['items'] ?? array() ),
+			'layout'     => 'grid' === ( $settings['layout'] ?? '' ) ? 'grid' : 'row',
+			'columns'    => max( 2, min( 4, absint( $settings['columns'] ?? 3 ) ) ),
+			'cardStyle'  => ! isset( $settings['cardStyle'] ) || ! empty( $settings['cardStyle'] ),
+			'maxWidth'   => max( 480, min( 1400, absint( $settings['maxWidth'] ?? 1100 ) ) ),
+			'padding'    => max( 0, min( 160, absint( $settings['padding'] ?? 24 ) ) ),
+			'paddingX'   => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'    => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive' => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'accentColor', 'backgroundColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Related Products block settings (the product cards themselves
+	 * come from the server at render time, never from the client).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_related_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'showHeading' => ! isset( $settings['showHeading'] ) || ! empty( $settings['showHeading'] ),
+			'headingText' => sanitize_text_field( $settings['headingText'] ?? 'You may also like' ),
+			'count'       => max( 2, min( 8, absint( $settings['count'] ?? 4 ) ) ),
+			'columns'     => max( 2, min( 4, absint( $settings['columns'] ?? 4 ) ) ),
+			'showPrice'   => ! isset( $settings['showPrice'] ) || ! empty( $settings['showPrice'] ),
+			'maxWidth'    => max( 480, min( 1600, absint( $settings['maxWidth'] ?? 1200 ) ) ),
+			'padding'     => max( 0, min( 160, absint( $settings['padding'] ?? 40 ) ) ),
+			'paddingX'    => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'     => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'  => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'headingColor', 'accentColor', 'backgroundColor' ) as $key ) {
 			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
 			$clean[ $key ] = $color ? $color : '';
 		}
@@ -1649,6 +1959,121 @@ class DSF_Ajax {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * Sanitize Card Columns header, cards, colors, and bounded dimensions.
+	 *
+	 * @param array $settings Submitted block settings.
+	 * @return array
+	 */
+	private function sanitize_card_columns_settings( $settings ) {
+		$settings   = is_array( $settings ) ? $settings : array();
+		$directions = array( 'left-right', 'top-bottom', 'radial' );
+		$clean      = array(
+			'headerLayout'      => 'split' === ( $settings['headerLayout'] ?? '' ) ? 'split' : 'centered',
+			'title'             => sanitize_text_field( $settings['title'] ?? '' ),
+			'description'       => sanitize_textarea_field( $settings['description'] ?? '' ),
+			'cards'             => array(),
+			'columns'           => in_array( $settings['columns'] ?? '', array( '2', '3', '4', '5', '6' ), true ) ? $settings['columns'] : '3',
+			'cardLayout'        => 'overlay' === ( $settings['cardLayout'] ?? '' ) ? 'overlay' : 'standard',
+			'contentAlign'      => 'left' === ( $settings['contentAlign'] ?? '' ) ? 'left' : 'center',
+			'buttonStyle'       => in_array( $settings['buttonStyle'] ?? '', array( 'arrow', 'text', 'text-arrow' ), true ) ? $settings['buttonStyle'] : 'arrow',
+			'imageFit'          => 'contain' === ( $settings['imageFit'] ?? '' ) ? 'contain' : 'cover',
+			'overlayStrength'   => max( 0, min( 100, absint( $settings['overlayStrength'] ?? 60 ) ) ),
+			'overlayHeight'     => max( 20, min( 100, absint( $settings['overlayHeight'] ?? 50 ) ) ),
+			'backgroundType'    => 'gradient' === ( $settings['backgroundType'] ?? '' ) ? 'gradient' : 'solid',
+			'gradientDirection' => in_array( $settings['gradientDirection'] ?? '', $directions, true ) ? $settings['gradientDirection'] : 'top-bottom',
+			'cardMinHeight'     => max( 200, min( 720, absint( $settings['cardMinHeight'] ?? 380 ) ) ),
+			'cardPadding'       => max( 8, min( 48, absint( $settings['cardPadding'] ?? 24 ) ) ),
+			'cardRadius'        => max( 0, min( 40, absint( $settings['cardRadius'] ?? 16 ) ) ),
+			'imageHeight'       => max( 80, min( 420, absint( $settings['imageHeight'] ?? 220 ) ) ),
+			'padding'           => max( 0, min( 160, absint( $settings['padding'] ?? 60 ) ) ),
+			'paddingX'          => max( 0, min( 120, absint( $settings['paddingX'] ?? 24 ) ) ),
+			'gap'               => max( 0, min( 64, absint( $settings['gap'] ?? 24 ) ) ),
+			'marginY'           => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+		);
+
+		foreach ( array( 'backgroundColor', 'gradientStart', 'gradientEnd', 'titleColor', 'descriptionColor', 'cardTitleColor', 'cardDescriptionColor', 'cardIconColor', 'buttonColor', 'buttonTextColor', 'overlayTextColor' ) as $key ) {
+			$clean[ $key ] = $this->sanitize_card_columns_color( $settings[ $key ] ?? '' );
+		}
+
+		// Mirrors LANDING_ICON_NAMES in src/utils/landingIcons.js.
+		$icons = array( 'sparkles', 'shield-check', 'lock', 'fingerprint', 'code', 'file-code', 'file-search', 'paintbrush', 'palette', 'layers', 'layout', 'columns', 'grid', 'briefcase', 'store', 'users', 'mail', 'form-input', 'bell', 'megaphone', 'clock', 'calendar', 'search', 'filter', 'zap', 'rocket', 'check', 'star', 'heart', 'globe', 'monitor', 'smartphone', 'file-text', 'settings', 'mouse-pointer', 'panel-top', 'wand', 'gauge', 'boxes' );
+
+		foreach ( array_slice( is_array( $settings['cards'] ?? null ) ? $settings['cards'] : array(), 0, 8 ) as $card ) {
+			if ( ! is_array( $card ) ) {
+				continue;
+			}
+			$icon      = in_array( $card['icon'] ?? '', $icons, true ) ? $card['icon'] : '';
+			$icon_type = in_array( $card['iconType'] ?? '', array( 'none', 'preset', 'custom' ), true ) ? $card['iconType'] : ( '' !== $icon ? 'preset' : 'none' );
+
+			$clean['cards'][] = array(
+				'icon'              => $icon,
+				'iconType'          => $icon_type,
+				'customIcon'        => esc_url_raw( $card['customIcon'] ?? '', array( 'http', 'https' ) ),
+				'title'             => sanitize_text_field( $card['title'] ?? '' ),
+				'description'       => sanitize_textarea_field( $card['description'] ?? '' ),
+				'image'             => esc_url_raw( $card['image'] ?? '', array( 'http', 'https' ) ),
+				'backgroundType'    => in_array( $card['backgroundType'] ?? '', array( 'transparent', 'solid', 'gradient' ), true ) ? $card['backgroundType'] : 'solid',
+				'backgroundColor'   => $this->sanitize_card_columns_color( $card['backgroundColor'] ?? '' ),
+				'gradientStart'     => $this->sanitize_card_columns_color( $card['gradientStart'] ?? '' ),
+				'gradientEnd'       => $this->sanitize_card_columns_color( $card['gradientEnd'] ?? '' ),
+				'gradientDirection' => in_array( $card['gradientDirection'] ?? '', $directions, true ) ? $card['gradientDirection'] : 'top-bottom',
+				'showButton'        => ! empty( $card['showButton'] ),
+				'buttonText'        => sanitize_text_field( $card['buttonText'] ?? '' ),
+				'buttonUrl'         => $this->sanitize_showcase_url( $card['buttonUrl'] ?? '' ),
+			);
+		}
+
+		if ( isset( $settings['height'] ) ) {
+			$clean['height'] = max( 200, min( 1000, absint( $settings['height'] ) ) );
+		}
+
+		$clean['responsive'] = array();
+		foreach ( array( 'desktop', 'tablet', 'mobile' ) as $breakpoint ) {
+			$values                             = is_array( $settings['responsive'][ $breakpoint ] ?? null ) ? $settings['responsive'][ $breakpoint ] : array();
+			$clean['responsive'][ $breakpoint ] = array();
+			if ( isset( $values['height'] ) ) {
+				$clean['responsive'][ $breakpoint ]['height'] = max( 200, min( 1000, absint( $values['height'] ) ) );
+			}
+			if ( isset( $values['padding'] ) ) {
+				$clean['responsive'][ $breakpoint ]['padding'] = max( 0, min( 160, absint( $values['padding'] ) ) );
+			}
+			if ( isset( $values['paddingX'] ) ) {
+				$clean['responsive'][ $breakpoint ]['paddingX'] = max( 0, min( 120, absint( $values['paddingX'] ) ) );
+			}
+			if ( isset( $values['gap'] ) ) {
+				$clean['responsive'][ $breakpoint ]['gap'] = max( 0, min( 64, absint( $values['gap'] ) ) );
+			}
+			if ( isset( $values['marginY'] ) ) {
+				$clean['responsive'][ $breakpoint ]['marginY'] = max( 0, min( 100, absint( $values['marginY'] ) ) );
+			}
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Allow a hex color or a strict rgb()/rgba() value (the color picker emits
+	 * rgba when opacity is lowered). Anything else becomes ''.
+	 *
+	 * @param mixed $value Submitted color value.
+	 * @return string
+	 */
+	private function sanitize_card_columns_color( $value ) {
+		$value = is_string( $value ) ? trim( $value ) : '';
+		if ( '' === $value ) {
+			return '';
+		}
+		$hex = sanitize_hex_color( $value );
+		if ( $hex ) {
+			return $hex;
+		}
+		if ( preg_match( '/^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(?:,\s*(?:0|1|0?\.\d{1,4})\s*)?\)$/', $value ) ) {
+			return $value;
+		}
+		return '';
 	}
 
 	/**

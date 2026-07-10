@@ -39,6 +39,7 @@ import HeroPreview from '../components/blocks/HeroCenteredPreview.vue'
 import ProductGridPreview from '../components/blocks/ProductGridPreview.vue'
 import EcommerceShowcasePreview from '../components/blocks/EcommerceShowcasePreview.vue'
 import FeaturesGridPreview from '../components/blocks/FeaturesGridPreview.vue'
+import CardColumnsPreview from '../components/blocks/CardColumnsPreview.vue'
 import BentoHeroPreview from '../components/blocks/BentoHeroPreview.vue'
 import SpotlightHeroPreview from '../components/blocks/SpotlightHeroPreview.vue'
 import ExpanderHeroPreview from '../components/blocks/ExpanderHeroPreview.vue'
@@ -57,6 +58,9 @@ import ProductDescriptionPreview from '../components/blocks/ProductDescriptionPr
 import ProductSpecsPreview from '../components/blocks/ProductSpecsPreview.vue'
 import ProductTabsPreview from '../components/blocks/ProductTabsPreview.vue'
 import ProductAddToCartPreview from '../components/blocks/ProductAddToCartPreview.vue'
+import ProductHeroPreview from '../components/blocks/ProductHeroPreview.vue'
+import ProductHighlightsPreview from '../components/blocks/ProductHighlightsPreview.vue'
+import ProductRelatedPreview from '../components/blocks/ProductRelatedPreview.vue'
 import DuoHeroPreview from '../components/blocks/DuoHeroPreview.vue'
 import FeaturedPromoBannerPreview from '../components/blocks/FeaturedPromoBannerPreview.vue'
 import HeaderMegaMenuPreview from '../components/blocks/HeaderMegaMenuPreview.vue'
@@ -104,6 +108,7 @@ const previewComponents = {
   'product-grid': ProductGridPreview,
   'ecommerce-showcase': EcommerceShowcasePreview,
   'features-grid': FeaturesGridPreview,
+  'card-columns': CardColumnsPreview,
   'bento-hero': BentoHeroPreview,
   'spotlight-hero': SpotlightHeroPreview,
   'expander-hero': ExpanderHeroPreview,
@@ -122,6 +127,9 @@ const previewComponents = {
   'product-specs': ProductSpecsPreview,
   'product-tabs': ProductTabsPreview,
   'product-add-to-cart': ProductAddToCartPreview,
+  'product-hero': ProductHeroPreview,
+  'product-highlights': ProductHighlightsPreview,
+  'product-related': ProductRelatedPreview,
   'duo-hero': DuoHeroPreview,
   'featured-promo-banner': FeaturedPromoBannerPreview,
   'header-mega-menu': HeaderMegaMenuPreview,

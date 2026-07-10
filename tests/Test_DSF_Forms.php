@@ -87,11 +87,76 @@ class Test_DSF_Forms extends TestCase {
 		WP_Mock::userFunction( 'absint', array( 'return' => static function ( $v ) { return abs( (int) $v ); } ) );
 		WP_Mock::userFunction( 'wp_json_encode', array( 'return' => static function ( $v ) { return json_encode( $v ); } ) );
 		WP_Mock::userFunction( 'wp_generate_uuid4', array( 'return' => 'uuid-test-0000' ) );
+		WP_Mock::userFunction(
+			'esc_url_raw',
+			array(
+				'return' => static function ( $value ) {
+					$value = (string) $value;
+					return preg_match( '#^https?://#i', $value ) ? $value : '';
+				},
+			)
+		);
+		WP_Mock::userFunction(
+			'wp_parse_url',
+			array(
+				'return' => static function ( $url, $component = -1 ) {
+					return parse_url( (string) $url, $component );
+				},
+			)
+		);
 	}
 
 	public function tearDown(): void {
 		WP_Mock::tearDown();
 		parent::tearDown();
+	}
+
+	/* ---- Connections (Zapier / webhook endpoints) ---- */
+
+	public function test_zapier_connection_keeps_valid_hook_url() {
+		$clean = $this->invoke(
+			'sanitize_connections',
+			array(
+				array(
+					'id'          => 'c1',
+					'enabled'     => true,
+					'type'        => 'zapier',
+					'endpointUrl' => 'https://hooks.zapier.com/hooks/catch/123/abc/',
+				),
+			)
+		);
+
+		$this->assertSame( 'zapier', $clean[0]['type'] );
+		$this->assertSame( 'https://hooks.zapier.com/hooks/catch/123/abc/', $clean[0]['endpointUrl'] );
+	}
+
+	public function test_zapier_connection_rejects_non_zapier_or_insecure_urls() {
+		$clean = $this->invoke(
+			'sanitize_connections',
+			array(
+				array( 'id' => 'a', 'type' => 'zapier', 'endpointUrl' => 'https://evil.example.com/zapier.com/' ),
+				array( 'id' => 'b', 'type' => 'zapier', 'endpointUrl' => 'http://hooks.zapier.com/hooks/catch/1/x/' ),
+				array( 'id' => 'c', 'type' => 'zapier', 'endpointUrl' => 'https://zapier.com.evil.example/' ),
+				array( 'id' => 'd', 'type' => 'webhook', 'endpointUrl' => 'https://example.com/webhook' ),
+			)
+		);
+
+		$this->assertSame( '', $clean[0]['endpointUrl'] );
+		$this->assertSame( '', $clean[1]['endpointUrl'] );
+		$this->assertSame( '', $clean[2]['endpointUrl'] );
+		// Plain webhooks are not restricted to Zapier hosts.
+		$this->assertSame( 'https://example.com/webhook', $clean[3]['endpointUrl'] );
+	}
+
+	public function test_unknown_connection_type_falls_back_to_webhook() {
+		$clean = $this->invoke(
+			'sanitize_connections',
+			array(
+				array( 'id' => 'x', 'type' => 'carrier-pigeon', 'endpointUrl' => 'https://example.com/hook' ),
+			)
+		);
+
+		$this->assertSame( 'webhook', $clean[0]['type'] );
 	}
 
 	/* ---- Submission payload (public, untrusted input) ---- */

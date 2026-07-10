@@ -54,15 +54,23 @@ class Test_DSF_Ajax_Product_AddToCart extends TestCase {
 		$this->assertSame( 160, $clean['padding'] );
 	}
 
-	public function test_button_colors_validated() {
+	public function test_button_and_price_colors_validated() {
 		$clean = $this->sanitize(
 			array(
 				'buttonColor'     => '#112233',
 				'buttonTextColor' => 'javascript:alert(1)',
+				'priceColor'      => '#abcdef',
 			)
 		);
 		$this->assertSame( '#112233', $clean['buttonColor'] );
 		$this->assertSame( '', $clean['buttonTextColor'] );
+		$this->assertSame( '#abcdef', $clean['priceColor'] );
+	}
+
+	public function test_show_price_defaults_true_and_toggles() {
+		$this->assertTrue( $this->sanitize( array() )['showPrice'] );
+		$this->assertFalse( $this->sanitize( array( 'showPrice' => false ) )['showPrice'] );
+		$this->assertTrue( $this->sanitize( array( 'showPrice' => 1 ) )['showPrice'] );
 	}
 
 	public function test_unknown_keys_dropped() {

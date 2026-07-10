@@ -142,6 +142,45 @@ describe('HeroCenteredPreview', () => {
     expect(contentStyle).toContain('text-align: right;')
   })
 
+  it('defaults to a 500px min-height with vertically centered content', () => {
+    const wrapper = mount(HeroCenteredPreview, {
+      props: { settings: { title: 'Hi' }, isEditor: false },
+    })
+    const rootStyle = wrapper.attributes('style')
+    // Background lives on the root, which carries the height, so it grows too.
+    expect(rootStyle).toContain('min-height: 500px;')
+    expect(rootStyle).toContain('justify-content: center;')
+    expect(rootStyle).toContain('background-color: rgb(59, 130, 246);')
+  })
+
+  it('grows the hero (and its background) to the Height setting', () => {
+    const wrapper = mount(HeroCenteredPreview, {
+      props: { settings: { title: 'Hi', height: 760 }, isEditor: false },
+    })
+    const rootStyle = wrapper.attributes('style')
+    expect(rootStyle).toContain('min-height: 760px;')
+    // Still vertically centered as it grows.
+    expect(rootStyle).toContain('justify-content: center;')
+  })
+
+  it('honors a per-breakpoint Height for the active preview mode', () => {
+    const wrapper = mount(HeroCenteredPreview, {
+      props: {
+        settings: { height: 700, responsive: { mobile: { height: 320 } } },
+        isEditor: false,
+        previewMode: 'mobile',
+      },
+    })
+    expect(wrapper.attributes('style')).toContain('min-height: 320px;')
+  })
+
+  it('falls back to 500px when the Height value is invalid', () => {
+    const wrapper = mount(HeroCenteredPreview, {
+      props: { settings: { height: 'not-a-number' }, isEditor: false },
+    })
+    expect(wrapper.attributes('style')).toContain('min-height: 500px;')
+  })
+
   it('uses the configured edge padding as the minimum safe padding', () => {
     const wrapper = mount(HeroCenteredPreview, {
       props: {

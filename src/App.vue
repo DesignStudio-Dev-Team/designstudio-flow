@@ -140,6 +140,7 @@
       @insert-preset="insertPreset"
       @insert-template="insertTemplate"
       @delete-template="deleteTemplate"
+      @import-saved="importSavedBlocks"
     />
     
     <!-- Delete Confirmation Dialog -->
@@ -152,6 +153,17 @@
       variant="danger"
       @confirm="confirmDelete"
       @cancel="cancelDelete"
+    />
+
+    <!-- Set-as-default header/footer prompt -->
+    <ConfirmDialog
+      :visible="setDefaultPromptVisible"
+      :title="`Make this the default ${layoutType}?`"
+      :message="`Use this ${layoutType} on every page that hasn't picked its own ${layoutType}. You can change the default later in DesignStudio Flow → Settings.`"
+      confirm-text="Set as default"
+      cancel-text="Not now"
+      @confirm="confirmSetDefaultLayout"
+      @cancel="declineSetDefaultLayout"
     />
 
     <!-- Save block to library -->
@@ -246,7 +258,9 @@ const layoutType = wpData.layoutType === 'footer' ? 'footer' : 'header'
 const isTemplateEditor = postType === 'dsf_layout'
 // A product template designs a reusable single-product page; its product blocks
 // bind to a sample product in the editor and to the viewed product on the frontend.
-const isProductTemplate = wpData.isProductTemplate === true
+// NOTE: wp_localize_script() casts top-level scalars to strings, so a PHP boolean
+// true arrives as "1" (and false as ""). Accept both the string and real boolean.
+const isProductTemplate = wpData.isProductTemplate === true || wpData.isProductTemplate === '1'
 const layoutTemplates = computed(() => wpData.layoutTemplates || { headers: [], footers: [] })
 const layoutCreateUrls = computed(() => wpData.layoutCreateUrls || {})
 const availableForms = Array.isArray(wpData.forms) ? wpData.forms : []
@@ -419,6 +433,15 @@ const showBlockLibrary = ref(false)
 const showThemePanel = ref(false)
 const showPageSettings = ref(false)
 const deleteConfirmVisible = ref(false)
+
+// Site-wide default header/footer: after saving a header/footer we offer to make
+// it the default used by pages that haven't chosen their own.
+const defaultLayoutIds = ref({
+  header: Number.parseInt(wpData.defaultLayoutIds?.header, 10) || 0,
+  footer: Number.parseInt(wpData.defaultLayoutIds?.footer, 10) || 0,
+})
+const setDefaultPromptVisible = ref(false)
+let defaultPromptDeclined = false
 const pendingDeleteIndex = ref(null)
 const editorRoot = ref(null)
 const themeHistory = ref([])
@@ -441,7 +464,11 @@ const blockCategories = computed(() => {
   }
 
   const allBlocks = Object.values(registeredBlocks)
-  const allowedBlocks = allBlocks.filter((block) => isBlockAllowedInCurrentEditor(block))
+  // preset_only blocks stay registered (existing pages keep rendering and the
+  // Presets tab resolves their schema) but are not offered in the Blocks tab.
+  const allowedBlocks = allBlocks.filter(
+    (block) => isBlockAllowedInCurrentEditor(block) && !block.preset_only
+  )
 
   if (isTemplateEditor) {
     const label = layoutType === 'footer' ? 'Footer Blocks' : 'Header Blocks'
@@ -456,10 +483,10 @@ const blockCategories = computed(() => {
   // Define exact order for each category
   const heroOrder = ['hero', 'landing-hero', 'bento-hero', 'spotlight-hero', 'expander-hero', 'duo-hero', 'featured-promo-banner']
   const headerOrder = ['landing-progress-header']
-  const contentOrder = ['content', 'faq', 'text-image', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-engagement-suite', 'landing-trust-workflow', 'features-grid', 'testimonials', 'form-embed', 'form-with-content']
+  const contentOrder = ['content', 'faq', 'text-image', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-engagement-suite', 'landing-trust-workflow', 'features-grid', 'card-columns', 'testimonials', 'form-embed', 'form-with-content']
   const marketingOrder = ['pricing', 'countdown', 'promo-banner', 'cta-banner', 'brand-carousel']
   const ecommerceOrder = ['ecommerce-showcase', 'featured-product-banner', 'product-grid']
-  const productOrder = ['product-gallery', 'product-summary', 'product-add-to-cart', 'product-description', 'product-specs', 'product-tabs']
+  const productOrder = ['product-hero', 'product-gallery', 'product-summary', 'product-add-to-cart', 'product-highlights', 'product-description', 'product-specs', 'product-tabs', 'product-related']
   const footerOrder = ['landing-marketing-footer']
   const heroBlockIds = new Set(heroOrder)
   const headerBlockIds = new Set(headerOrder)
@@ -483,7 +510,18 @@ const blockCategories = computed(() => {
   categories.product.blocks.sort((a, b) => productOrder.indexOf(a.id) - productOrder.indexOf(b.id))
   categories.footers.blocks.sort((a, b) => footerOrder.indexOf(a.id) - footerOrder.indexOf(b.id))
 
-  return categories
+  // Product blocks only exist in the product-template editor (scope-filtered
+  // above); on every other editor the group would render as an empty
+  // "Product Page (0)" header, so drop it entirely when it has no blocks.
+  if (!categories.product.blocks.length) {
+    delete categories.product
+    return categories
+  }
+
+  // In the product-template editor, the product blocks are the point — list
+  // that group first.
+  const { product, ...rest } = categories
+  return { product, ...rest }
 })
 
 const availableTemplateBlocksCount = computed(() => {
@@ -526,8 +564,14 @@ const canvasStyle = computed(() => {
   }
 
   // Typography scale tokens (computed server-side from theme.json + admin overrides).
-  if (adminTypography.tokens && typeof adminTypography.tokens === 'object') {
-    Object.assign(style, adminTypography.tokens)
+  // Preview the per-breakpoint sizes so the canvas mirrors the responsive frontend:
+  // tablet preview → Laptop typography, mobile preview → Mobile typography.
+  const breakpointTokens =
+    (previewMode.value === 'mobile' && adminTypography.tokensMobile) ||
+    (previewMode.value === 'tablet' && adminTypography.tokensLaptop) ||
+    adminTypography.tokens
+  if (breakpointTokens && typeof breakpointTokens === 'object') {
+    Object.assign(style, breakpointTokens)
   }
 
   return style
@@ -702,6 +746,31 @@ async function onSaveBlockConfirm({ name, id, category, tags }) {
     }
   } catch (e) {
     showToast('Could not save this block.', 'error')
+  }
+}
+
+// Import saved blocks from a JSON file exported here or from the admin Tools
+// screen. The server re-validates the payload and per-type sanitizes settings.
+async function importSavedBlocks(file) {
+  if (!file || !wpData.ajaxUrl) return
+  try {
+    const payload = await file.text()
+    const formData = new FormData()
+    formData.append('action', 'dsf_import_saved_block')
+    formData.append('nonce', wpData.nonce)
+    formData.append('payload', payload)
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json.success && Array.isArray(json.data?.savedBlocks) && json.data.savedBlocks.length) {
+      availableSavedBlocks.value = [...availableSavedBlocks.value, ...json.data.savedBlocks]
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      const count = json.data.savedBlocks.length
+      showToast(count === 1 ? 'Imported 1 saved block' : `Imported ${count} saved blocks`)
+    } else {
+      showToast(json.data?.message || 'Could not import this file.', 'error')
+    }
+  } catch (e) {
+    showToast('Could not import this file.', 'error')
   }
 }
 
@@ -962,6 +1031,45 @@ function showToast(message, type = 'success') {
   toastTimer = setTimeout(() => { toast.value.visible = false }, 3000)
 }
 
+// After saving a header/footer, offer to make it the site-wide default — but only
+// when it isn't already the default, and stop asking once declined this session.
+function maybePromptSetDefaultLayout() {
+  if (!isTemplateEditor || defaultPromptDeclined) return
+  const postId = Number.parseInt(wpData.postId, 10) || 0
+  if (!postId || defaultLayoutIds.value[layoutType] === postId) return
+  setDefaultPromptVisible.value = true
+}
+
+function declineSetDefaultLayout() {
+  setDefaultPromptVisible.value = false
+  defaultPromptDeclined = true
+}
+
+async function confirmSetDefaultLayout() {
+  setDefaultPromptVisible.value = false
+  const postId = Number.parseInt(wpData.postId, 10) || 0
+  if (!postId || !wpData.ajaxUrl) return
+  try {
+    const body = new URLSearchParams({
+      action: 'dsf_set_default_layout',
+      nonce: wpData.nonce || '',
+      layout_id: String(postId),
+      type: layoutType,
+      enabled: '1',
+    })
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json?.success) {
+      defaultLayoutIds.value = { ...defaultLayoutIds.value, [layoutType]: postId }
+      showToast(`Set as the default ${layoutType}.`, 'success')
+    } else {
+      showToast(json?.data?.message || 'Could not set default.', 'error')
+    }
+  } catch (error) {
+    showToast('Could not set default.', 'error')
+  }
+}
+
 function getDefaultSettings(blockDef) {
   const defaults = {}
 
@@ -1178,7 +1286,10 @@ async function savePage(options = {}) {
     pageTitle.value = enteredTitle
   }
 
-  const statusToSave = postType === 'page' && !isProductTemplate
+  // Pages and header/footer layouts publish on save (a draft header/footer would
+  // only preview for logged-in admins, never for public visitors). Product
+  // templates keep their own explicit publish/active flow.
+  const statusToSave = (postType === 'page' && !isProductTemplate) || postType === 'dsf_layout'
     ? 'publish'
     : (status || currentPostStatus.value || 'draft')
 
@@ -1266,6 +1377,7 @@ async function savePage(options = {}) {
       currentPreviewUrl.value = saveResult.preview_url
     }
     console.log('Page saved successfully')
+    maybePromptSetDefaultLayout()
     return true
   } catch (error) {
     console.error('Save error:', error)

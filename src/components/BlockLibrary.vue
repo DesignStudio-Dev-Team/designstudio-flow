@@ -45,7 +45,7 @@
         <!-- ===== BLOCKS TAB ===== -->
         <template v-if="activeTab === 'blocks'">
           <!-- Saved Blocks (reusable library) -->
-          <div v-if="filteredSavedBlocks.length" class="dsf-library-category">
+          <div class="dsf-library-category">
             <button class="dsf-library-category__header" @click="savedOpen = !savedOpen">
               <div class="dsf-library-category__left">
                 <Bookmark :size="16" />
@@ -59,6 +59,22 @@
               />
             </button>
             <div class="dsf-library-blocks" v-show="savedOpen || isSearching">
+              <button
+                type="button"
+                class="dsf-library-import"
+                title="Import a block exported as JSON"
+                @click="triggerImport"
+              >
+                <Upload :size="14" />
+                Import block from JSON
+              </button>
+              <input
+                ref="importInput"
+                type="file"
+                accept=".json,application/json"
+                class="dsf-library-import__input"
+                @change="onImportFileChange"
+              />
               <div v-if="allSavedTags.length" class="dsf-library-tagfilter">
                 <button
                   v-for="tag in allSavedTags"
@@ -96,6 +112,16 @@
                   >
                     <Star :size="14" :fill="saved.featured ? 'currentColor' : 'none'" />
                   </button>
+                  <a
+                    v-if="saved.exportUrl"
+                    class="dsf-library-block__export"
+                    :href="saved.exportUrl"
+                    title="Export as JSON"
+                    aria-label="Export saved block as JSON"
+                    @click.stop
+                  >
+                    <Download :size="14" />
+                  </a>
                   <button
                     class="dsf-library-block__delete"
                     title="Delete saved block"
@@ -246,7 +272,9 @@ import {
   Bookmark,
   Trash2,
   Sparkles,
-  Star
+  Star,
+  Download,
+  Upload
 } from 'lucide-vue-next'
 import BlockSchematic from './common/BlockSchematic.vue'
 
@@ -266,7 +294,23 @@ const props = defineProps({
   },
 })
 
-defineEmits(['close', 'add', 'insert-saved', 'delete-saved', 'toggle-feature', 'insert-preset', 'insert-template', 'delete-template'])
+const emit = defineEmits(['close', 'add', 'insert-saved', 'delete-saved', 'toggle-feature', 'insert-preset', 'insert-template', 'delete-template', 'import-saved'])
+
+// Import a saved block from an exported JSON file.
+const importInput = ref(null)
+
+function triggerImport() {
+  importInput.value?.click()
+}
+
+function onImportFileChange(event) {
+  const file = event.target.files && event.target.files[0]
+  if (file) {
+    emit('import-saved', file)
+  }
+  // Allow re-selecting the same file.
+  event.target.value = ''
+}
 
 const activeTab = ref('blocks')
 const searchQuery = ref('')
@@ -439,6 +483,7 @@ function getCategoryIcon(key) {
     headers: PanelTop,
     content: FileText,
     ecommerce: ShoppingCart,
+    product: ShoppingBag,
     marketing: Target,
     footers: LayoutTemplate,
   }
@@ -850,6 +895,58 @@ function getBlockIcon(iconName) {
   color: #d97706;
   border-color: #fcd34d;
   background: #fffbeb;
+}
+
+.dsf-library-block__export {
+  position: absolute;
+  top: 8px;
+  right: 80px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--dsf-gray-200);
+  border-radius: var(--dsf-radius-md);
+  color: var(--dsf-gray-500);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dsf-library-block__export:hover {
+  border-color: var(--dsf-primary-400, #60a5fa);
+  color: var(--dsf-primary-600, #2563eb);
+  background: var(--dsf-primary-50, #eff6ff);
+}
+
+.dsf-library-import {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.55rem;
+  border: 1px dashed var(--dsf-gray-300);
+  border-radius: var(--dsf-radius-md);
+  background: white;
+  color: var(--dsf-gray-600);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dsf-library-import:hover {
+  border-color: var(--dsf-primary-300, #93c5fd);
+  color: var(--dsf-primary-600, #2563eb);
+  background: var(--dsf-primary-50, #eff6ff);
+}
+
+.dsf-library-import__input {
+  display: none;
 }
 
 .dsf-library-empty {

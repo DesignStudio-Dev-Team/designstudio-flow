@@ -142,6 +142,42 @@ $render_recent_items = static function ( $title, $items, $all_url, $edit_url_cal
 					__( 'No forms yet.', 'designstudio-flow' ),
 					$forms_total
 				);
+				$dsf_editor_edit_url = static function ( $item ) {
+					return admin_url( 'admin.php?page=dsf-editor&post_id=' . intval( $item->ID ) );
+				};
+				$dsf_no_view_url     = static function ( $item ) {
+					unset( $item );
+					return '';
+				};
+				$render_recent_items(
+					__( 'Saved Blocks', 'designstudio-flow' ),
+					$saved_blocks,
+					admin_url( 'edit.php?post_type=dsf_saved_block' ),
+					$dsf_editor_edit_url,
+					$dsf_no_view_url,
+					__( 'No saved blocks yet.', 'designstudio-flow' ),
+					$saved_blocks_total
+				);
+				$render_recent_items(
+					__( 'Templates', 'designstudio-flow' ),
+					$templates,
+					admin_url( 'edit.php?post_type=dsf_template' ),
+					$dsf_editor_edit_url,
+					$dsf_no_view_url,
+					__( 'No templates yet.', 'designstudio-flow' ),
+					$templates_total
+				);
+				if ( $woo_active || $product_templates_total > 0 ) {
+					$render_recent_items(
+						__( 'Product Templates', 'designstudio-flow' ),
+						$product_templates,
+						admin_url( 'edit.php?post_type=dsf_product_template' ),
+						$dsf_editor_edit_url,
+						$dsf_no_view_url,
+						__( 'No product templates yet.', 'designstudio-flow' ),
+						$product_templates_total
+					);
+				}
 				?>
 			</div>
 		</div>
@@ -169,15 +205,59 @@ $render_recent_items = static function ( $title, $items, $all_url, $edit_url_cal
 							Create New Footer
 						</a>
 					</li>
-					<li>
+					<li style="margin-bottom: 12px;">
 						<a href="<?php echo esc_url( admin_url( 'admin.php?page=dsf-form-builder' ) ); ?>" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
 							<span class="dashicons dashicons-feedback"></span>
 							Create New Form
 						</a>
 					</li>
+					<?php if ( $woo_active ) : ?>
+						<li>
+							<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=dsf_product_template' ) ); ?>" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+								<span class="dashicons dashicons-cart"></span>
+								Create Product Template
+							</a>
+						</li>
+					<?php endif; ?>
 				</ul>
 			</div>
-			
+
+			<div class="dsf-card" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin-bottom: 20px;">
+				<h2 style="margin-top: 0;">Tools</h2>
+				<ul style="margin: 0;">
+					<li style="margin-bottom: 12px;">
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=dsf-tools&tab=pages' ) ); ?>" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+							<span class="dashicons dashicons-migrate"></span>
+							Import / Export
+						</a>
+					</li>
+					<li style="margin-bottom: 12px;">
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=dsf-entries' ) ); ?>" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+							<span class="dashicons dashicons-list-view"></span>
+							Form Entries
+						</a>
+					</li>
+					<li style="margin-bottom: 12px;">
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=dsf-tools&tab=redirects' ) ); ?>" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+							<span class="dashicons dashicons-randomize"></span>
+							Redirects
+						</a>
+					</li>
+					<li style="margin-bottom: 12px;">
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=dsf-tools&tab=mail' ) ); ?>" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+							<span class="dashicons dashicons-email-alt"></span>
+							Mail / SMTP
+						</a>
+					</li>
+					<li>
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=dsf-settings' ) ); ?>" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+							<span class="dashicons dashicons-admin-settings"></span>
+							Settings
+						</a>
+					</li>
+				</ul>
+			</div>
+
 			<div class="dsf-card" style="background: #f0f6fc; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px;">
 				<h2 style="margin-top: 0; color: #2271b1;">
 					<span class="dashicons dashicons-megaphone"></span>

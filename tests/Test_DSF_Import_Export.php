@@ -30,7 +30,7 @@ class Test_DSF_Import_Export extends TestCase {
 
 	public function test_saved_block_meta_keys() {
 		$this->assertSame(
-			array( '_dsf_block_type', '_dsf_block_settings' ),
+			array( '_dsf_block_type', '_dsf_block_settings', '_dsf_block_category', '_dsf_block_tags' ),
 			$this->invoke( 'get_meta_keys_for_type', 'dsf_saved_block' )
 		);
 	}

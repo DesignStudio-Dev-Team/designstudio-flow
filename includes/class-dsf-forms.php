@@ -944,7 +944,7 @@ class DSF_Forms {
 			return array();
 		}
 
-		$allowed_types = array( 'webhook', 'salesforce' );
+		$allowed_types = array( 'webhook', 'zapier', 'salesforce' );
 		$sanitized     = array();
 
 		foreach ( $connections as $connection ) {
@@ -965,12 +965,19 @@ class DSF_Forms {
 				$id = wp_generate_uuid4();
 			}
 
+			$endpoint_url = isset( $connection['endpointUrl'] ) ? esc_url_raw( $connection['endpointUrl'] ) : '';
+			// A Zapier connection must point at a real Zapier hook over HTTPS —
+			// the same constraint the Gravity Forms Zapier integration enforces.
+			if ( 'zapier' === $type && '' !== $endpoint_url && ! $this->is_zapier_hook_url( $endpoint_url ) ) {
+				$endpoint_url = '';
+			}
+
 			$sanitized[] = array(
 				'id'          => $id,
 				'enabled'     => ! empty( $connection['enabled'] ),
 				'type'        => $type,
 				'label'       => isset( $connection['label'] ) ? sanitize_text_field( $connection['label'] ) : '',
-				'endpointUrl' => isset( $connection['endpointUrl'] ) ? esc_url_raw( $connection['endpointUrl'] ) : '',
+				'endpointUrl' => $endpoint_url,
 				'secret'      => isset( $connection['secret'] ) ? sanitize_text_field( $connection['secret'] ) : '',
 				'timeout'     => $timeout,
 			);
@@ -981,6 +988,36 @@ class DSF_Forms {
 		}
 
 		return $sanitized;
+	}
+
+	/**
+	 * Whether a URL is an HTTPS Zapier hook endpoint (hooks.zapier.com etc.).
+	 *
+	 * @param string $url Endpoint URL.
+	 * @return bool
+	 */
+	private function is_zapier_hook_url( $url ) {
+		$parts = wp_parse_url( $url );
+		if ( empty( $parts['scheme'] ) || 'https' !== strtolower( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+			return false;
+		}
+		$host = strtolower( $parts['host'] );
+		return 'zapier.com' === $host || '.zapier.com' === substr( $host, -11 );
+	}
+
+	/**
+	 * Sanitize an externally built form definition (e.g. the Gravity Forms
+	 * migrator) through the same contracts used by the builder's save path.
+	 *
+	 * @param array $rows     Candidate rows.
+	 * @param array $settings Candidate settings.
+	 * @return array{rows: array, settings: array}
+	 */
+	public function sanitize_imported_form( $rows, $settings ) {
+		return array(
+			'rows'     => $this->sanitize_form_rows( is_array( $rows ) ? $rows : array() ),
+			'settings' => $this->sanitize_form_settings( is_array( $settings ) ? $settings : array() ),
+		);
 	}
 
 	/**

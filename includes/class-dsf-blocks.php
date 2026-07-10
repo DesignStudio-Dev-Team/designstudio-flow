@@ -1105,6 +1105,304 @@ class DSF_Blocks {
 
 		$this->register_block(
 			array(
+				'id'          => 'card-columns',
+				'name'        => 'Card Columns',
+				'category'    => 'content',
+				'icon'        => 'columns',
+				'description' => 'Intro heading with columns of cards: icon or text headers, bottom-aligned images, and optional arrow buttons',
+				'settings'    => array(
+					// Header
+					'headerLayout'         => array(
+						'type'    => 'select',
+						'label'   => 'Header Layout',
+						'section' => 'header',
+						'default' => 'centered',
+						'options' => array(
+							'Centered'                => 'centered',
+							'Two Column (Title/Text)' => 'split',
+						),
+					),
+					'title'                => array(
+						'type'    => 'text',
+						'label'   => 'Title',
+						'section' => 'header',
+						'default' => 'Why Choose Us?',
+					),
+					'description'          => array(
+						'type'    => 'textarea',
+						'label'   => 'Description',
+						'section' => 'header',
+						'default' => 'Add a short introduction that explains the value of what you offer.',
+					),
+					// Cards
+					'cards'                => array(
+						'type'    => 'card_column_items',
+						'label'   => 'Cards',
+						'section' => 'cards',
+						'default' => array(
+							array(
+								'icon'              => 'sparkles',
+								'iconType'          => 'preset',
+								'customIcon'        => '',
+								'title'             => 'First Benefit',
+								'description'       => '',
+								'image'             => '',
+								'backgroundType'    => 'solid',
+								'backgroundColor'   => '#F3F4F6',
+								'gradientStart'     => '#F3F4F6',
+								'gradientEnd'       => '#E5E7EB',
+								'gradientDirection' => 'top-bottom',
+								'showButton'        => false,
+								'buttonText'        => '',
+								'buttonUrl'         => '',
+							),
+							array(
+								'icon'              => 'heart',
+								'iconType'          => 'preset',
+								'customIcon'        => '',
+								'title'             => 'Second Benefit',
+								'description'       => '',
+								'image'             => '',
+								'backgroundType'    => 'solid',
+								'backgroundColor'   => '#F3F4F6',
+								'gradientStart'     => '#F3F4F6',
+								'gradientEnd'       => '#E5E7EB',
+								'gradientDirection' => 'top-bottom',
+								'showButton'        => false,
+								'buttonText'        => '',
+								'buttonUrl'         => '',
+							),
+							array(
+								'icon'              => 'users',
+								'iconType'          => 'preset',
+								'customIcon'        => '',
+								'title'             => 'Third Benefit',
+								'description'       => '',
+								'image'             => '',
+								'backgroundType'    => 'solid',
+								'backgroundColor'   => '#F3F4F6',
+								'gradientStart'     => '#F3F4F6',
+								'gradientEnd'       => '#E5E7EB',
+								'gradientDirection' => 'top-bottom',
+								'showButton'        => false,
+								'buttonText'        => '',
+								'buttonUrl'         => '',
+							),
+						),
+					),
+					// Layout
+					'columns'              => array(
+						'type'    => 'select',
+						'label'   => 'Columns',
+						'section' => 'layout',
+						'default' => '3',
+						'options' => array( '2', '3', '4', '5', '6' ),
+					),
+					'cardLayout'           => array(
+						'type'    => 'select',
+						'label'   => 'Card Layout',
+						'section' => 'layout',
+						'default' => 'standard',
+						'options' => array(
+							'Standard (Bottom Image)' => 'standard',
+							'Image Background (Title Overlay)' => 'overlay',
+						),
+					),
+					'contentAlign'         => array(
+						'type'    => 'select',
+						'label'   => 'Card Content Alignment',
+						'section' => 'layout',
+						'default' => 'center',
+						'options' => array(
+							'Center' => 'center',
+							'Left'   => 'left',
+						),
+					),
+					'buttonStyle'          => array(
+						'type'    => 'select',
+						'label'   => 'Card Button Style',
+						'section' => 'layout',
+						'default' => 'arrow',
+						'options' => array(
+							'Arrow Circle' => 'arrow',
+							'Text'         => 'text',
+							'Text + Arrow' => 'text-arrow',
+						),
+					),
+					'imageFit'             => array(
+						'type'     => 'select',
+						'label'    => 'Card Image Fit',
+						'section'  => 'layout',
+						'default'  => 'cover',
+						'options'  => array(
+							'Cover (fill area)'    => 'cover',
+							'Contain (fit inside)' => 'contain',
+						),
+						'showWhen' => array( 'cardLayout' => 'standard' ),
+					),
+					// Section background
+					'backgroundType'       => array(
+						'type'    => 'select',
+						'label'   => 'Background Type',
+						'default' => 'solid',
+						'options' => array(
+							'Solid Color' => 'solid',
+							'Gradient'    => 'gradient',
+						),
+					),
+					'backgroundColor'      => array(
+						'type'     => 'color',
+						'label'    => 'Background Color',
+						'default'  => '#FFFFFF',
+						'showWhen' => array( 'backgroundType' => 'solid' ),
+					),
+					'gradientStart'        => array(
+						'type'     => 'color',
+						'label'    => 'Gradient Start',
+						'default'  => '#FFFFFF',
+						'showWhen' => array( 'backgroundType' => 'gradient' ),
+					),
+					'gradientEnd'          => array(
+						'type'     => 'color',
+						'label'    => 'Gradient End',
+						'default'  => '#EFF6FF',
+						'showWhen' => array( 'backgroundType' => 'gradient' ),
+					),
+					'gradientDirection'    => array(
+						'type'     => 'select',
+						'label'    => 'Gradient Direction',
+						'default'  => 'top-bottom',
+						'options'  => array(
+							'Left to Right'       => 'left-right',
+							'Top to Bottom'       => 'top-bottom',
+							'Radial (Center Out)' => 'radial',
+						),
+						'showWhen' => array( 'backgroundType' => 'gradient' ),
+					),
+					// Colors
+					'titleColor'           => array(
+						'type'    => 'color',
+						'label'   => 'Title Color',
+						'default' => '#111827',
+					),
+					'descriptionColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Description Color',
+						'default' => '#4B5563',
+					),
+					'cardTitleColor'       => array(
+						'type'    => 'color',
+						'label'   => 'Card Title Color',
+						'default' => '#111827',
+					),
+					'cardDescriptionColor' => array(
+						'type'    => 'color',
+						'label'   => 'Card Description Color',
+						'default' => '#4B5563',
+					),
+					'cardIconColor'        => array(
+						'type'    => 'color',
+						'label'   => 'Card Icon Color',
+						'default' => '#111827',
+					),
+					'buttonColor'          => array(
+						'type'    => 'color',
+						'label'   => 'Card Button Color',
+						'default' => '#111827',
+					),
+					'buttonTextColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Card Button Text Color',
+						'default' => '#FFFFFF',
+					),
+					// Image-background overlay
+					'overlayTextColor'     => array(
+						'type'     => 'color',
+						'label'    => 'Overlay Text Color',
+						'default'  => '#FFFFFF',
+						'showWhen' => array( 'cardLayout' => 'overlay' ),
+					),
+					'overlayStrength'      => array(
+						'type'     => 'slider',
+						'label'    => 'Overlay Gradient Strength',
+						'default'  => 60,
+						'min'      => 0,
+						'max'      => 100,
+						'showWhen' => array( 'cardLayout' => 'overlay' ),
+					),
+					'overlayHeight'        => array(
+						'type'     => 'slider',
+						'label'    => 'Overlay Gradient Height (%)',
+						'default'  => 50,
+						'min'      => 20,
+						'max'      => 100,
+						'showWhen' => array( 'cardLayout' => 'overlay' ),
+					),
+					// Card dimensions
+					'cardMinHeight'        => array(
+						'type'    => 'slider',
+						'label'   => 'Card Min Height',
+						'default' => 380,
+						'min'     => 200,
+						'max'     => 720,
+					),
+					'cardPadding'          => array(
+						'type'    => 'slider',
+						'label'   => 'Card Padding',
+						'default' => 24,
+						'min'     => 8,
+						'max'     => 48,
+					),
+					'cardRadius'           => array(
+						'type'    => 'slider',
+						'label'   => 'Card Corner Radius',
+						'default' => 16,
+						'min'     => 0,
+						'max'     => 40,
+					),
+					'imageHeight'          => array(
+						'type'     => 'slider',
+						'label'    => 'Card Image Height',
+						'default'  => 220,
+						'min'      => 80,
+						'max'      => 420,
+						'showWhen' => array( 'cardLayout' => 'standard' ),
+					),
+					// Responsive spacing (padding/gap defined so those sliders surface)
+					'padding'              => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 60,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'             => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'gap'                  => array(
+						'type'    => 'slider',
+						'label'   => 'Card Gap',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 64,
+					),
+					'marginY'              => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
 				'id'          => 'bento-hero',
 				'name'        => 'Bento Hero',
 				'category'    => 'content',
@@ -3637,6 +3935,16 @@ class DSF_Blocks {
 							'Center' => 'center',
 						),
 					),
+					'showPrice'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Price Next to Button',
+						'default' => true,
+					),
+					'priceColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Price Color',
+						'default' => '',
+					),
 					'buttonColor'     => array(
 						'type'    => 'color',
 						'label'   => 'Button Color',
@@ -3658,6 +3966,311 @@ class DSF_Blocks {
 						'type'    => 'slider',
 						'label'   => 'Vertical Padding',
 						'default' => 0,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'product-hero',
+				'name'           => 'Product Hero',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'layout',
+				'description'    => 'A modern two-column hero: gallery, title, price, rating, and add-to-cart.',
+				'settings'       => array(
+					'imageSide'            => array(
+						'type'    => 'select',
+						'label'   => 'Image Side',
+						'default' => 'left',
+						'options' => array(
+							'Left'  => 'left',
+							'Right' => 'right',
+						),
+					),
+					'eyebrowText'          => array(
+						'type'    => 'text',
+						'label'   => 'Eyebrow Text',
+						'default' => '',
+					),
+					'showRating'           => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Rating',
+						'default' => true,
+					),
+					'showPrice'            => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Price',
+						'default' => true,
+					),
+					'showShortDescription' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Short Description',
+						'default' => true,
+					),
+					'showStock'            => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Stock Status',
+						'default' => true,
+					),
+					'showSku'              => array(
+						'type'    => 'toggle',
+						'label'   => 'Show SKU',
+						'default' => false,
+					),
+					'showAddToCart'        => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Add to Cart',
+						'default' => true,
+					),
+					'showSaleBadge'        => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Sale Badge',
+						'default' => true,
+					),
+					'saleBadgeText'        => array(
+						'type'     => 'text',
+						'label'    => 'Sale Badge Text',
+						'default'  => 'Sale',
+						'showWhen' => array( 'showSaleBadge' => true ),
+					),
+					'accentColor'          => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'titleColor'           => array(
+						'type'    => 'color',
+						'label'   => 'Title Color',
+						'default' => '',
+					),
+					'priceColor'           => array(
+						'type'    => 'color',
+						'label'   => 'Price Color',
+						'default' => '',
+					),
+					'buttonColor'          => array(
+						'type'    => 'color',
+						'label'   => 'Add-to-Cart Button Color',
+						'default' => '',
+					),
+					'buttonTextColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Button Text Color',
+						'default' => '',
+					),
+					'backgroundColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Background Color',
+						'default' => '',
+					),
+					'maxWidth'             => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1200,
+						'min'     => 720,
+						'max'     => 1600,
+					),
+					'padding'              => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 48,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'             => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'              => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'product-highlights',
+				'name'           => 'Product Highlights',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'award',
+				'description'    => 'Trust badges: shipping, warranty, returns — icons with short text.',
+				'settings'       => array(
+					'items'           => array(
+						'type'    => 'icon_items',
+						'label'   => 'Highlights',
+						'default' => array(
+							array(
+								'icon'        => 'rocket',
+								'title'       => 'Free shipping',
+								'description' => 'On orders over $50',
+							),
+							array(
+								'icon'        => 'shield-check',
+								'title'       => '2-year warranty',
+								'description' => 'Covered from day one',
+							),
+							array(
+								'icon'        => 'check',
+								'title'       => '30-day returns',
+								'description' => 'No questions asked',
+							),
+						),
+					),
+					'layout'          => array(
+						'type'    => 'select',
+						'label'   => 'Layout',
+						'default' => 'row',
+						'options' => array(
+							'Row'  => 'row',
+							'Grid' => 'grid',
+						),
+					),
+					'columns'         => array(
+						'type'     => 'slider',
+						'label'    => 'Grid Columns',
+						'default'  => 3,
+						'min'      => 2,
+						'max'      => 4,
+						'showWhen' => array( 'layout' => 'grid' ),
+					),
+					'cardStyle'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Card Style',
+						'default' => true,
+					),
+					'accentColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Icon Color',
+						'default' => '',
+					),
+					'backgroundColor' => array(
+						'type'    => 'color',
+						'label'   => 'Background Color',
+						'default' => '',
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1100,
+						'min'     => 480,
+						'max'     => 1400,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'product-related',
+				'name'           => 'Related Products',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'grid-3x3',
+				'description'    => "WooCommerce's related products as a modern card grid.",
+				'settings'       => array(
+					'showHeading'     => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Heading',
+						'default' => true,
+					),
+					'headingText'     => array(
+						'type'    => 'text',
+						'label'   => 'Heading Text',
+						'default' => 'You may also like',
+					),
+					'count'           => array(
+						'type'    => 'slider',
+						'label'   => 'Products to Show',
+						'default' => 4,
+						'min'     => 2,
+						'max'     => 8,
+					),
+					'columns'         => array(
+						'type'    => 'slider',
+						'label'   => 'Columns',
+						'default' => 4,
+						'min'     => 2,
+						'max'     => 4,
+					),
+					'showPrice'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Price',
+						'default' => true,
+					),
+					'headingColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Heading Color',
+						'default' => '',
+					),
+					'accentColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'backgroundColor' => array(
+						'type'    => 'color',
+						'label'   => 'Background Color',
+						'default' => '',
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1200,
+						'min'     => 480,
+						'max'     => 1600,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 40,
 						'min'     => 0,
 						'max'     => 160,
 					),
@@ -5807,6 +6420,7 @@ class DSF_Blocks {
 		$this->register_block(
 			array(
 				'id'          => 'landing-redirect-tool',
+				'preset_only' => true,
 				'name'        => 'Redirect Tool',
 				'category'    => 'content',
 				'icon'        => 'milestone',
@@ -5829,6 +6443,7 @@ class DSF_Blocks {
 		$this->register_block(
 			array(
 				'id'          => 'landing-mail-tool',
+				'preset_only' => true,
 				'name'        => 'Mail / SMTP',
 				'category'    => 'content',
 				'icon'        => 'mail-check',
@@ -5969,6 +6584,11 @@ class DSF_Blocks {
 		$hero_block_ids = array( 'hero', 'landing-hero', 'bento-hero', 'spotlight-hero', 'expander-hero', 'duo-hero', 'featured-promo-banner' );
 
 		foreach ( $this->blocks as $block ) {
+			// preset_only blocks stay registered for rendering existing pages and
+			// resolving presets, but are not offered in the block library.
+			if ( ! empty( $block['preset_only'] ) ) {
+				continue;
+			}
 			$cat = $block['category'];
 			if ( in_array( $block['id'], $hero_block_ids, true ) ) {
 				$categories['heroes']['blocks'][] = $block;

@@ -165,6 +165,22 @@ class DSF_Block_Presets {
 				'type'      => 'landing-marketing-footer',
 				'overrides' => array(),
 			),
+			// The Redirect Tool and Mail/SMTP sections are the Split Content block
+			// prefilled with different content, so they live here as presets while
+			// Split Content (landing-product-story) stays in the Blocks tab. Their
+			// types are preset_only: still registered for rendering and settings.
+			array(
+				'key'       => 'split-content-redirects',
+				'name'      => 'Split Content — Redirect Manager',
+				'type'      => 'landing-redirect-tool',
+				'overrides' => array(),
+			),
+			array(
+				'key'       => 'split-content-mail',
+				'name'      => 'Split Content — Mail & SMTP',
+				'type'      => 'landing-mail-tool',
+				'overrides' => array(),
+			),
 		);
 	}
 }

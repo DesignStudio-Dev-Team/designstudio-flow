@@ -41,6 +41,9 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 	$enabled_post_types = array( 'page' );
 	update_option( 'dsf_enabled_post_types', $enabled_post_types );
 
+	// Whether the DSF editor / product templates apply to WooCommerce products.
+	update_option( 'dsf_products_enabled', isset( $_POST['dsf_products_enabled'] ) ? 1 : 0 );
+
 	$default_colors = array(
 		'primary'    => sanitize_hex_color( sanitize_text_field( wp_unslash( $_POST['dsf_primary_color'] ?? '#2C5F5D' ) ) ),
 		'secondary'  => sanitize_hex_color( sanitize_text_field( wp_unslash( $_POST['dsf_secondary_color'] ?? '#1E40AF' ) ) ),
@@ -75,6 +78,11 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 		}
 		return max( 8.0, min( 200.0, $value ) );
 	};
+	// Per-breakpoint base body size. Blank / 0 means "inherit desktop".
+	$dsf_clamp_base_bp = static function ( $key ) {
+		$value = isset( $_POST[ $key ] ) ? floatval( wp_unslash( $_POST[ $key ] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified above.
+		return $value > 0 ? max( 12.0, min( 22.0, $value ) ) : 0.0;
+	};
 
 	$container_width = isset( $_POST['dsf_container_width'] ) ? intval( wp_unslash( $_POST['dsf_container_width'] ) ) : 1800;
 	$container_width = $container_width > 0 ? max( 320, min( 3000, $container_width ) ) : 1800;
@@ -92,7 +100,53 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 		'size_h4'         => $dsf_clamp_size( 'dsf_size_h4' ),
 		'container_width' => $container_width,
 	);
+
+	// Laptop + mobile responsive sizes (blank inherits the desktop value).
+	foreach ( array( 'laptop', 'mobile' ) as $dsf_bp ) {
+		$typography[ 'base_' . $dsf_bp ]    = $dsf_clamp_base_bp( 'dsf_typography_base_' . $dsf_bp );
+		$typography[ 'size_p_' . $dsf_bp ]  = $dsf_clamp_size( 'dsf_size_p_' . $dsf_bp );
+		$typography[ 'size_h1_' . $dsf_bp ] = $dsf_clamp_size( 'dsf_size_h1_' . $dsf_bp );
+		$typography[ 'size_h2_' . $dsf_bp ] = $dsf_clamp_size( 'dsf_size_h2_' . $dsf_bp );
+		$typography[ 'size_h3_' . $dsf_bp ] = $dsf_clamp_size( 'dsf_size_h3_' . $dsf_bp );
+		$typography[ 'size_h4_' . $dsf_bp ] = $dsf_clamp_size( 'dsf_size_h4_' . $dsf_bp );
+	}
+
 	update_option( 'dsf_typography', $typography );
+
+	// Default header / footer (applied to pages that don't pick their own).
+	$dsf_validate_layout = static function ( $raw_id, $type ) {
+		$id = absint( wp_unslash( $raw_id ) );
+		if ( ! $id ) {
+			return 0;
+		}
+		$layout_post = get_post( $id );
+		if ( ! $layout_post || 'dsf_layout' !== $layout_post->post_type ) {
+			return 0;
+		}
+		$stored = get_post_meta( $id, '_dsf_layout_type', true );
+		$stored = 'footer' === $stored ? 'footer' : 'header';
+		return $stored === $type ? $id : 0;
+	};
+
+	$dsf_default_header = $dsf_validate_layout( $_POST['dsf_default_header_id'] ?? 0, 'header' );
+	$dsf_default_footer = $dsf_validate_layout( $_POST['dsf_default_footer_id'] ?? 0, 'footer' );
+	update_option( 'dsf_default_header_id', $dsf_default_header );
+	update_option( 'dsf_default_footer_id', $dsf_default_footer );
+
+	// Push the chosen header/footer onto every existing DSF page + product
+	// template so they all switch to it now. Future pages inherit it via the
+	// default fallback. (Only when a real layout is chosen — "None" leaves pages
+	// untouched.)
+	$dsf_layout_updates = 0;
+	if ( $dsf_default_header ) {
+		$dsf_layout_updates += DSF_Frontend::apply_layout_to_all_flow_content( 'header', $dsf_default_header );
+	}
+	if ( $dsf_default_footer ) {
+		$dsf_layout_updates += DSF_Frontend::apply_layout_to_all_flow_content( 'footer', $dsf_default_footer );
+	}
+
+	// Whole-site mode: apply the header/footer to normal (non-DSF) pages/posts too.
+	update_option( 'dsf_global_header_footer', isset( $_POST['dsf_global_header_footer'] ) ? 1 : 0 );
 
 	$notification_bar = DSF_Notification_Bar::sanitize_settings(
 		array(
@@ -119,6 +173,7 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 
 // Get current settings.
 $enabled_post_types   = get_option( 'dsf_enabled_post_types', array( 'page' ) );
+$products_enabled     = (bool) get_option( 'dsf_products_enabled', true );
 $default_colors       = get_option(
 	'dsf_default_colors',
 	array(
@@ -152,18 +207,82 @@ $typography_bfont  = $typography_option['body_font'] ?? '';
 $typography_base   = floatval( $typography_option['base'] ?? 16 );
 $typography_scale  = floatval( $typography_option['scale'] ?? 1.25 );
 
+// Available headers/footers for the site-default picker.
+$dsf_layout_posts   = get_posts(
+	array(
+		'post_type'      => 'dsf_layout',
+		'post_status'    => array( 'publish', 'draft' ),
+		'posts_per_page' => 200, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- bounded admin picker list.
+		'orderby'        => 'title',
+		'order'          => 'ASC',
+	)
+);
+$dsf_header_options = array();
+$dsf_footer_options = array();
+foreach ( $dsf_layout_posts as $dsf_layout_post ) {
+	$dsf_lt    = get_post_meta( $dsf_layout_post->ID, '_dsf_layout_type', true );
+	$dsf_lt    = 'footer' === $dsf_lt ? 'footer' : 'header';
+	$dsf_entry = array(
+		'id'     => (int) $dsf_layout_post->ID,
+		'title'  => $dsf_layout_post->post_title ? $dsf_layout_post->post_title : __( '(no title)', 'designstudio-flow' ),
+		'status' => $dsf_layout_post->post_status,
+	);
+	if ( 'footer' === $dsf_lt ) {
+		$dsf_footer_options[] = $dsf_entry;
+	} else {
+		$dsf_header_options[] = $dsf_entry;
+	}
+}
+$dsf_default_header_id = absint( get_option( 'dsf_default_header_id', 0 ) );
+$dsf_default_footer_id = absint( get_option( 'dsf_default_footer_id', 0 ) );
+$dsf_global_hf         = (bool) get_option( 'dsf_global_header_footer', false );
+
 // Normalized values (per-element sizes + container width) for the form fields.
 $typography_norm     = DSF_Frontend::get_typography_option();
 $size_field_value    = static function ( $value ) {
 	$value = floatval( $value );
 	return $value > 0 ? (string) ( 0 === fmod( $value, 1.0 ) ? (int) $value : $value ) : '';
 };
-$size_p_val          = $size_field_value( $typography_norm['size_p'] );
-$size_h1_val         = $size_field_value( $typography_norm['size_h1'] );
-$size_h2_val         = $size_field_value( $typography_norm['size_h2'] );
-$size_h3_val         = $size_field_value( $typography_norm['size_h3'] );
-$size_h4_val         = $size_field_value( $typography_norm['size_h4'] );
 $container_width_val = (int) $typography_norm['container_width'];
+
+// Content-sizing field values per breakpoint. Desktop base uses the 12–22 base;
+// laptop/mobile base + all element sizes are blank when 0 (inherit desktop).
+$dsf_bp_field = static function ( $key ) use ( $typography_norm, $size_field_value ) {
+	return $size_field_value( $typography_norm[ $key ] ?? 0 );
+};
+
+$typography_sizes = array(
+	'desktop' => array(
+		// Desktop base is the modular-scale driver (always has a value).
+		'base' => (string) ( 0 === fmod( (float) $typography_base, 1.0 ) ? (int) $typography_base : $typography_base ),
+		'p'    => $dsf_bp_field( 'size_p' ),
+		'h1'   => $dsf_bp_field( 'size_h1' ),
+		'h2'   => $dsf_bp_field( 'size_h2' ),
+		'h3'   => $dsf_bp_field( 'size_h3' ),
+		'h4'   => $dsf_bp_field( 'size_h4' ),
+	),
+	'laptop'  => array(
+		'base' => $dsf_bp_field( 'base_laptop' ),
+		'p'    => $dsf_bp_field( 'size_p_laptop' ),
+		'h1'   => $dsf_bp_field( 'size_h1_laptop' ),
+		'h2'   => $dsf_bp_field( 'size_h2_laptop' ),
+		'h3'   => $dsf_bp_field( 'size_h3_laptop' ),
+		'h4'   => $dsf_bp_field( 'size_h4_laptop' ),
+	),
+	'mobile'  => array(
+		'base' => $dsf_bp_field( 'base_mobile' ),
+		'p'    => $dsf_bp_field( 'size_p_mobile' ),
+		'h1'   => $dsf_bp_field( 'size_h1_mobile' ),
+		'h2'   => $dsf_bp_field( 'size_h2_mobile' ),
+		'h3'   => $dsf_bp_field( 'size_h3_mobile' ),
+		'h4'   => $dsf_bp_field( 'size_h4_mobile' ),
+	),
+);
+$dsf_breakpoints  = array(
+	'desktop' => 'Desktop',
+	'laptop'  => 'Laptop',
+	'mobile'  => 'Mobile',
+);
 
 $scale_options = array(
 	'1.125' => 'Minor Second (1.125)',
@@ -215,8 +334,20 @@ $font_options = array(
 					<option value="<?php echo esc_attr( $font_option ); ?>"></option>
 				<?php endforeach; ?>
 			</datalist>
+
+			<h2 class="nav-tab-wrapper dsf-settings-tabs" style="margin-bottom: 0;">
+				<a href="#general" class="nav-tab nav-tab-active" data-dsf-tab-link="general">General</a>
+				<a href="#theme" class="nav-tab" data-dsf-tab-link="theme">Theme</a>
+				<a href="#notification" class="nav-tab" data-dsf-tab-link="notification">Notification Bar</a>
+				<a href="#recaptcha" class="nav-tab" data-dsf-tab-link="recaptcha">reCAPTCHA</a>
+			</h2>
+			<style>
+				/* Show only the first tab until the switcher script runs (no FOUC). */
+				.dsf-card[data-dsf-tab]:not([data-dsf-tab="general"]) { display: none; }
+			</style>
+
 			<!-- General Settings -->
-			<div class="dsf-card" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
+			<div class="dsf-card" data-dsf-tab="general" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
 				<h2 style="margin-top: 0;">General Settings</h2>
 				
 				<table class="form-table">
@@ -224,19 +355,23 @@ $font_options = array(
 						<th scope="row">Enable DesignStudio Flow Editor for</th>
 						<td>
 							<label style="display: block; margin-bottom: 8px;">
-								<input type="checkbox" name="dsf_enabled_post_types[]" value="page" 
+								<input type="checkbox" name="dsf_enabled_post_types[]" value="page"
 									checked disabled>
 								Pages
 							</label>
 							<input type="hidden" name="dsf_enabled_post_types[]" value="page">
-							<p class="description">DesignStudio Flow now works directly on normal WordPress pages.</p>
+							<label style="display: block; margin-bottom: 8px;">
+								<input type="checkbox" name="dsf_products_enabled" value="1" <?php checked( $products_enabled ); ?>>
+								WooCommerce Products
+							</label>
+							<p class="description">Pages always use DesignStudio Flow. Enable Products to design single-product pages with Product Templates (requires WooCommerce). When off, products render with the default WooCommerce template.</p>
 						</td>
 					</tr>
 				</table>
 			</div>
 			
 			<!-- Default Colors -->
-			<div class="dsf-card" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
+			<div class="dsf-card" data-dsf-tab="theme" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
 				<h2 style="margin-top: 0;">Default Colors</h2>
 				<p class="description">These are the same site defaults shown in each page's Theme window. New blocks inherit them automatically.</p>
 				<p>
@@ -287,10 +422,69 @@ $font_options = array(
 				</table>
 			</div>
 
+			<!-- Default Header & Footer -->
+			<div class="dsf-card" data-dsf-tab="theme" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
+				<h2 style="margin-top: 0;">Default Header &amp; Footer</h2>
+				<p class="description">Pick the header and footer used across the site. On <strong>Save</strong>, the chosen header/footer is applied to every existing DesignStudio Flow page and product template, and future pages inherit them automatically. (This overrides any per-page header/footer chosen in a page's Theme panel.)</p>
+
+				<table class="form-table">
+					<tr>
+						<th scope="row"><label for="dsf_default_header_id">Default Header</label></th>
+						<td>
+							<select id="dsf_default_header_id" name="dsf_default_header_id">
+								<option value="0"><?php esc_html_e( 'None', 'designstudio-flow' ); ?></option>
+								<?php foreach ( $dsf_header_options as $dsf_opt ) : ?>
+									<option value="<?php echo esc_attr( (string) $dsf_opt['id'] ); ?>" <?php selected( $dsf_opt['id'], $dsf_default_header_id ); ?>>
+										<?php
+										echo esc_html( $dsf_opt['title'] );
+										echo 'publish' !== $dsf_opt['status'] ? ' ' . esc_html__( '(draft)', 'designstudio-flow' ) : '';
+										?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+							<?php if ( empty( $dsf_header_options ) ) : ?>
+								<p class="description"><?php esc_html_e( 'No headers yet. Create one under DesignStudio Flow → Headers.', 'designstudio-flow' ); ?></p>
+							<?php endif; ?>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="dsf_default_footer_id">Default Footer</label></th>
+						<td>
+							<select id="dsf_default_footer_id" name="dsf_default_footer_id">
+								<option value="0"><?php esc_html_e( 'None', 'designstudio-flow' ); ?></option>
+								<?php foreach ( $dsf_footer_options as $dsf_opt ) : ?>
+									<option value="<?php echo esc_attr( (string) $dsf_opt['id'] ); ?>" <?php selected( $dsf_opt['id'], $dsf_default_footer_id ); ?>>
+										<?php
+										echo esc_html( $dsf_opt['title'] );
+										echo 'publish' !== $dsf_opt['status'] ? ' ' . esc_html__( '(draft)', 'designstudio-flow' ) : '';
+										?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+							<?php if ( empty( $dsf_footer_options ) ) : ?>
+								<p class="description"><?php esc_html_e( 'No footers yet. Create one under DesignStudio Flow → Footers.', 'designstudio-flow' ); ?></p>
+							<?php endif; ?>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">Apply to the whole site</th>
+						<td>
+							<label>
+								<input type="checkbox" name="dsf_global_header_footer" value="1" <?php checked( $dsf_global_hf ); ?>>
+								Also show this header/footer on normal (non-DSF) Pages and Posts
+							</label>
+							<p class="description">
+								When on, regular WordPress Pages and Posts are wrapped with the header/footer above (their content still shows). <strong>This replaces the theme's page layout</strong> for those pages, so theme sidebars and custom page templates won't apply. Archives, search, 404, and WooCommerce cart/checkout/account/shop pages are left to the theme.
+							</p>
+						</td>
+					</tr>
+				</table>
+			</div>
+
 			<!-- Typography -->
-			<div class="dsf-card" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
+			<div class="dsf-card" data-dsf-tab="theme" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
 				<h2 style="margin-top: 0;">Typography</h2>
-				<p class="description">Controls the base body size, modular scale, and font families used by every DesignStudio Flow block.</p>
+				<p class="description">Controls the modular scale, font families, and per-device content sizing used by every DesignStudio Flow block.</p>
 
 				<table class="form-table">
 					<tr>
@@ -307,6 +501,14 @@ $font_options = array(
 								Override with plugin settings below
 							</label>
 							<p class="description">When the active theme is a block theme, body size auto-reads from <code>theme.json</code>. Override gives you direct control.</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="dsf_container_width">Content max width</label></th>
+						<td>
+							<input type="number" id="dsf_container_width" name="dsf_container_width" min="320" max="3000" step="10" value="<?php echo esc_attr( (string) $container_width_val ); ?>">
+							<span class="description" style="margin-left: 8px;">px</span>
+							<p class="description">Maximum width of the main page container. Individual pages can override this in the editor's Theme panel.</p>
 						</td>
 					</tr>
 				</table>
@@ -336,16 +538,6 @@ $font_options = array(
 							</td>
 						</tr>
 						<tr>
-							<th scope="row"><label for="dsf_typography_base">Base Body Size</label></th>
-							<td>
-								<input type="number" id="dsf_typography_base" name="dsf_typography_base"
-									min="12" max="22" step="0.5"
-									value="<?php echo esc_attr( $typography_base ); ?>">
-								<span class="description" style="margin-left: 8px;">px</span>
-								<p class="description">The size of normal body text. All other sizes derive from this × the scale.</p>
-							</td>
-						</tr>
-						<tr>
 							<th scope="row"><label for="dsf_typography_scale">Scale Ratio</label></th>
 							<td>
 								<select id="dsf_typography_scale" name="dsf_typography_scale">
@@ -356,79 +548,145 @@ $font_options = array(
 										</option>
 									<?php endforeach; ?>
 								</select>
-								<p class="description">Each step up multiplies by this ratio. Larger ratios create more dramatic heading hierarchies.</p>
+								<button type="button" id="dsf-typo-recalc" class="button" style="margin-left: 8px;">Recalculate sizes</button>
+								<p class="description">Each step up multiplies by this ratio. Changing the ratio (or the Desktop Body Size) recalculates the Desktop content sizes below. Save to apply.</p>
 							</td>
 						</tr>
 					</table>
+
+					<h3 style="margin: 22px 0 4px;">Content Sizing</h3>
+					<p class="description" style="margin-top: 0;">Set the body and heading sizes per device. Leave a value blank on Laptop or Mobile to inherit the Desktop size.</p>
+
+					<div class="dsf-typo-tabs" role="tablist" aria-label="Content sizing device">
+						<?php foreach ( $dsf_breakpoints as $dsf_bp_key => $dsf_bp_label ) : ?>
+							<button type="button" class="dsf-typo-tab<?php echo 'desktop' === $dsf_bp_key ? ' is-active' : ''; ?>"
+								role="tab" data-bp="<?php echo esc_attr( $dsf_bp_key ); ?>"
+								aria-selected="<?php echo 'desktop' === $dsf_bp_key ? 'true' : 'false'; ?>">
+								<?php echo esc_html( $dsf_bp_label ); ?>
+							</button>
+						<?php endforeach; ?>
+					</div>
+
+					<?php foreach ( $dsf_breakpoints as $dsf_bp_key => $dsf_bp_label ) : ?>
+						<?php
+						$dsf_is_desktop = 'desktop' === $dsf_bp_key;
+						$dsf_suffix     = $dsf_is_desktop ? '' : '_' . $dsf_bp_key;
+						$dsf_vals       = $typography_sizes[ $dsf_bp_key ];
+						$dsf_size_ph    = $dsf_is_desktop ? 'auto' : 'inherit';
+						// Field rows: element key => [label, min, max, step, php-name].
+						$dsf_rows = array(
+							array(
+								'label' => 'Body Size',
+								'name'  => 'dsf_typography_base' . $dsf_suffix,
+								'min'   => 12,
+								'max'   => 22,
+								'step'  => 0.5,
+								'val'   => $dsf_vals['base'],
+								'ph'    => $dsf_is_desktop ? '16' : 'inherit',
+							),
+						);
+
+						$dsf_size_elements = array(
+							'p'  => 'Paragraph (p)',
+							'h1' => 'Heading 1 (h1)',
+							'h2' => 'Heading 2 (h2)',
+							'h3' => 'Heading 3 (h3)',
+							'h4' => 'Heading 4 (h4)',
+						);
+						foreach ( $dsf_size_elements as $dsf_el => $dsf_el_label ) {
+							$dsf_rows[] = array(
+								'label' => $dsf_el_label,
+								'name'  => 'dsf_size_' . $dsf_el . $dsf_suffix,
+								'min'   => 8,
+								'max'   => 200,
+								'step'  => 1,
+								'val'   => $dsf_vals[ $dsf_el ],
+								'ph'    => $dsf_size_ph,
+							);
+						}
+						?>
+						<div class="dsf-typo-panel" data-bp="<?php echo esc_attr( $dsf_bp_key ); ?>" style="<?php echo $dsf_is_desktop ? '' : 'display:none;'; ?>">
+							<table class="form-table">
+								<?php foreach ( $dsf_rows as $dsf_row ) : ?>
+									<tr>
+										<th scope="row"><label for="<?php echo esc_attr( $dsf_row['name'] ); ?>"><?php echo esc_html( $dsf_row['label'] ); ?></label></th>
+										<td>
+											<input type="number" id="<?php echo esc_attr( $dsf_row['name'] ); ?>" name="<?php echo esc_attr( $dsf_row['name'] ); ?>"
+												min="<?php echo esc_attr( (string) $dsf_row['min'] ); ?>" max="<?php echo esc_attr( (string) $dsf_row['max'] ); ?>" step="<?php echo esc_attr( (string) $dsf_row['step'] ); ?>"
+												value="<?php echo esc_attr( (string) $dsf_row['val'] ); ?>" placeholder="<?php echo esc_attr( $dsf_row['ph'] ); ?>">
+											<span class="description" style="margin-left: 8px;">px</span>
+										</td>
+									</tr>
+								<?php endforeach; ?>
+							</table>
+						</div>
+					<?php endforeach; ?>
 				</div>
+
+				<style>
+				.dsf-typo-tabs { display: flex; gap: 4px; margin: 8px 0 4px; border-bottom: 1px solid #dcdcde; }
+				.dsf-typo-tab { padding: 8px 16px; border: 0; border-bottom: 2px solid transparent; background: transparent; cursor: pointer; font-weight: 600; color: #646970; }
+				.dsf-typo-tab.is-active { color: #2271b1; border-bottom-color: #2271b1; }
+				</style>
 
 				<script>
 				(function () {
 					var radios = document.querySelectorAll('input[name="dsf_typography_mode"]');
 					var panel  = document.getElementById('dsf-typography-overrides');
-					if (!panel || !radios.length) return;
-					radios.forEach(function (r) {
-						r.addEventListener('change', function () {
-							panel.style.display = (this.value === 'override' && this.checked) ? '' : 'none';
+					if (panel && radios.length) {
+						radios.forEach(function (r) {
+							r.addEventListener('change', function () {
+								panel.style.display = (this.value === 'override' && this.checked) ? '' : 'none';
+							});
+						});
+					}
+
+					var tabs   = document.querySelectorAll('.dsf-typo-tab');
+					var panels = document.querySelectorAll('.dsf-typo-panel');
+					tabs.forEach(function (tab) {
+						tab.addEventListener('click', function () {
+							var bp = this.getAttribute('data-bp');
+							tabs.forEach(function (t) {
+								var active = t === tab;
+								t.classList.toggle('is-active', active);
+								t.setAttribute('aria-selected', active ? 'true' : 'false');
+							});
+							panels.forEach(function (p) {
+								p.style.display = (p.getAttribute('data-bp') === bp) ? '' : 'none';
+							});
 						});
 					});
+
+					// Recalculate the Desktop content sizes from the body size × scale
+					// ratio. Runs when the Scale Ratio or Desktop Body Size changes, or
+					// via the "Recalculate" button. Laptop/Mobile inherit Desktop.
+					function setField(id, value) {
+						var el = document.getElementById(id);
+						if (el) el.value = String(Math.round(value));
+					}
+					function recomputeFromScale() {
+						var baseEl  = document.getElementById('dsf_typography_base');
+						var scaleEl = document.getElementById('dsf_typography_scale');
+						if (!baseEl || !scaleEl) return;
+						var base  = parseFloat(baseEl.value) || 16;
+						var scale = parseFloat(scaleEl.value) || 1.25;
+						setField('dsf_size_p', base);
+						setField('dsf_size_h4', base * scale);
+						setField('dsf_size_h3', base * Math.pow(scale, 2));
+						setField('dsf_size_h2', base * Math.pow(scale, 3));
+						setField('dsf_size_h1', base * Math.pow(scale, 4));
+					}
+					var scaleEl = document.getElementById('dsf_typography_scale');
+					var baseEl  = document.getElementById('dsf_typography_base');
+					if (scaleEl) scaleEl.addEventListener('change', recomputeFromScale);
+					if (baseEl)  baseEl.addEventListener('change', recomputeFromScale);
+					var recalcBtn = document.getElementById('dsf-typo-recalc');
+					if (recalcBtn) recalcBtn.addEventListener('click', recomputeFromScale);
 				})();
 				</script>
 			</div>
 
-			<!-- Content Sizing -->
-			<div class="dsf-card" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
-				<h2 style="margin-top: 0;">Content Sizing</h2>
-				<p class="description">Set the base font size for body text and each heading level, plus the maximum width of the page content. Leave a size blank to use the automatic value from the scale above.</p>
-
-				<table class="form-table">
-					<tr>
-						<th scope="row"><label for="dsf_size_p">Paragraph (p)</label></th>
-						<td>
-							<input type="number" id="dsf_size_p" name="dsf_size_p" min="8" max="200" step="1" value="<?php echo esc_attr( $size_p_val ); ?>" placeholder="auto">
-							<span class="description" style="margin-left: 8px;">px</span>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="dsf_size_h1">Heading 1 (h1)</label></th>
-						<td>
-							<input type="number" id="dsf_size_h1" name="dsf_size_h1" min="8" max="200" step="1" value="<?php echo esc_attr( $size_h1_val ); ?>" placeholder="auto">
-							<span class="description" style="margin-left: 8px;">px</span>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="dsf_size_h2">Heading 2 (h2)</label></th>
-						<td>
-							<input type="number" id="dsf_size_h2" name="dsf_size_h2" min="8" max="200" step="1" value="<?php echo esc_attr( $size_h2_val ); ?>" placeholder="auto">
-							<span class="description" style="margin-left: 8px;">px</span>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="dsf_size_h3">Heading 3 (h3)</label></th>
-						<td>
-							<input type="number" id="dsf_size_h3" name="dsf_size_h3" min="8" max="200" step="1" value="<?php echo esc_attr( $size_h3_val ); ?>" placeholder="auto">
-							<span class="description" style="margin-left: 8px;">px</span>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="dsf_size_h4">Heading 4 (h4)</label></th>
-						<td>
-							<input type="number" id="dsf_size_h4" name="dsf_size_h4" min="8" max="200" step="1" value="<?php echo esc_attr( $size_h4_val ); ?>" placeholder="auto">
-							<span class="description" style="margin-left: 8px;">px</span>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="dsf_container_width">Container max width</label></th>
-						<td>
-							<input type="number" id="dsf_container_width" name="dsf_container_width" min="320" max="3000" step="10" value="<?php echo esc_attr( (string) $container_width_val ); ?>">
-							<span class="description" style="margin-left: 8px;">px</span>
-							<p class="description">Maximum width of the main page container. Individual pages can override this in the editor's Theme panel.</p>
-						</td>
-					</tr>
-				</table>
-			</div>
-
-			<div class="dsf-card" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
+			<div class="dsf-card" data-dsf-tab="notification" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
 				<h2 style="margin-top: 0;">Site-wide Notification Bar</h2>
 				<p class="description">Display one announcement across the public site, including normal WordPress pages and DSFlow pages.</p>
 
@@ -509,7 +767,7 @@ $font_options = array(
 				</table>
 			</div>
 
-			<div class="dsf-card" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
+			<div class="dsf-card" data-dsf-tab="recaptcha" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
 				<h2 style="margin-top: 0;">Google reCAPTCHA v3</h2>
 				<p class="description">Enable score-based bot protection for all DSF forms rendered with <code>[dsform]</code>.</p>
 
@@ -547,6 +805,43 @@ $font_options = array(
 				</table>
 			</div>
 			
+			<script>
+			(function () {
+				var VALID = ['general', 'theme', 'notification', 'recaptcha'];
+				var links  = document.querySelectorAll('.dsf-settings-tabs [data-dsf-tab-link]');
+				var cards  = document.querySelectorAll('.dsf-card[data-dsf-tab]');
+				if (!links.length || !cards.length) return;
+
+				function activate(tab) {
+					if (VALID.indexOf(tab) === -1) tab = 'general';
+					links.forEach(function (link) {
+						link.classList.toggle('nav-tab-active', link.getAttribute('data-dsf-tab-link') === tab);
+					});
+					cards.forEach(function (card) {
+						// Use an explicit 'block' (not '') so it beats the FOUC
+						// stylesheet rule that hides non-general cards by default.
+						card.style.display = (card.getAttribute('data-dsf-tab') === tab) ? 'block' : 'none';
+					});
+				}
+
+				links.forEach(function (link) {
+					link.addEventListener('click', function (event) {
+						event.preventDefault();
+						var tab = this.getAttribute('data-dsf-tab-link');
+						if (window.history && window.history.replaceState) {
+							window.history.replaceState(null, '', '#' + tab);
+						} else {
+							window.location.hash = tab;
+						}
+						activate(tab);
+					});
+				});
+
+				// Restore the tab from the URL hash (survives a Save reload).
+				activate((window.location.hash || '').replace('#', ''));
+			})();
+			</script>
+
 			<p class="submit">
 				<button type="submit" name="dsf_save_settings" class="button button-primary">
 					Save Settings
