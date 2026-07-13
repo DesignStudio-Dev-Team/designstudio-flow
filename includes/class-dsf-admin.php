@@ -122,8 +122,10 @@ class DSF_Admin {
 			'edit.php?post_type=dsf_saved_block'                   => 7,  // Saved Blocks
 			'edit.php?post_type=dsf_template'                      => 8,  // Templates
 			'edit.php?post_type=dsf_product_template'              => 9,  // Product Templates
-			'dsf-tools'                                            => 10, // Tools
-			'dsf-settings'                                         => 11, // Settings
+			'edit.php?post_type=dsf_shop_template'                 => 10, // Shop Templates
+			'edit.php?post_type=dsf_blog_template'                 => 11, // Blog Templates
+			'dsf-tools'                                            => 12, // Tools
+			'dsf-settings'                                         => 13, // Settings
 		);
 
 		// Decorate with rank + original index for a stable sort.

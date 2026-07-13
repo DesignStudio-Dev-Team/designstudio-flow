@@ -122,11 +122,47 @@ const defaultItems = [
   { title: 'Footer', category: 'Footers', kind: 'footer', description: 'A structured close with brand statement and link columns.' },
 ]
 
+const heroIds = new Set([
+  'hero', 'landing-hero', 'landing-showcase-hero', 'bento-hero', 'spotlight-hero',
+  'expander-hero', 'duo-hero', 'featured-promo-banner',
+])
+
+const replicaKinds = {
+  hero: 'hero', 'landing-hero': 'hero', 'landing-showcase-hero': 'hero',
+  'bento-hero': 'bento', 'spotlight-hero': 'spotlight', 'expander-hero': 'expander',
+  'duo-hero': 'duo', 'featured-promo-banner': 'featured-promo', content: 'content',
+  faq: 'faq', 'text-image': 'text-image', 'features-grid': 'features',
+  testimonials: 'testimonials', countdown: 'countdown', pricing: 'pricing',
+  'promo-banner': 'featured-promo', 'cta-banner': 'cta-banner', 'product-grid': 'product-grid',
+  'ecommerce-showcase': 'product-grid', 'featured-product-banner': 'featured-promo',
+  'form-embed': 'form', 'form-with-content': 'form', 'landing-block-explorer': 'content',
+  'landing-block-ready': 'content', 'mega-menu': 'mega-menu', footer: 'footer',
+}
+
+const catalogCategory = (block) => {
+  if (heroIds.has(block.id)) return 'Heroes'
+  const labels = { ecommerce: 'Ecommerce', marketing: 'Marketing', content: 'Content', forms: 'Forms' }
+  return labels[block.category] || (block.category ? block.category.charAt(0).toUpperCase() + block.category.slice(1) : 'Blocks')
+}
+
+const catalogItems = computed(() => {
+  const catalog = typeof window !== 'undefined' ? window.dsfFrontendData?.blockCatalog : null
+  if (!Array.isArray(catalog)) return []
+  return catalog
+    .filter((block) => block && block.id && block.name && block.template_scope === 'page')
+    .map((block) => ({
+      title: block.name,
+      category: catalogCategory(block),
+      kind: replicaKinds[block.id] || 'generic',
+      description: block.description || 'A flexible page block ready to shape your next section.',
+    }))
+})
+
 const items = computed(() => {
   const fromSettings = Array.isArray(props.settings.items)
     ? props.settings.items.filter((item) => item && item.title)
     : []
-  return fromSettings.length ? fromSettings : defaultItems
+  return fromSettings.length ? fromSettings : (catalogItems.value.length ? catalogItems.value : defaultItems)
 })
 
 const filters = computed(() => {

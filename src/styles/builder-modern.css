@@ -31,7 +31,11 @@
   --dsf-ring-primary: 0 0 0 3px rgb(12 95 168 / 18%);
   --dsf-shadow-block-hover: 0 0 0 2px rgb(12 95 168 / 80%);
   --dsf-shadow-block-selected: 0 0 0 2px var(--dsf-brand-blue);
-  --dsf-header-height: 74px;
+  /* The top bar is gone; the floating dock replaces it. Zeroing the height
+     keeps the docked side/theme panels (margin-top) and canvas min-height
+     calc flush to the top of the viewport. */
+  --dsf-header-height: 0px;
+  --dsf-dock-clearance: 112px;
   color: var(--dsf-ui-ink);
   background: var(--dsf-ui-paper);
   font-family: var(--dsf-font-ui);
@@ -202,7 +206,10 @@
 }
 
 #dsf-editor-app .dsf-canvas {
-  padding: 28px;
+  /* Thin top gap now that there's no top bar — the canvas starts near the top so
+     the preview reads closer to the real page. Extra bottom padding keeps the
+     last block / add-zone clear of the floating dock. */
+  padding: 8px 28px var(--dsf-dock-clearance);
   background-color: var(--dsf-ui-paper);
   background-image:
     linear-gradient(rgb(12 95 168 / 4.5%) 1px, transparent 1px),
@@ -1048,7 +1055,7 @@ body > .dsf-confirm-overlay .dsf-confirm-btn--danger:hover {
   }
 
   #dsf-editor-app .dsf-canvas {
-    padding: 14px;
+    padding: 8px 14px var(--dsf-dock-clearance);
   }
 
   #dsf-editor-app .dsf-canvas__inner {
@@ -1072,5 +1079,469 @@ body > .dsf-confirm-overlay .dsf-confirm-btn--danger:hover {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   Floating action dock (replaces the top bar)
+   A dark, non-full-width pill anchored to the bottom-centre of the canvas.
+   While the canvas scrolls it retracts into the DS Flow brand mark (see
+   EditorDock.vue) and springs back out when scrolling stops.
+   ========================================================================== */
+#dsf-editor-app .dsf-dock {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  padding: 7px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgb(38 43 51 / 96%), rgb(20 23 28 / 97%));
+  box-shadow:
+    0 18px 50px rgb(0 0 0 / 38%),
+    0 2px 6px rgb(0 0 0 / 30%),
+    inset 0 1px 0 rgb(255 255 255 / 7%);
+  backdrop-filter: blur(16px);
+  transform: translateX(-50%);
+  transition: box-shadow 220ms ease;
+}
+
+#dsf-editor-app .dsf-dock--collapsed {
+  box-shadow:
+    0 12px 34px rgb(0 0 0 / 40%),
+    inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+
+/* Brand mark: the collapse target, always visible. */
+#dsf-editor-app .dsf-dock__logo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 6%);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+#dsf-editor-app .dsf-dock__logo:hover {
+  background: rgb(255 255 255 / 12%);
+}
+
+#dsf-editor-app .dsf-dock__logo img {
+  width: 27px;
+  height: 27px;
+  object-fit: contain;
+  display: block;
+  border: none;
+  pointer-events: none;
+}
+
+#dsf-editor-app .dsf-dock--collapsed .dsf-dock__logo {
+  background: rgb(255 255 255 / 10%);
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 6%);
+}
+
+#dsf-editor-app .dsf-dock--collapsed .dsf-dock__logo:hover {
+  transform: scale(1.05);
+}
+
+/* The retractable action row. overflow toggles to hidden only during the
+   collapse animation (set inline by the component) so hover tooltips can escape
+   at rest. */
+#dsf-editor-app .dsf-dock__body {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  overflow: visible;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+#dsf-editor-app .dsf-dock__group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+
+#dsf-editor-app .dsf-dock__divider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 26px;
+  margin: 0 5px;
+  background: rgb(255 255 255 / 12%);
+}
+
+#dsf-editor-app .dsf-dock__btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: rgb(255 255 255 / 72%);
+  background: transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 160ms ease, background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+#dsf-editor-app .dsf-dock__btn:hover {
+  color: #fff;
+  background: rgb(255 255 255 / 10%);
+  transform: translateY(-1px);
+}
+
+#dsf-editor-app .dsf-dock__btn:active {
+  transform: translateY(0);
+}
+
+#dsf-editor-app .dsf-dock__btn--active {
+  color: #fff;
+  background: rgb(255 255 255 / 14%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 16%);
+}
+
+#dsf-editor-app .dsf-dock__btn--primary {
+  color: #fff;
+  background: var(--dsf-brand-blue);
+  box-shadow: 0 4px 12px rgb(12 95 168 / 40%);
+}
+
+#dsf-editor-app .dsf-dock__btn--primary:hover {
+  background: var(--dsf-brand-blue-dark);
+}
+
+#dsf-editor-app .dsf-dock__btn--accent {
+  color: #fff;
+  background: var(--dsf-brand-coral);
+  box-shadow: 0 4px 12px rgb(232 106 69 / 40%);
+}
+
+#dsf-editor-app .dsf-dock__btn--accent:hover {
+  background: var(--dsf-brand-coral-dark);
+}
+
+#dsf-editor-app .dsf-dock__btn:disabled {
+  opacity: 0.34;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+#dsf-editor-app .dsf-dock__btn:disabled:hover {
+  color: rgb(255 255 255 / 72%);
+  background: transparent;
+}
+
+#dsf-editor-app .dsf-dock__btn--primary.is-busy {
+  animation: dsf-dock-pulse 1s ease-in-out infinite;
+}
+
+@keyframes dsf-dock-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Hover tooltips above each icon. */
+#dsf-editor-app .dsf-dock__tip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  z-index: 3;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: rgb(16 19 23 / 98%);
+  color: #fff;
+  font-family: var(--dsf-font-ui);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 34%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(5px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+#dsf-editor-app .dsf-dock__tip::after {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  margin-top: -4px;
+  background: rgb(16 19 23 / 98%);
+  transform: rotate(45deg);
+  content: '';
+}
+
+#dsf-editor-app .dsf-dock__logo:hover .dsf-dock__tip,
+#dsf-editor-app .dsf-dock__btn:hover .dsf-dock__tip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (max-width: 760px) {
+  #dsf-editor-app .dsf-dock {
+    bottom: 14px;
+    max-width: calc(100vw - 20px);
+  }
+
+  #dsf-editor-app .dsf-dock__btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  #dsf-editor-app .dsf-dock__logo {
+    width: 42px;
+    height: 42px;
+  }
+
+  #dsf-editor-app .dsf-dock__divider {
+    margin: 0 3px;
+  }
+}
+
+/* ==========================================================================
+   Structure / block navigator (opened from the dock)
+   A floating outline of every block: click to jump, drag or use the arrows to
+   reorder — an Elementor-style navigator for long pages.
+   ========================================================================== */
+#dsf-editor-app .dsf-structure {
+  position: fixed;
+  top: 22px;
+  left: 22px;
+  z-index: 56;
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  max-height: calc(100vh - 150px);
+  border: 1px solid var(--dsf-ui-border);
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 24px 70px rgb(23 28 35 / 18%), 0 2px 8px rgb(23 28 35 / 8%);
+  overflow: hidden;
+}
+
+#dsf-editor-app .dsf-structure__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 12px 12px 15px;
+  border-bottom: 1px solid var(--dsf-ui-border);
+  background: white;
+}
+
+#dsf-editor-app .dsf-structure__heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--dsf-brand-blue);
+}
+
+#dsf-editor-app .dsf-structure__title {
+  margin: 0;
+  color: var(--dsf-ui-ink);
+  font-family: var(--dsf-font-display);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+#dsf-editor-app .dsf-structure__subtitle {
+  margin: 1px 0 0;
+  color: var(--dsf-ui-muted);
+  font-size: 12px;
+}
+
+#dsf-editor-app .dsf-structure__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--dsf-ui-muted);
+  cursor: pointer;
+}
+
+#dsf-editor-app .dsf-structure__close:hover {
+  border-color: var(--dsf-ui-border);
+  background: var(--dsf-ui-paper-deep);
+  color: var(--dsf-ui-ink);
+}
+
+#dsf-editor-app .dsf-structure__body {
+  overflow-y: auto;
+  padding: 8px;
+}
+
+#dsf-editor-app .dsf-structure__empty {
+  margin: 0;
+  padding: 26px 12px;
+  color: var(--dsf-ui-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+#dsf-editor-app .dsf-structure__list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+#dsf-editor-app .dsf-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+#dsf-editor-app .dsf-nav-row:hover { background: var(--dsf-ui-paper-deep); }
+
+#dsf-editor-app .dsf-nav-row.is-selected {
+  border-color: rgb(12 95 168 / 40%);
+  background: var(--dsf-brand-blue-soft);
+}
+
+#dsf-editor-app .dsf-nav-row--ghost { opacity: 0.5; }
+
+#dsf-editor-app .dsf-nav-row__handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsf-gray-400);
+  cursor: grab;
+}
+
+#dsf-editor-app .dsf-nav-row__handle:active { cursor: grabbing; }
+#dsf-editor-app .dsf-nav-row:hover .dsf-nav-row__handle { color: var(--dsf-ui-muted); }
+
+#dsf-editor-app .dsf-nav-row__num {
+  flex: 0 0 auto;
+  width: 18px;
+  color: var(--dsf-ui-muted);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+#dsf-editor-app .dsf-nav-row__title {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 1px;
+}
+
+#dsf-editor-app .dsf-nav-row__name {
+  overflow: hidden;
+  color: var(--dsf-ui-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#dsf-editor-app .dsf-nav-row.is-selected .dsf-nav-row__name { color: var(--dsf-brand-blue); }
+
+/* Small type hint shown beneath a custom label so the underlying block is clear. */
+#dsf-editor-app .dsf-nav-row__type {
+  overflow: hidden;
+  color: var(--dsf-ui-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#dsf-editor-app .dsf-nav-row__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgb(12 95 168 / 45%);
+  border-radius: 7px;
+  background: white;
+  color: var(--dsf-ui-ink);
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  box-shadow: var(--dsf-ring-primary);
+}
+
+#dsf-editor-app .dsf-nav-row__actions {
+  display: inline-flex;
+  gap: 2px;
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+#dsf-editor-app .dsf-nav-row:hover .dsf-nav-row__actions,
+#dsf-editor-app .dsf-nav-row.is-selected .dsf-nav-row__actions { opacity: 1; }
+
+#dsf-editor-app .dsf-nav-row__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--dsf-ui-border);
+  border-radius: 6px;
+  background: white;
+  color: var(--dsf-gray-600);
+  cursor: pointer;
+}
+
+#dsf-editor-app .dsf-nav-row__btn:hover:not(:disabled) {
+  border-color: rgb(12 95 168 / 32%);
+  background: var(--dsf-brand-blue-soft);
+  color: var(--dsf-brand-blue);
+}
+
+#dsf-editor-app .dsf-nav-row__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+@media (max-width: 620px) {
+  #dsf-editor-app .dsf-structure {
+    right: 12px;
+    left: 12px;
+    width: auto;
   }
 }

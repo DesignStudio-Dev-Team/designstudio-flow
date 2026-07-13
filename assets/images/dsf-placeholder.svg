@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Placeholder image</title>
+  <desc id="desc">A neutral DesignStudio Flow image placeholder.</desc>
+  <rect width="1200" height="800" fill="#EAF1F7"/>
+  <rect x="72" y="72" width="1056" height="656" rx="36" fill="#D8E5F0" stroke="#B6CADB" stroke-width="6"/>
+  <circle cx="408" cy="352" r="92" fill="#8DB5D1"/>
+  <path d="M174 650 448 422l178 142 140-112 260 198H174Z" fill="#5F91B5"/>
+  <text x="600" y="230" fill="#193A55" font-family="Arial, sans-serif" font-size="44" font-weight="700" text-anchor="middle">YOUR IMAGE HERE</text>
+  <text x="600" y="286" fill="#416982" font-family="Arial, sans-serif" font-size="26" text-anchor="middle">Replace this placeholder in the block settings</text>
+</svg>

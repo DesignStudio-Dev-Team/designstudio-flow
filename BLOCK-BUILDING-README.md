@@ -28,6 +28,7 @@ A block is complete only when all of these are true:
 - Its schema has safe defaults and bounded controls.
 - Its saved data has server-side validation and sanitization.
 - Its HTML, attributes, and URLs are safely rendered.
+- Its `settings` are self-contained and portable, so saved-block sync and cross-site import work (see "Library, Sync, And Export Contracts").
 - Interactive controls work with keyboard and touch input.
 - Editor-only behavior does not leak into the frontend.
 - Snapshot rendering does not trigger timers, network calls, form initialization, or body-level side effects.
@@ -48,8 +49,14 @@ A block is complete only when all of these are true:
 | Block library schematic | `src/components/common/BlockSchematic.vue` |
 | Library category ordering | `src/App.vue` |
 | Editor page save endpoint | `includes/class-dsf-ajax.php` |
+| Saved-block / template AJAX, sync, imports | `includes/class-dsf-ajax.php` |
+| JSON import / export + media sideload | `includes/class-dsf-import-export.php` |
 | Editor data/defaults | `includes/class-dsf-editor.php` |
 | Frontend data and snapshots | `includes/class-dsf-frontend.php` |
+| Editor action dock (replaces the old top bar) | `src/components/EditorDock.vue` |
+| Structure / block navigator panel | `src/components/StructurePanel.vue` |
+| Media Library picker control | `src/components/common/MediaPicker.vue` |
+| Landing icon set (`iconFor`, `LANDING_ICON_NAMES`) | `src/utils/landingIcons.js` |
 | Vue component tests | `src/components/__tests__/` |
 | PHP tests | `tests/` |
 
@@ -172,6 +179,65 @@ Use existing types from `SettingField.vue` when possible. For custom repeaters o
 1. Limit item counts and text lengths in both UI and PHP.
 1. Add the custom type branch and import in `SettingField.vue`.
 1. Add tests for add, remove, reorder, malformed values, and the maximum count.
+
+Reusable building blocks for custom fields:
+
+- Media Library images/videos: reuse `MediaPicker.vue`; it stores a plain URL string and opens `wp.media`. Store the URL under `settings` so import can sideload it.
+- Editable preset icons: expose an `icon` value from `LANDING_ICON_NAMES` (`src/utils/landingIcons.js`) and render it with `iconFor(name)`. Unknown names fall back to a default glyph, so `sanitize_key()` is the correct save-time filter.
+- Nav-style rows with a preset icon *or* a custom image per row: use the `dock_nav_links` field type (see "Library, Sync, And Export Contracts").
+
+## Library, Sync, And Export Contracts
+
+Saved blocks are now edited in place and synced, and all Flow content moves between sites as JSON. Blocks participate in these systems, so honor the following contracts.
+
+### Block-Level Keys Beyond `settings`
+
+A saved block instance is `{ id, type, settings, ... }`. The page-save sanitizer `sanitize_known_block_settings()` (in `includes/class-dsf-ajax.php`) rewrites only `settings` and passes every other top-level key through untouched. Two reserved top-level keys exist:
+
+- `label` — an editor-only custom name shown in the Structure panel. Saved with `sanitize_text_field()` and length-capped. Never rendered on the frontend.
+- `savedBlockId` — the post ID of the saved block an instance was inserted from. Drives global sync (below).
+
+Rules:
+
+- Everything a block renders MUST live under `settings`. Do not store render data at the top level.
+- Any new top-level block key is passed through save **unsanitized by default**. If you introduce one, you MUST add explicit sanitization for it in `sanitize_known_block_settings()`, exactly as `label` does. Unsanitized passthrough of a browser-controllable key is a security defect.
+- Do not read `label` or `savedBlockId` inside a block component. They are editor/library metadata, not render inputs.
+
+### Saved Blocks Are Editable And Synced
+
+Editing a saved block in wp-admin opens the DSFlow editor in a restricted single-block mode (`postType === 'dsf_saved_block'`): no add-block, no page chrome, just that block's settings. Saving calls the `dsf_save_library_item` AJAX action, which:
+
+1. Updates the saved block's `_dsf_block_settings`.
+1. Rewrites every instance across pages, headers/footers, and product templates whose `savedBlockId` matches, then deletes their `_dsf_html_snapshot` so they re-render.
+
+Implications for block authors:
+
+- A block's `settings` MUST be self-contained and portable. Do not depend on the surrounding page, sibling blocks, or a specific post ID at render time — the same `settings` are pushed into many pages.
+- Sync is a push/overwrite; it replaces instance `settings` wholesale. Keep any intentionally per-instance data out of the saved-block workflow.
+- An instance only carries `savedBlockId` when it was inserted from the library after this feature shipped. Never assume every instance of a type is linked.
+
+### Export / Import And Media
+
+Saved blocks, templates, pages, and layouts export to JSON (`includes/class-dsf-import-export.php`) via per-item, bulk, and "Export all" controls, and import as new posts (nothing is overwritten). On import, media URLs found inside these meta keys are downloaded into the destination Media Library and rewritten: `_dsf_blocks`, `_dsf_block_settings`, `_dsf_template_blocks`, `_dsf_settings`.
+
+Rules for portable blocks:
+
+- Store an image/video reference as a plain URL string in `settings` (the media picker already does). URLs buried inside WYSIWYG HTML are not migrated.
+- Do not use a site-specific numeric ID (attachment, term, or post ID) as the *only* reference to content that must survive a move — it will not exist on the destination.
+- Import re-runs the same per-type sanitizers, so a block with a proper sanitizer needs no import-specific code. A block with no sanitizer imports its settings unsanitized — one more reason every block MUST have one.
+
+### Editor Chrome And The Structure Panel
+
+- The editor top bar is gone; all actions live in the floating `EditorDock`. The canvas reserves bottom space via `--dsf-dock-clearance`; do not add fixed, bottom-anchored editor UI inside a block that would collide with it.
+- The Structure panel lists blocks by their registered `name` (or a user `label`). Give every block a clear, distinct `name` so a page full of one block type stays legible.
+
+### New Custom Field: `dock_nav_links`
+
+`dock_nav_links` (`src/components/common/DockNavLinksField.vue`) is a repeater of `{ label, url, icon, iconImage }`, where `icon` is a preset from `LANDING_ICON_NAMES` and `iconImage` is an optional Media Library URL that overrides the preset. Sanitize it server-side with a dedicated array sanitizer (`sanitize_dock_nav_links`): `sanitize_text_field()` label, safe URL, `sanitize_key()` icon, `esc_url_raw()` image, with a capped count. Register the field default with the same `{ label, url, icon, iconImage }` shape.
+
+### Testing These Paths
+
+Endpoint changes here need PHP tests just like forms: `dsf_save_library_item`, `dsf_import_template`, and `dsf_import_saved_block` MUST test invalid/missing nonce, insufficient capability, wrong post type, malformed JSON, oversized arrays, and that sync only touches instances with a matching `savedBlockId`.
 
 ## Security Gate
 
@@ -427,6 +493,7 @@ Vite creates a hashed shared file such as `assets/js/main-HASH.js`. Confirm `ass
 
 - [ ] Every input has a server-side type, allowlist, limit, and sanitizer.
 - [ ] Unknown nested keys are discarded.
+- [ ] Any new top-level block key beyond `settings` is explicitly sanitized in `sanitize_known_block_settings()`.
 - [ ] PHP output is escaped by context.
 - [ ] Every `v-html` source is documented and sanitized in PHP.
 - [ ] URLs reject dangerous protocols.
@@ -438,6 +505,7 @@ Vite creates a hashed shared file such as `assets/js/main-HASH.js`. Confirm `ass
 ### Quality
 
 - [ ] Semantic HTML and keyboard behavior are correct.
+- [ ] `settings` are self-contained and portable for saved-block sync and cross-site import.
 - [ ] All listeners, timers, observers, and body mutations are cleaned up.
 - [ ] Snapshot mode has no side effects.
 - [ ] Focused and full tests pass.

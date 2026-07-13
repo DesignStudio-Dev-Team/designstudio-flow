@@ -337,6 +337,17 @@ This gives WordPress the cleanest update path and ensures the backend updater ca
 
 ## 📝 Changelog
 
+### Unreleased — New editor UI
+
+- **Floating action dock** — the editor top bar is replaced by a dark, non‑full‑width dock anchored to the bottom of the canvas (Back to WP, Settings, Theme, Save as Template, View, Save, responsive previews, Structure, Add block). While the canvas scrolls it collapses into the DS Flow mark and springs back when you stop.
+- **Structure panel (block navigator)** — a dock button opens an Elementor‑style outline of every block: click a row to jump to it, drag or use the arrows to reorder, and **rename** blocks inline with a custom label so a page full of one block type stays legible (the label is editor‑only and persists with the page).
+- **Edit saved blocks in place + global sync** — hitting **Edit** on a saved block in wp‑admin opens a restricted single‑block editor (no add‑block, no page chrome); saving updates the saved block **and syncs the new settings to every page that uses it**, then refreshes those pages' snapshots.
+- **Import in the editor** — Saved Blocks *and now Templates* can be imported from exported JSON directly in the block picker.
+- **One‑click "Export all"** — export all Saved Blocks, Templates, Pages, Headers, or Footers as a single JSON from the block picker and **Tools → Export**; Templates also gained a per‑item export link.
+- **Floating Dock Header (landing block)** — a new landing header that renders as a bottom dock instead of a bar: a per‑section icon that switches to whatever part of the page you're viewing, a reading‑progress bar, icons‑only with hover‑to‑reveal names, a collapse‑on‑scroll animation, and a Back‑to‑Top brand mark. Each link's icon is configurable — pick a **preset icon or upload one from the Media Library** (new `dock_nav_links` field).
+- **Landing hero mockups** updated to show the new dockless editor UI.
+- **Docs** — `BLOCK-BUILDING-README.md` gains a "Library, Sync, And Export Contracts" section (reserved top‑level block keys `label`/`savedBlockId`, saved‑block sync, export/import + media sideloading, and the `dock_nav_links` field).
+
 ### v1.5.0 (Current) — 2026-06-29
 - **Saved Blocks** — save any configured block (content + styles) to a site‑wide library and drop it onto any page; update an existing saved block in place; organize with folders, multi‑tags, and author tracking; manage from a new Saved Blocks admin screen
 - **Presets** — a curated starter library of pre‑configured blocks in the picker; promote your own saved blocks into the shared Presets library

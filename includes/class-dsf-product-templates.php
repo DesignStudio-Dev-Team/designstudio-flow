@@ -205,8 +205,9 @@ class DSF_Product_Templates {
 	 * inactive or the product cannot be loaded.
 	 *
 	 * @param int   $product_id Product post ID.
-	 * @param array $args       { 'add_to_cart' => bool, 'reviews' => bool } — include
-	 *                          the heavier server-rendered Woo fragments.
+	 * @param array $args       { 'add_to_cart' => bool, 'reviews' => bool, 'related' => bool,
+	 *                          'upsells' => bool } — include the heavier server-rendered
+	 *                          Woo fragments / card lists.
 	 * @return array
 	 */
 	public static function build_product_context( $product_id, $args = array() ) {
@@ -220,11 +221,12 @@ class DSF_Product_Templates {
 				'add_to_cart' => true,
 				'reviews'     => false,
 				'related'     => false,
+				'upsells'     => false,
 			),
 			is_array( $args ) ? $args : array()
 		);
 
-		$cache_key = $product_id . '|' . ( $args['add_to_cart'] ? '1' : '0' ) . '|' . ( $args['reviews'] ? '1' : '0' ) . '|' . ( $args['related'] ? '1' : '0' );
+		$cache_key = $product_id . '|' . ( $args['add_to_cart'] ? '1' : '0' ) . '|' . ( $args['reviews'] ? '1' : '0' ) . '|' . ( $args['related'] ? '1' : '0' ) . '|' . ( $args['upsells'] ? '1' : '0' );
 		if ( isset( self::$context_cache[ $cache_key ] ) ) {
 			return self::$context_cache[ $cache_key ];
 		}
@@ -261,9 +263,12 @@ class DSF_Product_Templates {
 			'averageRating'        => (float) $product->get_average_rating(),
 			'ratingCount'          => (int) $product->get_rating_count(),
 			'reviewCount'          => (int) $product->get_review_count(),
+			'categories'           => self::build_term_list( $product->get_id(), 'product_cat' ),
+			'tags'                 => self::build_term_list( $product->get_id(), 'product_tag' ),
 			'addToCartHtml'        => $args['add_to_cart'] ? self::build_add_to_cart_html( $product ) : '',
 			'reviewsHtml'          => $args['reviews'] ? self::build_reviews_html( $product ) : '',
 			'relatedProducts'      => $args['related'] ? self::build_related_products( $product ) : array(),
+			'upsellProducts'       => $args['upsells'] ? self::build_upsell_products( $product ) : array(),
 		);
 
 		self::$context_cache[ $cache_key ] = $context;
@@ -281,33 +286,92 @@ class DSF_Product_Templates {
 			return array();
 		}
 
-		$related_ids = wc_get_related_products( $product->get_id(), 8 );
-		$cards       = array();
+		return self::build_product_cards( wc_get_related_products( $product->get_id(), 8 ) );
+	}
 
-		foreach ( array_map( 'absint', (array) $related_ids ) as $related_id ) {
-			$related = $related_id ? wc_get_product( $related_id ) : null;
-			if ( ! $related || ! $related->is_visible() ) {
+	/**
+	 * Build a lightweight card payload for the product's upsells ("You may also
+	 * like" products chosen by the merchant on the product edit screen).
+	 *
+	 * @param WC_Product $product Product object.
+	 * @return array[]
+	 */
+	private static function build_upsell_products( $product ) {
+		return self::build_product_cards( array_slice( (array) $product->get_upsell_ids(), 0, 8 ) );
+	}
+
+	/**
+	 * Build sanitized product cards (name, price, image, permalink, rating, cart
+	 * link) from a list of product IDs. Hidden/missing products are skipped.
+	 * Public so the shop/archive templates reuse the same card contract.
+	 *
+	 * @param array $product_ids Candidate product IDs.
+	 * @return array[]
+	 */
+	public static function build_product_cards( $product_ids ) {
+		$cards = array();
+
+		foreach ( array_map( 'absint', (array) $product_ids ) as $card_id ) {
+			$card_product = $card_id ? wc_get_product( $card_id ) : null;
+			if ( ! $card_product || ! $card_product->is_visible() ) {
 				continue;
 			}
 
-			$image_id  = (int) $related->get_image_id();
+			$image_id  = (int) $card_product->get_image_id();
 			$image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'woocommerce_thumbnail' ) : '';
 			if ( ! $image_url && function_exists( 'wc_placeholder_img_src' ) ) {
 				$image_url = wc_placeholder_img_src( 'woocommerce_thumbnail' );
 			}
 
+			// A "quick add" only makes sense when adding needs no option choices.
+			$quick_add = $card_product->is_purchasable()
+				&& $card_product->is_in_stock()
+				&& $card_product->is_type( 'simple' );
+
 			$cards[] = array(
-				'id'        => $related->get_id(),
-				'name'      => sanitize_text_field( $related->get_name() ),
-				'permalink' => get_permalink( $related->get_id() ),
-				'priceHtml' => wp_kses_post( (string) $related->get_price_html() ),
-				'image'     => esc_url_raw( (string) $image_url ),
-				'imageAlt'  => $image_id ? sanitize_text_field( (string) get_post_meta( $image_id, '_wp_attachment_image_alt', true ) ) : '',
-				'onSale'    => (bool) $related->is_on_sale(),
+				'id'            => $card_product->get_id(),
+				'name'          => sanitize_text_field( $card_product->get_name() ),
+				'permalink'     => get_permalink( $card_product->get_id() ),
+				'priceHtml'     => wp_kses_post( (string) $card_product->get_price_html() ),
+				'image'         => esc_url_raw( (string) $image_url ),
+				'imageAlt'      => $image_id ? sanitize_text_field( (string) get_post_meta( $image_id, '_wp_attachment_image_alt', true ) ) : '',
+				'onSale'        => (bool) $card_product->is_on_sale(),
+				'averageRating' => (float) $card_product->get_average_rating(),
+				'ratingCount'   => (int) $card_product->get_rating_count(),
+				'addToCartUrl'  => $quick_add ? esc_url_raw( (string) $card_product->add_to_cart_url() ) : '',
 			);
 		}
 
 		return $cards;
+	}
+
+	/**
+	 * Build a sanitized {name, url} list of the product's terms in a taxonomy
+	 * (categories or tags), capped at a sane count.
+	 *
+	 * @param int    $product_id Product post ID.
+	 * @param string $taxonomy   'product_cat' or 'product_tag'.
+	 * @return array[]
+	 */
+	private static function build_term_list( $product_id, $taxonomy ) {
+		$terms = get_the_terms( $product_id, $taxonomy );
+		if ( ! is_array( $terms ) ) {
+			return array();
+		}
+
+		$list = array();
+		foreach ( array_slice( $terms, 0, 20 ) as $term ) {
+			if ( ! isset( $term->name ) ) {
+				continue;
+			}
+			$link   = get_term_link( $term );
+			$list[] = array(
+				'name' => sanitize_text_field( (string) $term->name ),
+				'url'  => is_wp_error( $link ) ? '' : esc_url_raw( (string) $link ),
+			);
+		}
+
+		return $list;
 	}
 
 	/**
@@ -375,10 +439,16 @@ class DSF_Product_Templates {
 	 * Sanitize captured WooCommerce form/markup with a bounded allowlist that keeps
 	 * the controls (inputs, selects, the variation data attribute) intact.
 	 *
-	 * @param string $html Raw captured markup.
+	 * Public so other server-captured Woo fragments (cart, checkout, account —
+	 * see DSF_Store_Pages) reuse the same allowlist. `$extra_tags` merges
+	 * additional tag => attribute-array entries for those richer fragments;
+	 * script/style tags are never accepted.
+	 *
+	 * @param string $html       Raw captured markup.
+	 * @param array  $extra_tags Additional kses tag definitions to allow.
 	 * @return string
 	 */
-	private static function sanitize_woo_form_html( $html ) {
+	public static function sanitize_woo_form_html( $html, $extra_tags = array() ) {
 		$html = (string) $html;
 		if ( '' === trim( $html ) ) {
 			return '';
@@ -427,6 +497,12 @@ class DSF_Product_Templates {
 			'time'     => $attr( array( 'datetime' ) ),
 			'abbr'     => $attr( array( 'title' ) ),
 		);
+
+		if ( is_array( $extra_tags ) && $extra_tags ) {
+			// Never allow executable tags through, whatever the caller passes.
+			unset( $extra_tags['script'], $extra_tags['style'], $extra_tags['iframe'], $extra_tags['object'], $extra_tags['embed'] );
+			$allowed = array_merge( $allowed, $extra_tags );
+		}
 
 		return wp_kses( $html, $allowed, array( 'http', 'https', 'mailto', 'tel' ) );
 	}

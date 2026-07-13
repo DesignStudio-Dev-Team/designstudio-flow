@@ -63,7 +63,7 @@ class DSF_Editor {
 			// Flow-only post types open in the Flow editor instead of the WP editor.
 			// Pages with _dsf_enabled keep their normal WP editor; the admin
 			// bar already provides a separate "DS Flow" shortcut.
-			if ( in_array( $post_type, array( 'dsf_layout', 'dsf_saved_block', 'dsf_template', 'dsf_product_template' ), true ) ) {
+			if ( in_array( $post_type, array( 'dsf_layout', 'dsf_saved_block', 'dsf_template', 'dsf_product_template', 'dsf_shop_template', 'dsf_blog_template' ), true ) ) {
 				wp_safe_redirect( admin_url( 'admin.php?page=dsf-editor&post_id=' . $post_id ) );
 				exit;
 			}
@@ -89,11 +89,11 @@ class DSF_Editor {
 			exit;
 		}
 
-		if ( 'post-new.php' === $pagenow && 'dsf_product_template' === $post_type ) {
+		if ( 'post-new.php' === $pagenow && in_array( $post_type, array( 'dsf_product_template', 'dsf_shop_template', 'dsf_blog_template' ), true ) ) {
 			$redirect_url = add_query_arg(
 				array(
 					'page'      => 'dsf-editor',
-					'post_type' => 'dsf_product_template',
+					'post_type' => $post_type,
 				),
 				admin_url( 'admin.php' )
 			);
@@ -186,7 +186,7 @@ class DSF_Editor {
 			$query_post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 			$post_type       = $query_post_type ? sanitize_key( $query_post_type ) : 'page';
 		}
-		if ( ! in_array( $post_type, array( 'page', 'dsf_layout', 'dsf_saved_block', 'dsf_template', 'dsf_product_template' ), true ) ) {
+		if ( ! in_array( $post_type, array( 'page', 'dsf_layout', 'dsf_saved_block', 'dsf_template', 'dsf_product_template', 'dsf_shop_template', 'dsf_blog_template' ), true ) ) {
 			$post_type = 'page';
 		}
 
@@ -206,56 +206,229 @@ class DSF_Editor {
 			$preview_url        = $view_url;
 		}
 
+		// A shop template's "View" opens the preview category archive (or the shop
+		// page), which uses this template once it is live.
+		if ( 'dsf_shop_template' === $post_type ) {
+			$view_url    = $this->get_shop_template_view_url( $post_id );
+			$preview_url = $view_url;
+		}
+
+		// A blog template's "View" opens the preview category archive (or the
+		// posts page / home), which uses this template once it is live.
+		if ( 'dsf_blog_template' === $post_type ) {
+			$view_url    = $this->get_blog_template_view_url( $post_id );
+			$preview_url = $view_url;
+		}
+
 		wp_localize_script(
 			'dsf-editor',
 			'dsfEditorData',
 			array(
-				'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
-				'restUrl'           => rest_url( 'dsf/v1/' ),
-				'nonce'             => wp_create_nonce( 'dsf_editor_nonce' ),
-				'restNonce'         => wp_create_nonce( 'wp_rest' ),
-				'postId'            => $post_id,
-				'postTitle'         => $post ? $post->post_title : '',
-				'postSlug'          => $post ? $post->post_name : '',
-				'postParent'        => $post ? (int) $post->post_parent : 0,
-				'postType'          => $post_type,
-				'layoutType'        => $layout_type,
-				'pageData'          => $this->get_page_data( $post_id ),
-				'parentPages'       => 'page' === $post_type ? $this->get_parent_page_options( $post_id ) : array(),
-				'layoutTemplates'   => $this->get_layout_templates(),
-				'defaultLayoutIds'  => array(
+				'ajaxUrl'                 => admin_url( 'admin-ajax.php' ),
+				'restUrl'                 => rest_url( 'dsf/v1/' ),
+				'nonce'                   => wp_create_nonce( 'dsf_editor_nonce' ),
+				'restNonce'               => wp_create_nonce( 'wp_rest' ),
+				'postId'                  => $post_id,
+				'postTitle'               => $post ? $post->post_title : '',
+				'postSlug'                => $post ? $post->post_name : '',
+				'postParent'              => $post ? (int) $post->post_parent : 0,
+				'postType'                => $post_type,
+				'layoutType'              => $layout_type,
+				'pageData'                => $this->get_page_data( $post_id ),
+				'parentPages'             => 'page' === $post_type ? $this->get_parent_page_options( $post_id ) : array(),
+				'layoutTemplates'         => $this->get_layout_templates(),
+				'defaultLayoutIds'        => array(
 					'header' => absint( get_option( 'dsf_default_header_id', 0 ) ),
 					'footer' => absint( get_option( 'dsf_default_footer_id', 0 ) ),
 				),
-				'layoutCreateUrls'  => array(
+				'layoutCreateUrls'        => array(
 					'header' => admin_url( 'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=header' ),
 					'footer' => admin_url( 'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=footer' ),
 				),
-				'blocks'            => DSF_Blocks::get_instance()->get_registered_blocks(),
-				'blockPresets'      => DSF_Block_Presets::get_instance()->get_presets(),
-				'forms'             => $this->get_available_forms(),
-				'gravityForms'      => $this->get_available_gravity_forms(),
-				'popups'            => DSF_Popup::get_popup_list(),
-				'popupCreateUrl'    => admin_url( 'post-new.php?post_type=dsf_popup' ),
-				'popupEditUrlBase'  => admin_url( 'post.php?action=edit&post=' ),
-				'categories'        => $this->get_wc_categories(),
-				'productTags'       => $this->get_wc_product_tags(),
-				'themeFonts'        => $this->get_theme_fonts(),
-				'themeTypography'   => $this->get_theme_typography_payload(),
-				'defaultTheme'      => DSF_Frontend::get_default_theme_settings(),
-				'pluginUrl'         => DSF_PLUGIN_URL,
-				'homeUrl'           => home_url(),
-				'adminUrl'          => admin_url(),
-				'previewUrl'        => $preview_url,
-				'viewUrl'           => $view_url,
-				'postStatus'        => $post_status,
-				'isWooActive'       => class_exists( 'WooCommerce' ),
-				'wcAjaxUrl'         => class_exists( 'WooCommerce' ) ? \WC_AJAX::get_endpoint( 'add_to_cart' ) : '',
-				'isProductTemplate' => 'dsf_product_template' === $post_type,
-				'productTemplate'   => 'dsf_product_template' === $post_type ? $this->get_product_template_config( $post_id ) : null,
-				'currentProduct'    => 'dsf_product_template' === $post_type ? $this->get_product_template_preview_context( $post_id ) : null,
+				'blocks'                  => DSF_Blocks::get_instance()->get_registered_blocks(),
+				'blockPresets'            => DSF_Block_Presets::get_instance()->get_presets(),
+				'forms'                   => $this->get_available_forms(),
+				'gravityForms'            => $this->get_available_gravity_forms(),
+				'popups'                  => DSF_Popup::get_popup_list(),
+				'popupCreateUrl'          => admin_url( 'post-new.php?post_type=dsf_popup' ),
+				'popupEditUrlBase'        => admin_url( 'post.php?action=edit&post=' ),
+				'categories'              => $this->get_wc_categories(),
+				'productTags'             => $this->get_wc_product_tags(),
+				'themeFonts'              => $this->get_theme_fonts(),
+				'themeTypography'         => $this->get_theme_typography_payload(),
+				'defaultTheme'            => DSF_Frontend::get_default_theme_settings(),
+				'pluginUrl'               => DSF_PLUGIN_URL,
+				'homeUrl'                 => home_url(),
+				'siteName'                => get_bloginfo( 'name' ),
+				'adminUrl'                => admin_url(),
+				'exportAllSavedBlocksUrl' => class_exists( 'DSF_Import_Export' ) ? DSF_Import_Export::get_instance()->export_all_url( 'dsf_saved_block' ) : '',
+				'exportAllTemplatesUrl'   => class_exists( 'DSF_Import_Export' ) ? DSF_Import_Export::get_instance()->export_all_url( 'dsf_template' ) : '',
+				'previewUrl'              => $preview_url,
+				'viewUrl'                 => $view_url,
+				'postStatus'              => $post_status,
+				'isWooActive'             => class_exists( 'WooCommerce' ),
+				'wcAjaxUrl'               => class_exists( 'WooCommerce' ) ? \WC_AJAX::get_endpoint( 'add_to_cart' ) : '',
+				'isProductTemplate'       => 'dsf_product_template' === $post_type,
+				'productTemplate'         => 'dsf_product_template' === $post_type ? $this->get_product_template_config( $post_id ) : null,
+				'currentProduct'          => 'dsf_product_template' === $post_type ? $this->get_product_template_preview_context( $post_id ) : null,
+				'isShopTemplate'          => 'dsf_shop_template' === $post_type,
+				'shopTemplate'            => 'dsf_shop_template' === $post_type ? $this->get_shop_template_config( $post_id ) : null,
+				'currentArchive'          => 'dsf_shop_template' === $post_type ? $this->get_shop_template_preview_context( $post_id ) : null,
+				'isBlogTemplate'          => 'dsf_blog_template' === $post_type,
+				'blogTemplate'            => 'dsf_blog_template' === $post_type ? $this->get_blog_template_config( $post_id ) : null,
+				'currentBlogArchive'      => 'dsf_blog_template' === $post_type ? $this->get_blog_template_preview_context( $post_id ) : null,
+				'postCategories'          => 'dsf_blog_template' === $post_type ? $this->get_post_categories() : array(),
 			)
 		);
+
+		// Load any add-on block scripts after the editor bundle so their runtime
+		// preview components register against window.dsfFlow.
+		if ( class_exists( 'DSF_Blocks' ) ) {
+			DSF_Blocks::enqueue_addon_block_assets( 'dsf-editor' );
+		}
+	}
+
+	/**
+	 * The frontend URL a shop template's "View" button opens: the preview
+	 * category's archive, falling back to the shop page.
+	 *
+	 * @param int $post_id Shop template post ID.
+	 * @return string
+	 */
+	private function get_shop_template_view_url( $post_id ) {
+		$term_id = $post_id ? absint( get_post_meta( $post_id, '_dsf_st_preview_term', true ) ) : 0;
+		if ( $term_id ) {
+			$link = get_term_link( $term_id, 'product_cat' );
+			if ( ! is_wp_error( $link ) && $link ) {
+				return $link;
+			}
+		}
+
+		if ( function_exists( 'wc_get_page_id' ) ) {
+			$shop_page_id = wc_get_page_id( 'shop' );
+			if ( $shop_page_id > 0 ) {
+				$url = get_permalink( $shop_page_id );
+				return $url ? $url : '';
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Read a shop template's editor configuration (assignment, live toggle, and
+	 * the editor-only preview category).
+	 *
+	 * @param int $post_id Shop template post ID.
+	 * @return array
+	 */
+	private function get_shop_template_config( $post_id ) {
+		$post_id = intval( $post_id );
+
+		return array(
+			'assignment'  => $post_id ? DSF_Shop_Templates::get_assignment( $post_id ) : array(
+				'mode'        => 'all',
+				'categoryIds' => array(),
+			),
+			'active'      => $post_id ? ( '1' === (string) get_post_meta( $post_id, '_dsf_st_active', true ) ) : false,
+			'previewTerm' => $post_id ? absint( get_post_meta( $post_id, '_dsf_st_preview_term', true ) ) : 0,
+		);
+	}
+
+	/**
+	 * Build the sample archive payload for the shop-template editor preview.
+	 *
+	 * @param int $post_id Shop template post ID.
+	 * @return array|null
+	 */
+	private function get_shop_template_preview_context( $post_id ) {
+		$term_id = $post_id ? absint( get_post_meta( $post_id, '_dsf_st_preview_term', true ) ) : 0;
+		return DSF_Shop_Templates::build_preview_context( $term_id );
+	}
+
+	/**
+	 * The frontend URL a blog template's "View" button opens: the preview
+	 * category's archive, falling back to the posts page / home.
+	 *
+	 * @param int $post_id Blog template post ID.
+	 * @return string
+	 */
+	private function get_blog_template_view_url( $post_id ) {
+		$term_id = $post_id ? absint( get_post_meta( $post_id, '_dsf_bt_preview_term', true ) ) : 0;
+		if ( $term_id ) {
+			$link = get_term_link( $term_id, 'category' );
+			if ( ! is_wp_error( $link ) && $link ) {
+				return $link;
+			}
+		}
+
+		$posts_page = (int) get_option( 'page_for_posts' );
+		if ( $posts_page > 0 ) {
+			$url = get_permalink( $posts_page );
+			if ( $url ) {
+				return $url;
+			}
+		}
+
+		return home_url( '/' );
+	}
+
+	/**
+	 * Read a blog template's editor configuration (assignment, live toggle, and
+	 * the editor-only preview category).
+	 *
+	 * @param int $post_id Blog template post ID.
+	 * @return array
+	 */
+	private function get_blog_template_config( $post_id ) {
+		$post_id = intval( $post_id );
+
+		return array(
+			'assignment'  => $post_id ? DSF_Blog_Templates::get_assignment( $post_id ) : array(
+				'mode'        => 'all',
+				'categoryIds' => array(),
+			),
+			'active'      => $post_id ? ( '1' === (string) get_post_meta( $post_id, '_dsf_bt_active', true ) ) : false,
+			'previewTerm' => $post_id ? absint( get_post_meta( $post_id, '_dsf_bt_preview_term', true ) ) : 0,
+		);
+	}
+
+	/**
+	 * Build the sample archive payload for the blog-template editor preview.
+	 *
+	 * @param int $post_id Blog template post ID.
+	 * @return array|null
+	 */
+	private function get_blog_template_preview_context( $post_id ) {
+		$term_id = $post_id ? absint( get_post_meta( $post_id, '_dsf_bt_preview_term', true ) ) : 0;
+		return DSF_Blog_Templates::build_preview_context( $term_id );
+	}
+
+	/**
+	 * WordPress post categories for the Blog tab (id + name, capped).
+	 *
+	 * @return array[]
+	 */
+	private function get_post_categories() {
+		$terms = get_categories(
+			array(
+				'hide_empty' => false,
+				'number'     => 100,
+			)
+		);
+
+		$list = array();
+		foreach ( (array) $terms as $term ) {
+			if ( ! isset( $term->term_id, $term->name ) ) {
+				continue;
+			}
+			$list[] = array(
+				'id'   => (int) $term->term_id,
+				'name' => sanitize_text_field( (string) $term->name ),
+			);
+		}
+
+		return $list;
 	}
 
 	/**
@@ -310,7 +483,13 @@ class DSF_Editor {
 			return null;
 		}
 
-		$context = DSF_Product_Templates::build_product_context( $product_id, array( 'related' => true ) );
+		$context = DSF_Product_Templates::build_product_context(
+			$product_id,
+			array(
+				'related' => true,
+				'upsells' => true,
+			)
+		);
 		return empty( $context ) ? null : $context;
 	}
 
@@ -387,7 +566,7 @@ class DSF_Editor {
 		if ( ! $post_id ) {
 			$post_type = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 			$post_type = $post_type ? sanitize_key( $post_type ) : 'page';
-			if ( ! in_array( $post_type, array( 'page', 'dsf_layout', 'dsf_product_template' ), true ) ) {
+			if ( ! in_array( $post_type, array( 'page', 'dsf_layout', 'dsf_product_template', 'dsf_shop_template', 'dsf_blog_template' ), true ) ) {
 				$post_type = 'page';
 			}
 
@@ -401,6 +580,10 @@ class DSF_Editor {
 				$default_title = 'footer' === $layout_type ? __( 'Untitled DSFlow Footer', 'designstudio-flow' ) : __( 'Untitled DSFlow Header', 'designstudio-flow' );
 			} elseif ( 'dsf_product_template' === $post_type ) {
 				$default_title = __( 'Untitled Product Template', 'designstudio-flow' );
+			} elseif ( 'dsf_shop_template' === $post_type ) {
+				$default_title = __( 'Untitled Shop Template', 'designstudio-flow' );
+			} elseif ( 'dsf_blog_template' === $post_type ) {
+				$default_title = __( 'Untitled Blog Template', 'designstudio-flow' );
 			} else {
 				$default_title = __( 'Untitled Page', 'designstudio-flow' );
 			}

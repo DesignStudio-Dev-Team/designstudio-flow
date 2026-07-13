@@ -8,6 +8,7 @@
       type="text"
       class="dsf-input"
       :value="value"
+      :maxlength="config.maxLength || undefined"
       @input="$emit('update', $event.target.value)"
     />
     
@@ -18,6 +19,7 @@
       rows="3"
       style="height: auto;"
       :value="value"
+      :maxlength="config.maxLength || undefined"
       @input="$emit('update', $event.target.value)"
     ></textarea>
 
@@ -312,6 +314,14 @@
       @update:modelValue="$emit('update', $event)"
     />
 
+    <!-- Dock nav links (label + url + preset icon or media image) -->
+    <DockNavLinksField
+      v-else-if="config.type === 'dock_nav_links'"
+      :modelValue="value"
+      :max-items="config.maxItems"
+      @update:modelValue="$emit('update', $event)"
+    />
+
     <!-- Mega Menu -->
     <MegaMenuField
       v-else-if="config.type === 'mega_menu'"
@@ -367,6 +377,7 @@ import SpotlightButtonsField from './common/SpotlightButtonsField.vue'
 import WysiwygField from './common/WysiwygField.vue'
 import ShortcodeEmbedField from './common/ShortcodeEmbedField.vue'
 import SimpleLinksField from './common/SimpleLinksField.vue'
+import DockNavLinksField from './common/DockNavLinksField.vue'
 import MegaMenuField from './common/MegaMenuField.vue'
 import ShowcaseHeaderNavigationField from './common/ShowcaseHeaderNavigationField.vue'
 import FooterDealersField from './common/FooterDealersField.vue'

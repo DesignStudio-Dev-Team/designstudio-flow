@@ -51,6 +51,11 @@ final class DesignStudio_Flow {
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-notification-bar.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-blocks.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-product-templates.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-store-pages.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-shop-templates.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-site-pages.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-blog-templates.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-seo.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-block-presets.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-forms.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-connections.php';
@@ -86,6 +91,10 @@ final class DesignStudio_Flow {
 		DSF_Post_Type::get_instance();
 		// Product templates resolve on the frontend and expose admin list helpers.
 		DSF_Product_Templates::get_instance();
+		DSF_Shop_Templates::get_instance();
+		DSF_Blog_Templates::get_instance();
+		// SEO meta output for DSF-rendered URLs (defers to Yoast/Rank Math/etc).
+		DSF_SEO::get_instance();
 		$this->migrate_legacy_flow_pages();
 
 		// Initialize admin.

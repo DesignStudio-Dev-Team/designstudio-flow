@@ -1,21 +1,5 @@
 <template>
-  <div ref="editorRoot" class="dsf-editor">
-    <!-- Header -->
-    <EditorHeader 
-      :title="pageTitle"
-      :is-saving="isSaving"
-      :preview-mode="previewMode"
-      :post-type="postType"
-      :layout-type="layoutType"
-      @update:title="updateTitle"
-      @view="openView"
-      @save="savePage"
-      @set-preview-mode="setPreviewMode"
-      @open-theme="showThemePanel = true"
-      @open-settings="showPageSettings = true"
-      @save-as-template="openSaveTemplate"
-    />
-    
+  <div ref="editorRoot" class="dsf-editor dsf-editor--dockless">
     <!-- Main Content -->
     <div class="dsf-editor__body">
       <!-- Canvas -->
@@ -40,10 +24,10 @@
           </div>
           
           <!-- Blocks -->
-          <draggable 
+          <draggable
             v-else
             v-model="blocks"
-            :disabled="singleBlockTemplate"
+            :disabled="singleBlockTemplate || isSavedBlockEditor"
             item-key="id"
             handle=".dsf-block-toolbar__btn--drag"
             ghost-class="dsf-block--ghost"
@@ -55,7 +39,8 @@
                 :index="index"
                 :is-selected="selectedBlockId === element.id"
                 :preview-mode="previewMode"
-                :allow-reorder="!singleBlockTemplate"
+                :minimal="isSavedBlockEditor"
+                :allow-reorder="!singleBlockTemplate && !isSavedBlockEditor"
                 @select="selectBlock(element)"
                 @move-up="moveBlockUp(index)"
                 @move-down="moveBlockDown(index)"
@@ -88,6 +73,7 @@
         :block-definition="getBlockDefinition(selectedBlock.type)"
         @close="selectedBlock = null; selectedBlockId = null"
         @update:settings="updateBlockSettings"
+        @update:anchor="updateBlockAnchor"
       />
       
       <!-- Theme Panel -->
@@ -119,12 +105,53 @@
         :popup-edit-url-base="popupEditUrlBase"
         :is-product-template="isProductTemplate"
         :product-template="pageSettings.productTemplate || null"
+        :is-shop-template="isShopTemplate"
+        :shop-template="pageSettings.shopTemplate || null"
+        :is-blog-template="isBlogTemplate"
+        :blog-template="pageSettings.blogTemplate || null"
+        :blog-categories="blogCategories"
+        :supports-seo="supportsSeo"
+        :seo="pageSettings.seo || null"
+        :site-name="wpData.siteName || ''"
+        :page-url="currentViewUrl"
         :product-categories="productCategories"
         @close="showPageSettings = false"
         @save="updatePageDetails"
       />
     </div>
-    
+
+    <!-- Floating action dock (replaces the old top bar) -->
+    <EditorDock
+      :is-saving="isSaving"
+      :preview-mode="previewMode"
+      :post-type="postType"
+      :layout-type="layoutType"
+      :can-add-block="canAddBlock"
+      :library-mode="isSavedBlockEditor"
+      @view="openView"
+      @save="handleSave"
+      @set-preview-mode="setPreviewMode"
+      @open-theme="showThemePanel = true"
+      @open-settings="showPageSettings = true"
+      @save-as-template="openSaveTemplate"
+      @add-block="openBlockLibrary"
+      @open-structure="showStructure = true"
+    />
+
+    <!-- Block structure / navigator -->
+    <StructurePanel
+      v-if="showStructure"
+      :blocks="blocks"
+      :selected-id="selectedBlockId"
+      :title-for="titleForType"
+      @close="showStructure = false"
+      @select="selectFromStructure"
+      @move-up="moveBlockUp"
+      @move-down="moveBlockDown"
+      @reorder="blocks = $event"
+      @rename="renameBlock"
+    />
+
     <!-- Block Library Modal -->
     <BlockLibrary
       v-if="showBlockLibrary"
@@ -132,6 +159,8 @@
       :saved-blocks="availableSavedBlocks"
       :presets="mergedPresets"
       :templates="availableTemplates"
+      :export-all-saved-url="exportAllSavedBlocksUrl"
+      :export-all-templates-url="exportAllTemplatesUrl"
       @close="showBlockLibrary = false"
       @add="addBlock"
       @insert-saved="insertSavedBlock"
@@ -141,6 +170,7 @@
       @insert-template="insertTemplate"
       @delete-template="deleteTemplate"
       @import-saved="importSavedBlocks"
+      @import-template="importTemplates"
     />
     
     <!-- Delete Confirmation Dialog -->
@@ -239,7 +269,8 @@ import { Plus, LayoutTemplate } from 'lucide-vue-next'
 import { gsap } from 'gsap'
 
 // Components
-import EditorHeader from './components/EditorHeader.vue'
+import EditorDock from './components/EditorDock.vue'
+import StructurePanel from './components/StructurePanel.vue'
 import BlockWrapper from './components/BlockWrapper.vue'
 import SidePanel from './components/SidePanel.vue'
 import ThemePanel from './components/ThemePanel.vue'
@@ -253,6 +284,9 @@ import { canAddTemplateBlock, isSingleBlockTemplate, normalizeTemplateBlocks } f
 
 // Get WordPress data
 const wpData = window.dsfEditorData || {}
+// A saved block opens its own single-block editor: no adding blocks, no page
+// chrome — just edit that block, and saving syncs it to every page using it.
+const isSavedBlockEditor = wpData.postType === 'dsf_saved_block'
 const postType = wpData.postType === 'dsf_layout' ? 'dsf_layout' : 'page'
 const layoutType = wpData.layoutType === 'footer' ? 'footer' : 'header'
 const isTemplateEditor = postType === 'dsf_layout'
@@ -261,6 +295,10 @@ const isTemplateEditor = postType === 'dsf_layout'
 // NOTE: wp_localize_script() casts top-level scalars to strings, so a PHP boolean
 // true arrives as "1" (and false as ""). Accept both the string and real boolean.
 const isProductTemplate = wpData.isProductTemplate === true || wpData.isProductTemplate === '1'
+const isShopTemplate = wpData.isShopTemplate === true || wpData.isShopTemplate === '1'
+const isBlogTemplate = wpData.isBlogTemplate === true || wpData.isBlogTemplate === '1'
+// SEO panel applies to real URLs: pages and the product/shop/blog templates.
+const supportsSeo = ['page', 'dsf_product_template', 'dsf_shop_template', 'dsf_blog_template'].includes(postType)
 const layoutTemplates = computed(() => wpData.layoutTemplates || { headers: [], footers: [] })
 const layoutCreateUrls = computed(() => wpData.layoutCreateUrls || {})
 const availableForms = Array.isArray(wpData.forms) ? wpData.forms : []
@@ -377,13 +415,30 @@ const DEFAULT_PRODUCT_TEMPLATE = {
   assignment: { mode: 'all', categoryIds: [] },
   previewProduct: 0,
 }
+const DEFAULT_SHOP_TEMPLATE = {
+  active: false,
+  assignment: { mode: 'all', categoryIds: [] },
+  previewTerm: 0,
+}
+const DEFAULT_BLOG_TEMPLATE = {
+  active: false,
+  assignment: { mode: 'all', categoryIds: [] },
+  previewTerm: 0,
+}
 const pageSettings = ref({
   theme: { ...DEFAULT_THEME, ...(initialSettings.theme || {}) },
   layout: { ...DEFAULT_LAYOUT, ...(initialSettings.layout || {}) },
   popup: { ...(initialSettings.popup || {}) },
   popupId: Number.parseInt(initialSettings.popupId, 10) || 0,
+  seo: { ...(initialSettings.seo || {}) },
   ...(isProductTemplate
     ? { productTemplate: { ...DEFAULT_PRODUCT_TEMPLATE, ...(wpData.productTemplate || {}) } }
+    : {}),
+  ...(isShopTemplate
+    ? { shopTemplate: { ...DEFAULT_SHOP_TEMPLATE, ...(wpData.shopTemplate || {}) } }
+    : {}),
+  ...(isBlogTemplate
+    ? { blogTemplate: { ...DEFAULT_BLOG_TEMPLATE, ...(wpData.blogTemplate || {}) } }
     : {}),
 })
 
@@ -392,6 +447,55 @@ const pageSettings = ref({
 const productContext = ref(wpData.currentProduct || null)
 provide('dsfProductContext', productContext)
 provide('dsfIsProductTemplate', isProductTemplate)
+
+// Sample archive data the shop blocks render from in the editor; the frontend
+// uses the viewed archive. Blocks read it via inject.
+const shopContext = ref(wpData.currentArchive || null)
+provide('dsfShopContext', shopContext)
+provide('dsfIsShopTemplate', isShopTemplate)
+
+// Sample post-archive data the blog blocks render from in the editor; the
+// frontend uses the viewed archive. Blocks read it via inject.
+const blogContext = ref(wpData.currentBlogArchive || null)
+provide('dsfBlogContext', blogContext)
+provide('dsfIsBlogTemplate', isBlogTemplate)
+const blogCategories = computed(() => (Array.isArray(wpData.postCategories) ? wpData.postCategories : []))
+
+async function refreshBlogContext(termId) {
+  if (!isBlogTemplate || !wpData.ajaxUrl) return
+  try {
+    const body = new URLSearchParams({
+      action: 'dsf_get_blog_context',
+      nonce: wpData.nonce || '',
+      term_id: String(termId || 0),
+    })
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json?.success && json.data?.archive) {
+      blogContext.value = json.data.archive
+    }
+  } catch (error) {
+    // Non-fatal — keep the previously loaded sample archive.
+  }
+}
+
+async function refreshShopContext(termId) {
+  if (!isShopTemplate || !wpData.ajaxUrl) return
+  try {
+    const body = new URLSearchParams({
+      action: 'dsf_get_shop_context',
+      nonce: wpData.nonce || '',
+      term_id: String(termId || 0),
+    })
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json?.success && json.data?.archive) {
+      shopContext.value = json.data.archive
+    }
+  } catch (error) {
+    // Non-fatal — keep the previously loaded sample archive.
+  }
+}
 
 async function refreshProductContext(productId) {
   if (!isProductTemplate || !wpData.ajaxUrl) return
@@ -416,6 +520,8 @@ const availableSavedBlocks = ref([])
 const blockPresets = Array.isArray(wpData.blockPresets) ? wpData.blockPresets : []
 const popupCreateUrl = wpData.popupCreateUrl || ''
 const popupEditUrlBase = wpData.popupEditUrlBase || ''
+const exportAllSavedBlocksUrl = wpData.exportAllSavedBlocksUrl || ''
+const exportAllTemplatesUrl = wpData.exportAllTemplatesUrl || ''
 
 const pageTitle = ref(wpData.postTitle || 'Untitled Page')
 const currentPostStatus = ref(wpData.postStatus || 'draft')
@@ -432,6 +538,7 @@ const selectedBlockId = ref(null)
 const showBlockLibrary = ref(false)
 const showThemePanel = ref(false)
 const showPageSettings = ref(false)
+const showStructure = ref(false)
 const deleteConfirmVisible = ref(false)
 
 // Site-wide default header/footer: after saving a header/footer we offer to make
@@ -448,7 +555,7 @@ const themeHistory = ref([])
 let lastThemeHistoryKey = ''
 let lastThemeHistoryAt = 0
 const singleBlockTemplate = isSingleBlockTemplate(postType, layoutType)
-const canAddBlock = computed(() => canAddTemplateBlock(blocks.value, postType, layoutType))
+const canAddBlock = computed(() => !isSavedBlockEditor && canAddTemplateBlock(blocks.value, postType, layoutType))
 
 // Computed
 const blockCategories = computed(() => {
@@ -459,7 +566,11 @@ const blockCategories = computed(() => {
     content: { label: 'Content', icon: 'file-text', blocks: [] },
     marketing: { label: 'Marketing', icon: 'target', blocks: [] },
     ecommerce: { label: 'Ecommerce', icon: 'shopping-cart', blocks: [] },
+    store: { label: 'Store', icon: 'credit-card', blocks: [] },
+    site: { label: 'Site', icon: 'log-in', blocks: [] },
     product: { label: 'Product Page', icon: 'shopping-bag', blocks: [] },
+    shop: { label: 'Shop & Archive', icon: 'layout-grid', blocks: [] },
+    blog: { label: 'Blog & Posts', icon: 'newspaper', blocks: [] },
     footers: { label: 'Footers', icon: 'layout-template', blocks: [] },
   }
 
@@ -481,23 +592,36 @@ const blockCategories = computed(() => {
   }
 
   // Define exact order for each category
-  const heroOrder = ['hero', 'landing-hero', 'bento-hero', 'spotlight-hero', 'expander-hero', 'duo-hero', 'featured-promo-banner']
+  const heroOrder = ['hero', 'landing-hero', 'landing-showcase-hero', 'bento-hero', 'spotlight-hero', 'expander-hero', 'duo-hero', 'featured-promo-banner']
   const headerOrder = ['landing-progress-header']
-  const contentOrder = ['content', 'faq', 'text-image', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-engagement-suite', 'landing-trust-workflow', 'features-grid', 'card-columns', 'testimonials', 'form-embed', 'form-with-content']
+  const contentOrder = ['content', 'faq', 'breadcrumbs', 'text-image', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-engagement-suite', 'landing-trust-workflow', 'features-grid', 'card-columns', 'testimonials', 'form-embed', 'form-with-content']
   const marketingOrder = ['pricing', 'countdown', 'promo-banner', 'cta-banner', 'brand-carousel']
   const ecommerceOrder = ['ecommerce-showcase', 'featured-product-banner', 'product-grid']
-  const productOrder = ['product-hero', 'product-gallery', 'product-summary', 'product-add-to-cart', 'product-highlights', 'product-description', 'product-specs', 'product-tabs', 'product-related']
+  const productOrder = ['product-spotlight', 'product-hero', 'product-gallery', 'product-summary', 'product-meta', 'product-add-to-cart', 'product-highlights', 'product-description', 'product-specs', 'product-tabs', 'product-reviews', 'product-related', 'product-upsells']
+  const storeOrder = ['store-cart', 'store-checkout', 'store-steps', 'store-thankyou', 'store-mini-cart', 'store-account']
+  const siteOrder = ['site-login', 'site-search', 'user-dashboard']
+  const shopOrder = ['shop-header', 'shop-filters', 'shop-products']
+  const blogOrder = ['blog-header', 'post-loop']
   const footerOrder = ['landing-marketing-footer']
   const heroBlockIds = new Set(heroOrder)
   const headerBlockIds = new Set(headerOrder)
 
   allowedBlocks.forEach(block => {
-    if (heroBlockIds.has(block.id)) {
+    // An explicit `group` lets an add-on block target any existing tab; then the
+    // built-in hero/header id lists; then the block's own `category`. Anything
+    // that still doesn't match a known tab falls back to Content so a third-party
+    // block is never silently dropped from the library.
+    const group = typeof block.group === 'string' && categories[block.group] ? block.group : ''
+    if (group) {
+      categories[group].blocks.push(block)
+    } else if (heroBlockIds.has(block.id)) {
       categories.heroes.blocks.push(block)
     } else if (headerBlockIds.has(block.id)) {
       categories.headers.blocks.push(block)
     } else if (categories[block.category]) {
       categories[block.category].blocks.push(block)
+    } else {
+      categories.content.blocks.push(block)
     }
   })
 
@@ -507,21 +631,40 @@ const blockCategories = computed(() => {
   categories.content.blocks.sort((a, b) => contentOrder.indexOf(a.id) - contentOrder.indexOf(b.id))
   categories.marketing.blocks.sort((a, b) => marketingOrder.indexOf(a.id) - marketingOrder.indexOf(b.id))
   categories.ecommerce.blocks.sort((a, b) => ecommerceOrder.indexOf(a.id) - ecommerceOrder.indexOf(b.id))
+  categories.store.blocks.sort((a, b) => storeOrder.indexOf(a.id) - storeOrder.indexOf(b.id))
+  categories.shop.blocks.sort((a, b) => shopOrder.indexOf(a.id) - shopOrder.indexOf(b.id))
+  categories.site.blocks.sort((a, b) => siteOrder.indexOf(a.id) - siteOrder.indexOf(b.id))
+  categories.blog.blocks.sort((a, b) => blogOrder.indexOf(a.id) - blogOrder.indexOf(b.id))
   categories.product.blocks.sort((a, b) => productOrder.indexOf(a.id) - productOrder.indexOf(b.id))
   categories.footers.blocks.sort((a, b) => footerOrder.indexOf(a.id) - footerOrder.indexOf(b.id))
 
-  // Product blocks only exist in the product-template editor (scope-filtered
-  // above); on every other editor the group would render as an empty
-  // "Product Page (0)" header, so drop it entirely when it has no blocks.
+  // Product/shop blocks only exist in their template editors (scope-filtered
+  // above); on every other editor the group would render as an empty header,
+  // so drop each entirely when it has no blocks.
   if (!categories.product.blocks.length) {
     delete categories.product
-    return categories
+  }
+  if (!categories.shop.blocks.length) {
+    delete categories.shop
+  }
+  if (!categories.blog.blocks.length) {
+    delete categories.blog
   }
 
-  // In the product-template editor, the product blocks are the point — list
-  // that group first.
-  const { product, ...rest } = categories
-  return { product, ...rest }
+  // In a template editor, its own blocks are the point — list that group first.
+  if (categories.shop && isShopTemplate) {
+    const { shop, ...rest } = categories
+    return { shop, ...rest }
+  }
+  if (categories.blog && isBlogTemplate) {
+    const { blog, ...rest } = categories
+    return { blog, ...rest }
+  }
+  if (categories.product) {
+    const { product, ...rest } = categories
+    return { product, ...rest }
+  }
+  return categories
 })
 
 const availableTemplateBlocksCount = computed(() => {
@@ -623,9 +766,50 @@ function openBlockSettings(block) {
   showThemePanel.value = false
 }
 
+// Human-readable block name for the structure panel; falls back to a prettified
+// type when a block definition has no explicit name.
+function titleForType(type) {
+  const def = getBlockDefinition(type)
+  if (def?.name) return def.name
+  return (type || 'Block').replace(/[-_]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+// Custom editor-only label for a block (persisted with the page). Empty clears it.
+function renameBlock({ id, label }) {
+  const target = blocks.value.find((block) => block.id === id)
+  if (!target) return
+  if (label) {
+    target.label = label
+  } else {
+    delete target.label
+  }
+}
+
+// Selecting a block from the structure panel also scrolls it into view.
+function selectFromStructure(block) {
+  selectBlock(block)
+  nextTick(() => {
+    const element = document.getElementById('block-' + block.id)
+    if (element) {
+      element.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' })
+    }
+  })
+}
+
 function updateBlockSettings(settings) {
   if (selectedBlock.value) {
     selectedBlock.value.settings = { ...selectedBlock.value.settings, ...settings }
+  }
+}
+
+// Block-level HTML anchor (stored alongside type/settings, like the editor-only
+// label). Empty clears it so no id is rendered on the frontend wrapper.
+function updateBlockAnchor(anchor) {
+  if (!selectedBlock.value) return
+  if (anchor) {
+    selectedBlock.value.anchorId = anchor
+  } else {
+    delete selectedBlock.value.anchorId
   }
 }
 
@@ -651,7 +835,13 @@ function addBlock(blockDefinition) {
       ? { ...getDefaultSettings(blockDefinition), ...JSON.parse(JSON.stringify(blockDefinition.savedSettings)) }
       : getDefaultSettings(blockDefinition),
   }
-  
+
+  // Link instances inserted from a saved block so editing that saved block later
+  // can sync every page using it.
+  if (blockDefinition.savedBlockId) {
+    newBlock.savedBlockId = blockDefinition.savedBlockId
+  }
+
   blocks.value.push(newBlock)
   showBlockLibrary.value = false
   
@@ -781,8 +971,9 @@ function insertSavedBlock(saved) {
     alert('This saved block type is no longer available.')
     return
   }
-  // Reuse the normal insertion path, but seed it with the saved settings.
-  addBlock({ ...def, id: saved.type, savedSettings: saved.settings || {} })
+  // Reuse the normal insertion path, but seed it with the saved settings and
+  // remember which saved block it came from (for later sync).
+  addBlock({ ...def, id: saved.type, savedSettings: saved.settings || {}, savedBlockId: saved.id })
 }
 
 function insertPreset(preset) {
@@ -920,6 +1111,30 @@ async function onSaveTemplateConfirm({ name }) {
     }
   } catch (e) {
     showToast('Could not save this template.', 'error')
+  }
+}
+
+// Import templates from a JSON file exported here or from the admin Tools screen.
+async function importTemplates(file) {
+  if (!file || !wpData.ajaxUrl) return
+  try {
+    const payload = await file.text()
+    const formData = new FormData()
+    formData.append('action', 'dsf_import_template')
+    formData.append('nonce', wpData.nonce)
+    formData.append('payload', payload)
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json.success && Array.isArray(json.data?.templates) && json.data.templates.length) {
+      availableTemplates.value = [...availableTemplates.value, ...json.data.templates]
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      const count = json.data.templates.length
+      showToast(count === 1 ? 'Imported 1 template' : `Imported ${count} templates`)
+    } else {
+      showToast(json.data?.message || 'Could not import this file.', 'error')
+    }
+  } catch (e) {
+    showToast('Could not import this file.', 'error')
   }
 }
 
@@ -1143,6 +1358,18 @@ function isBlockAllowedInCurrentEditor(blockDefinition) {
     return scope === 'page' || scope === 'product'
   }
 
+  // Shop blocks (scope 'shop') bind to an archive context, so they are only
+  // offered inside a shop template. Shop templates also allow page blocks.
+  if (isShopTemplate) {
+    return scope === 'page' || scope === 'shop'
+  }
+
+  // Blog blocks (scope 'blog') bind to a post-archive context, so they are only
+  // offered inside a blog template. Blog templates also allow page blocks.
+  if (isBlogTemplate) {
+    return scope === 'page' || scope === 'blog'
+  }
+
   return scope === 'page'
 }
 
@@ -1184,6 +1411,25 @@ function updatePageDetails(details) {
     if (nextPreview && nextPreview !== previousPreview) {
       refreshProductContext(nextPreview)
     }
+  }
+  if (isShopTemplate && details.shopTemplate) {
+    const previousTerm = pageSettings.value.shopTemplate?.previewTerm || 0
+    nextSettings.shopTemplate = { ...DEFAULT_SHOP_TEMPLATE, ...details.shopTemplate }
+    const nextTerm = Number.parseInt(nextSettings.shopTemplate.previewTerm, 10) || 0
+    if (nextTerm !== previousTerm) {
+      refreshShopContext(nextTerm)
+    }
+  }
+  if (isBlogTemplate && details.blogTemplate) {
+    const previousTerm = pageSettings.value.blogTemplate?.previewTerm || 0
+    nextSettings.blogTemplate = { ...DEFAULT_BLOG_TEMPLATE, ...details.blogTemplate }
+    const nextTerm = Number.parseInt(nextSettings.blogTemplate.previewTerm, 10) || 0
+    if (nextTerm !== previousTerm) {
+      refreshBlogContext(nextTerm)
+    }
+  }
+  if (supportsSeo && details.seo) {
+    nextSettings.seo = { ...details.seo }
   }
   pageSettings.value = nextSettings
   showPageSettings.value = false
@@ -1265,6 +1511,41 @@ function promptForTitle() {
   }
 
   return cleaned
+}
+
+// The dock's Save routes to the right place: a saved block updates its library
+// definition (and syncs), everything else saves the page/layout.
+function handleSave() {
+  return isSavedBlockEditor ? saveLibraryItem() : savePage()
+}
+
+async function saveLibraryItem() {
+  const block = blocks.value[0]
+  if (!block?.type) return false
+  isSaving.value = true
+  try {
+    const formData = new FormData()
+    formData.append('action', 'dsf_save_library_item')
+    formData.append('nonce', wpData.nonce)
+    formData.append('post_id', wpData.postId)
+    formData.append('type', block.type)
+    formData.append('settings', JSON.stringify(block.settings || {}))
+    formData.append('title', pageTitle.value || '')
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
+    const json = await response.json()
+    if (json.success) {
+      const synced = Number.parseInt(json.data?.synced, 10) || 0
+      showToast(synced ? `Saved — updated ${synced} page${synced === 1 ? '' : 's'} using this block.` : 'Saved block updated')
+      return true
+    }
+    showToast(json.data?.message || 'Could not save this block.', 'error')
+    return false
+  } catch (error) {
+    showToast('Could not save this block.', 'error')
+    return false
+  } finally {
+    isSaving.value = false
+  }
 }
 
 async function savePage(options = {}) {
@@ -1540,6 +1821,18 @@ watch(showPageSettings, (visible) => {
   })
 })
 
+watch(showStructure, (visible) => {
+  if (!visible) return
+  animateAfterRender(() => {
+    const panel = document.querySelector('.dsf-structure')
+    if (!panel) return
+    gsap.fromTo(panel,
+      { autoAlpha: 0, x: -24, scale: 0.98 },
+      { autoAlpha: 1, x: 0, scale: 1, duration: 0.34, ease: 'power3.out', clearProps: 'transform,opacity,visibility' }
+    )
+  })
+})
+
 // Lifecycle
 onMounted(() => {
   console.log('DesignStudio Flow Editor loaded')
@@ -1553,14 +1846,22 @@ onMounted(() => {
   loadSavedBlocks()
   loadTemplates()
 
+  // The saved-block editor is about one block — open its settings straight away.
+  if (isSavedBlockEditor && blocks.value.length) {
+    nextTick(() => selectBlock(blocks.value[0]))
+  }
+
   if (!prefersReducedMotion()) {
     const root = editorRoot.value
     const timeline = gsap.timeline({ defaults: { ease: 'power3.out' } })
     timeline
-      .from(root?.querySelector('.dsf-header'), { autoAlpha: 0, y: -16, duration: 0.38 })
-      .from(root?.querySelector('.dsf-canvas__inner'), { autoAlpha: 0, y: 18, scale: 0.992, duration: 0.48 }, '-=0.2')
+      .from(root?.querySelector('.dsf-canvas__inner'), { autoAlpha: 0, y: 18, scale: 0.992, duration: 0.48 })
       .from(root?.querySelectorAll('.dsf-block') || [], { autoAlpha: 0, y: 14, duration: 0.34, stagger: 0.055 }, '-=0.26')
       .from(root?.querySelector('.dsf-add-block-btn'), { autoAlpha: 0, y: 12, scale: 0.94, duration: 0.3 }, '-=0.18')
+      // clearProps: transform is essential — otherwise GSAP leaves a fixed-pixel
+      // transform on .dsf-dock that overrides the CSS translateX(-50%), which
+      // stops the dock re-centering (mark sliding to the middle) on scroll.
+      .from(root?.querySelector('.dsf-dock'), { autoAlpha: 0, y: 24, scale: 0.96, duration: 0.42, clearProps: 'transform' }, '-=0.1')
   }
 })
 

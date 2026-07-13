@@ -27,24 +27,6 @@
 
       <!-- Demo column: the actual editor, assembling a Countdown block + its settings -->
       <div class="dsf-ready__demo dsf-estudio" data-dsf-builder aria-hidden="true">
-        <div class="dsf-estudio__topbar" data-dsf-builder-topbar>
-          <div class="dsf-estudio__brand">
-            <img :src="logoUrl" alt="" />
-            <span><strong>DesignStudio Flow</strong><small>Build your WordPress Page</small></span>
-          </div>
-          <div class="dsf-estudio__devices">
-            <span class="is-active"><Monitor :size="12" /></span>
-            <span><Tablet :size="12" /></span>
-            <span><Smartphone :size="12" /></span>
-          </div>
-          <div class="dsf-estudio__tools">
-            <span><Settings :size="11" /> Settings</span>
-            <span><Palette :size="11" /> Theme</span>
-            <span><ExternalLink :size="11" /> View</span>
-            <b><Save :size="11" /> Save Page</b>
-          </div>
-        </div>
-
         <div class="dsf-estudio__body">
           <div class="dsf-estudio__canvas">
             <div class="dsf-estudio__canvas-label" data-dsf-builder-label><span>PAGE CANVAS</span><b>Countdown</b></div>
@@ -74,7 +56,22 @@
 
             <div class="dsf-estudio__ghost-block" data-dsf-builder-card><i></i><i></i></div>
 
-            <div class="dsf-estudio__add" data-dsf-builder-add><Plus :size="12" /> Add Block</div>
+            <!-- New editor UI: no top bar — every action lives in a floating dock. -->
+            <div class="dsf-estudio__dock" data-dsf-builder-dock>
+              <span class="dsf-estudio__dock-mark"><img :src="logoUrl" alt="" /></span>
+              <i class="dsf-estudio__dock-sep"></i>
+              <span class="dsf-estudio__dock-btn"><Settings :size="11" /></span>
+              <span class="dsf-estudio__dock-btn"><Palette :size="11" /></span>
+              <span class="dsf-estudio__dock-btn"><LayoutTemplate :size="11" /></span>
+              <span class="dsf-estudio__dock-btn"><ExternalLink :size="11" /></span>
+              <span class="dsf-estudio__dock-btn dsf-estudio__dock-btn--primary"><Save :size="11" /></span>
+              <i class="dsf-estudio__dock-sep"></i>
+              <span class="dsf-estudio__dock-btn is-active"><Monitor :size="11" /></span>
+              <span class="dsf-estudio__dock-btn"><Tablet :size="11" /></span>
+              <span class="dsf-estudio__dock-btn"><Smartphone :size="11" /></span>
+              <i class="dsf-estudio__dock-sep"></i>
+              <span class="dsf-estudio__dock-btn dsf-estudio__dock-btn--accent"><Plus :size="11" /></span>
+            </div>
           </div>
 
           <aside class="dsf-estudio__settings" data-dsf-builder-settings>
@@ -101,7 +98,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { Check, ChevronDown, ChevronUp, ExternalLink, FileText, GripVertical, Monitor, Palette, Plus, Save, Settings, Smartphone, Tablet, Trash2 } from 'lucide-vue-next'
+import { Check, ChevronDown, ChevronUp, ExternalLink, FileText, GripVertical, LayoutTemplate, Monitor, Palette, Plus, Save, Settings, Smartphone, Tablet, Trash2 } from 'lucide-vue-next'
 import { useLandingMotion } from '../../utils/useLandingMotion'
 import { landingBlockStyle } from '../../utils/landingStyle'
 import InlineText from '../common/InlineText.vue'
@@ -169,22 +166,10 @@ useLandingMotion(root, props.isEditor)
 .dsf-ready__note svg { flex: 0 0 auto; color: var(--blue); }
 
 /* Editor studio — a faithful, restrained mockup of the DesignStudio Flow editor. */
-.dsf-estudio { min-width: 0; overflow: hidden; border: 1px solid rgba(17, 24, 39, 0.12); border-radius: 18px; background: #fff; box-shadow: 0 35px 90px rgba(26, 45, 64, 0.18), 0 4px 12px rgba(26, 45, 64, 0.08); transform: rotate(-0.35deg); will-change: transform; }
-.dsf-estudio__topbar { display: grid; grid-template-columns: minmax(150px, 1fr) auto minmax(210px, 1fr); align-items: center; min-height: 58px; padding: 0 14px; border-bottom: 1px solid #e7ebef; background: #f7f4ed; font-size: 10px; gap: 10px; }
-.dsf-estudio__brand { display: flex; align-items: center; min-width: 0; gap: 8px; }
-.dsf-estudio__brand img { width: 27px; height: 27px; object-fit: contain; }
-.dsf-estudio__brand > span { display: grid; min-width: 0; }
-.dsf-estudio__brand strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.dsf-estudio__brand small { color: #7c8790; font-size: 7px; }
-.dsf-estudio__devices { display: flex; padding: 3px; border: 1px solid #dfe5e9; border-radius: 6px; background: #fff; }
-.dsf-estudio__devices span { display: grid; place-items: center; width: 25px; height: 23px; border-radius: 4px; color: #7a8791; }
-.dsf-estudio__devices span.is-active { color: #071b2f; background: #a4d2f6; }
-.dsf-estudio__tools { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
-.dsf-estudio__tools span, .dsf-estudio__tools b { display: inline-flex; align-items: center; gap: 4px; padding: 6px 7px; border: 1px solid #dfe4e7; border-radius: 5px; color: #4f5d68; background: #fff; font-size: 7px; font-weight: 750; white-space: nowrap; }
-.dsf-estudio__tools b { color: #fff; border-color: var(--blue); background: var(--blue); box-shadow: 0 5px 12px rgba(0, 145, 255, 0.2); }
+.dsf-estudio { position: relative; min-width: 0; overflow: hidden; border: 1px solid rgba(17, 24, 39, 0.12); border-radius: 18px; background: #fff; box-shadow: 0 35px 90px rgba(26, 45, 64, 0.18), 0 4px 12px rgba(26, 45, 64, 0.08); transform: rotate(-0.35deg); will-change: transform; }
 
 .dsf-estudio__body { display: grid; grid-template-columns: minmax(300px, 1fr) 200px; min-height: 432px; }
-.dsf-estudio__canvas { position: relative; display: flex; flex-direction: column; gap: 11px; padding: 18px 20px 48px; background: #eef1f3; }
+.dsf-estudio__canvas { position: relative; display: flex; flex-direction: column; gap: 11px; padding: 20px 20px 66px; background: #eef1f3; }
 .dsf-estudio__canvas-label { display: flex; justify-content: space-between; color: #86919a; font-size: 7px; font-weight: 800; letter-spacing: 0.11em; }
 .dsf-estudio__canvas-label b { color: #65727d; letter-spacing: 0; }
 .dsf-estudio__ghost-block { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid #e1e5e8; border-radius: 8px; background: #fff; }
@@ -208,7 +193,15 @@ useLandingMotion(root, props.isEditor)
 .dsf-countdown-card__timer b { font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); font-size: 18px; line-height: 1; }
 .dsf-countdown-card__timer span { margin-top: 5px; color: rgba(255,255,255,0.78); font-size: 6.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 
-.dsf-estudio__add { position: absolute; bottom: 13px; left: 50%; display: flex; align-items: center; gap: 5px; padding: 7px 13px; border-radius: 999px; color: #071b2f; background: #fff; box-shadow: 0 8px 22px rgba(27, 49, 65, 0.16); font-size: 8px; font-weight: 800; transform: translateX(-50%); }
+/* New editor UI: floating action dock replacing the old top bar. */
+.dsf-estudio__dock { position: absolute; bottom: 13px; left: 50%; z-index: 3; display: flex; align-items: center; gap: 3px; padding: 4px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 999px; background: linear-gradient(180deg, #262b33, #14171c); box-shadow: 0 12px 26px rgba(7, 27, 47, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.06); transform: translateX(-50%); }
+.dsf-estudio__dock-mark { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 999px; background: rgba(255, 255, 255, 0.08); }
+.dsf-estudio__dock-mark img { width: 15px; height: 15px; object-fit: contain; }
+.dsf-estudio__dock-sep { width: 1px; height: 15px; margin: 0 2px; background: rgba(255, 255, 255, 0.14); }
+.dsf-estudio__dock-btn { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; color: rgba(255, 255, 255, 0.7); }
+.dsf-estudio__dock-btn.is-active { color: #fff; background: rgba(255, 255, 255, 0.15); }
+.dsf-estudio__dock-btn--primary { color: #fff; background: var(--blue); }
+.dsf-estudio__dock-btn--accent { color: #fff; background: var(--coral); }
 
 .dsf-estudio__settings { padding: 15px 13px; border-left: 1px solid #e4e8eb; background: #fff; }
 .dsf-estudio__settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
@@ -239,10 +232,11 @@ useLandingMotion(root, props.isEditor)
 @media (max-width: 640px) {
   .dsf-ready { padding-left: 18px; padding-right: 18px; }
   .dsf-ready__heading h2 { font-size: 32px; }
-  .dsf-estudio__topbar { grid-template-columns: 1fr auto; }
-  .dsf-estudio__devices, .dsf-estudio__tools span { display: none; }
   .dsf-estudio__body { grid-template-columns: 1fr; min-height: 0; }
   .dsf-estudio__settings { display: none; }
+  .dsf-estudio__dock { gap: 2px; padding: 3px; }
+  .dsf-estudio__dock-btn { width: 20px; height: 20px; }
+  .dsf-estudio__dock-sep { margin: 0 1px; }
   .dsf-countdown-card { grid-template-columns: 1fr; }
 }
 </style>

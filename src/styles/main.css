@@ -104,6 +104,13 @@
   to { visibility: visible; }
 }
 
+/* Anchor navigation: when a block carries a user "HTML anchor" id and a link
+   like #pricing targets it, leave headroom above so a sticky site header doesn't
+   cover the top of the block. Overridable per-site via --dsf-anchor-offset. */
+.dsf-frontend-blocks .dsf-block[id] {
+  scroll-margin-top: var(--dsf-anchor-offset, 96px);
+}
+
 /* When a block has an explicit responsive Height, the wrapper carries the
    min-height; stretch the block's own root to fill it so its background (and
    content) grow to the chosen height instead of leaving an empty gap. */

@@ -23,23 +23,6 @@
 
       <BlockMedia class="dsf-product-hero__visual" :settings="settings" :alt="settings.title || ''">
       <div class="dsf-studio" data-dsf-builder aria-hidden="true">
-        <div class="dsf-studio__topbar" data-dsf-builder-topbar>
-          <div class="dsf-studio__brand">
-            <img :src="logoUrl" alt="" />
-            <span><strong>DesignStudio Flow</strong><small>Build your WordPress Page</small></span>
-          </div>
-          <div class="dsf-studio__devices">
-            <span class="is-active"><Monitor :size="12" /></span>
-            <span><Tablet :size="12" /></span>
-            <span><Smartphone :size="12" /></span>
-          </div>
-          <div class="dsf-studio__tools">
-            <span><Settings :size="11" /> Settings</span>
-            <span><Palette :size="11" /> Theme</span>
-            <span><ExternalLink :size="11" /> View</span>
-            <b><Save :size="11" /> Save Page</b>
-          </div>
-        </div>
         <div class="dsf-studio__body">
           <div class="dsf-studio__canvas">
             <div class="dsf-studio__canvas-label" data-dsf-builder-label><span>PAGE CANVAS</span><b>1800 px</b></div>
@@ -64,7 +47,23 @@
               <div class="dsf-canvas-card" data-dsf-builder-card><i></i><strong>Theme controls</strong></div>
               <div class="dsf-canvas-card" data-dsf-builder-card><i></i><strong>Live editing</strong></div>
             </div>
-            <div class="dsf-studio__add" data-dsf-builder-add><Plus :size="12" /> Add Block</div>
+
+            <!-- New editor UI: no top bar — every action lives in a floating dock. -->
+            <div class="dsf-studio__dock" data-dsf-builder-dock>
+              <span class="dsf-studio__dock-mark"><img :src="logoUrl" alt="" /></span>
+              <i class="dsf-studio__dock-sep"></i>
+              <span class="dsf-studio__dock-btn"><Settings :size="11" /></span>
+              <span class="dsf-studio__dock-btn"><Palette :size="11" /></span>
+              <span class="dsf-studio__dock-btn"><LayoutTemplate :size="11" /></span>
+              <span class="dsf-studio__dock-btn"><ExternalLink :size="11" /></span>
+              <span class="dsf-studio__dock-btn dsf-studio__dock-btn--primary"><Save :size="11" /></span>
+              <i class="dsf-studio__dock-sep"></i>
+              <span class="dsf-studio__dock-btn is-active"><Monitor :size="11" /></span>
+              <span class="dsf-studio__dock-btn"><Tablet :size="11" /></span>
+              <span class="dsf-studio__dock-btn"><Smartphone :size="11" /></span>
+              <i class="dsf-studio__dock-sep"></i>
+              <span class="dsf-studio__dock-btn dsf-studio__dock-btn--accent"><Plus :size="11" /></span>
+            </div>
           </div>
           <aside class="dsf-studio__settings" data-dsf-builder-settings>
             <div class="dsf-studio__settings-head"><span><strong>Customize Block</strong><small>Product Hero</small></span><b>×</b></div>
@@ -91,7 +90,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { ArrowUpRight, ChevronDown, ChevronUp, ExternalLink, FileText, GripVertical, Monitor, Palette, Play, Plus, Save, Settings, ShieldCheck, Smartphone, Tablet, Trash2 } from 'lucide-vue-next'
+import { ArrowUpRight, ChevronDown, ChevronUp, ExternalLink, FileText, GripVertical, LayoutTemplate, Monitor, Palette, Play, Plus, Save, Settings, ShieldCheck, Smartphone, Tablet, Trash2 } from 'lucide-vue-next'
 import { safePublicUrl } from '../../utils/safeUrl'
 import { useLandingMotion } from '../../utils/useLandingMotion'
 import { landingBlockStyle } from '../../utils/landingStyle'
@@ -124,7 +123,9 @@ useLandingMotion(root, props.isEditor)
   --ink: var(--dsf-theme-text, #111827);
   position: relative;
   overflow: hidden;
-  padding: clamp(72px, 10vw, 138px) 24px clamp(70px, 9vw, 124px);
+  /* No traditional top header any more (the nav is a floating bottom dock), so
+     the hero starts near the top instead of reserving header-sized space. */
+  padding: clamp(32px, 4.5vw, 64px) 24px clamp(70px, 9vw, 124px);
   color: var(--ink);
   background: var(--dsf-theme-background, #f7f4ed);
   font-family: var(--dsf-theme-body-font, 'Source Sans 3', sans-serif);
@@ -159,21 +160,9 @@ useLandingMotion(root, props.isEditor)
 
 .dsf-product-hero__visual { min-width: 0; }
 .dsf-product-hero__visual.dsf-block-media--filled { aspect-ratio: 4 / 3; border-radius: 18px; box-shadow: 0 35px 90px rgba(26, 45, 64, 0.18), 0 4px 12px rgba(26, 45, 64, 0.08); }
-.dsf-studio { min-width: 0; overflow: hidden; border: 1px solid rgba(17, 24, 39, 0.12); border-radius: 18px; background: #fff; box-shadow: 0 35px 90px rgba(26, 45, 64, 0.18), 0 4px 12px rgba(26, 45, 64, 0.08); transform: rotate(0.35deg); will-change: transform; }
-.dsf-studio__topbar { display: grid; grid-template-columns: minmax(150px, 1fr) auto minmax(210px, 1fr); align-items: center; min-height: 58px; padding: 0 14px; border-bottom: 1px solid #e7ebef; background: #f7f4ed; font-size: 10px; gap: 10px; }
-.dsf-studio__brand { display: flex; align-items: center; min-width: 0; gap: 8px; }
-.dsf-studio__brand img { width: 27px; height: 27px; object-fit: contain; }
-.dsf-studio__brand > span { display: grid; min-width: 0; }
-.dsf-studio__brand strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.dsf-studio__brand small { color: #7c8790; font-size: 7px; }
-.dsf-studio__devices { display: flex; padding: 3px; border: 1px solid #dfe5e9; border-radius: 6px; background: #fff; }
-.dsf-studio__devices span { display: grid; place-items: center; width: 25px; height: 23px; border-radius: 4px; color: #7a8791; }
-.dsf-studio__devices span.is-active { color: #071b2f; background: #a4d2f6; }
-.dsf-studio__tools { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
-.dsf-studio__tools span, .dsf-studio__tools b { display: inline-flex; align-items: center; gap: 4px; padding: 6px 7px; border: 1px solid #dfe4e7; border-radius: 5px; color: #4f5d68; background: #fff; font-size: 7px; font-weight: 750; white-space: nowrap; }
-.dsf-studio__tools b { color: #fff; border-color: var(--blue); background: var(--blue); box-shadow: 0 5px 12px rgba(0, 145, 255, 0.2); }
+.dsf-studio { position: relative; min-width: 0; overflow: hidden; border: 1px solid rgba(17, 24, 39, 0.12); border-radius: 18px; background: #fff; box-shadow: 0 35px 90px rgba(26, 45, 64, 0.18), 0 4px 12px rgba(26, 45, 64, 0.08); transform: rotate(0.35deg); will-change: transform; }
 .dsf-studio__body { display: grid; grid-template-columns: minmax(330px, 1fr) 205px; min-height: 448px; }
-.dsf-studio__canvas { position: relative; display: flex; flex-direction: column; gap: 11px; padding: 18px 20px 48px; background: #eef1f3; }
+.dsf-studio__canvas { position: relative; display: flex; flex-direction: column; gap: 11px; padding: 20px 20px 66px; background: #eef1f3; }
 .dsf-studio__canvas-label { display: flex; justify-content: space-between; color: #86919a; font-size: 7px; font-weight: 800; letter-spacing: 0.11em; }
 .dsf-studio__canvas-label b { color: #65727d; letter-spacing: 0; }
 .dsf-studio__selected-block { position: relative; padding: 3px; border: 2px solid var(--blue); border-radius: 10px; box-shadow: 0 0 0 3px rgba(0, 145, 255, 0.1); }
@@ -193,7 +182,15 @@ useLandingMotion(root, props.isEditor)
 .dsf-canvas-row i { display: block; width: 24px; height: 24px; margin-bottom: 8px; border-radius: 7px; background: #a4d2f6; }
 .dsf-canvas-row .dsf-canvas-card:nth-child(2) i { background: #ffc08e; }.dsf-canvas-row .dsf-canvas-card:nth-child(3) i { background: #0091ff; }
 .dsf-canvas-row strong { font-size: 8px; }
-.dsf-studio__add { position: absolute; bottom: 13px; left: 50%; display: flex; align-items: center; gap: 5px; padding: 7px 13px; border-radius: 999px; color: #071b2f; background: #fff; box-shadow: 0 8px 22px rgba(27, 49, 65, 0.16); font-size: 8px; font-weight: 800; transform: translateX(-50%); }
+/* New editor UI: floating action dock replacing the old top bar. */
+.dsf-studio__dock { position: absolute; bottom: 13px; left: 50%; z-index: 3; display: flex; align-items: center; gap: 3px; padding: 4px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 999px; background: linear-gradient(180deg, #262b33, #14171c); box-shadow: 0 12px 26px rgba(7, 27, 47, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.06); transform: translateX(-50%); }
+.dsf-studio__dock-mark { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 999px; background: rgba(255, 255, 255, 0.08); }
+.dsf-studio__dock-mark img { width: 15px; height: 15px; object-fit: contain; }
+.dsf-studio__dock-sep { width: 1px; height: 15px; margin: 0 2px; background: rgba(255, 255, 255, 0.14); }
+.dsf-studio__dock-btn { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; color: rgba(255, 255, 255, 0.7); }
+.dsf-studio__dock-btn.is-active { color: #fff; background: rgba(255, 255, 255, 0.15); }
+.dsf-studio__dock-btn--primary { color: #fff; background: var(--blue); }
+.dsf-studio__dock-btn--accent { color: #fff; background: var(--coral); }
 .dsf-studio__settings { padding: 15px 13px; border-left: 1px solid #e4e8eb; background: #fff; }
 .dsf-studio__settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }.dsf-studio__settings-head > span { display: grid; }.dsf-studio__settings-head strong { color: #25313a; font-size: 10px; }.dsf-studio__settings-head small { margin: 2px 0 0; padding: 0; color: #89949c; background: transparent; font-size: 7px; }.dsf-studio__settings-head b { color: #4d5963; font-size: 13px; }
 .dsf-studio__tabs { display: grid; grid-template-columns: repeat(2, 1fr); margin-bottom: 10px; padding: 3px; border-radius: 6px; background: #f1f3f5; font-size: 8px; text-align: center; }.dsf-studio__tabs span { display: flex; align-items: center; justify-content: center; padding: 6px; border-radius: 4px; gap: 4px; }.dsf-studio__tabs span.is-active { color: #071b2f; background: #fff; box-shadow: 0 2px 5px rgba(17,24,39,0.08); }
@@ -214,13 +211,13 @@ useLandingMotion(root, props.isEditor)
 @media (max-width: 720px) {
   .dsf-product-hero { padding-right: 12px; padding-left: 12px; }
   .dsf-product-hero h1 { font-size: 38px; text-wrap: balance; }
-  .dsf-studio__topbar { grid-template-columns: 1fr auto; }
-  .dsf-studio__devices, .dsf-studio__tools span { display: none; }
   .dsf-studio__body { grid-template-columns: 1fr; min-height: 400px; }
   .dsf-studio__settings { display: none; }
-  .dsf-studio__canvas { padding: 12px; }
+  .dsf-studio__canvas { padding: 12px 12px 58px; }
   .dsf-canvas-card--hero { padding: 32px 22px; }
-  .dsf-studio__add { display: none; }
+  .dsf-studio__dock { gap: 2px; padding: 3px; }
+  .dsf-studio__dock-btn { width: 20px; height: 20px; }
+  .dsf-studio__dock-sep { margin: 0 1px; }
   .dsf-product-hero__actions { display: grid; }
 }
 

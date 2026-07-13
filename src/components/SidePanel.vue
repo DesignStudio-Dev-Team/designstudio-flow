@@ -197,6 +197,40 @@
             </template>
           </div>
         </div>
+
+        <!-- Advanced: HTML anchor so menu/links like #pricing scroll here -->
+        <div class="dsf-settings-expander" data-style-section="advanced">
+          <button
+            class="dsf-settings-expander__trigger"
+            type="button"
+            @click="toggleStyleSection('advanced')"
+          >
+            <span class="dsf-settings-expander__title">Advanced</span>
+            <ChevronDown
+              :size="18"
+              class="dsf-settings-expander__chevron"
+              :class="{ 'dsf-settings-expander__chevron--open': isStyleSectionExpanded('advanced') }"
+            />
+          </button>
+          <div v-if="isStyleSectionExpanded('advanced')" class="dsf-settings-expander__body">
+            <div class="dsf-field">
+              <label class="dsf-field__label" for="dsf-block-anchor">HTML anchor</label>
+              <input
+                id="dsf-block-anchor"
+                class="dsf-field__input"
+                type="text"
+                inputmode="text"
+                placeholder="e.g. pricing"
+                :value="anchorId"
+                @input="onAnchorInput"
+              />
+              <p class="dsf-field__hint">
+                Give this block a name so links can jump to it. A menu item or link to
+                <code>#{{ anchorId || 'pricing' }}</code> will smooth-scroll here.
+              </p>
+            </div>
+          </div>
+        </div>
       </template>
 
       <!-- Data Tab (Products/Categories) -->
@@ -221,13 +255,22 @@ import { ref, computed, watch, reactive, onMounted, onUnmounted, nextTick } from
 import { X, FileText, Palette, ShoppingBag, Smartphone, ChevronDown } from 'lucide-vue-next'
 import SettingField from './SettingField.vue'
 import { getResponsiveValue, setResponsiveValue } from '../utils/responsiveSettings'
+import { normalizeAnchorId } from '../utils/anchor'
 
 const props = defineProps({
   block: Object,
   blockDefinition: Object,
 })
 
-const emit = defineEmits(['close', 'update:settings'])
+const emit = defineEmits(['close', 'update:settings', 'update:anchor'])
+
+// Block-level HTML anchor (sibling of settings, like the structure-panel label),
+// so links such as #pricing scroll to this block. Normalized to a valid id.
+const anchorId = computed(() => normalizeAnchorId(props.block?.anchorId || ''))
+
+function onAnchorInput(event) {
+  emit('update:anchor', normalizeAnchorId(event?.target?.value || ''))
+}
 
 // ── Draggable float ──────────────────────────────────────────────────────────
 const pos = reactive({ x: 0, y: 0 })
