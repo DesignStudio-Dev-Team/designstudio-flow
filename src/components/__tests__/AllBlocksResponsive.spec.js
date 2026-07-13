@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeAll } from 'vitest'
 import { mount } from '@vue/test-utils'
 import FrontendApp from '../../frontend/FrontendApp.vue'
 
+// Several tests here mount every registered block type in a loop; that's heavy
+// enough to exceed the 5s default under full-suite parallel load, so raise the
+// timeout for the whole file.
+vi.setConfig({ testTimeout: 30000 })
+
 beforeAll(() => {
   vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })))
   window.innerWidth = 1280
@@ -14,9 +19,13 @@ const BLOCK_TYPES = [
   'testimonials', 'form-embed', 'form-with-content', 'product-grid', 'ecommerce-showcase',
   'brand-carousel', 'promo-banner', 'featured-product-banner', 'product-summary',
   'product-gallery', 'product-description', 'product-specs', 'product-tabs',
-  'product-add-to-cart', 'product-hero', 'product-highlights', 'product-related', 'header-mega-menu',
+  'product-add-to-cart', 'product-hero', 'product-highlights', 'product-related',
+  'product-upsells', 'product-reviews', 'product-meta', 'product-spotlight',
+  'store-cart', 'store-checkout', 'store-account', 'store-steps',
+  'shop-header', 'shop-products', 'shop-filters', 'store-thankyou', 'store-mini-cart',
+  'site-login', 'site-search', 'user-dashboard', 'blog-header', 'post-loop', 'header-mega-menu',
   'header-showcase-mega', 'header-cutout-mega', 'footer-dealers', 'cta-banner',
-  'landing-progress-header', 'landing-hero', 'landing-block-explorer', 'landing-block-ready',
+  'landing-progress-header', 'landing-hero', 'landing-showcase-hero', 'landing-block-explorer', 'landing-block-ready',
   'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite',
   'landing-redirect-tool', 'landing-mail-tool', 'landing-marketing-footer',
 ]
@@ -40,6 +49,8 @@ function mountBlock(type, extra) {
 const PADX = /padding(-left|-right)?:\s*[^;]*41px/
 
 describe('every block applies horizontal padding exactly once (no double, no dead slider)', () => {
+  // Mounts every registered block once; heavy enough to exceed the 5s default
+  // under full-suite parallel load, so it gets an explicit generous timeout.
   it('wrapper XOR block — never both, never neither', () => {
     const offenders = []
     for (const type of BLOCK_TYPES) {
@@ -61,7 +72,7 @@ describe('every block applies horizontal padding exactly once (no double, no dea
       if (!wrapperHas && !innerHas) offenders.push(`${type}: DEAD (neither applies paddingX)`)
     }
     expect(offenders, offenders.join('\n')).toEqual([])
-  })
+  }, 30000)
 })
 
 describe('responsive override reaches the frontend per breakpoint', () => {

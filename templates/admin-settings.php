@@ -63,6 +63,38 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 	update_option( 'dsf_recaptcha_secret_key', DSF_Crypto::encrypt( $recaptcha_secret_key ) );
 	update_option( 'dsf_recaptcha_threshold', $recaptcha_threshold );
 
+	// Global SEO defaults: the fallback og:image, the {sep} title separator, and
+	// the site's Organization identity + social profiles that feed JSON-LD.
+	$dsf_allowed_separators = array( '–', '—', '-', '|', '·', '•', ':', '/' );
+	$dsf_title_separator    = isset( $_POST['dsf_seo_title_separator'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_seo_title_separator'] ) ) : '–';
+	if ( ! in_array( $dsf_title_separator, $dsf_allowed_separators, true ) ) {
+		$dsf_title_separator = '–';
+	}
+
+	$dsf_twitter_site = isset( $_POST['dsf_seo_twitter_site'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_seo_twitter_site'] ) ) : '';
+	$dsf_twitter_site = preg_replace( '/[^A-Za-z0-9_]/', '', ltrim( trim( $dsf_twitter_site ), '@' ) );
+	$dsf_twitter_site = '' !== $dsf_twitter_site ? '@' . substr( $dsf_twitter_site, 0, 15 ) : '';
+
+	$dsf_social_profiles = array();
+	foreach ( array( 'facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'tiktok' ) as $dsf_network ) {
+		$dsf_profile_url = isset( $_POST[ 'dsf_seo_social_' . $dsf_network ] ) ? esc_url_raw( trim( (string) wp_unslash( $_POST[ 'dsf_seo_social_' . $dsf_network ] ) ) ) : '';
+		if ( '' !== $dsf_profile_url && preg_match( '#^https?://#i', $dsf_profile_url ) ) {
+			$dsf_social_profiles[] = $dsf_profile_url;
+		}
+	}
+
+	update_option(
+		'dsf_seo_defaults',
+		array(
+			'defaultSocialImage' => isset( $_POST['dsf_seo_default_image'] ) ? esc_url_raw( trim( (string) wp_unslash( $_POST['dsf_seo_default_image'] ) ) ) : '',
+			'titleSeparator'     => $dsf_title_separator,
+			'orgName'            => isset( $_POST['dsf_seo_org_name'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_seo_org_name'] ) ) : '',
+			'orgLogo'            => isset( $_POST['dsf_seo_org_logo'] ) ? esc_url_raw( trim( (string) wp_unslash( $_POST['dsf_seo_org_logo'] ) ) ) : '',
+			'twitterSite'        => $dsf_twitter_site,
+			'socialProfiles'     => $dsf_social_profiles,
+		)
+	);
+
 	// Typography defaults.
 	$typography_mode  = ( isset( $_POST['dsf_typography_mode'] ) && 'override' === $_POST['dsf_typography_mode'] ) ? 'override' : 'theme';
 	$typography_base  = isset( $_POST['dsf_typography_base'] ) ? floatval( wp_unslash( $_POST['dsf_typography_base'] ) ) : 16.0;
@@ -188,6 +220,32 @@ $recaptcha_site_key   = get_option( 'dsf_recaptcha_site_key', '' );
 $recaptcha_secret_key = DSF_Crypto::decrypt( get_option( 'dsf_recaptcha_secret_key', '' ) );
 $recaptcha_threshold  = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
 $notification_bar     = DSF_Notification_Bar::get_settings();
+$seo_defaults         = class_exists( 'DSF_SEO' ) ? DSF_SEO::get_defaults() : array(
+	'defaultSocialImage' => '',
+	'titleSeparator'     => '–',
+	'orgName'            => '',
+	'orgLogo'            => '',
+	'twitterSite'        => '',
+	'socialProfiles'     => array(),
+);
+$seo_social_by_network = array();
+foreach ( (array) ( $seo_defaults['socialProfiles'] ?? array() ) as $seo_profile_url ) {
+	$seo_host = wp_parse_url( (string) $seo_profile_url, PHP_URL_HOST );
+	$seo_host = $seo_host ? strtolower( $seo_host ) : '';
+	if ( false !== strpos( $seo_host, 'facebook' ) ) {
+		$seo_social_by_network['facebook'] = $seo_profile_url;
+	} elseif ( false !== strpos( $seo_host, 'twitter' ) || false !== strpos( $seo_host, 'x.com' ) ) {
+		$seo_social_by_network['twitter'] = $seo_profile_url;
+	} elseif ( false !== strpos( $seo_host, 'instagram' ) ) {
+		$seo_social_by_network['instagram'] = $seo_profile_url;
+	} elseif ( false !== strpos( $seo_host, 'linkedin' ) ) {
+		$seo_social_by_network['linkedin'] = $seo_profile_url;
+	} elseif ( false !== strpos( $seo_host, 'youtube' ) ) {
+		$seo_social_by_network['youtube'] = $seo_profile_url;
+	} elseif ( false !== strpos( $seo_host, 'tiktok' ) ) {
+		$seo_social_by_network['tiktok'] = $seo_profile_url;
+	}
+}
 $previous_theme_value = get_option( 'dsf_previous_theme_defaults', array() );
 $has_previous_theme   = is_array( $previous_theme_value ) && ! empty( $previous_theme_value['colors'] ) && ! empty( $previous_theme_value['typography'] );
 
@@ -338,6 +396,7 @@ $font_options = array(
 			<h2 class="nav-tab-wrapper dsf-settings-tabs" style="margin-bottom: 0;">
 				<a href="#general" class="nav-tab nav-tab-active" data-dsf-tab-link="general">General</a>
 				<a href="#theme" class="nav-tab" data-dsf-tab-link="theme">Theme</a>
+				<a href="#seo" class="nav-tab" data-dsf-tab-link="seo">SEO</a>
 				<a href="#notification" class="nav-tab" data-dsf-tab-link="notification">Notification Bar</a>
 				<a href="#recaptcha" class="nav-tab" data-dsf-tab-link="recaptcha">reCAPTCHA</a>
 			</h2>
@@ -684,6 +743,76 @@ $font_options = array(
 					if (recalcBtn) recalcBtn.addEventListener('click', recomputeFromScale);
 				})();
 				</script>
+			</div>
+
+			<!-- SEO Defaults -->
+			<div class="dsf-card" data-dsf-tab="seo" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
+				<h2 style="margin-top: 0;">SEO Defaults</h2>
+				<p class="description">Site-wide fallbacks used when a page has no SEO settings of its own, plus the business identity that powers search &amp; social rich results (JSON-LD). If a dedicated SEO plugin (Yoast, Rank Math, AIOSEO, SEOPress) is active, DesignStudio Flow defers to it and outputs nothing.</p>
+
+				<table class="form-table">
+					<tr>
+						<th scope="row"><label for="dsf_seo_default_image">Default social image</label></th>
+						<td>
+							<input type="url" id="dsf_seo_default_image" name="dsf_seo_default_image" class="regular-text" value="<?php echo esc_attr( $seo_defaults['defaultSocialImage'] ); ?>" placeholder="https://…">
+							<p class="description">Fallback <code>og:image</code> for shares when a page has no social image and no hero image. Use at least 1200×630px.</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="dsf_seo_title_separator">Title separator</label></th>
+						<td>
+							<select id="dsf_seo_title_separator" name="dsf_seo_title_separator">
+								<?php foreach ( array( '–', '—', '-', '|', '·', '•', ':', '/' ) as $dsf_sep_option ) : ?>
+									<option value="<?php echo esc_attr( $dsf_sep_option ); ?>" <?php selected( $seo_defaults['titleSeparator'], $dsf_sep_option ); ?>><?php echo esc_html( $dsf_sep_option ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<p class="description">Used for the <code>{sep}</code> variable in SEO titles, e.g. <em>Page Title <?php echo esc_html( $seo_defaults['titleSeparator'] ); ?> Site Name</em>.</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="dsf_seo_org_name">Organization / brand name</label></th>
+						<td>
+							<input type="text" id="dsf_seo_org_name" name="dsf_seo_org_name" class="regular-text" value="<?php echo esc_attr( $seo_defaults['orgName'] ); ?>" placeholder="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
+							<p class="description">Publisher name in structured data. Defaults to the site name when blank.</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="dsf_seo_org_logo">Organization logo</label></th>
+						<td>
+							<input type="url" id="dsf_seo_org_logo" name="dsf_seo_org_logo" class="regular-text" value="<?php echo esc_attr( $seo_defaults['orgLogo'] ); ?>" placeholder="https://…">
+							<p class="description">Square logo used in the Organization schema. Defaults to the Site Icon when blank.</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="dsf_seo_twitter_site">X (Twitter) handle</label></th>
+						<td>
+							<input type="text" id="dsf_seo_twitter_site" name="dsf_seo_twitter_site" class="regular-text" value="<?php echo esc_attr( $seo_defaults['twitterSite'] ); ?>" placeholder="@yourbrand">
+							<p class="description">Output as <code>twitter:site</code> on shared cards.</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">Social profiles</th>
+						<td>
+							<p class="description" style="margin-top: 0;">Official profile URLs. Added to structured data as <code>sameAs</code> so search engines can connect your brand's accounts.</p>
+							<?php
+							$dsf_social_labels = array(
+								'facebook'  => 'Facebook',
+								'twitter'   => 'X (Twitter)',
+								'instagram' => 'Instagram',
+								'linkedin'  => 'LinkedIn',
+								'youtube'   => 'YouTube',
+								'tiktok'    => 'TikTok',
+							);
+							foreach ( $dsf_social_labels as $dsf_net_key => $dsf_net_label ) :
+								?>
+								<p style="margin: 6px 0;">
+									<label style="display:inline-block; width:110px;"><?php echo esc_html( $dsf_net_label ); ?></label>
+									<input type="url" name="dsf_seo_social_<?php echo esc_attr( $dsf_net_key ); ?>" class="regular-text" value="<?php echo esc_attr( $seo_social_by_network[ $dsf_net_key ] ?? '' ); ?>" placeholder="https://…">
+								</p>
+							<?php endforeach; ?>
+						</td>
+					</tr>
+				</table>
 			</div>
 
 			<div class="dsf-card" data-dsf-tab="notification" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">

@@ -107,6 +107,16 @@ class DSF_Redirects {
 	}
 
 	/**
+	 * Normalize an internal redirect identifier.
+	 *
+	 * @param mixed $id Raw identifier.
+	 * @return string
+	 */
+	public static function sanitize_id( $id ) {
+		return preg_replace( '/[^a-z0-9_]/', '', strtolower( (string) $id ) );
+	}
+
+	/**
 	 * Constrain the query-parameter handling mode.
 	 *
 	 * @param mixed $value Raw mode.
@@ -234,7 +244,7 @@ class DSF_Redirects {
 		}
 
 		return array(
-			'id'           => ( isset( $raw['id'] ) && $raw['id'] ) ? preg_replace( '/[^a-z0-9_]/', '', strtolower( (string) $raw['id'] ) ) : self::make_id(),
+			'id'           => ( isset( $raw['id'] ) && $raw['id'] ) ? self::sanitize_id( $raw['id'] ) : self::make_id(),
 			'source'       => $source,
 			'target'       => $target,
 			'type'         => self::sanitize_type( isset( $raw['type'] ) ? $raw['type'] : 301 ),
@@ -257,6 +267,29 @@ class DSF_Redirects {
 		$mode  = isset( $redirect['query'] ) ? $redirect['query'] : 'ignore';
 		$query = ( 'exact' === $mode && isset( $redirect['source_query'] ) ) ? self::canonical_query( $redirect['source_query'] ) : '';
 		return ( isset( $redirect['source'] ) ? $redirect['source'] : '' ) . '|' . $query;
+	}
+
+	/**
+	 * Remove every record matching an identifier, including any legacy duplicates.
+	 *
+	 * @param array $redirects Redirect records.
+	 * @param mixed $id        Redirect identifier.
+	 * @return array
+	 */
+	public static function remove_redirect_by_id( $redirects, $id ) {
+		$id = self::sanitize_id( $id );
+		if ( '' === $id ) {
+			return array_values( (array) $redirects );
+		}
+
+		return array_values(
+			array_filter(
+				(array) $redirects,
+				static function ( $redirect ) use ( $id ) {
+					return ! is_array( $redirect ) || ! isset( $redirect['id'] ) || self::sanitize_id( $redirect['id'] ) !== $id;
+				}
+			)
+		);
 	}
 
 	/**
@@ -376,7 +409,7 @@ class DSF_Redirects {
 			if ( $redirect ) {
 				// Preserve the stored id rather than minting a new one.
 				if ( isset( $item['id'] ) && $item['id'] ) {
-					$redirect['id'] = preg_replace( '/[^a-z0-9_]/', '', strtolower( (string) $item['id'] ) );
+					$redirect['id'] = self::sanitize_id( $item['id'] );
 				}
 				$clean[] = $redirect;
 			}
@@ -543,22 +576,30 @@ class DSF_Redirects {
 			$this->back( 'invalid' );
 		}
 
+		$is_update = false;
+		foreach ( $this->get_redirects() as $existing ) {
+			if ( $existing['id'] === $redirect['id'] ) {
+				$is_update = true;
+				break;
+			}
+		}
+
 		$this->upsert( $redirect );
-		$this->back( 'saved' );
+		$this->back( $is_update ? 'updated' : 'saved' );
 	}
 
 	public function handle_delete() {
 		$this->guard();
-		$id = isset( $_GET['id'] ) ? sanitize_text_field( wp_unslash( $_GET['id'] ) ) : '';
+		$id = isset( $_GET['id'] ) ? self::sanitize_id( wp_unslash( $_GET['id'] ) ) : '';
 		check_admin_referer( self::DELETE_ACTION . '_' . $id );
 
-		$redirects = array_filter(
-			$this->get_redirects(),
-			static function ( $redirect ) use ( $id ) {
-				return $redirect['id'] !== $id;
-			}
-		);
-		$this->save_redirects( $redirects );
+		$redirects = $this->get_redirects();
+		$remaining = self::remove_redirect_by_id( $redirects, $id );
+		if ( count( $remaining ) === count( $redirects ) ) {
+			$this->back( 'not_found' );
+		}
+
+		$this->save_redirects( $remaining );
 		$this->back( 'deleted' );
 	}
 
@@ -650,32 +691,60 @@ class DSF_Redirects {
 
 		$this->render_notice();
 
-		$redirects = $this->get_redirects();
-		$post_url  = admin_url( 'admin-post.php' );
+		$redirects        = $this->get_redirects();
+		$post_url         = admin_url( 'admin-post.php' );
+		$editing_id       = isset( $_GET['edit'] ) ? self::sanitize_id( wp_unslash( $_GET['edit'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only selection of an existing redirect.
+		$editing_redirect = null;
+
+		if ( '' !== $editing_id ) {
+			foreach ( $redirects as $redirect ) {
+				if ( $redirect['id'] === $editing_id ) {
+					$editing_redirect = $redirect;
+					break;
+				}
+			}
+		}
+
+		$is_editing    = is_array( $editing_redirect );
+		$source_value  = $is_editing ? $this->display_source( $editing_redirect ) : '';
+		$target_value  = $is_editing ? $editing_redirect['target'] : '';
+		$query_value   = $is_editing ? $editing_redirect['query'] : 'ignore';
+		$type_value    = $is_editing ? $editing_redirect['type'] : 301;
+		$enabled_value = ! $is_editing || ! empty( $editing_redirect['enabled'] );
+		$cancel_url    = add_query_arg(
+			array(
+				'page' => 'dsf-tools',
+				'tab'  => 'redirects',
+			),
+			admin_url( 'admin.php' )
+		);
 		?>
 		<div class="dsf-tools-grid" style="display:grid;gap:20px;max-width:980px;margin-top:16px;">
 			<div class="card" style="padding:20px;">
-				<h2 style="margin-top:0;"><?php esc_html_e( 'Add a redirect', 'designstudio-flow' ); ?></h2>
+				<h2 style="margin-top:0;"><?php echo $is_editing ? esc_html__( 'Edit redirect', 'designstudio-flow' ) : esc_html__( 'Add a redirect', 'designstudio-flow' ); ?></h2>
 				<p class="description"><?php esc_html_e( 'Source is a path on this site (for example /old-page). Target can be a path or a full URL. For exact query matching, include the parameters on the source, e.g. /old-page?ref=email.', 'designstudio-flow' ); ?></p>
 				<form method="post" action="<?php echo esc_url( $post_url ); ?>">
 					<?php wp_nonce_field( self::SAVE_ACTION ); ?>
 					<input type="hidden" name="action" value="<?php echo esc_attr( self::SAVE_ACTION ); ?>">
+					<?php if ( $is_editing ) : ?>
+						<input type="hidden" name="redirect_id" value="<?php echo esc_attr( $editing_redirect['id'] ); ?>">
+					<?php endif; ?>
 					<table class="form-table">
 						<tr>
 							<th scope="row"><label for="dsf-redirect-source"><?php esc_html_e( 'Source path', 'designstudio-flow' ); ?></label></th>
-							<td><input type="text" id="dsf-redirect-source" name="source" class="regular-text" placeholder="/old-page" required></td>
+							<td><input type="text" id="dsf-redirect-source" name="source" class="regular-text" placeholder="/old-page" value="<?php echo esc_attr( $source_value ); ?>" required></td>
 						</tr>
 						<tr>
 							<th scope="row"><label for="dsf-redirect-target"><?php esc_html_e( 'Target', 'designstudio-flow' ); ?></label></th>
-							<td><input type="text" id="dsf-redirect-target" name="target" class="regular-text" placeholder="/new-page" required></td>
+							<td><input type="text" id="dsf-redirect-target" name="target" class="regular-text" placeholder="/new-page" value="<?php echo esc_attr( $target_value ); ?>" required></td>
 						</tr>
 						<tr>
 							<th scope="row"><label for="dsf-redirect-query"><?php esc_html_e( 'Query parameters', 'designstudio-flow' ); ?></label></th>
 							<td>
 								<select id="dsf-redirect-query" name="query">
-									<option value="ignore"><?php esc_html_e( 'Ignore all parameters', 'designstudio-flow' ); ?></option>
-									<option value="exact"><?php esc_html_e( 'Exact match in any order', 'designstudio-flow' ); ?></option>
-									<option value="pass"><?php esc_html_e( 'Ignore, but pass parameters to the target', 'designstudio-flow' ); ?></option>
+									<option value="ignore" <?php selected( $query_value, 'ignore' ); ?>><?php esc_html_e( 'Ignore all parameters', 'designstudio-flow' ); ?></option>
+									<option value="exact" <?php selected( $query_value, 'exact' ); ?>><?php esc_html_e( 'Exact match in any order', 'designstudio-flow' ); ?></option>
+									<option value="pass" <?php selected( $query_value, 'pass' ); ?>><?php esc_html_e( 'Ignore, but pass parameters to the target', 'designstudio-flow' ); ?></option>
 								</select>
 								<p class="description" style="margin-top:6px;">
 									<?php esc_html_e( 'Ignore: match the path regardless of ?params. Exact: the request must carry the same params as the source (any order). Pass: match the path and forward the original ?params onto the target.', 'designstudio-flow' ); ?>
@@ -686,14 +755,19 @@ class DSF_Redirects {
 							<th scope="row"><label for="dsf-redirect-type"><?php esc_html_e( 'Type', 'designstudio-flow' ); ?></label></th>
 							<td>
 								<select id="dsf-redirect-type" name="type">
-									<option value="301"><?php esc_html_e( '301 — Permanent', 'designstudio-flow' ); ?></option>
-									<option value="302"><?php esc_html_e( '302 — Temporary', 'designstudio-flow' ); ?></option>
+									<option value="301" <?php selected( $type_value, 301 ); ?>><?php esc_html_e( '301 — Permanent', 'designstudio-flow' ); ?></option>
+									<option value="302" <?php selected( $type_value, 302 ); ?>><?php esc_html_e( '302 — Temporary', 'designstudio-flow' ); ?></option>
 								</select>
-								<label style="margin-left:16px;"><input type="checkbox" name="enabled" value="1" checked> <?php esc_html_e( 'Enabled', 'designstudio-flow' ); ?></label>
+								<label style="margin-left:16px;"><input type="checkbox" name="enabled" value="1" <?php checked( $enabled_value ); ?>> <?php esc_html_e( 'Enabled', 'designstudio-flow' ); ?></label>
 							</td>
 						</tr>
 					</table>
-					<p class="submit"><button type="submit" class="button button-primary"><?php esc_html_e( 'Add redirect', 'designstudio-flow' ); ?></button></p>
+					<p class="submit">
+						<button type="submit" class="button button-primary"><?php echo $is_editing ? esc_html__( 'Update redirect', 'designstudio-flow' ) : esc_html__( 'Add redirect', 'designstudio-flow' ); ?></button>
+						<?php if ( $is_editing ) : ?>
+							<a class="button" href="<?php echo esc_url( $cancel_url ); ?>"><?php esc_html_e( 'Cancel', 'designstudio-flow' ); ?></a>
+						<?php endif; ?>
+					</p>
 				</form>
 			</div>
 
@@ -719,17 +793,31 @@ class DSF_Redirects {
 								<?php
 								$toggle_url = wp_nonce_url(
 									add_query_arg(
-										array( 'action' => self::TOGGLE_ACTION, 'id' => $redirect['id'] ),
+										array(
+											'action' => self::TOGGLE_ACTION,
+											'id'     => $redirect['id'],
+										),
 										$post_url
 									),
 									self::TOGGLE_ACTION . '_' . $redirect['id']
 								);
 								$delete_url = wp_nonce_url(
 									add_query_arg(
-										array( 'action' => self::DELETE_ACTION, 'id' => $redirect['id'] ),
+										array(
+											'action' => self::DELETE_ACTION,
+											'id'     => $redirect['id'],
+										),
 										$post_url
 									),
 									self::DELETE_ACTION . '_' . $redirect['id']
+								);
+								$edit_url   = add_query_arg(
+									array(
+										'page' => 'dsf-tools',
+										'tab'  => 'redirects',
+										'edit' => $redirect['id'],
+									),
+									admin_url( 'admin.php' )
 								);
 								?>
 								<tr>
@@ -746,6 +834,8 @@ class DSF_Redirects {
 										<?php endif; ?>
 									</td>
 									<td>
+										<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'designstudio-flow' ); ?></a>
+										&nbsp;|&nbsp;
 										<a href="<?php echo esc_url( $toggle_url ); ?>"><?php echo ! empty( $redirect['enabled'] ) ? esc_html__( 'Disable', 'designstudio-flow' ) : esc_html__( 'Enable', 'designstudio-flow' ); ?></a>
 										&nbsp;|&nbsp;
 										<a href="<?php echo esc_url( $delete_url ); ?>" style="color:#b32d2e;" onclick="return confirm('<?php echo esc_js( __( 'Delete this redirect?', 'designstudio-flow' ) ); ?>');"><?php esc_html_e( 'Delete', 'designstudio-flow' ); ?></a>
@@ -800,9 +890,11 @@ class DSF_Redirects {
 
 		$messages = array(
 			'saved'     => array( 'success', __( 'Redirect saved.', 'designstudio-flow' ) ),
+			'updated'   => array( 'success', __( 'Redirect updated.', 'designstudio-flow' ) ),
 			'deleted'   => array( 'success', __( 'Redirect deleted.', 'designstudio-flow' ) ),
 			'toggled'   => array( 'success', __( 'Redirect updated.', 'designstudio-flow' ) ),
 			'invalid'   => array( 'error', __( 'Could not save: a source and target are required, and a redirect cannot point to itself.', 'designstudio-flow' ) ),
+			'not_found' => array( 'error', __( 'That redirect no longer exists.', 'designstudio-flow' ) ),
 			'no_file'   => array( 'error', __( 'No CSV file was uploaded.', 'designstudio-flow' ) ),
 			'csv_empty' => array( 'error', __( 'No valid rows found in that CSV.', 'designstudio-flow' ) ),
 		);

@@ -19,10 +19,11 @@
       <button type="button" class="dsf-block-toolbar__btn" title="Settings" aria-label="Open block settings" @click.stop="$emit('open-settings')">
         <Settings :size="16" />
       </button>
-      <button type="button" class="dsf-block-toolbar__btn" title="Save block to library" aria-label="Save block to library" @click.stop="$emit('save-block')">
+      <button v-if="!minimal" type="button" class="dsf-block-toolbar__btn" title="Save block to library" aria-label="Save block to library" @click.stop="$emit('save-block')">
         <Bookmark :size="16" />
       </button>
       <button
+        v-if="!minimal"
         type="button"
         class="dsf-block-toolbar__btn"
         :class="{ 'dsf-block-toolbar__btn--active': isSelectedForTemplate }"
@@ -39,7 +40,7 @@
       <button v-if="allowReorder" type="button" class="dsf-block-toolbar__btn" title="Move down" aria-label="Move block down" @click.stop="$emit('move-down')">
         <ChevronDown :size="16" />
       </button>
-      <button type="button" class="dsf-block-toolbar__btn dsf-block-toolbar__btn--delete" title="Delete" aria-label="Delete block" @click.stop="$emit('delete')">
+      <button v-if="!minimal" type="button" class="dsf-block-toolbar__btn dsf-block-toolbar__btn--delete" title="Delete" aria-label="Delete block" @click.stop="$emit('delete')">
         <Trash2 :size="16" />
       </button>
     </div>
@@ -63,6 +64,7 @@ import { blockWrapperStyle, hasResponsiveKey } from '../utils/responsiveSettings
 // Block preview components
 import ContentPreview from './blocks/ContentPreview.vue'
 import FaqPreview from './blocks/FaqPreview.vue'
+import BreadcrumbsPreview from './blocks/BreadcrumbsPreview.vue'
 import HeroPreview from './blocks/HeroCenteredPreview.vue'
 import ProductGridPreview from './blocks/ProductGridPreview.vue'
 import EcommerceShowcasePreview from './blocks/EcommerceShowcasePreview.vue'
@@ -89,6 +91,24 @@ import ProductAddToCartPreview from './blocks/ProductAddToCartPreview.vue'
 import ProductHeroPreview from './blocks/ProductHeroPreview.vue'
 import ProductHighlightsPreview from './blocks/ProductHighlightsPreview.vue'
 import ProductRelatedPreview from './blocks/ProductRelatedPreview.vue'
+import ProductSpotlightPreview from './blocks/ProductSpotlightPreview.vue'
+import ProductUpsellsPreview from './blocks/ProductUpsellsPreview.vue'
+import ProductReviewsPreview from './blocks/ProductReviewsPreview.vue'
+import ProductMetaPreview from './blocks/ProductMetaPreview.vue'
+import StoreCartPreview from './blocks/StoreCartPreview.vue'
+import StoreCheckoutPreview from './blocks/StoreCheckoutPreview.vue'
+import StoreAccountPreview from './blocks/StoreAccountPreview.vue'
+import StoreStepsPreview from './blocks/StoreStepsPreview.vue'
+import ShopHeaderPreview from './blocks/ShopHeaderPreview.vue'
+import ShopProductsPreview from './blocks/ShopProductsPreview.vue'
+import ShopFiltersPreview from './blocks/ShopFiltersPreview.vue'
+import StoreMiniCartPreview from './blocks/StoreMiniCartPreview.vue'
+import StoreThankyouPreview from './blocks/StoreThankyouPreview.vue'
+import SiteLoginPreview from './blocks/SiteLoginPreview.vue'
+import SiteSearchPreview from './blocks/SiteSearchPreview.vue'
+import UserDashboardPreview from './blocks/UserDashboardPreview.vue'
+import BlogHeaderPreview from './blocks/BlogHeaderPreview.vue'
+import PostLoopPreview from './blocks/PostLoopPreview.vue'
 import DuoHeroPreview from './blocks/DuoHeroPreview.vue'
 import FeaturedPromoBannerPreview from './blocks/FeaturedPromoBannerPreview.vue'
 import HeaderMegaMenuPreview from './blocks/HeaderMegaMenuPreview.vue'
@@ -98,7 +118,9 @@ import FooterDealersPreview from './blocks/FooterDealersPreview.vue'
 import FormEmbedPreview from './blocks/FormEmbedPreview.vue'
 import FormWithContentPreview from './blocks/FormWithContentPreview.vue'
 import LandingProgressHeaderPreview from './blocks/LandingProgressHeaderPreview.vue'
+import LandingDockHeaderPreview from './blocks/LandingDockHeaderPreview.vue'
 import LandingHeroPreview from './blocks/LandingHeroPreview.vue'
+import LandingShowcaseHeroPreview from './blocks/LandingShowcaseHeroPreview.vue'
 import LandingBlockExplorerPreview from './blocks/LandingBlockExplorerPreview.vue'
 import LandingBlockReadyPreview from './blocks/LandingBlockReadyPreview.vue'
 import LandingProductStoryPreview from './blocks/LandingProductStoryPreview.vue'
@@ -108,6 +130,7 @@ import LandingRedirectToolPreview from './blocks/LandingRedirectToolPreview.vue'
 import LandingMailToolPreview from './blocks/LandingMailToolPreview.vue'
 import LandingMarketingFooterPreview from './blocks/LandingMarketingFooterPreview.vue'
 import GenericBlockPreview from './blocks/GenericBlockPreview.vue'
+import { getCustomBlock } from '../blockRegistry.js'
 
 const props = defineProps({
   block: Object,
@@ -125,6 +148,11 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Saved-block editor: only the settings control, no delete/reorder/save/select.
+  minimal: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 defineEmits(['select', 'move-up', 'move-down', 'delete', 'open-settings', 'save-block', 'toggle-select'])
@@ -132,6 +160,7 @@ defineEmits(['select', 'move-up', 'move-down', 'delete', 'open-settings', 'save-
 const previewComponents = {
   'content': ContentPreview,
   'faq': FaqPreview,
+  'breadcrumbs': BreadcrumbsPreview,
   'hero': HeroPreview,
   'product-grid': ProductGridPreview,
   'ecommerce-showcase': EcommerceShowcasePreview,
@@ -158,6 +187,24 @@ const previewComponents = {
   'product-hero': ProductHeroPreview,
   'product-highlights': ProductHighlightsPreview,
   'product-related': ProductRelatedPreview,
+  'product-spotlight': ProductSpotlightPreview,
+  'product-upsells': ProductUpsellsPreview,
+  'product-reviews': ProductReviewsPreview,
+  'product-meta': ProductMetaPreview,
+  'store-cart': StoreCartPreview,
+  'store-checkout': StoreCheckoutPreview,
+  'store-account': StoreAccountPreview,
+  'store-steps': StoreStepsPreview,
+  'shop-header': ShopHeaderPreview,
+  'shop-products': ShopProductsPreview,
+  'shop-filters': ShopFiltersPreview,
+  'store-mini-cart': StoreMiniCartPreview,
+  'store-thankyou': StoreThankyouPreview,
+  'site-login': SiteLoginPreview,
+  'site-search': SiteSearchPreview,
+  'user-dashboard': UserDashboardPreview,
+  'blog-header': BlogHeaderPreview,
+  'post-loop': PostLoopPreview,
   'duo-hero': DuoHeroPreview,
   'featured-promo-banner': FeaturedPromoBannerPreview,
   'header-mega-menu': HeaderMegaMenuPreview,
@@ -167,7 +214,9 @@ const previewComponents = {
   'form-embed': FormEmbedPreview,
   'form-with-content': FormWithContentPreview,
   'landing-progress-header': LandingProgressHeaderPreview,
+  'landing-dock-header': LandingDockHeaderPreview,
   'landing-hero': LandingHeroPreview,
+  'landing-showcase-hero': LandingShowcaseHeroPreview,
   'landing-block-explorer': LandingBlockExplorerPreview,
   'landing-block-ready': LandingBlockReadyPreview,
   'landing-product-story': LandingProductStoryPreview,
@@ -179,10 +228,12 @@ const previewComponents = {
 }
 
 function getPreviewComponent(blockType) {
-  return previewComponents[blockType] || GenericBlockPreview
+  // Built-in components win; then runtime-registered add-on blocks (reactive, so
+  // a late registration re-renders); finally the generic placeholder.
+  return previewComponents[blockType] || getCustomBlock(blockType) || GenericBlockPreview
 }
 
-const templateBlockTypes = new Set(['header-mega-menu', 'header-showcase-mega', 'header-cutout-mega', 'footer-dealers', 'landing-progress-header', 'landing-hero', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-redirect-tool', 'landing-mail-tool', 'landing-marketing-footer'])
+const templateBlockTypes = new Set(['header-mega-menu', 'header-showcase-mega', 'header-cutout-mega', 'footer-dealers', 'landing-progress-header', 'landing-dock-header', 'landing-hero', 'landing-showcase-hero', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-redirect-tool', 'landing-mail-tool', 'landing-marketing-footer'])
 const isLandingBlock = computed(() => props.block?.type?.startsWith('landing-') === true)
 
 const defaultMargin = computed(() => (

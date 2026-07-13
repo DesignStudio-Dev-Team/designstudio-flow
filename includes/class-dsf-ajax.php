@@ -60,9 +60,20 @@ class DSF_Ajax {
 		add_action( 'wp_ajax_dsf_save_template', array( $this, 'save_template' ) );
 		add_action( 'wp_ajax_dsf_list_templates', array( $this, 'list_templates' ) );
 		add_action( 'wp_ajax_dsf_delete_template', array( $this, 'delete_template' ) );
+		add_action( 'wp_ajax_dsf_import_template', array( $this, 'import_template' ) );
+
+		// Update a single saved block from its dedicated editor + sync every
+		// instance that references it.
+		add_action( 'wp_ajax_dsf_save_library_item', array( $this, 'save_library_item' ) );
 
 		// Product templates — fetch a sample product's live data for the editor preview.
 		add_action( 'wp_ajax_dsf_get_product_context', array( $this, 'get_product_context' ) );
+
+		// Shop templates — fetch a sample archive's data for the editor preview.
+		add_action( 'wp_ajax_dsf_get_shop_context', array( $this, 'get_shop_context' ) );
+
+		// Blog templates — fetch a sample post archive for the editor preview.
+		add_action( 'wp_ajax_dsf_get_blog_context', array( $this, 'get_blog_context' ) );
 
 		// Header/footer templates — set (or clear) the site-wide default.
 		add_action( 'wp_ajax_dsf_set_default_layout', array( $this, 'set_default_layout' ) );
@@ -154,12 +165,64 @@ class DSF_Ajax {
 			wp_send_json_error( array( 'message' => 'Product not found' ), 404 );
 		}
 
-		$context = DSF_Product_Templates::build_product_context( $product_id, array( 'related' => true ) );
+		$context = DSF_Product_Templates::build_product_context(
+			$product_id,
+			array(
+				'related' => true,
+				'upsells' => true,
+			)
+		);
 		if ( empty( $context ) ) {
 			wp_send_json_error( array( 'message' => 'Product not found' ), 404 );
 		}
 
 		wp_send_json_success( array( 'product' => $context ) );
+	}
+
+	/**
+	 * Return a sample archive payload so the editor can preview shop blocks
+	 * against real catalog data. Editor-only: requires a valid editor nonce and
+	 * page-editing capability.
+	 */
+	public function get_shop_context() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			wp_send_json_error( array( 'message' => 'WooCommerce not active' ) );
+		}
+
+		$term_id = isset( $_POST['term_id'] ) ? absint( $_POST['term_id'] ) : 0;
+		$context = DSF_Shop_Templates::build_preview_context( $term_id );
+
+		if ( empty( $context ) ) {
+			wp_send_json_error( array( 'message' => 'Archive preview unavailable' ), 404 );
+		}
+
+		wp_send_json_success( array( 'archive' => $context ) );
+	}
+
+	/**
+	 * Return a sample post-archive payload so the editor can preview blog blocks
+	 * against real content. Editor-only: requires a valid editor nonce and
+	 * page-editing capability.
+	 */
+	public function get_blog_context() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$term_id = isset( $_POST['term_id'] ) ? absint( $_POST['term_id'] ) : 0;
+		$context = DSF_Blog_Templates::build_preview_context( $term_id );
+
+		if ( empty( $context ) ) {
+			wp_send_json_error( array( 'message' => 'Archive preview unavailable' ), 404 );
+		}
+
+		wp_send_json_success( array( 'archive' => $context ) );
 	}
 
 	/**
@@ -445,6 +508,158 @@ class DSF_Ajax {
 	}
 
 	/**
+	 * Import templates from an exported JSON payload uploaded in the editor
+	 * picker. Accepts the same file format the admin Tools export produces.
+	 */
+	public function import_template() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$payload = isset( $_POST['payload'] ) ? wp_unslash( $_POST['payload'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON payload is validated + per-field sanitized below.
+		$data    = $payload ? json_decode( $payload, true ) : null;
+
+		if ( ! is_array( $data ) || empty( $data['_dsf_export'] ) || empty( $data['items'] ) || ! is_array( $data['items'] ) ) {
+			wp_send_json_error( array( 'message' => 'No importable templates found in this file.' ), 400 );
+		}
+
+		$imported = array();
+		foreach ( $data['items'] as $item ) {
+			if ( ! is_array( $item ) || 'dsf_template' !== ( $item['post_type'] ?? '' ) ) {
+				continue;
+			}
+			$meta   = isset( $item['meta'] ) && is_array( $item['meta'] ) ? $item['meta'] : array();
+			$blocks = $this->sanitize_template_blocks( $meta['_dsf_template_blocks'] ?? array() );
+			if ( empty( $blocks ) ) {
+				continue;
+			}
+			$theme = isset( $meta['_dsf_template_theme'] ) && is_array( $meta['_dsf_template_theme'] )
+				? $this->sanitize_theme_value( $meta['_dsf_template_theme'] )
+				: array();
+			$kind  = in_array( $meta['_dsf_template_kind'] ?? '', array( 'page', 'section' ), true ) ? $meta['_dsf_template_kind'] : 'page';
+			$name  = sanitize_text_field( $item['title'] ?? '' );
+			if ( '' === $name ) {
+				$name = __( 'Imported template', 'designstudio-flow' );
+			}
+
+			$post_id = wp_insert_post(
+				array( 'post_type' => 'dsf_template', 'post_status' => 'publish', 'post_title' => $name ),
+				true
+			);
+			if ( is_wp_error( $post_id ) || ! $post_id ) {
+				continue;
+			}
+			update_post_meta( $post_id, '_dsf_template_blocks', $blocks );
+			update_post_meta( $post_id, '_dsf_template_theme', $theme );
+			update_post_meta( $post_id, '_dsf_template_kind', $kind );
+
+			$imported[] = $this->format_template( get_post( $post_id ) );
+		}
+
+		if ( empty( $imported ) ) {
+			wp_send_json_error( array( 'message' => 'Could not import any templates.' ), 500 );
+		}
+
+		wp_send_json_success( array( 'templates' => $imported ) );
+	}
+
+	/**
+	 * Save a single saved block from its dedicated editor and propagate the new
+	 * settings to every page/layout/template instance that references it.
+	 */
+	public function save_library_item() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+
+		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		if ( ! $post_id || 'dsf_saved_block' !== get_post_type( $post_id ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid saved block' ), 400 );
+		}
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+
+		$type = isset( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
+		if ( '' === $type ) {
+			$type = get_post_meta( $post_id, '_dsf_block_type', true );
+		}
+
+		$settings_raw = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : '{}'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON, sanitized per-type below.
+		$settings     = json_decode( $settings_raw, true );
+		$settings     = is_array( $settings ) ? $settings : array();
+		$sanitized    = $this->sanitize_known_block_settings( array( array( 'type' => $type, 'settings' => $settings ) ) );
+		$settings     = isset( $sanitized[0]['settings'] ) && is_array( $sanitized[0]['settings'] ) ? $sanitized[0]['settings'] : array();
+
+		$title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+		if ( '' !== $title ) {
+			wp_update_post( array( 'ID' => $post_id, 'post_title' => $title ) );
+		}
+
+		update_post_meta( $post_id, '_dsf_block_type', $type );
+		update_post_meta( $post_id, '_dsf_block_settings', $settings );
+
+		$synced = $this->sync_saved_block_instances( $post_id, $settings );
+
+		wp_send_json_success(
+			array(
+				'id'       => $post_id,
+				'type'     => $type,
+				'settings' => $settings,
+				'synced'   => $synced,
+			)
+		);
+	}
+
+	/**
+	 * Rewrite every block whose `savedBlockId` matches this saved block with its
+	 * new settings, across all Flow content. Returns the number of posts updated.
+	 *
+	 * @param int   $saved_block_id Saved block post ID.
+	 * @param array $settings       New settings to apply.
+	 * @return int
+	 */
+	private function sync_saved_block_instances( $saved_block_id, $settings ) {
+		$posts = get_posts(
+			array(
+				'post_type'      => array( 'page', 'dsf_layout', 'dsf_product_template' ),
+				'post_status'    => array( 'publish', 'draft', 'pending', 'private', 'future' ),
+				'posts_per_page' => -1,
+				'no_found_rows'  => true,
+				'fields'         => 'ids',
+				'meta_key'       => '_dsf_blocks', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+			)
+		);
+
+		$updated = 0;
+		foreach ( $posts as $pid ) {
+			$blocks = get_post_meta( $pid, '_dsf_blocks', true );
+			if ( ! is_array( $blocks ) ) {
+				continue;
+			}
+			$changed = false;
+			foreach ( $blocks as &$block ) {
+				if ( is_array( $block ) && (int) ( $block['savedBlockId'] ?? 0 ) === (int) $saved_block_id ) {
+					$block['settings'] = $settings;
+					$changed           = true;
+				}
+			}
+			unset( $block );
+
+			if ( $changed ) {
+				update_post_meta( $pid, '_dsf_blocks', $blocks );
+				// Drop the cached first-paint snapshot so the page re-renders fresh.
+				delete_post_meta( $pid, '_dsf_html_snapshot' );
+				$updated++;
+			}
+		}
+
+		return $updated;
+	}
+
+	/**
 	 * Parse and sanitize an exported JSON payload into clean saved-block items.
 	 *
 	 * Only `dsf_saved_block` items with a registered block type survive; every
@@ -651,6 +866,9 @@ class DSF_Ajax {
 			'blockCount' => count( $blocks ),
 			'blocks'     => $blocks,
 			'theme'      => is_array( $theme ) ? $theme : array(),
+			// Reuses the generic single-export admin-post URL (works for any
+			// supported post type, including templates).
+			'exportUrl'  => $this->saved_block_export_url( $post->ID ),
 		);
 	}
 
@@ -780,13 +998,14 @@ class DSF_Ajax {
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			wp_send_json_error( array( 'message' => 'Invalid settings JSON data: ' . json_last_error_msg() ) );
 		}
-		$settings_data = is_array( $settings_data ) ? $settings_data : array();
+		$settings_data           = is_array( $settings_data ) ? $settings_data : array();
 		$settings_data['theme']  = $this->sanitize_page_theme_settings( $settings_data['theme'] ?? array() );
 		$settings_data['layout'] = $this->sanitize_page_layout_settings( $settings_data['layout'] ?? array() );
 		if ( isset( $settings_data['popup'] ) && is_array( $settings_data['popup'] ) ) {
 			$settings_data['popup'] = $this->sanitize_popup_settings( $settings_data['popup'] );
 		}
 		$settings_data['popupId'] = isset( $settings_data['popupId'] ) ? absint( $settings_data['popupId'] ) : 0;
+		$settings_data['seo']     = $this->sanitize_page_seo_settings( $settings_data['seo'] ?? array() );
 
 		$post_type = get_post_type( $post_id );
 
@@ -802,6 +1021,20 @@ class DSF_Ajax {
 		// JSON response and exits without touching any product's slug/parent/title.
 		if ( 'dsf_product_template' === $post_type ) {
 			$this->save_product_template_item( $post_id, $blocks_data, $settings_data, $title, $status );
+			return;
+		}
+
+		// Shop templates mirror product templates: blocks/settings plus the archive
+		// assignment rule, live toggle, and editor-only preview category.
+		if ( 'dsf_shop_template' === $post_type ) {
+			$this->save_shop_template_item( $post_id, $blocks_data, $settings_data, $title, $status );
+			return;
+		}
+
+		// Blog templates: blocks/settings plus the blog-archive assignment rule,
+		// live toggle, and editor-only preview category.
+		if ( 'dsf_blog_template' === $post_type ) {
+			$this->save_blog_template_item( $post_id, $blocks_data, $settings_data, $title, $status );
 			return;
 		}
 
@@ -823,6 +1056,15 @@ class DSF_Ajax {
 
 		if ( 'page' === $post_type ) {
 			update_post_meta( $post_id, '_dsf_enabled', true );
+
+			// Mirror the SEO noindex switch to a top-level meta flag so the core
+			// sitemap can cheaply exclude these pages (the nested seo.noindex in
+			// _dsf_settings is not queryable). See DSF_SEO::exclude_noindex_from_sitemap.
+			if ( ! empty( $settings_data['seo']['noindex'] ) ) {
+				update_post_meta( $post_id, '_dsf_noindex', '1' );
+			} else {
+				delete_post_meta( $post_id, '_dsf_noindex' );
+			}
 		}
 
 		if ( 'dsf_layout' === $post_type ) {
@@ -999,6 +1241,142 @@ class DSF_Ajax {
 	}
 
 	/**
+	 * Persist a shop template edited in the Flow editor.
+	 *
+	 * Stores blocks/settings to the same meta a page uses, plus the shop-template
+	 * configuration (archive assignment rule, live toggle, editor-only preview
+	 * category). It never touches any shop page or term.
+	 *
+	 * @param int    $post_id       Shop template post ID.
+	 * @param array  $blocks_data   Sanitized blocks.
+	 * @param array  $settings_data Sanitized page settings (may carry a shopTemplate key).
+	 * @param string $title         Submitted title.
+	 * @param string $status        Requested status ('draft' | 'publish' | '').
+	 */
+	private function save_shop_template_item( $post_id, $blocks_data, $settings_data, $title, $status ) {
+		$config = ( isset( $settings_data['shopTemplate'] ) && is_array( $settings_data['shopTemplate'] ) )
+			? $settings_data['shopTemplate']
+			: array();
+
+		$assignment = DSF_Shop_Templates::sanitize_assignment( $config['assignment'] ?? array() );
+		$active     = empty( $config['active'] ) ? '' : '1';
+		$term_id    = isset( $config['previewTerm'] ) ? absint( $config['previewTerm'] ) : 0;
+		if ( $term_id ) {
+			$term = get_term( $term_id, 'product_cat' );
+			if ( ! $term || is_wp_error( $term ) ) {
+				$term_id = 0;
+			}
+		}
+
+		update_post_meta( $post_id, '_dsf_st_assignment', $assignment );
+		update_post_meta( $post_id, '_dsf_st_active', $active );
+		update_post_meta( $post_id, '_dsf_st_preview_term', $term_id );
+
+		// The shop-template config is editor transport only — keep it out of the
+		// stored page settings (theme/layout/popup remain).
+		unset( $settings_data['shopTemplate'] );
+
+		update_post_meta( $post_id, '_dsf_blocks', $blocks_data );
+		update_post_meta( $post_id, '_dsf_settings', $settings_data );
+
+		$post_update = array(
+			'ID'                => $post_id,
+			'post_modified'     => current_time( 'mysql' ),
+			'post_modified_gmt' => current_time( 'mysql', 1 ),
+		);
+		if ( '' !== $title ) {
+			$post_update['post_title'] = $title;
+		}
+		if ( 'draft' === $status ) {
+			$post_update['post_status'] = 'draft';
+		} elseif ( 'publish' === $status ) {
+			$post_update['post_status'] = 'publish';
+		}
+		wp_update_post( $post_update );
+
+		wp_send_json_success(
+			array(
+				'message'     => 'Shop template saved',
+				'post_id'     => $post_id,
+				'post_status' => get_post_status( $post_id ),
+				'post_title'  => get_the_title( $post_id ),
+				'post_name'   => '',
+				'post_parent' => 0,
+				'permalink'   => '',
+				'preview_url' => '',
+			)
+		);
+	}
+
+	/**
+	 * Persist a blog template edited in the Flow editor.
+	 *
+	 * Stores blocks/settings to the same meta a page uses, plus the blog-template
+	 * configuration (archive assignment rule, live toggle, editor-only preview
+	 * category). It never touches any post or term.
+	 *
+	 * @param int    $post_id       Blog template post ID.
+	 * @param array  $blocks_data   Sanitized blocks.
+	 * @param array  $settings_data Sanitized page settings (may carry a blogTemplate key).
+	 * @param string $title         Submitted title.
+	 * @param string $status        Requested status ('draft' | 'publish' | '').
+	 */
+	private function save_blog_template_item( $post_id, $blocks_data, $settings_data, $title, $status ) {
+		$config = ( isset( $settings_data['blogTemplate'] ) && is_array( $settings_data['blogTemplate'] ) )
+			? $settings_data['blogTemplate']
+			: array();
+
+		$assignment = DSF_Blog_Templates::sanitize_assignment( $config['assignment'] ?? array() );
+		$active     = empty( $config['active'] ) ? '' : '1';
+		$term_id    = isset( $config['previewTerm'] ) ? absint( $config['previewTerm'] ) : 0;
+		if ( $term_id ) {
+			$term = get_term( $term_id, 'category' );
+			if ( ! $term || is_wp_error( $term ) ) {
+				$term_id = 0;
+			}
+		}
+
+		update_post_meta( $post_id, '_dsf_bt_assignment', $assignment );
+		update_post_meta( $post_id, '_dsf_bt_active', $active );
+		update_post_meta( $post_id, '_dsf_bt_preview_term', $term_id );
+
+		// The blog-template config is editor transport only — keep it out of the
+		// stored page settings (theme/layout/popup remain).
+		unset( $settings_data['blogTemplate'] );
+
+		update_post_meta( $post_id, '_dsf_blocks', $blocks_data );
+		update_post_meta( $post_id, '_dsf_settings', $settings_data );
+
+		$post_update = array(
+			'ID'                => $post_id,
+			'post_modified'     => current_time( 'mysql' ),
+			'post_modified_gmt' => current_time( 'mysql', 1 ),
+		);
+		if ( '' !== $title ) {
+			$post_update['post_title'] = $title;
+		}
+		if ( 'draft' === $status ) {
+			$post_update['post_status'] = 'draft';
+		} elseif ( 'publish' === $status ) {
+			$post_update['post_status'] = 'publish';
+		}
+		wp_update_post( $post_update );
+
+		wp_send_json_success(
+			array(
+				'message'     => 'Blog template saved',
+				'post_id'     => $post_id,
+				'post_status' => get_post_status( $post_id ),
+				'post_title'  => get_the_title( $post_id ),
+				'post_name'   => '',
+				'post_parent' => 0,
+				'permalink'   => '',
+				'preview_url' => '',
+			)
+		);
+	}
+
+	/**
 	 * Sanitize settings for blocks with dedicated save-time contracts.
 	 *
 	 * @param array $blocks Saved page blocks.
@@ -1013,12 +1391,38 @@ class DSF_Ajax {
 			if ( ! is_array( $block ) ) {
 				continue;
 			}
-			if ( in_array( $block['type'] ?? '', array( 'landing-progress-header', 'landing-hero', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-marketing-footer' ), true ) ) {
+			// Optional editor-only custom label (shown in the structure panel so a
+			// page full of "Content" blocks stays legible). Never output on the
+			// frontend, but sanitize + length-cap it since it is stored.
+			if ( isset( $block['label'] ) ) {
+				$label = sanitize_text_field( (string) $block['label'] );
+				if ( '' === $label ) {
+					unset( $block['label'] );
+				} else {
+					$block['label'] = mb_substr( $label, 0, 80 );
+				}
+			}
+			// Optional user "HTML anchor" so links like #pricing scroll to the
+			// block. Stored block-level (rendered as the frontend wrapper id), so
+			// normalize to a safe id here regardless of the block type.
+			if ( isset( $block['anchorId'] ) ) {
+				$anchor = self::sanitize_anchor_id( (string) $block['anchorId'] );
+				if ( '' === $anchor ) {
+					unset( $block['anchorId'] );
+				} else {
+					$block['anchorId'] = $anchor;
+				}
+			}
+			if ( in_array( $block['type'] ?? '', array( 'landing-progress-header', 'landing-dock-header', 'landing-hero', 'landing-showcase-hero', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-marketing-footer' ), true ) ) {
 				$block['settings'] = $this->sanitize_landing_block_settings( $block['type'], $block['settings'] ?? array() );
 				continue;
 			}
 			if ( 'faq' === ( $block['type'] ?? '' ) ) {
 				$block['settings'] = $this->sanitize_faq_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'breadcrumbs' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_breadcrumbs_settings( $block['settings'] ?? array() );
 				continue;
 			}
 			if ( 'text-image' === ( $block['type'] ?? '' ) ) {
@@ -1073,11 +1477,94 @@ class DSF_Ajax {
 				$block['settings'] = $this->sanitize_product_related_settings( $block['settings'] ?? array() );
 				continue;
 			}
+			if ( 'product-spotlight' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_spotlight_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-upsells' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_upsells_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-reviews' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_reviews_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'product-meta' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_product_meta_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( in_array( $block['type'] ?? '', array( 'store-cart', 'store-checkout', 'store-account' ), true ) ) {
+				$block['settings'] = $this->sanitize_store_fragment_settings( $block['type'], $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'store-steps' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_store_steps_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'shop-header' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_shop_header_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'shop-products' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_shop_products_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'shop-filters' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_shop_filters_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'blog-header' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_blog_header_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'post-loop' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_post_loop_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'store-mini-cart' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_store_mini_cart_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'store-thankyou' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_store_thankyou_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'site-login' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_site_login_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'site-search' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_site_search_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'user-dashboard' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_user_dashboard_settings( $block['settings'] ?? array() );
+				continue;
+			}
 			if ( in_array( $block['type'] ?? '', array( 'form-embed', 'form-with-content' ), true ) ) {
 				$block['settings'] = $this->sanitize_form_block_settings( $block['type'], $block['settings'] ?? array() );
 				continue;
 			}
 			if ( 'header-showcase-mega' !== ( $block['type'] ?? '' ) ) {
+				// No built-in sanitizer matched this type. Add-on blocks registered
+				// via `dsf_register_blocks` land here: give them a hook to sanitize
+				// their own settings. The default is a pass-through so built-in
+				// behaviour is unchanged; add-ons typically return
+				// DSF_Ajax::sanitize_block_settings_by_schema( $settings, $type ).
+				$type = $block['type'] ?? '';
+				if ( '' !== $type ) {
+					/**
+					 * Filter an add-on block's settings before they are stored.
+					 *
+					 * @param array  $settings Raw settings from the client.
+					 * @param string $type     Block type (id).
+					 */
+					$block['settings'] = apply_filters(
+						'dsf_sanitize_block_settings',
+						isset( $block['settings'] ) && is_array( $block['settings'] ) ? $block['settings'] : array(),
+						$type
+					);
+				}
 				continue;
 			}
 			$settings = isset( $block['settings'] ) && is_array( $block['settings'] ) ? $block['settings'] : array();
@@ -1116,6 +1603,175 @@ class DSF_Ajax {
 		unset( $block );
 
 		return $blocks;
+	}
+
+	/**
+	 * Sanitize Breadcrumbs block settings. Presentation-only — the trail itself
+	 * is built server-side from the real page hierarchy at render time.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_breadcrumbs_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$separator = isset( $settings['separator'] ) ? sanitize_key( $settings['separator'] ) : 'chevron';
+		if ( ! in_array( $separator, array( 'chevron', 'slash', 'dot', 'arrow' ), true ) ) {
+			$separator = 'chevron';
+		}
+		$align = isset( $settings['align'] ) ? sanitize_key( $settings['align'] ) : 'left';
+		if ( ! in_array( $align, array( 'left', 'center', 'right' ), true ) ) {
+			$align = 'left';
+		}
+
+		$clamp = static function ( $value, $min, $max, $default ) {
+			$value = is_numeric( $value ) ? (int) $value : $default;
+			return max( $min, min( $max, $value ) );
+		};
+
+		return array(
+			'homeLabel'   => mb_substr( sanitize_text_field( $settings['homeLabel'] ?? 'Home' ), 0, 40 ),
+			'separator'   => $separator,
+			'showCurrent' => ! empty( $settings['showCurrent'] ),
+			'align'       => $align,
+			'textColor'   => sanitize_hex_color( $settings['textColor'] ?? '' ) ? sanitize_hex_color( $settings['textColor'] ) : '',
+			'linkColor'   => sanitize_hex_color( $settings['linkColor'] ?? '' ) ? sanitize_hex_color( $settings['linkColor'] ) : '',
+			'fontSize'    => $clamp( $settings['fontSize'] ?? 14, 11, 20, 14 ),
+			'maxWidth'    => $clamp( $settings['maxWidth'] ?? 1100, 480, 1400, 1100 ),
+			'paddingY'    => $clamp( $settings['paddingY'] ?? 16, 0, 80, 16 ),
+			'paddingX'    => $clamp( $settings['paddingX'] ?? 24, 0, 120, 24 ),
+		);
+	}
+
+	/**
+	 * Normalize a user-typed block anchor into a safe HTML id.
+	 *
+	 * Mirrors the editor's normalizeAnchorId() so the stored id matches what the
+	 * author saw: lowercase, spaces/underscores → hyphen, only [a-z0-9-] kept,
+	 * collapsed/trimmed hyphens, a leading digit prefixed, and length-capped.
+	 * Returns '' when nothing usable remains.
+	 *
+	 * @param string $raw Raw anchor value.
+	 * @return string
+	 */
+	public static function sanitize_anchor_id( $raw ) {
+		$id = strtolower( trim( (string) $raw ) );
+		$id = preg_replace( '/[\s_]+/', '-', $id );
+		$id = preg_replace( '/[^a-z0-9-]/', '', (string) $id );
+		$id = preg_replace( '/-+/', '-', (string) $id );
+		$id = trim( (string) $id, '-' );
+		if ( '' === $id ) {
+			return '';
+		}
+		if ( preg_match( '/^[0-9]/', $id ) ) {
+			$id = 's-' . $id;
+		}
+		return substr( $id, 0, 80 );
+	}
+
+	/**
+	 * Sanitize an add-on block's settings using its registered schema.
+	 *
+	 * A convenience for `dsf_sanitize_block_settings` callbacks: each value is
+	 * sanitized according to the control `type` declared in the block's `settings`
+	 * schema, and any key not present in the schema is dropped. This is the safe
+	 * default for third-party blocks — an add-on that needs custom handling can
+	 * ignore it and sanitize the array itself.
+	 *
+	 * @param array  $settings Raw settings from the client.
+	 * @param string $type     Block type (id).
+	 * @return array Sanitized settings limited to schema keys.
+	 */
+	public static function sanitize_block_settings_by_schema( $settings, $type ) {
+		if ( ! is_array( $settings ) || ! class_exists( 'DSF_Blocks' ) ) {
+			return array();
+		}
+
+		$block  = DSF_Blocks::get_instance()->get_block( $type );
+		$schema = ( is_array( $block ) && isset( $block['settings'] ) && is_array( $block['settings'] ) )
+			? $block['settings']
+			: array();
+		if ( empty( $schema ) ) {
+			return array();
+		}
+
+		$clean = array();
+		foreach ( $schema as $key => $control ) {
+			if ( ! array_key_exists( $key, $settings ) ) {
+				continue;
+			}
+			$control_type  = is_array( $control ) && isset( $control['type'] ) ? $control['type'] : 'text';
+			$clean[ $key ] = self::sanitize_schema_value( $settings[ $key ], $control_type, is_array( $control ) ? $control : array() );
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize a single settings value by its declared control type.
+	 *
+	 * @param mixed  $value        Raw value.
+	 * @param string $control_type Control type from the schema.
+	 * @param array  $control      Full control schema (for min/max/options).
+	 * @return mixed
+	 */
+	private static function sanitize_schema_value( $value, $control_type, $control ) {
+		switch ( $control_type ) {
+			case 'wysiwyg':
+				return wp_kses_post( is_string( $value ) ? $value : '' );
+
+			case 'color':
+				$color = sanitize_hex_color( is_string( $value ) ? $value : '' );
+				return $color ? $color : '';
+
+			case 'url':
+			case 'link':
+				return esc_url_raw( is_string( $value ) ? $value : '', array( 'http', 'https', 'mailto', 'tel' ) );
+
+			case 'image':
+				return esc_url_raw( is_string( $value ) ? $value : '', array( 'http', 'https' ) );
+
+			case 'number':
+			case 'slider':
+				$num = is_numeric( $value ) ? $value + 0 : 0;
+				if ( isset( $control['min'] ) && is_numeric( $control['min'] ) ) {
+					$num = max( $control['min'] + 0, $num );
+				}
+				if ( isset( $control['max'] ) && is_numeric( $control['max'] ) ) {
+					$num = min( $control['max'] + 0, $num );
+				}
+				return $num;
+
+			case 'toggle':
+			case 'checkbox':
+			case 'boolean':
+				return (bool) $value;
+
+			case 'select':
+				$value   = is_scalar( $value ) ? (string) $value : '';
+				$options = isset( $control['options'] ) && is_array( $control['options'] ) ? $control['options'] : array();
+				if ( ! empty( $options ) ) {
+					// Options may be a flat list or a value => label map.
+					$allowed = array_keys( $options ) === range( 0, count( $options ) - 1 )
+						? array_map( 'strval', $options )
+						: array_map( 'strval', array_keys( $options ) );
+					if ( ! in_array( $value, $allowed, true ) ) {
+						return '';
+					}
+				}
+				return sanitize_text_field( $value );
+
+			case 'textarea':
+				return sanitize_textarea_field( is_string( $value ) ? $value : '' );
+
+			default:
+				if ( is_array( $value ) ) {
+					// Repeater/group: sanitize each leaf as plain text. Add-ons
+					// needing richer nested handling should sanitize themselves.
+					return map_deep( $value, 'sanitize_text_field' );
+				}
+				return sanitize_text_field( is_scalar( $value ) ? (string) $value : '' );
+		}
 	}
 
 	/**
@@ -1291,6 +1947,530 @@ class DSF_Ajax {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * Sanitize the Product Spotlight block settings (presentation only — product
+	 * data and the cart form are rendered server-side from the current product).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_spotlight_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'imageSide'            => 'right' === ( $settings['imageSide'] ?? '' ) ? 'right' : 'left',
+			'backdrop'             => 'none' === ( $settings['backdrop'] ?? '' ) ? 'none' : 'soft',
+			'eyebrowText'          => sanitize_text_field( $settings['eyebrowText'] ?? '' ),
+			'showRating'           => ! isset( $settings['showRating'] ) || ! empty( $settings['showRating'] ),
+			'showShortDescription' => ! isset( $settings['showShortDescription'] ) || ! empty( $settings['showShortDescription'] ),
+			'showStock'            => ! isset( $settings['showStock'] ) || ! empty( $settings['showStock'] ),
+			'showSku'              => ! empty( $settings['showSku'] ),
+			'showAddToCart'        => ! isset( $settings['showAddToCart'] ) || ! empty( $settings['showAddToCart'] ),
+			'showSaleBadge'        => ! isset( $settings['showSaleBadge'] ) || ! empty( $settings['showSaleBadge'] ),
+			'saleBadgeText'        => sanitize_text_field( $settings['saleBadgeText'] ?? 'Sale' ),
+			'maxWidth'             => max( 720, min( 1600, absint( $settings['maxWidth'] ?? 1240 ) ) ),
+			'padding'              => max( 0, min( 160, absint( $settings['padding'] ?? 56 ) ) ),
+			'paddingX'             => max( 0, min( 120, absint( $settings['paddingX'] ?? 24 ) ) ),
+			'marginY'              => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'           => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'accentColor', 'titleColor', 'priceColor', 'buttonColor', 'buttonTextColor', 'backgroundColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Product Upsells block settings (the upsell cards themselves
+	 * come from the server at render time, never from the client).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_upsells_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'showHeading' => ! isset( $settings['showHeading'] ) || ! empty( $settings['showHeading'] ),
+			'headingText' => sanitize_text_field( $settings['headingText'] ?? 'Pairs well with' ),
+			'count'       => max( 2, min( 8, absint( $settings['count'] ?? 4 ) ) ),
+			'columns'     => max( 2, min( 4, absint( $settings['columns'] ?? 4 ) ) ),
+			'showPrice'   => ! isset( $settings['showPrice'] ) || ! empty( $settings['showPrice'] ),
+			'maxWidth'    => max( 480, min( 1600, absint( $settings['maxWidth'] ?? 1200 ) ) ),
+			'padding'     => max( 0, min( 160, absint( $settings['padding'] ?? 40 ) ) ),
+			'paddingX'    => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'     => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'  => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'headingColor', 'accentColor', 'backgroundColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Product Reviews block settings (presentation only — the reviews
+	 * themselves are WooCommerce's own template captured and sanitized server-side).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_reviews_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'showHeading' => ! isset( $settings['showHeading'] ) || ! empty( $settings['showHeading'] ),
+			'headingText' => sanitize_text_field( $settings['headingText'] ?? 'Customer Reviews' ),
+			'showSummary' => ! isset( $settings['showSummary'] ) || ! empty( $settings['showSummary'] ),
+			'maxWidth'    => max( 320, min( 1400, absint( $settings['maxWidth'] ?? 900 ) ) ),
+			'padding'     => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'    => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'     => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'  => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'headingColor', 'accentColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Product Meta block settings (presentation only — SKU, category,
+	 * and tag values are read live from the current product at render time).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_product_meta_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'showSku'        => ! isset( $settings['showSku'] ) || ! empty( $settings['showSku'] ),
+			'showCategories' => ! isset( $settings['showCategories'] ) || ! empty( $settings['showCategories'] ),
+			'showTags'       => ! isset( $settings['showTags'] ) || ! empty( $settings['showTags'] ),
+			'layout'         => 'inline' === ( $settings['layout'] ?? '' ) ? 'inline' : 'stacked',
+			'alignment'      => in_array( $settings['alignment'] ?? '', array( 'left', 'center' ), true ) ? $settings['alignment'] : 'left',
+			'maxWidth'       => max( 320, min( 1200, absint( $settings['maxWidth'] ?? 640 ) ) ),
+			'padding'        => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'       => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'        => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'     => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'labelColor', 'linkColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the page/template SEO settings (title, description, social image,
+	 * canonical, noindex). Variables like {title} are plain-text tokens resolved
+	 * server-side at render time (DSF_SEO), never client HTML.
+	 *
+	 * @param mixed $seo Submitted SEO settings.
+	 * @return array
+	 */
+	private function sanitize_page_seo_settings( $seo ) {
+		$seo = is_array( $seo ) ? $seo : array();
+
+		$canonical = isset( $seo['canonical'] ) ? esc_url_raw( trim( (string) $seo['canonical'] ) ) : '';
+		if ( $canonical && ! preg_match( '#^https?://#i', $canonical ) ) {
+			$canonical = '';
+		}
+
+		return array(
+			'title'       => mb_substr( sanitize_text_field( $seo['title'] ?? '' ), 0, 200 ),
+			'description' => mb_substr( sanitize_text_field( $seo['description'] ?? '' ), 0, 300 ),
+			'socialImage' => esc_url_raw( (string) ( $seo['socialImage'] ?? '' ) ),
+			'canonical'   => $canonical,
+			'noindex'     => ! empty( $seo['noindex'] ),
+			'nofollow'    => ! empty( $seo['nofollow'] ),
+		);
+	}
+
+	/**
+	 * Sanitize the Blog Header block settings (presentation only — the archive
+	 * title/description are read live from the viewed archive at render time).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_blog_header_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'showTitle'       => ! isset( $settings['showTitle'] ) || ! empty( $settings['showTitle'] ),
+			'showDescription' => ! isset( $settings['showDescription'] ) || ! empty( $settings['showDescription'] ),
+			'showCount'       => ! isset( $settings['showCount'] ) || ! empty( $settings['showCount'] ),
+			'alignment'       => in_array( $settings['alignment'] ?? '', array( 'left', 'center' ), true ) ? $settings['alignment'] : 'left',
+			'maxWidth'        => max( 480, min( 1600, absint( $settings['maxWidth'] ?? 1100 ) ) ),
+			'padding'         => max( 0, min( 160, absint( $settings['padding'] ?? 40 ) ) ),
+			'paddingX'        => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'         => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'      => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'titleColor', 'textColor', 'backgroundColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Post Loop block settings (the post cards and pagination come
+	 * from the server-built archive context, never the client).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_post_loop_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$layouts  = array( 'grid', 'list' );
+
+		$clean = array(
+			'layout'          => in_array( $settings['layout'] ?? '', $layouts, true ) ? $settings['layout'] : 'grid',
+			'columns'         => max( 1, min( 4, absint( $settings['columns'] ?? 3 ) ) ),
+			'featuredFirst'   => ! isset( $settings['featuredFirst'] ) || ! empty( $settings['featuredFirst'] ),
+			'showImage'       => ! isset( $settings['showImage'] ) || ! empty( $settings['showImage'] ),
+			'showExcerpt'     => ! isset( $settings['showExcerpt'] ) || ! empty( $settings['showExcerpt'] ),
+			'showDate'        => ! isset( $settings['showDate'] ) || ! empty( $settings['showDate'] ),
+			'showAuthor'      => ! isset( $settings['showAuthor'] ) || ! empty( $settings['showAuthor'] ),
+			'showCategories'  => ! isset( $settings['showCategories'] ) || ! empty( $settings['showCategories'] ),
+			'showReadingTime' => ! isset( $settings['showReadingTime'] ) || ! empty( $settings['showReadingTime'] ),
+			'showPagination'  => ! isset( $settings['showPagination'] ) || ! empty( $settings['showPagination'] ),
+			'readMoreText'    => sanitize_text_field( $settings['readMoreText'] ?? 'Read article' ),
+			'maxWidth'        => max( 480, min( 1600, absint( $settings['maxWidth'] ?? 1200 ) ) ),
+			'padding'         => max( 0, min( 160, absint( $settings['padding'] ?? 24 ) ) ),
+			'paddingX'        => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'         => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'      => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'accentColor', 'cardBackground' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Product Filters block settings (filter values and category
+	 * links come from the server-built archive context, never the client).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_shop_filters_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$accent = sanitize_hex_color( $settings['accentColor'] ?? '' );
+
+		return array(
+			'showPrice'      => ! isset( $settings['showPrice'] ) || ! empty( $settings['showPrice'] ),
+			'showCategories' => ! isset( $settings['showCategories'] ) || ! empty( $settings['showCategories'] ),
+			'showCounts'     => ! isset( $settings['showCounts'] ) || ! empty( $settings['showCounts'] ),
+			'layout'         => 'panel' === ( $settings['layout'] ?? '' ) ? 'panel' : 'bar',
+			'accentColor'    => $accent ? $accent : '',
+			'maxWidth'       => max( 480, min( 1600, absint( $settings['maxWidth'] ?? 1200 ) ) ),
+			'padding'        => max( 0, min( 160, absint( $settings['padding'] ?? 12 ) ) ),
+			'paddingX'       => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'        => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'     => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+	}
+
+	/**
+	 * Sanitize the Mini Cart block settings (live counts come from WooCommerce's
+	 * cart session and fragments, never the client).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_store_mini_cart_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'placement'     => 'inline' === ( $settings['placement'] ?? '' ) ? 'inline' : 'floating',
+			'corner'        => 'bottom-left' === ( $settings['corner'] ?? '' ) ? 'bottom-left' : 'bottom-right',
+			'showSubtotal'  => ! isset( $settings['showSubtotal'] ) || ! empty( $settings['showSubtotal'] ),
+			'hideWhenEmpty' => ! isset( $settings['hideWhenEmpty'] ) || ! empty( $settings['hideWhenEmpty'] ),
+			'marginY'       => max( 0, min( 100, absint( $settings['marginY'] ?? 0 ) ) ),
+			'paddingX'      => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'responsive'    => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'buttonColor', 'buttonTextColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Thank You Banner block settings.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_store_thankyou_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'headingText'  => sanitize_text_field( $settings['headingText'] ?? 'Thank you for your order!' ),
+			'messageText'  => sanitize_textarea_field( $settings['messageText'] ?? '' ),
+			'showConfetti' => ! isset( $settings['showConfetti'] ) || ! empty( $settings['showConfetti'] ),
+			'maxWidth'     => max( 480, min( 1400, absint( $settings['maxWidth'] ?? 900 ) ) ),
+			'padding'      => max( 0, min( 160, absint( $settings['padding'] ?? 40 ) ) ),
+			'paddingX'     => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'      => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'   => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'accentColor', 'backgroundColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Login block settings (the form posts to wp-login.php; endpoints
+	 * and redirects come from the server-built site context, never the client).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_site_login_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'headingText'    => sanitize_text_field( $settings['headingText'] ?? 'Welcome back' ),
+			'subheadingText' => sanitize_text_field( $settings['subheadingText'] ?? '' ),
+			'showRemember'   => ! isset( $settings['showRemember'] ) || ! empty( $settings['showRemember'] ),
+			'showLinks'      => ! isset( $settings['showLinks'] ) || ! empty( $settings['showLinks'] ),
+			'maxWidth'       => max( 320, min( 720, absint( $settings['maxWidth'] ?? 440 ) ) ),
+			'padding'        => max( 0, min( 160, absint( $settings['padding'] ?? 48 ) ) ),
+			'paddingX'       => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'        => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'     => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'accentColor', 'backgroundColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Search block settings (queries and results are built
+	 * server-side per request, never trusted from the client).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_site_search_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$accent = sanitize_hex_color( $settings['accentColor'] ?? '' );
+
+		return array(
+			'headingText'    => sanitize_text_field( $settings['headingText'] ?? 'Search' ),
+			'placeholder'    => sanitize_text_field( $settings['placeholder'] ?? '' ),
+			'showTypeBadges' => ! isset( $settings['showTypeBadges'] ) || ! empty( $settings['showTypeBadges'] ),
+			'showImages'     => ! isset( $settings['showImages'] ) || ! empty( $settings['showImages'] ),
+			'accentColor'    => $accent ? $accent : '',
+			'maxWidth'       => max( 420, min( 1200, absint( $settings['maxWidth'] ?? 760 ) ) ),
+			'padding'        => max( 0, min( 160, absint( $settings['padding'] ?? 32 ) ) ),
+			'paddingX'       => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'        => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'     => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+	}
+
+	/**
+	 * Sanitize the User Dashboard block settings (user identity, links, and
+	 * orders come from the server-built site context, never the client).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_user_dashboard_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'welcomeText'     => sanitize_text_field( $settings['welcomeText'] ?? 'Welcome back,' ),
+			'showOrders'      => ! isset( $settings['showOrders'] ) || ! empty( $settings['showOrders'] ),
+			'showQuickLinks'  => ! isset( $settings['showQuickLinks'] ) || ! empty( $settings['showQuickLinks'] ),
+			'loginPromptText' => sanitize_text_field( $settings['loginPromptText'] ?? 'Sign in to see your dashboard.' ),
+			'maxWidth'        => max( 480, min( 1400, absint( $settings['maxWidth'] ?? 1000 ) ) ),
+			'padding'         => max( 0, min( 160, absint( $settings['padding'] ?? 32 ) ) ),
+			'paddingX'        => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'         => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'      => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'accentColor', 'backgroundColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Shop Header block settings (presentation only — the archive
+	 * title/description are read live from the viewed archive at render time).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_shop_header_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'showTitle'       => ! isset( $settings['showTitle'] ) || ! empty( $settings['showTitle'] ),
+			'showDescription' => ! isset( $settings['showDescription'] ) || ! empty( $settings['showDescription'] ),
+			'showCount'       => ! isset( $settings['showCount'] ) || ! empty( $settings['showCount'] ),
+			'alignment'       => in_array( $settings['alignment'] ?? '', array( 'left', 'center' ), true ) ? $settings['alignment'] : 'left',
+			'maxWidth'        => max( 480, min( 1600, absint( $settings['maxWidth'] ?? 1200 ) ) ),
+			'padding'         => max( 0, min( 160, absint( $settings['padding'] ?? 32 ) ) ),
+			'paddingX'        => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'         => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'      => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'titleColor', 'textColor', 'backgroundColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Shop Products block settings (the product cards, sorting, and
+	 * pagination all come from the server-built archive context, never the client).
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_shop_products_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'columns'        => max( 2, min( 5, absint( $settings['columns'] ?? 4 ) ) ),
+			'imageAspect'    => in_array( $settings['imageAspect'] ?? '', array( 'square', 'portrait', 'landscape' ), true ) ? $settings['imageAspect'] : 'square',
+			'showPrice'      => ! isset( $settings['showPrice'] ) || ! empty( $settings['showPrice'] ),
+			'showRating'     => ! isset( $settings['showRating'] ) || ! empty( $settings['showRating'] ),
+			'showAddToCart'  => ! isset( $settings['showAddToCart'] ) || ! empty( $settings['showAddToCart'] ),
+			'showSorting'    => ! isset( $settings['showSorting'] ) || ! empty( $settings['showSorting'] ),
+			'showCount'      => ! isset( $settings['showCount'] ) || ! empty( $settings['showCount'] ),
+			'showPagination' => ! isset( $settings['showPagination'] ) || ! empty( $settings['showPagination'] ),
+			'maxWidth'       => max( 480, min( 1600, absint( $settings['maxWidth'] ?? 1200 ) ) ),
+			'padding'        => max( 0, min( 160, absint( $settings['padding'] ?? 24 ) ) ),
+			'paddingX'       => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'        => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'     => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		foreach ( array( 'accentColor', 'buttonColor', 'buttonTextColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the store fragment blocks' settings (cart / checkout / account).
+	 *
+	 * Presentation only — the fragment HTML itself is WooCommerce's own shortcode
+	 * output, captured and sanitized server-side at render time (DSF_Store_Pages);
+	 * nothing the client submits here is ever rendered as HTML.
+	 *
+	 * @param string $type     Block type.
+	 * @param array  $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_store_fragment_settings( $type, $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+
+		$clean = array(
+			'maxWidth'   => max( 720, min( 1600, absint( $settings['maxWidth'] ?? ( 'store-checkout' === $type ? 1140 : 1100 ) ) ) ),
+			'padding'    => max( 0, min( 160, absint( $settings['padding'] ?? 24 ) ) ),
+			'paddingX'   => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'    => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive' => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+
+		$colors = array( 'accentColor' );
+
+		if ( 'store-cart' === $type ) {
+			$clean['showCrossSells'] = ! isset( $settings['showCrossSells'] ) || ! empty( $settings['showCrossSells'] );
+			$colors[]                = 'buttonColor';
+			$colors[]                = 'buttonTextColor';
+		} elseif ( 'store-checkout' === $type ) {
+			$clean['layout'] = 'stacked' === ( $settings['layout'] ?? '' ) ? 'stacked' : 'split';
+			$colors[]        = 'buttonColor';
+			$colors[]        = 'buttonTextColor';
+		} elseif ( 'store-account' === $type ) {
+			$clean['navStyle'] = 'top' === ( $settings['navStyle'] ?? '' ) ? 'top' : 'side';
+		}
+
+		foreach ( $colors as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Checkout Steps block settings.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_store_steps_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$steps    = array( 'auto', 'cart', 'checkout', 'complete' );
+
+		$accent = sanitize_hex_color( $settings['accentColor'] ?? '' );
+
+		return array(
+			'labelCart'     => sanitize_text_field( $settings['labelCart'] ?? 'Cart' ),
+			'labelCheckout' => sanitize_text_field( $settings['labelCheckout'] ?? 'Checkout' ),
+			'labelComplete' => sanitize_text_field( $settings['labelComplete'] ?? 'Order Complete' ),
+			'currentStep'   => in_array( $settings['currentStep'] ?? '', $steps, true ) ? $settings['currentStep'] : 'auto',
+			'linkSteps'     => ! isset( $settings['linkSteps'] ) || ! empty( $settings['linkSteps'] ),
+			'accentColor'   => $accent ? $accent : '',
+			'maxWidth'      => max( 320, min( 1200, absint( $settings['maxWidth'] ?? 720 ) ) ),
+			'padding'       => max( 0, min( 160, absint( $settings['padding'] ?? 0 ) ) ),
+			'paddingX'      => max( 0, min( 120, absint( $settings['paddingX'] ?? 0 ) ) ),
+			'marginY'       => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'responsive'    => $this->sanitize_product_responsive_spacing( $settings ),
+		);
 	}
 
 	/**
@@ -1550,7 +2730,7 @@ class DSF_Ajax {
 			'paddingX' => max( 0, min( 80, absint( $settings['paddingX'] ?? 0 ) ) ),
 			'marginY'  => max( 0, min( 80, absint( $settings['marginY'] ?? 0 ) ) ),
 		);
-		foreach ( array( 'backgroundColor', 'textColor', 'accentColor' ) as $key ) {
+		foreach ( array( 'backgroundColor', 'textColor', 'accentColor', 'eyebrowColor' ) as $key ) {
 			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
 			$clean[ $key ] = $color ? $color : '';
 		}
@@ -1569,17 +2749,50 @@ class DSF_Ajax {
 			return $clean;
 		}
 
+		if ( 'landing-dock-header' === $type ) {
+			$clean['brandText'] = sanitize_text_field( $settings['brandText'] ?? '' );
+			$clean['homeUrl']   = $this->sanitize_showcase_url( $settings['homeUrl'] ?? '' );
+			$clean['logoImage'] = esc_url_raw( $settings['logoImage'] ?? '', array( 'http', 'https' ) );
+			$clean['navLinks']  = $this->sanitize_dock_nav_links( $settings['navLinks'] ?? array(), 16 );
+			return $clean;
+		}
+
 		if ( 'landing-hero' === $type ) {
 			foreach ( array( 'eyebrow', 'title', 'primaryText', 'secondaryText', 'note' ) as $key ) {
 				$clean[ $key ] = sanitize_text_field( $settings[ $key ] ?? '' );
 			}
-			$clean['description']  = sanitize_textarea_field( $settings['description'] ?? '' );
-			$clean['primaryUrl']   = $this->sanitize_showcase_url( $settings['primaryUrl'] ?? '' );
-			$clean['secondaryUrl'] = $this->sanitize_showcase_url( $settings['secondaryUrl'] ?? '' );
+			$clean['description']   = sanitize_textarea_field( $settings['description'] ?? '' );
+			$clean['primaryUrl']    = $this->sanitize_showcase_url( $settings['primaryUrl'] ?? '' );
+			$clean['secondaryUrl']  = $this->sanitize_showcase_url( $settings['secondaryUrl'] ?? '' );
 			$clean['align']         = in_array( $settings['align'] ?? '', array( 'left', 'center' ), true ) ? $settings['align'] : 'left';
 			$clean['mediaPosition'] = in_array( $settings['mediaPosition'] ?? '', array( 'right', 'left' ), true ) ? $settings['mediaPosition'] : 'right';
 
 			$clean = array_merge( $clean, $this->sanitize_landing_media( $settings, 'media' ) );
+			return $clean;
+		}
+
+		if ( 'landing-showcase-hero' === $type ) {
+			$text_limits = array(
+				'eyebrow'       => 96,
+				'title'         => 96,
+				'tagline'       => 240,
+				'primaryText'   => 80,
+				'secondaryText' => 80,
+				'chip1'         => 96,
+				'chip2'         => 96,
+				'chip3'         => 96,
+			);
+			foreach ( $text_limits as $key => $limit ) {
+				$clean[ $key ] = $this->sanitize_bounded_landing_text( $settings[ $key ] ?? '', $limit );
+			}
+			$clean['rotatingWords'] = $this->sanitize_showcase_rotating_words( $settings['rotatingWords'] ?? '' );
+			$clean['primaryUrl']    = $this->sanitize_showcase_url( $settings['primaryUrl'] ?? '' );
+			$clean['secondaryUrl']  = $this->sanitize_showcase_url( $settings['secondaryUrl'] ?? '' );
+			$clean['tiles']         = $this->sanitize_dock_nav_links( $settings['tiles'] ?? array(), 6 );
+			foreach ( array( 'eyebrowLineColor', 'buttonColor', 'buttonTextColor' ) as $key ) {
+				$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+				$clean[ $key ] = $color ? $color : '';
+			}
 			return $clean;
 		}
 
@@ -1664,6 +2877,62 @@ class DSF_Ajax {
 	}
 
 	/**
+	 * Sanitize and length-bound one landing-page text value.
+	 *
+	 * @param mixed $value Candidate value.
+	 * @param int   $limit Maximum characters.
+	 * @return string
+	 */
+	private function sanitize_bounded_landing_text( $value, $limit ) {
+		if ( ! is_scalar( $value ) ) {
+			return '';
+		}
+		return mb_substr( sanitize_text_field( (string) $value ), 0, max( 0, (int) $limit ) );
+	}
+
+	/**
+	 * Sanitize the Showcase Hero's legacy comma-separated phrase setting.
+	 *
+	 * The storage shape stays a string for editor/backward compatibility, while
+	 * each phrase is independently cleaned, bounded, limited to two words,
+	 * de-duplicated, and capped.
+	 *
+	 * @param mixed $value Candidate comma-separated phrases.
+	 * @return string
+	 */
+	private function sanitize_showcase_rotating_words( $value ) {
+		if ( ! is_scalar( $value ) ) {
+			return '';
+		}
+
+		$phrases = array();
+		$seen    = array();
+		$raw     = mb_substr( (string) $value, 0, 768 );
+		foreach ( explode( ',', $raw ) as $phrase ) {
+			$phrase = $this->sanitize_bounded_landing_text( $phrase, 64 );
+			if ( '' === $phrase ) {
+				continue;
+			}
+			$phrase = preg_replace( '/\s+/u', ' ', trim( $phrase ) );
+			$parts  = preg_split( '/\s+/u', $phrase, -1, PREG_SPLIT_NO_EMPTY );
+			if ( ! is_array( $parts ) || 2 !== count( $parts ) ) {
+				continue;
+			}
+			$key = function_exists( 'mb_strtolower' ) ? mb_strtolower( $phrase ) : strtolower( $phrase );
+			if ( isset( $seen[ $key ] ) ) {
+				continue;
+			}
+			$seen[ $key ] = true;
+			$phrases[]    = $phrase;
+			if ( 6 === count( $phrases ) ) {
+				break;
+			}
+		}
+
+		return implode( ', ', $phrases );
+	}
+
+	/**
 	 * Sanitize one landing block media control group.
 	 *
 	 * @param array  $settings Submitted settings.
@@ -1684,12 +2953,33 @@ class DSF_Ajax {
 	}
 
 	/**
-	 * Sanitize a bounded list of label and URL pairs.
+	 * Dock header nav links: label + url plus an optional preset icon name or a
+	 * custom media-library image URL.
 	 *
-	 * @param mixed $links Submitted links.
-	 * @param int   $limit Maximum links.
+	 * @param mixed $links Raw links.
+	 * @param int   $limit Max links.
 	 * @return array
 	 */
+	private function sanitize_dock_nav_links( $links, $limit ) {
+		$clean = array();
+		foreach ( array_slice( is_array( $links ) ? $links : array(), 0, $limit ) as $link ) {
+			if ( ! is_array( $link ) ) {
+				continue;
+			}
+			// icon is a kebab-case preset name; unknown names fall back to a default
+			// glyph on render, so sanitize_key is a safe, permissive filter.
+			$icon       = isset( $link['icon'] ) && is_scalar( $link['icon'] ) ? mb_substr( sanitize_key( (string) $link['icon'] ), 0, 64 ) : '';
+			$icon_image = isset( $link['iconImage'] ) && is_string( $link['iconImage'] ) ? mb_substr( $link['iconImage'], 0, 2048 ) : '';
+			$clean[]    = array(
+				'label'     => $this->sanitize_bounded_landing_text( $link['label'] ?? '', 100 ),
+				'url'       => $this->sanitize_showcase_url( $link['url'] ?? '' ),
+				'icon'      => $icon,
+				'iconImage' => esc_url_raw( $icon_image, array( 'http', 'https' ) ),
+			);
+		}
+		return $clean;
+	}
+
 	private function sanitize_landing_links( $links, $limit ) {
 		$clean = array();
 		foreach ( array_slice( is_array( $links ) ? $links : array(), 0, $limit ) as $link ) {
@@ -2177,7 +3467,7 @@ class DSF_Ajax {
 	 * @return string
 	 */
 	private function sanitize_showcase_url( $value ) {
-		$value = is_string( $value ) ? trim( $value ) : '';
+		$value = is_string( $value ) ? mb_substr( trim( $value ), 0, 2048 ) : '';
 		if ( '#' === $value || preg_match( '/^#[A-Za-z][A-Za-z0-9_:.-]*$/', $value ) ) {
 			return $value;
 		}

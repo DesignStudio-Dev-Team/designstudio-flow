@@ -560,6 +560,156 @@
       </div>
     </template>
 
+    <template v-else-if="type === 'product-spotlight'">
+      <div class="dsf-schematic__product-spotlight">
+        <div class="dsf-schematic__product-spotlight-media">
+          <div class="dsf-schematic__product-spotlight-rail"><span v-for="i in 3" :key="i"></span></div>
+          <div class="dsf-schematic__product-spotlight-img"></div>
+        </div>
+        <div class="dsf-schematic__product-spotlight-info">
+          <div class="dsf-schematic__line dsf-schematic__line--lg"></div>
+          <div class="dsf-schematic__line dsf-schematic__line--price"></div>
+          <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+          <b></b>
+        </div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'product-upsells'">
+      <div class="dsf-schematic__product-related">
+        <div class="dsf-schematic__line dsf-schematic__line--md"></div>
+        <div class="dsf-schematic__product-upsells-grid"><span v-for="i in 3" :key="i"></span></div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'product-reviews'">
+      <div class="dsf-schematic__product-reviews">
+        <div class="dsf-schematic__product-reviews-stars"><i v-for="i in 5" :key="i"></i></div>
+        <div class="dsf-schematic__line dsf-schematic__line--lg"></div>
+        <div class="dsf-schematic__line dsf-schematic__line--md"></div>
+        <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'product-meta'">
+      <div class="dsf-schematic__product-meta">
+        <div v-for="i in 3" :key="i" class="dsf-schematic__product-meta-row">
+          <b></b><span></span>
+        </div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'shop-header'">
+      <div class="dsf-schematic__shop-header">
+        <div class="dsf-schematic__line dsf-schematic__line--lg"></div>
+        <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+        <div class="dsf-schematic__line dsf-schematic__line--md"></div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'shop-products'">
+      <div class="dsf-schematic__shop-products">
+        <div class="dsf-schematic__shop-products-bar"><span></span><b></b></div>
+        <div class="dsf-schematic__shop-products-grid"><span v-for="i in 8" :key="i"></span></div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'store-cart'">
+      <div class="dsf-schematic__store-cart">
+        <div class="dsf-schematic__store-cart-items">
+          <div v-for="i in 2" :key="i" class="dsf-schematic__store-cart-row"><i></i><span></span><em></em></div>
+        </div>
+        <div class="dsf-schematic__store-cart-totals"><span></span><span></span><b></b></div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'store-checkout'">
+      <div class="dsf-schematic__store-checkout">
+        <div class="dsf-schematic__store-checkout-fields"><span v-for="i in 4" :key="i"></span></div>
+        <div class="dsf-schematic__store-checkout-summary"><span></span><span></span><b></b></div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'store-account'">
+      <div class="dsf-schematic__store-account">
+        <div class="dsf-schematic__store-account-nav"><span class="is-active"></span><span v-for="i in 3" :key="i"></span></div>
+        <div class="dsf-schematic__store-account-content"><span></span><span></span><span></span></div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'store-steps'">
+      <div class="dsf-schematic__store-steps">
+        <span class="is-done"></span><i></i><span class="is-current"></span><i></i><span></span>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'shop-filters'">
+      <div class="dsf-schematic__shop-filters">
+        <span class="dsf-schematic__shop-filters-input"></span>
+        <span class="dsf-schematic__shop-filters-input"></span>
+        <b></b>
+        <i v-for="i in 3" :key="i"></i>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'store-mini-cart'">
+      <div class="dsf-schematic__store-mini-cart"><b><span></span></b></div>
+    </template>
+
+    <template v-else-if="type === 'store-thankyou'">
+      <div class="dsf-schematic__store-thankyou">
+        <b></b>
+        <div class="dsf-schematic__line dsf-schematic__line--lg"></div>
+        <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'site-login'">
+      <div class="dsf-schematic__site-login">
+        <div class="dsf-schematic__line dsf-schematic__line--md"></div>
+        <span></span><span></span>
+        <b></b>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'site-search'">
+      <div class="dsf-schematic__site-search">
+        <div class="dsf-schematic__site-search-bar"><span></span><b></b></div>
+        <div class="dsf-schematic__site-search-row" v-for="i in 2" :key="i"><i></i><em></em></div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'user-dashboard'">
+      <div class="dsf-schematic__user-dashboard">
+        <div class="dsf-schematic__user-dashboard-hero"><i></i><span></span></div>
+        <div class="dsf-schematic__user-dashboard-tiles"><span v-for="i in 3" :key="i"></span></div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'blog-header'">
+      <div class="dsf-schematic__shop-header">
+        <div class="dsf-schematic__line dsf-schematic__line--lg"></div>
+        <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
+        <div class="dsf-schematic__line dsf-schematic__line--md"></div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'post-loop'">
+      <div class="dsf-schematic__post-loop">
+        <div class="dsf-schematic__post-loop-hero"><i></i><span><b></b><em></em><em></em></span></div>
+        <div class="dsf-schematic__post-loop-grid"><span v-for="i in 3" :key="i"></span></div>
+      </div>
+    </template>
+
+    <template v-else-if="type === 'landing-showcase-hero'">
+      <div class="dsf-schematic__showcase-hero">
+        <div class="dsf-schematic__line dsf-schematic__line--lg"></div>
+        <div class="dsf-schematic__showcase-hero-grid">
+          <span class="is-feature"></span><span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+    </template>
+
     <!-- Default fallback -->
     <template v-else>
       <div class="dsf-schematic__default">
@@ -1669,4 +1819,130 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
 .dsf-schematic__product-related { display: flex; flex-direction: column; gap: 7px; width: 100%; padding: 6px 8px; }
 .dsf-schematic__product-related-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
 .dsf-schematic__product-related-grid span { aspect-ratio: 1 / 1; border-radius: 4px; background: #cbd5e1; }
+
+/* Product Spotlight */
+.dsf-schematic__product-spotlight { display: grid; grid-template-columns: 1.1fr 1fr; gap: 8px; width: 100%; padding: 6px 8px; border-radius: 8px; background: #eef4f3; }
+.dsf-schematic__product-spotlight-media { display: flex; gap: 4px; }
+.dsf-schematic__product-spotlight-rail { display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.dsf-schematic__product-spotlight-rail span { width: 8px; height: 8px; border-radius: 3px; background: #cbd5e1; }
+.dsf-schematic__product-spotlight-rail span:first-child { background: #2c5f5d; }
+.dsf-schematic__product-spotlight-img { flex: 1; min-height: 52px; border-radius: 6px; background: #cbd5e1; }
+.dsf-schematic__product-spotlight-info { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+.dsf-schematic__product-spotlight-info .dsf-schematic__line--price { width: 42%; height: 10px; border-radius: 3px; background: #2c5f5d; }
+.dsf-schematic__product-spotlight-info b { width: 70%; height: 13px; border-radius: 999px; background: #2c5f5d; }
+
+/* Product Upsells */
+.dsf-schematic__product-upsells-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.dsf-schematic__product-upsells-grid span { aspect-ratio: 1 / 1; border-radius: 4px; background: #cbd5e1; }
+
+/* Product Reviews */
+.dsf-schematic__product-reviews { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 6px 8px; }
+.dsf-schematic__product-reviews-stars { display: flex; gap: 3px; }
+.dsf-schematic__product-reviews-stars i { width: 9px; height: 9px; border-radius: 2px; background: #f59e0b; }
+.dsf-schematic__product-reviews-stars i:last-child { background: #e2e8f0; }
+
+/* Product Meta */
+.dsf-schematic__product-meta { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 8px; }
+.dsf-schematic__product-meta-row { display: flex; align-items: center; gap: 6px; }
+.dsf-schematic__product-meta-row b { width: 24%; height: 8px; border-radius: 2px; background: #cbd5e1; }
+.dsf-schematic__product-meta-row span { width: 45%; height: 8px; border-radius: 2px; background: #e2e8f0; }
+
+/* Shop: Archive Header */
+.dsf-schematic__shop-header { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 8px; }
+
+/* Shop: Product Loop */
+.dsf-schematic__shop-products { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 6px 8px; }
+.dsf-schematic__shop-products-bar { display: flex; align-items: center; justify-content: space-between; }
+.dsf-schematic__shop-products-bar span { width: 30%; height: 6px; border-radius: 2px; background: #e2e8f0; }
+.dsf-schematic__shop-products-bar b { width: 20%; height: 10px; border-radius: 999px; background: #e2e8f0; }
+.dsf-schematic__shop-products-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.dsf-schematic__shop-products-grid span { aspect-ratio: 1 / 1; border-radius: 4px; background: #cbd5e1; }
+
+/* Landing: Showcase Hero */
+.dsf-schematic__showcase-hero { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 6px 8px; }
+.dsf-schematic__showcase-hero-grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 14px; gap: 4px; }
+.dsf-schematic__showcase-hero-grid span { border-radius: 4px; background: #e2e8f0; }
+.dsf-schematic__showcase-hero-grid span.is-feature { grid-column: span 2; grid-row: span 2; background: #2c5f5d; }
+
+/* Blog: Post Loop */
+.dsf-schematic__post-loop { display: flex; flex-direction: column; gap: 5px; width: 100%; padding: 6px 8px; }
+.dsf-schematic__post-loop-hero { display: grid; grid-template-columns: 1.3fr 1fr; gap: 5px; }
+.dsf-schematic__post-loop-hero i { min-height: 30px; border-radius: 5px; background: #cbd5e1; }
+.dsf-schematic__post-loop-hero span { display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+.dsf-schematic__post-loop-hero b { width: 80%; height: 8px; border-radius: 2px; background: #2c5f5d; }
+.dsf-schematic__post-loop-hero em { width: 95%; height: 5px; border-radius: 2px; background: #e2e8f0; }
+.dsf-schematic__post-loop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.dsf-schematic__post-loop-grid span { height: 18px; border-radius: 4px; background: #e2e8f0; }
+
+/* Shop: Filters */
+.dsf-schematic__shop-filters { display: flex; align-items: center; gap: 5px; width: 100%; padding: 12px 8px; }
+.dsf-schematic__shop-filters-input { width: 20px; height: 12px; border-radius: 999px; border: 1px solid #e2e8f0; }
+.dsf-schematic__shop-filters b { width: 22px; height: 12px; border-radius: 999px; background: #2c5f5d; }
+.dsf-schematic__shop-filters i { width: 26px; height: 12px; border-radius: 999px; background: #e2e8f0; }
+.dsf-schematic__shop-filters i:first-of-type { background: #cbd5e1; }
+
+/* Store: Mini Cart */
+.dsf-schematic__store-mini-cart { display: flex; justify-content: flex-end; width: 100%; padding: 12px 10px; }
+.dsf-schematic__store-mini-cart b { display: inline-flex; align-items: center; gap: 4px; width: 44px; height: 18px; border-radius: 999px; background: #2c5f5d; padding: 0 5px; }
+.dsf-schematic__store-mini-cart b span { width: 10px; height: 10px; border-radius: 999px; background: rgba(255,255,255,0.5); }
+
+/* Store: Thank You */
+.dsf-schematic__store-thankyou { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; padding: 10px 8px; }
+.dsf-schematic__store-thankyou b { width: 18px; height: 18px; border-radius: 999px; background: #2c5f5d; }
+
+/* Site: Login */
+.dsf-schematic__site-login { display: flex; flex-direction: column; align-items: stretch; gap: 5px; width: 60%; margin: 0 auto; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; }
+.dsf-schematic__site-login span { height: 11px; border-radius: 4px; background: #f1f5f9; border: 1px solid #e2e8f0; }
+.dsf-schematic__site-login b { height: 12px; border-radius: 999px; background: #2c5f5d; }
+
+/* Site: Search */
+.dsf-schematic__site-search { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 6px 8px; }
+.dsf-schematic__site-search-bar { display: flex; gap: 4px; }
+.dsf-schematic__site-search-bar span { flex: 1; height: 13px; border-radius: 999px; border: 1px solid #cbd5e1; }
+.dsf-schematic__site-search-bar b { width: 24px; height: 13px; border-radius: 999px; background: #2c5f5d; }
+.dsf-schematic__site-search-row { display: flex; align-items: center; gap: 5px; padding: 4px 5px; border: 1px solid #e2e8f0; border-radius: 5px; }
+.dsf-schematic__site-search-row i { width: 12px; height: 12px; border-radius: 3px; background: #cbd5e1; }
+.dsf-schematic__site-search-row em { flex: 1; height: 7px; border-radius: 2px; background: #e2e8f0; }
+
+/* Site: User Dashboard */
+.dsf-schematic__user-dashboard { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 6px 8px; }
+.dsf-schematic__user-dashboard-hero { display: flex; align-items: center; gap: 6px; padding: 6px; border: 1px solid #e2e8f0; border-radius: 6px; }
+.dsf-schematic__user-dashboard-hero i { width: 14px; height: 14px; border-radius: 999px; background: #2c5f5d; }
+.dsf-schematic__user-dashboard-hero span { flex: 1; height: 8px; border-radius: 2px; background: #e2e8f0; }
+.dsf-schematic__user-dashboard-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.dsf-schematic__user-dashboard-tiles span { height: 16px; border-radius: 5px; background: #f1f5f9; border: 1px solid #e2e8f0; }
+
+/* Store: Cart */
+.dsf-schematic__store-cart { display: grid; grid-template-columns: 1.6fr 1fr; gap: 6px; width: 100%; padding: 6px 8px; }
+.dsf-schematic__store-cart-items { display: flex; flex-direction: column; gap: 5px; }
+.dsf-schematic__store-cart-row { display: flex; align-items: center; gap: 5px; padding: 5px; border: 1px solid #e2e8f0; border-radius: 5px; }
+.dsf-schematic__store-cart-row i { width: 12px; height: 12px; border-radius: 3px; background: #cbd5e1; flex-shrink: 0; }
+.dsf-schematic__store-cart-row span { flex: 1; height: 7px; border-radius: 2px; background: #e2e8f0; }
+.dsf-schematic__store-cart-row em { width: 14px; height: 7px; border-radius: 2px; background: #cbd5e1; }
+.dsf-schematic__store-cart-totals { display: flex; flex-direction: column; gap: 5px; padding: 6px; border: 1px solid #e2e8f0; border-radius: 5px; }
+.dsf-schematic__store-cart-totals span { height: 6px; border-radius: 2px; background: #e2e8f0; }
+.dsf-schematic__store-cart-totals b { height: 12px; border-radius: 999px; background: #2c5f5d; margin-top: auto; }
+
+/* Store: Checkout */
+.dsf-schematic__store-checkout { display: grid; grid-template-columns: 1.6fr 1fr; gap: 6px; width: 100%; padding: 6px 8px; }
+.dsf-schematic__store-checkout-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; align-content: start; }
+.dsf-schematic__store-checkout-fields span { height: 12px; border-radius: 3px; background: #e2e8f0; }
+.dsf-schematic__store-checkout-summary { display: flex; flex-direction: column; gap: 5px; padding: 6px; border: 1px solid #e2e8f0; border-radius: 5px; }
+.dsf-schematic__store-checkout-summary span { height: 6px; border-radius: 2px; background: #e2e8f0; }
+.dsf-schematic__store-checkout-summary b { height: 12px; border-radius: 999px; background: #2c5f5d; margin-top: auto; }
+
+/* Store: Account */
+.dsf-schematic__store-account { display: grid; grid-template-columns: 1fr 1.8fr; gap: 6px; width: 100%; padding: 6px 8px; }
+.dsf-schematic__store-account-nav { display: flex; flex-direction: column; gap: 4px; }
+.dsf-schematic__store-account-nav span { height: 9px; border-radius: 3px; background: #e2e8f0; }
+.dsf-schematic__store-account-nav span.is-active { background: #2c5f5d; }
+.dsf-schematic__store-account-content { display: flex; flex-direction: column; gap: 5px; padding: 6px; border: 1px solid #e2e8f0; border-radius: 5px; }
+.dsf-schematic__store-account-content span { height: 7px; border-radius: 2px; background: #e2e8f0; }
+
+/* Store: Checkout Steps */
+.dsf-schematic__store-steps { display: flex; align-items: center; gap: 4px; width: 100%; padding: 14px 10px; }
+.dsf-schematic__store-steps span { width: 14px; height: 14px; border-radius: 999px; border: 2px solid #e2e8f0; flex-shrink: 0; }
+.dsf-schematic__store-steps span.is-done { background: #2c5f5d; border-color: #2c5f5d; }
+.dsf-schematic__store-steps span.is-current { border-color: #2c5f5d; }
+.dsf-schematic__store-steps i { flex: 1; height: 2px; border-radius: 2px; background: #e2e8f0; }
 </style>

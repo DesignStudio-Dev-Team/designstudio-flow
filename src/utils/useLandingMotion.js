@@ -169,6 +169,7 @@ function buildEditorAssembly(shell) {
   const all = (selector) => Array.from(shell.querySelectorAll(selector))
 
   const topbar = pick('[data-dsf-builder-topbar]')
+  const dock = pick('[data-dsf-builder-dock]')
   const canvasLabel = pick('[data-dsf-builder-label]')
   const selectedBlock = pick('[data-dsf-builder-selected]')
   const toolbar = pick('[data-dsf-builder-toolbar]')
@@ -176,35 +177,39 @@ function buildEditorAssembly(shell) {
   const addButton = pick('[data-dsf-builder-add]')
   const settingsPanel = pick('[data-dsf-builder-settings]')
   const artTiles = all('[data-dsf-builder-art] i')
-  const targets = [topbar, canvasLabel, selectedBlock, toolbar, ...artTiles, ...cards, addButton, settingsPanel].filter(Boolean)
+  const targets = [topbar, dock, canvasLabel, selectedBlock, toolbar, ...artTiles, ...cards, addButton, settingsPanel].filter(Boolean)
 
   // Initial (scroll-progress 0) state for every part of the mockup.
   gsap.set(targets, { autoAlpha: 0 })
   gsap.set(shell, { autoAlpha: 0, y: 48, scale: 0.965 })
-  gsap.set(topbar, { y: -18 })
+  // The mockup shows either a top bar (older layout) or the new bottom dock; the
+  // top bar drops in from above, the dock rises in from below.
+  if (topbar) gsap.set(topbar, { y: -18 })
+  if (dock) gsap.set(dock, { y: 20 })
   gsap.set(canvasLabel, { x: -14 })
   gsap.set(selectedBlock, { y: 26, scale: 0.965 })
   gsap.set(toolbar, { scale: 0.7 })
   gsap.set(artTiles, { y: 14, rotation: -12, scale: 0.7 })
   gsap.set(cards, { y: 18, scale: 0.94 })
-  gsap.set(addButton, { y: 12 })
+  if (addButton) gsap.set(addButton, { y: 12 })
   gsap.set(settingsPanel, { x: 28 })
 
   // One-shot assemble on enter. Works above the fold (hero, fires on load) and
   // below it; avoids the half-built state a scrubbed timeline shows on refresh.
-  gsap.timeline({
+  const tl = gsap.timeline({
     defaults: { ease: 'power3.out' },
     scrollTrigger: { trigger: shell, start: 'top 80%', once: true },
   })
-    .to(shell, { autoAlpha: 1, y: 0, scale: 1, duration: 0.68 })
-    .to(topbar, { autoAlpha: 1, y: 0, duration: 0.4 }, '-=0.28')
-    .to(canvasLabel, { autoAlpha: 1, x: 0, duration: 0.3 }, '-=0.14')
+  tl.to(shell, { autoAlpha: 1, y: 0, scale: 1, duration: 0.68 })
+  if (topbar) tl.to(topbar, { autoAlpha: 1, y: 0, duration: 0.4 }, '-=0.28')
+  tl.to(canvasLabel, { autoAlpha: 1, x: 0, duration: 0.3 }, '-=0.14')
     .to(selectedBlock, { autoAlpha: 1, y: 0, scale: 1, duration: 0.5 }, '-=0.08')
     .to(toolbar, { autoAlpha: 1, scale: 1, duration: 0.3 }, '-=0.18')
     .to(artTiles, { autoAlpha: 1, y: 0, rotation: 0, scale: 1, duration: 0.32, stagger: 0.07 }, '-=0.12')
     .to(cards, { autoAlpha: 1, y: 0, scale: 1, duration: 0.4, stagger: 0.1 }, '-=0.06')
-    .to(addButton, { autoAlpha: 1, y: 0, duration: 0.32 }, '-=0.12')
-    .to(settingsPanel, { autoAlpha: 1, x: 0, duration: 0.5 }, '-=0.24')
+  if (addButton) tl.to(addButton, { autoAlpha: 1, y: 0, duration: 0.32 }, '-=0.12')
+  tl.to(settingsPanel, { autoAlpha: 1, x: 0, duration: 0.5 }, '-=0.24')
+  if (dock) tl.to(dock, { autoAlpha: 1, y: 0, duration: 0.42 }, '-=0.2')
 }
 
 function buildDiagram(el) {

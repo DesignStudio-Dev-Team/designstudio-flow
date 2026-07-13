@@ -11,6 +11,14 @@ class Test_DSF_Ajax_Landing_Blocks extends TestCase {
 		WP_Mock::setUp();
 		WP_Mock::userFunction( 'sanitize_text_field', array( 'return_arg' => 0 ) );
 		WP_Mock::userFunction( 'sanitize_textarea_field', array( 'return_arg' => 0 ) );
+		WP_Mock::userFunction(
+			'sanitize_key',
+			array(
+				'return' => static function ( $value ) {
+					return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) );
+				},
+			)
+		);
 		WP_Mock::userFunction( 'wp_kses_post', array( 'return' => 'safe-answer' ) );
 		WP_Mock::userFunction(
 			'wp_kses',
@@ -74,6 +82,31 @@ class Test_DSF_Ajax_Landing_Blocks extends TestCase {
 		$this->assertSame( '#blocks', $clean['announcementUrl'] );
 		$this->assertSame( '', $clean['docsUrl'] );
 		$this->assertSame( 'https://example.com/get', $clean['ctaUrl'] );
+	}
+
+	public function test_dock_header_caps_and_sanitizes_custom_icon_rows() {
+		$links = array_fill(
+			0,
+			17,
+			array(
+				'label'     => 'Section',
+				'url'       => '#section',
+				'icon'      => 'DSFlow Security!!',
+				'iconImage' => 'javascript:alert(1)',
+				'unknown'   => '<script>bad</script>',
+			)
+		);
+		$links[0]['url']       = '#security';
+		$links[0]['iconImage'] = 'https://example.com/security.png';
+
+		$clean = $this->sanitize_settings( 'landing-dock-header', array( 'navLinks' => $links ) );
+
+		$this->assertCount( 16, $clean['navLinks'] );
+		$this->assertSame( '#security', $clean['navLinks'][0]['url'] );
+		$this->assertSame( 'dsflowsecurity', $clean['navLinks'][0]['icon'] );
+		$this->assertSame( 'https://example.com/security.png', $clean['navLinks'][0]['iconImage'] );
+		$this->assertSame( '', $clean['navLinks'][1]['iconImage'] );
+		$this->assertArrayNotHasKey( 'unknown', $clean['navLinks'][0] );
 	}
 
 	public function test_engagement_settings_are_bounded_to_known_plain_text_fields() {

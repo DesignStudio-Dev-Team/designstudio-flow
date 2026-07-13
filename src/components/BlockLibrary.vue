@@ -59,15 +59,26 @@
               />
             </button>
             <div class="dsf-library-blocks" v-show="savedOpen || isSearching">
-              <button
-                type="button"
-                class="dsf-library-import"
-                title="Import a block exported as JSON"
-                @click="triggerImport"
-              >
-                <Upload :size="14" />
-                Import block from JSON
-              </button>
+              <div class="dsf-library-iorow">
+                <button
+                  type="button"
+                  class="dsf-library-import"
+                  title="Import a block exported as JSON"
+                  @click="triggerImport"
+                >
+                  <Upload :size="14" />
+                  Import from JSON
+                </button>
+                <a
+                  v-if="exportAllSavedUrl && savedBlocks.length"
+                  class="dsf-library-import"
+                  :href="exportAllSavedUrl"
+                  title="Download all saved blocks as one JSON file"
+                >
+                  <Download :size="14" />
+                  Export all
+                </a>
+              </div>
               <input
                 ref="importInput"
                 type="file"
@@ -209,6 +220,33 @@
 
         <!-- ===== TEMPLATES TAB ===== -->
         <template v-else>
+          <div class="dsf-library-iorow dsf-library-iorow--flush">
+            <button
+              type="button"
+              class="dsf-library-import"
+              title="Import a template exported as JSON"
+              @click="triggerTemplateImport"
+            >
+              <Upload :size="14" />
+              Import from JSON
+            </button>
+            <input
+              ref="templateImportInput"
+              type="file"
+              accept=".json,application/json"
+              class="dsf-library-import__input"
+              @change="onTemplateImportFileChange"
+            />
+            <a
+              v-if="exportAllTemplatesUrl && templates.length"
+              class="dsf-library-import"
+              :href="exportAllTemplatesUrl"
+              title="Download all templates as one JSON file"
+            >
+              <Download :size="14" />
+              Export all
+            </a>
+          </div>
           <div v-if="filteredTemplates.length" class="dsf-library-blocks dsf-library-blocks--flush">
             <div v-for="tpl in filteredTemplates" :key="tpl.id" class="dsf-library-block dsf-library-block--saved">
               <button class="dsf-library-block__main" @click="$emit('insert-template', tpl)">
@@ -223,6 +261,16 @@
                   </div>
                 </div>
               </button>
+              <a
+                v-if="tpl.exportUrl"
+                class="dsf-library-block__export"
+                :href="tpl.exportUrl"
+                title="Export template as JSON"
+                aria-label="Export template as JSON"
+                @click.stop
+              >
+                <Download :size="14" />
+              </a>
               <button
                 class="dsf-library-block__delete"
                 title="Delete template"
@@ -273,6 +321,18 @@ import {
   Trash2,
   Sparkles,
   Star,
+  Tag,
+  Gem,
+  CreditCard,
+  User,
+  Milestone,
+  SlidersHorizontal,
+  ShoppingBasket,
+  PartyPopper,
+  LogIn,
+  Gauge,
+  Newspaper,
+  LayoutList,
   Download,
   Upload
 } from 'lucide-vue-next'
@@ -292,12 +352,21 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  exportAllSavedUrl: {
+    type: String,
+    default: '',
+  },
+  exportAllTemplatesUrl: {
+    type: String,
+    default: '',
+  },
 })
 
-const emit = defineEmits(['close', 'add', 'insert-saved', 'delete-saved', 'toggle-feature', 'insert-preset', 'insert-template', 'delete-template', 'import-saved'])
+const emit = defineEmits(['close', 'add', 'insert-saved', 'delete-saved', 'toggle-feature', 'insert-preset', 'insert-template', 'delete-template', 'import-saved', 'import-template'])
 
 // Import a saved block from an exported JSON file.
 const importInput = ref(null)
+const templateImportInput = ref(null)
 
 function triggerImport() {
   importInput.value?.click()
@@ -309,6 +378,18 @@ function onImportFileChange(event) {
     emit('import-saved', file)
   }
   // Allow re-selecting the same file.
+  event.target.value = ''
+}
+
+function triggerTemplateImport() {
+  templateImportInput.value?.click()
+}
+
+function onTemplateImportFileChange(event) {
+  const file = event.target.files && event.target.files[0]
+  if (file) {
+    emit('import-template', file)
+  }
   event.target.value = ''
 }
 
@@ -359,6 +440,22 @@ const icons = {
   'badge-dollar-sign': BadgeDollarSign,
   'layout-columns': Columns,
   'bookmark': Bookmark,
+  'star': Star,
+  'sparkles': Sparkles,
+  'tag': Tag,
+  'gem': Gem,
+  'credit-card': CreditCard,
+  'user': User,
+  'milestone': Milestone,
+  'layout-grid': LayoutGrid,
+  'sliders': SlidersHorizontal,
+  'shopping-basket': ShoppingBasket,
+  'party-popper': PartyPopper,
+  'log-in': LogIn,
+  'search': Search,
+  'gauge': Gauge,
+  'newspaper': Newspaper,
+  'layout-list': LayoutList,
 }
 
 const filteredCategories = computed(() => {
@@ -947,6 +1044,24 @@ function getBlockIcon(iconName) {
 
 .dsf-library-import__input {
   display: none;
+}
+
+/* Import + Export share a row. */
+.dsf-library-iorow {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.dsf-library-iorow--flush {
+  margin-bottom: 0.75rem;
+}
+
+.dsf-library-iorow .dsf-library-import {
+  flex: 1;
+  width: auto;
+  margin-bottom: 0;
+  text-decoration: none;
 }
 
 .dsf-library-empty {

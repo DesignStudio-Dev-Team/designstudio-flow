@@ -10,7 +10,29 @@ if ( 'cli' !== PHP_SAPI ) {
 	exit;
 }
 
+// Yoast's indexable ORM exhausts the default 128M limit when saving from CLI
+// (WordPress pins memory_limit to WP_MEMORY_LIMIT, so -d flags cannot raise it).
+if ( ! defined( 'WP_MEMORY_LIMIT' ) ) {
+	define( 'WP_MEMORY_LIMIT', '512M' );
+}
+
 require_once dirname( __DIR__, 4 ) . '/wp-load.php';
+
+// In a bare CLI/wp-load context Elementor's usage tracker wp_die()s on any
+// wp_insert_post (its callback is registered on a manager-built instance, so a
+// plain remove_action() cannot target it). Strip every Elementor callback from
+// the status-transition hook for this run only.
+global $wp_filter;
+if ( isset( $wp_filter['transition_post_status'] ) ) {
+	foreach ( $wp_filter['transition_post_status']->callbacks as $priority => $callbacks ) {
+		foreach ( $callbacks as $key => $callback ) {
+			$fn = $callback['function'];
+			if ( is_array( $fn ) && is_object( $fn[0] ) && 0 === strpos( get_class( $fn[0] ), 'Elementor' ) ) {
+				unset( $wp_filter['transition_post_status']->callbacks[ $priority ][ $key ] );
+			}
+		}
+	}
+}
 
 $preferred_slug = 'landing-page';
 $existing       = get_page_by_path( $preferred_slug, OBJECT, 'page' );
@@ -50,31 +72,53 @@ $make_block = static function ( $id, $type, $settings ) {
 $blocks = array(
 	$make_block(
 		'dsflow-landing-header',
-		'landing-progress-header',
+		'landing-dock-header',
 		array(
-			'showAnnouncement'     => false,
-			'announcementText'     => 'DesignStudio Flow is built for modern WordPress teams.',
-			'announcementLinkText' => 'See what is new',
-			'announcementUrl'      => '#blocks',
-			'homeUrl'              => '#why-dsflow',
-			'docsText'             => 'Documentation',
-			'docsUrl'              => '#workflow',
-			'ctaText'              => 'Get DSFlow',
-			'ctaUrl'               => '#get-dsflow',
+			'brandText' => 'DesignStudio Flow',
+			'homeUrl'   => '#top',
+			'navLinks'  => array(
+				array( 'label' => 'Why DSFlow', 'url' => '#why-dsflow', 'icon' => 'dsflow-why', 'iconImage' => '' ),
+				array( 'label' => 'Blocks', 'url' => '#blocks', 'icon' => 'dsflow-blocks', 'iconImage' => '' ),
+				array( 'label' => 'Design included', 'url' => '#ready', 'icon' => 'dsflow-ready', 'iconImage' => '' ),
+				array( 'label' => 'Visual editor', 'url' => '#editor', 'icon' => 'dsflow-editor', 'iconImage' => '' ),
+				array( 'label' => 'Theme controls', 'url' => '#theme', 'icon' => 'dsflow-theme', 'iconImage' => '' ),
+				array( 'label' => 'WooCommerce', 'url' => '#woocommerce', 'icon' => 'dsflow-commerce', 'iconImage' => '' ),
+				array( 'label' => 'Headers & footers', 'url' => '#layouts', 'icon' => 'dsflow-layouts', 'iconImage' => '' ),
+				array( 'label' => 'Campaigns', 'url' => '#campaigns', 'icon' => 'dsflow-campaigns', 'iconImage' => '' ),
+				array( 'label' => 'Forms & growth', 'url' => '#engagement', 'icon' => 'dsflow-engagement', 'iconImage' => '' ),
+				array( 'label' => 'SEO', 'url' => '#seo', 'icon' => 'dsflow-seo', 'iconImage' => '' ),
+				array( 'label' => 'Security', 'url' => '#security', 'icon' => 'dsflow-security', 'iconImage' => '' ),
+				array( 'label' => 'For agencies', 'url' => '#audience', 'icon' => 'dsflow-agencies', 'iconImage' => '' ),
+				array( 'label' => 'Workflow', 'url' => '#workflow', 'icon' => 'dsflow-workflow', 'iconImage' => '' ),
+				array( 'label' => 'Redirects', 'url' => '#redirects', 'icon' => 'dsflow-redirects', 'iconImage' => '' ),
+				array( 'label' => 'Email delivery', 'url' => '#mail', 'icon' => 'dsflow-mail', 'iconImage' => '' ),
+				array( 'label' => 'Get DSFlow', 'url' => '#get-dsflow', 'icon' => 'dsflow-launch', 'iconImage' => '' ),
+			),
 		)
 	),
 	$make_block(
-		'dsflow-landing-hero',
-		'landing-hero',
+		'dsflow-landing-showcase-hero',
+		'landing-showcase-hero',
 		array(
-			'eyebrow'       => 'THE VISUAL BUILDER WORDPRESS DESERVES',
-			'title'         => 'Build freely. Stay beautifully consistent.',
-			'description'   => 'DesignStudio Flow gives teams the freedom to create ambitious WordPress pages without losing the design system, content model, or publishing workflow beneath them.',
-			'primaryText'   => 'Explore the block library',
-			'primaryUrl'    => '#blocks',
-			'secondaryText' => 'See how it works',
-			'secondaryUrl'  => '#editor',
-			'note'          => 'Built inside WordPress. Designed around secure, structured blocks.',
+			'eyebrow'       => 'THE VISUAL WORDPRESS SYSTEM',
+			'title'         => 'Design your',
+			'rotatingWords' => 'WordPress site, page visually, online store, next campaign, site securely, client site',
+			'tagline'       => 'Design pages, theme styles, WooCommerce stores, layouts, campaigns, and forms in one visual builder.',
+			'primaryText'   => 'Experience DSFlow',
+			'primaryUrl'    => '#get-dsflow',
+			'secondaryText' => 'Browse 40+ blocks',
+			'secondaryUrl'  => '#blocks',
+			'chip1'         => '40+ designed blocks',
+			'chip2'         => 'WooCommerce ready',
+			'chip3'         => 'Built with security in mind',
+			'tiles'         => array(
+				array( 'label' => 'Design included', 'url' => '#ready', 'icon' => 'wand', 'iconImage' => '' ),
+				array( 'label' => 'Visual editor', 'url' => '#editor', 'icon' => 'mouse-pointer', 'iconImage' => '' ),
+				array( 'label' => 'WooCommerce', 'url' => '#woocommerce', 'icon' => 'store', 'iconImage' => '' ),
+				array( 'label' => 'Forms & growth', 'url' => '#engagement', 'icon' => 'mail', 'iconImage' => '' ),
+				array( 'label' => 'Security', 'url' => '#security', 'icon' => 'shield-check', 'iconImage' => '' ),
+				array( 'label' => 'For agencies', 'url' => '#audience', 'icon' => 'briefcase', 'iconImage' => '' ),
+			),
 		)
 	),
 	$make_block(
@@ -305,7 +349,7 @@ $settings = array(
 
 $snapshot = '<main class="dsf-snapshot-landing">'
 	. '<header><a href="#why-dsflow">DesignStudio Flow</a><nav><a href="#blocks">Blocks</a> <a href="#woocommerce">WooCommerce</a> <a href="#engagement">Forms and Growth</a> <a href="#security">Security</a> <a href="#audience">For Agencies</a></nav></header>'
-	. '<section id="why-dsflow"><p>The visual builder WordPress deserves</p><h1>Build freely. Stay beautifully consistent.</h1><p>DesignStudio Flow gives teams the freedom to create ambitious WordPress pages without losing the design system, content model, or publishing workflow beneath them.</p></section>'
+	. '<section id="why-dsflow"><p>The visual WordPress system</p><h1>Design your WordPress site.</h1><p>Design pages, theme styles, WooCommerce stores, layouts, campaigns, and forms in one visual builder.</p><ul><li><a href="#ready">Design included</a></li><li><a href="#editor">Visual editor</a></li><li><a href="#woocommerce">WooCommerce</a></li><li><a href="#engagement">Forms and growth</a></li><li><a href="#security">Security</a></li><li><a href="#audience">For agencies</a></li></ul></section>'
 	. '<section id="blocks"><h2>Start with structure. Finish with something original.</h2><p>Build with purpose-built heroes, content, commerce, campaign, header, and footer blocks.</p></section>'
 	. '<section id="ready"><h2>Add a block. The design is already done.</h2><p>Every block ships fully designed and responsive. Swap in your own words and images, and publish.</p></section>'
 	. '<section id="editor"><h2>A visual workflow that still respects the system.</h2><p>Edit responsive pages directly while keeping design guardrails clear.</p></section>'

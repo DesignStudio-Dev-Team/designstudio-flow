@@ -13,6 +13,7 @@ class DSF_Import_Export {
 	const EXPORT_VERSION = '1';
 	const BULK_ACTION    = 'dsf_export';
 	const SINGLE_ACTION  = 'dsf_export_item';
+	const ALL_ACTION     = 'dsf_export_all';
 	const IMPORT_ACTION  = 'dsf_import_items';
 
 	private static $instance = null;
@@ -43,6 +44,7 @@ class DSF_Import_Export {
 		add_filter( 'handle_bulk_actions-edit-dsf_template', array( $this, 'handle_bulk_action' ), 10, 3 );
 
 		add_action( 'admin_post_' . self::SINGLE_ACTION, array( $this, 'handle_single_export' ) );
+		add_action( 'admin_post_' . self::ALL_ACTION, array( $this, 'handle_export_all' ) );
 		add_action( 'admin_post_' . self::IMPORT_ACTION, array( $this, 'handle_import' ) );
 
 		add_action( 'admin_menu', array( $this, 'add_tools_menu' ), 90 );
@@ -66,19 +68,29 @@ class DSF_Import_Export {
 	}
 
 	private function get_meta_keys_for_type( $post_type ) {
+		$keys = array();
 		if ( in_array( $post_type, array( 'page', 'dsf_page' ), true ) ) {
-			return array( '_dsf_blocks', '_dsf_settings', '_dsf_theme_colors' );
+			$keys = array( '_dsf_blocks', '_dsf_settings', '_dsf_theme_colors' );
+		} elseif ( 'dsf_layout' === $post_type ) {
+			$keys = array( '_dsf_blocks', '_dsf_settings', '_dsf_layout_type' );
+		} elseif ( 'dsf_saved_block' === $post_type ) {
+			$keys = array( '_dsf_block_type', '_dsf_block_settings', '_dsf_block_category', '_dsf_block_tags' );
+		} elseif ( 'dsf_template' === $post_type ) {
+			$keys = array( '_dsf_template_blocks', '_dsf_template_theme', '_dsf_template_kind' );
 		}
-		if ( 'dsf_layout' === $post_type ) {
-			return array( '_dsf_blocks', '_dsf_settings', '_dsf_layout_type' );
-		}
-		if ( 'dsf_saved_block' === $post_type ) {
-			return array( '_dsf_block_type', '_dsf_block_settings', '_dsf_block_category', '_dsf_block_tags' );
-		}
-		if ( 'dsf_template' === $post_type ) {
-			return array( '_dsf_template_blocks', '_dsf_template_theme', '_dsf_template_kind' );
-		}
-		return array();
+
+		/**
+		 * Filter the post-meta keys carried through export/import for a type.
+		 *
+		 * Add-on blocks that persist their own meta append their keys here so the
+		 * data travels with the page/template on both export and import.
+		 *
+		 * @param string[] $keys      Meta keys to export/import.
+		 * @param string   $post_type Post type being processed.
+		 */
+		$keys = apply_filters( 'dsf_export_meta_keys', $keys, $post_type );
+
+		return is_array( $keys ) ? array_values( array_unique( array_filter( array_map( 'strval', $keys ) ) ) ) : array();
 	}
 
 	public function add_row_actions( $actions, $post ) {
@@ -162,6 +174,102 @@ class DSF_Import_Export {
 		}
 
 		$this->stream_export( array( $this->build_export_item( $post ) ) );
+		exit;
+	}
+
+	/**
+	 * Nonce'd admin-post URL that exports every item of a given type at once.
+	 * Types: page, header, footer, dsf_layout, dsf_saved_block, dsf_template.
+	 *
+	 * @param string $type Export type.
+	 * @return string
+	 */
+	public function export_all_url( $type ) {
+		$type = sanitize_key( $type );
+		return wp_nonce_url(
+			add_query_arg(
+				array(
+					'action'   => self::ALL_ACTION,
+					'dsf_type' => $type,
+				),
+				admin_url( 'admin-post.php' )
+			),
+			self::ALL_ACTION . '_' . $type
+		);
+	}
+
+	/**
+	 * Query args used to gather every exportable post of a type.
+	 *
+	 * @param string $type Export type.
+	 * @return array Empty when the type is unknown.
+	 */
+	private function query_args_for_export_type( $type ) {
+		$base = array(
+			'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+			'posts_per_page' => -1,
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+			'no_found_rows'  => true,
+		);
+
+		switch ( $type ) {
+			case 'page':
+				// Only Flow-built pages carry block meta.
+				return array_merge( $base, array( 'post_type' => 'page', 'meta_key' => '_dsf_blocks' ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+			case 'header':
+			case 'footer':
+				return array_merge(
+					$base,
+					array(
+						'post_type'  => 'dsf_layout',
+						'meta_query' => array( array( 'key' => '_dsf_layout_type', 'value' => $type ) ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+					)
+				);
+			case 'dsf_layout':
+				return array_merge( $base, array( 'post_type' => 'dsf_layout' ) );
+			case 'dsf_saved_block':
+				return array_merge( $base, array( 'post_type' => 'dsf_saved_block' ) );
+			case 'dsf_template':
+				return array_merge( $base, array( 'post_type' => 'dsf_template' ) );
+		}
+
+		return array();
+	}
+
+	public function handle_export_all() {
+		$type = isset( $_GET['dsf_type'] ) ? sanitize_key( wp_unslash( $_GET['dsf_type'] ) ) : '';
+
+		check_admin_referer( self::ALL_ACTION . '_' . $type );
+
+		if ( ! current_user_can( 'edit_pages' ) ) {
+			wp_die( esc_html__( 'You are not allowed to export.', 'designstudio-flow' ) );
+		}
+
+		$query = $this->query_args_for_export_type( $type );
+		if ( empty( $query ) ) {
+			wp_die( esc_html__( 'Unknown export type.', 'designstudio-flow' ) );
+		}
+
+		$items = array();
+		foreach ( get_posts( $query ) as $post ) {
+			if ( ! $this->is_supported_post( $post ) || ! current_user_can( 'edit_post', $post->ID ) ) {
+				continue;
+			}
+			$items[] = $this->build_export_item( $post );
+		}
+
+		if ( empty( $items ) ) {
+			wp_safe_redirect(
+				add_query_arg(
+					array( 'page' => 'dsf-tools', 'tab' => 'pages', 'dsf_export_status' => 'empty' ),
+					admin_url( 'admin.php' )
+				)
+			);
+			exit;
+		}
+
+		$this->stream_export( $items );
 		exit;
 	}
 
@@ -327,13 +435,21 @@ class DSF_Import_Export {
 
 			<div class="card" style="padding:20px;">
 				<h2 style="margin-top:0;"><?php esc_html_e( 'Export', 'designstudio-flow' ); ?></h2>
-				<p><?php esc_html_e( 'Use the "Export" row action on a single item, or pick "Export to JSON" from the Bulk Actions dropdown to export multiple at once.', 'designstudio-flow' ); ?></p>
+				<p><?php esc_html_e( 'Download everything of a type as one JSON file, then import it on another site.', 'designstudio-flow' ); ?></p>
+				<p style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;">
+					<a class="button button-primary" href="<?php echo esc_url( $this->export_all_url( 'dsf_saved_block' ) ); ?>"><?php esc_html_e( 'Export all saved blocks', 'designstudio-flow' ); ?></a>
+					<a class="button button-primary" href="<?php echo esc_url( $this->export_all_url( 'dsf_template' ) ); ?>"><?php esc_html_e( 'Export all templates', 'designstudio-flow' ); ?></a>
+					<a class="button" href="<?php echo esc_url( $this->export_all_url( 'page' ) ); ?>"><?php esc_html_e( 'Export all pages', 'designstudio-flow' ); ?></a>
+					<a class="button" href="<?php echo esc_url( $this->export_all_url( 'header' ) ); ?>"><?php esc_html_e( 'Export all headers', 'designstudio-flow' ); ?></a>
+					<a class="button" href="<?php echo esc_url( $this->export_all_url( 'footer' ) ); ?>"><?php esc_html_e( 'Export all footers', 'designstudio-flow' ); ?></a>
+				</p>
+				<p class="description" style="margin-bottom:12px;"><?php esc_html_e( 'Prefer to pick individual items? Use the "Export" row action on a single item, or "Export to JSON" from the Bulk Actions dropdown on these list screens:', 'designstudio-flow' ); ?></p>
 				<ul style="list-style:disc;margin-left:24px;">
+					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_saved_block' ) ); ?>"><?php esc_html_e( 'Saved Blocks', 'designstudio-flow' ); ?></a></li>
+					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_template' ) ); ?>"><?php esc_html_e( 'Templates', 'designstudio-flow' ); ?></a></li>
 					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=page&dsf_flow=1' ) ); ?>"><?php esc_html_e( 'Pages', 'designstudio-flow' ); ?></a></li>
 					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_layout&dsf_layout_type=header' ) ); ?>"><?php esc_html_e( 'Headers', 'designstudio-flow' ); ?></a></li>
 					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_layout&dsf_layout_type=footer' ) ); ?>"><?php esc_html_e( 'Footers', 'designstudio-flow' ); ?></a></li>
-					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_saved_block' ) ); ?>"><?php esc_html_e( 'Saved Blocks', 'designstudio-flow' ); ?></a></li>
-					<li><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=dsf_template' ) ); ?>"><?php esc_html_e( 'Templates', 'designstudio-flow' ); ?></a></li>
 				</ul>
 				<p class="description"><?php esc_html_e( 'Media (images, videos) is referenced by URL. On import you can pull it into the destination Media Library automatically — just keep the source site reachable while importing.', 'designstudio-flow' ); ?></p>
 			</div>
@@ -381,6 +497,17 @@ class DSF_Import_Export {
 			exit;
 		}
 
+		// Format of the file being imported. Older/equal formats import directly;
+		// each item is passed through migrate_item() so a future format bump has a
+		// single, well-defined upgrade path instead of silently mis-reading data.
+		$format = isset( $data['format'] ) ? (string) $data['format'] : self::EXPORT_VERSION;
+		if ( version_compare( $format, self::EXPORT_VERSION, '>' ) ) {
+			// A file written by a newer plugin than this one. Rather than guess at
+			// fields we do not understand, tell the user to update the plugin.
+			wp_safe_redirect( add_query_arg( 'dsf_import', 'newer', $redirect_base ) );
+			exit;
+		}
+
 		$status       = ( isset( $_POST['dsf_import_status'] ) && 'publish' === $_POST['dsf_import_status'] ) ? 'publish' : 'draft';
 		$import_media = isset( $_POST['dsf_import_media'] );
 
@@ -397,6 +524,7 @@ class DSF_Import_Export {
 		$imported = 0;
 		$skipped  = 0;
 		foreach ( $data['items'] as $item ) {
+			$item = $this->migrate_item( $item, $format );
 			if ( $this->import_item( $item, $status, $import_media ) ) {
 				$imported++;
 			} else {
@@ -417,8 +545,38 @@ class DSF_Import_Export {
 		exit;
 	}
 
-	private function import_item( $item, $status, $import_media = false ) {
+	/**
+	 * Normalize an exported item from an older format to the current one.
+	 *
+	 * Kept deliberately small today (formats '1' and current are identical), this
+	 * is the single seam where any future format change is reconciled, so old
+	 * export files keep importing correctly. Add-ons migrate their own item data
+	 * through the `dsf_import_item` filter.
+	 *
+	 * @param mixed  $item   Raw exported item.
+	 * @param string $format Format string declared by the file.
+	 * @return array
+	 */
+	private function migrate_item( $item, $format ) {
 		if ( ! is_array( $item ) ) {
+			return array();
+		}
+
+		// (No structural migrations yet — format '1' matches the current schema.)
+
+		/**
+		 * Filter a single item after core migration, before it is imported.
+		 *
+		 * @param array  $item   The item to import.
+		 * @param string $format Source file format.
+		 */
+		$item = apply_filters( 'dsf_import_item', $item, $format );
+
+		return is_array( $item ) ? $item : array();
+	}
+
+	private function import_item( $item, $status, $import_media = false ) {
+		if ( ! is_array( $item ) || empty( $item ) ) {
 			return false;
 		}
 
@@ -809,6 +967,11 @@ class DSF_Import_Export {
 				printf(
 					'<div class="notice notice-error is-dismissible"><p>%s</p></div>',
 					esc_html__( 'No file was uploaded.', 'designstudio-flow' )
+				);
+			} elseif ( 'newer' === $result ) {
+				printf(
+					'<div class="notice notice-error is-dismissible"><p>%s</p></div>',
+					esc_html__( 'This file was exported by a newer version of DesignStudio Flow. Please update the plugin before importing it.', 'designstudio-flow' )
 				);
 			}
 		}

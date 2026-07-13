@@ -74,6 +74,35 @@ class Test_DSF_Redirects extends TestCase {
 		$this->assertNotEmpty( $redirect['id'] );
 	}
 
+	public function test_sanitize_redirect_preserves_an_existing_id_and_hit_count_for_edits() {
+		$redirect = DSF_Redirects::sanitize_redirect(
+			array(
+				'id'      => 'rExisting_123',
+				'source'  => '/old',
+				'target'  => '/new',
+				'hits'    => 42,
+				'enabled' => true,
+			)
+		);
+
+		$this->assertSame( 'rexisting_123', $redirect['id'] );
+		$this->assertSame( 42, $redirect['hits'] );
+	}
+
+	public function test_remove_redirect_by_id_removes_all_matching_records() {
+		$remaining = DSF_Redirects::remove_redirect_by_id(
+			array(
+				array( 'id' => 'r-delete', 'source' => '/one' ),
+				array( 'id' => 'r_keep', 'source' => '/two' ),
+				array( 'id' => 'r-delete', 'source' => '/legacy-duplicate' ),
+			),
+			'r-delete'
+		);
+
+		$this->assertCount( 1, $remaining );
+		$this->assertSame( 'r_keep', $remaining[0]['id'] );
+	}
+
 	public function test_parse_csv_skips_header_and_invalid_rows() {
 		$csv = "source,target,type,enabled\n/old,/new,301,1\n/bad,,301,1\n/temp,https://x.test/,302,0\n";
 

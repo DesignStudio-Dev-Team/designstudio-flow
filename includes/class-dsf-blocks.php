@@ -21,6 +21,25 @@ class DSF_Blocks {
 
 	private function __construct() {
 		$this->register_default_blocks();
+
+		/**
+		 * Fires after the built-in blocks are registered, before any consumer
+		 * (editor localize, frontend render, preset resolver) reads the registry.
+		 *
+		 * Add-on plugins register their own blocks here:
+		 *
+		 *     add_action( 'dsf_register_blocks', function ( $blocks ) {
+		 *         $blocks->register_block( array(
+		 *             'id'       => 'acme-quote',
+		 *             'name'     => 'Pull Quote',
+		 *             'category' => 'content',
+		 *             'settings' => array( ... ),
+		 *         ) );
+		 *     } );
+		 *
+		 * @param DSF_Blocks $blocks The block registry instance.
+		 */
+		do_action( 'dsf_register_blocks', $this );
 	}
 
 	/**
@@ -136,6 +155,87 @@ class DSF_Blocks {
 						'default' => 25,
 						'min'     => 0,
 						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'breadcrumbs',
+				'name'        => 'Breadcrumbs',
+				'category'    => 'content',
+				'icon'        => 'chevrons-right',
+				'description' => 'Navigation trail (Home › Section › Page) that links back up the page hierarchy.',
+				'settings'    => array(
+					'homeLabel'   => array(
+						'type'    => 'text',
+						'label'   => 'Home label',
+						'default' => 'Home',
+					),
+					'separator'   => array(
+						'type'    => 'select',
+						'label'   => 'Separator',
+						'default' => 'chevron',
+						'options' => array(
+							'Chevron ›' => 'chevron',
+							'Slash /'   => 'slash',
+							'Dot ·'     => 'dot',
+							'Arrow →'   => 'arrow',
+						),
+					),
+					'showCurrent' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show current page',
+						'default' => true,
+					),
+					'align'       => array(
+						'type'    => 'select',
+						'label'   => 'Alignment',
+						'default' => 'left',
+						'options' => array(
+							'Left'   => 'left',
+							'Center' => 'center',
+							'Right'  => 'right',
+						),
+					),
+					'textColor'   => array(
+						'type'    => 'color',
+						'label'   => 'Text color',
+						'default' => '#6B7280',
+					),
+					'linkColor'   => array(
+						'type'    => 'color',
+						'label'   => 'Link color',
+						'default' => '#111827',
+					),
+					'fontSize'    => array(
+						'type'    => 'slider',
+						'label'   => 'Font size',
+						'default' => 14,
+						'min'     => 11,
+						'max'     => 20,
+					),
+					'maxWidth'    => array(
+						'type'    => 'slider',
+						'label'   => 'Content Width',
+						'default' => 1100,
+						'min'     => 480,
+						'max'     => 1400,
+					),
+					'paddingY'    => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 16,
+						'min'     => 0,
+						'max'     => 80,
+					),
+					'paddingX'    => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 120,
 					),
 				),
 			)
@@ -4294,6 +4394,1417 @@ class DSF_Blocks {
 
 		$this->register_block(
 			array(
+				'id'             => 'product-spotlight',
+				'name'           => 'Product Spotlight',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'gem',
+				'description'    => 'A premium above-the-fold stage: gallery, title, price, and add-to-cart on a soft tinted backdrop.',
+				'settings'       => array(
+					'imageSide'            => array(
+						'type'    => 'select',
+						'label'   => 'Image Side',
+						'default' => 'left',
+						'options' => array(
+							'Left'  => 'left',
+							'Right' => 'right',
+						),
+					),
+					'backdrop'             => array(
+						'type'    => 'select',
+						'label'   => 'Backdrop',
+						'default' => 'soft',
+						'options' => array(
+							'Soft Tint' => 'soft',
+							'None'      => 'none',
+						),
+					),
+					'eyebrowText'          => array(
+						'type'    => 'text',
+						'label'   => 'Eyebrow Text',
+						'default' => '',
+					),
+					'showRating'           => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Rating',
+						'default' => true,
+					),
+					'showShortDescription' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Short Description',
+						'default' => true,
+					),
+					'showStock'            => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Stock Chip',
+						'default' => true,
+					),
+					'showSku'              => array(
+						'type'    => 'toggle',
+						'label'   => 'Show SKU Chip',
+						'default' => false,
+					),
+					'showAddToCart'        => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Add to Cart',
+						'default' => true,
+					),
+					'showSaleBadge'        => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Sale Badge',
+						'default' => true,
+					),
+					'saleBadgeText'        => array(
+						'type'     => 'text',
+						'label'    => 'Sale Badge Text',
+						'default'  => 'Sale',
+						'showWhen' => array( 'showSaleBadge' => true ),
+					),
+					'accentColor'          => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'titleColor'           => array(
+						'type'    => 'color',
+						'label'   => 'Title Color',
+						'default' => '',
+					),
+					'priceColor'           => array(
+						'type'    => 'color',
+						'label'   => 'Price Color',
+						'default' => '',
+					),
+					'buttonColor'          => array(
+						'type'    => 'color',
+						'label'   => 'Add-to-Cart Button Color',
+						'default' => '',
+					),
+					'buttonTextColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Button Text Color',
+						'default' => '',
+					),
+					'backgroundColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Background Color',
+						'default' => '',
+					),
+					'maxWidth'             => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1240,
+						'min'     => 720,
+						'max'     => 1600,
+					),
+					'padding'              => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 56,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'             => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'              => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'product-upsells',
+				'name'           => 'Product Upsells',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'sparkles',
+				'description'    => "The product's hand-picked upsells (Linked Products → Upsells) as a card grid.",
+				'settings'       => array(
+					'showHeading'     => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Heading',
+						'default' => true,
+					),
+					'headingText'     => array(
+						'type'    => 'text',
+						'label'   => 'Heading Text',
+						'default' => 'Pairs well with',
+					),
+					'count'           => array(
+						'type'    => 'slider',
+						'label'   => 'Products to Show',
+						'default' => 4,
+						'min'     => 2,
+						'max'     => 8,
+					),
+					'columns'         => array(
+						'type'    => 'slider',
+						'label'   => 'Columns',
+						'default' => 4,
+						'min'     => 2,
+						'max'     => 4,
+					),
+					'showPrice'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Price',
+						'default' => true,
+					),
+					'headingColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Heading Color',
+						'default' => '',
+					),
+					'accentColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'backgroundColor' => array(
+						'type'    => 'color',
+						'label'   => 'Background Color',
+						'default' => '',
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1200,
+						'min'     => 480,
+						'max'     => 1600,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 40,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'product-reviews',
+				'name'           => 'Product Reviews',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'star',
+				'description'    => "WooCommerce's customer reviews and review form, with a rating summary.",
+				'settings'       => array(
+					'showHeading'  => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Heading',
+						'default' => true,
+					),
+					'headingText'  => array(
+						'type'    => 'text',
+						'label'   => 'Heading Text',
+						'default' => 'Customer Reviews',
+					),
+					'showSummary'  => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Rating Summary',
+						'default' => true,
+					),
+					'headingColor' => array(
+						'type'    => 'color',
+						'label'   => 'Heading Color',
+						'default' => '',
+					),
+					'accentColor'  => array(
+						'type'    => 'color',
+						'label'   => 'Star / Accent Color',
+						'default' => '',
+					),
+					'maxWidth'     => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 900,
+						'min'     => 320,
+						'max'     => 1400,
+					),
+					'padding'      => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'     => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'      => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'product-meta',
+				'name'           => 'Product Meta',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'tag',
+				'description'    => 'SKU, categories, and tags for the current product.',
+				'settings'       => array(
+					'showSku'        => array(
+						'type'    => 'toggle',
+						'label'   => 'Show SKU',
+						'default' => true,
+					),
+					'showCategories' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Categories',
+						'default' => true,
+					),
+					'showTags'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Tags',
+						'default' => true,
+					),
+					'layout'         => array(
+						'type'    => 'select',
+						'label'   => 'Layout',
+						'default' => 'stacked',
+						'options' => array(
+							'Stacked Rows' => 'stacked',
+							'Inline'       => 'inline',
+						),
+					),
+					'alignment'      => array(
+						'type'    => 'select',
+						'label'   => 'Alignment',
+						'default' => 'left',
+						'options' => array(
+							'Left'   => 'left',
+							'Center' => 'center',
+						),
+					),
+					'labelColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Label Color',
+						'default' => '',
+					),
+					'linkColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Value / Link Color',
+						'default' => '',
+					),
+					'maxWidth'       => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 640,
+						'min'     => 320,
+						'max'     => 1200,
+					),
+					'padding'        => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'       => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'        => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		// SHOP Category — blocks that bind to the current product archive (shop
+		// page / category / tag). Only available inside a Shop Template
+		// (template_scope => 'shop').
+		$this->register_block(
+			array(
+				'id'             => 'shop-header',
+				'name'           => 'Archive Header',
+				'category'       => 'shop',
+				'template_scope' => 'shop',
+				'icon'           => 'panel-top',
+				'description'    => "The current archive's title, description, and product count.",
+				'settings'       => array(
+					'showTitle'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Title',
+						'default' => true,
+					),
+					'showDescription' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Description',
+						'default' => true,
+					),
+					'showCount'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Product Count',
+						'default' => true,
+					),
+					'alignment'       => array(
+						'type'    => 'select',
+						'label'   => 'Alignment',
+						'default' => 'left',
+						'options' => array(
+							'Left'   => 'left',
+							'Center' => 'center',
+						),
+					),
+					'titleColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Title Color',
+						'default' => '',
+					),
+					'textColor'       => array(
+						'type'    => 'color',
+						'label'   => 'Text Color',
+						'default' => '',
+					),
+					'backgroundColor' => array(
+						'type'    => 'color',
+						'label'   => 'Background Color',
+						'default' => '',
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1200,
+						'min'     => 480,
+						'max'     => 1600,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 32,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'shop-products',
+				'name'           => 'Product Loop',
+				'category'       => 'shop',
+				'template_scope' => 'shop',
+				'icon'           => 'layout-grid',
+				'description'    => "The archive's products as a card grid, with sorting and pagination.",
+				'settings'       => array(
+					'columns'         => array(
+						'type'    => 'slider',
+						'label'   => 'Columns',
+						'default' => 4,
+						'min'     => 2,
+						'max'     => 5,
+					),
+					'imageAspect'     => array(
+						'type'    => 'select',
+						'label'   => 'Image Shape',
+						'default' => 'square',
+						'options' => array(
+							'Square'    => 'square',
+							'Portrait'  => 'portrait',
+							'Landscape' => 'landscape',
+						),
+					),
+					'showPrice'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Price',
+						'default' => true,
+					),
+					'showRating'      => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Rating',
+						'default' => true,
+					),
+					'showAddToCart'   => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Quick Add Button',
+						'default' => true,
+					),
+					'showSorting'     => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Sort Dropdown',
+						'default' => true,
+					),
+					'showCount'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Result Count',
+						'default' => true,
+					),
+					'showPagination'  => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Pagination',
+						'default' => true,
+					),
+					'accentColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'buttonColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Button Color',
+						'default' => '',
+					),
+					'buttonTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Button Text Color',
+						'default' => '',
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1200,
+						'min'     => 480,
+						'max'     => 1600,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		// STORE Category — blocks that embed WooCommerce's own cart / checkout /
+		// account output into a DSF-designed page (see DSF_Store_Pages). Regular
+		// page scope: they are meant for the store's cart/checkout/account pages.
+		$this->register_block(
+			array(
+				'id'          => 'store-cart',
+				'name'        => 'Cart',
+				'category'    => 'store',
+				'icon'        => 'shopping-cart',
+				'description' => "WooCommerce's cart — items, coupons, totals, and cross-sells — restyled to your theme.",
+				'settings'    => array(
+					'showCrossSells'  => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Cross-Sells',
+						'default' => true,
+					),
+					'accentColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'buttonColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Checkout Button Color',
+						'default' => '',
+					),
+					'buttonTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Button Text Color',
+						'default' => '',
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1100,
+						'min'     => 720,
+						'max'     => 1600,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'store-checkout',
+				'name'        => 'Checkout',
+				'category'    => 'store',
+				'icon'        => 'credit-card',
+				'description' => "WooCommerce's full checkout — billing, shipping, payment — with a modern layout.",
+				'settings'    => array(
+					'layout'          => array(
+						'type'    => 'select',
+						'label'   => 'Layout',
+						'default' => 'split',
+						'options' => array(
+							'Split (fields + summary)' => 'split',
+							'Stacked'                  => 'stacked',
+						),
+					),
+					'accentColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'buttonColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Place Order Button Color',
+						'default' => '',
+					),
+					'buttonTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Button Text Color',
+						'default' => '',
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1140,
+						'min'     => 720,
+						'max'     => 1600,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'store-account',
+				'name'        => 'My Account',
+				'category'    => 'store',
+				'icon'        => 'user',
+				'description' => "WooCommerce's account area — orders, addresses, details — or the login form for guests.",
+				'settings'    => array(
+					'navStyle'    => array(
+						'type'    => 'select',
+						'label'   => 'Navigation Style',
+						'default' => 'side',
+						'options' => array(
+							'Sidebar' => 'side',
+							'Top Bar' => 'top',
+						),
+					),
+					'accentColor' => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'maxWidth'    => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1100,
+						'min'     => 720,
+						'max'     => 1600,
+					),
+					'padding'     => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'    => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'     => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'store-steps',
+				'name'        => 'Checkout Steps',
+				'category'    => 'store',
+				'icon'        => 'milestone',
+				'description' => 'A Cart → Checkout → Complete progress indicator for store pages.',
+				'settings'    => array(
+					'labelCart'     => array(
+						'type'    => 'text',
+						'label'   => 'Cart Step Label',
+						'default' => 'Cart',
+					),
+					'labelCheckout' => array(
+						'type'    => 'text',
+						'label'   => 'Checkout Step Label',
+						'default' => 'Checkout',
+					),
+					'labelComplete' => array(
+						'type'    => 'text',
+						'label'   => 'Complete Step Label',
+						'default' => 'Order Complete',
+					),
+					'currentStep'   => array(
+						'type'    => 'select',
+						'label'   => 'Current Step',
+						'default' => 'auto',
+						'options' => array(
+							'Detect Automatically' => 'auto',
+							'Cart'                 => 'cart',
+							'Checkout'             => 'checkout',
+							'Order Complete'       => 'complete',
+						),
+					),
+					'linkSteps'     => array(
+						'type'    => 'toggle',
+						'label'   => 'Link Completed Steps',
+						'default' => true,
+					),
+					'accentColor'   => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'maxWidth'      => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 720,
+						'min'     => 320,
+						'max'     => 1200,
+					),
+					'padding'       => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'      => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'       => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		// BLOG Category — blocks that bind to the current post archive (posts page,
+		// category, tag, author, date). Only available inside a Blog Template
+		// (template_scope => 'blog').
+		$this->register_block(
+			array(
+				'id'             => 'blog-header',
+				'name'           => 'Blog Header',
+				'category'       => 'blog',
+				'template_scope' => 'blog',
+				'icon'           => 'newspaper',
+				'description'    => "The current archive's title, description, and post count.",
+				'settings'       => array(
+					'showTitle'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Title',
+						'default' => true,
+					),
+					'showDescription' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Description',
+						'default' => true,
+					),
+					'showCount'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Post Count',
+						'default' => true,
+					),
+					'alignment'       => array(
+						'type'    => 'select',
+						'label'   => 'Alignment',
+						'default' => 'left',
+						'options' => array(
+							'Left'   => 'left',
+							'Center' => 'center',
+						),
+					),
+					'titleColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Title Color',
+						'default' => '',
+					),
+					'textColor'       => array(
+						'type'    => 'color',
+						'label'   => 'Text Color',
+						'default' => '',
+					),
+					'backgroundColor' => array(
+						'type'    => 'color',
+						'label'   => 'Background Color',
+						'default' => '',
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1100,
+						'min'     => 480,
+						'max'     => 1600,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 40,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'post-loop',
+				'name'           => 'Post Loop',
+				'category'       => 'blog',
+				'template_scope' => 'blog',
+				'icon'           => 'layout-list',
+				'description'    => "The archive's posts as a magazine-style grid or list, with pagination.",
+				'settings'       => array(
+					'layout'          => array(
+						'type'    => 'select',
+						'label'   => 'Layout',
+						'default' => 'grid',
+						'options' => array(
+							'Card Grid'      => 'grid',
+							'Editorial List' => 'list',
+						),
+					),
+					'columns'         => array(
+						'type'     => 'slider',
+						'label'    => 'Columns',
+						'default'  => 3,
+						'min'      => 1,
+						'max'      => 4,
+						'showWhen' => array( 'layout' => 'grid' ),
+					),
+					'featuredFirst'   => array(
+						'type'    => 'toggle',
+						'label'   => 'Feature First Post (hero card)',
+						'default' => true,
+					),
+					'showImage'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Featured Images',
+						'default' => true,
+					),
+					'showExcerpt'     => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Excerpt',
+						'default' => true,
+					),
+					'showDate'        => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Date',
+						'default' => true,
+					),
+					'showAuthor'      => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Author',
+						'default' => true,
+					),
+					'showCategories'  => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Category Chips',
+						'default' => true,
+					),
+					'showReadingTime' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Reading Time',
+						'default' => true,
+					),
+					'showPagination'  => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Pagination',
+						'default' => true,
+					),
+					'readMoreText'    => array(
+						'type'    => 'text',
+						'label'   => 'Read More Text',
+						'default' => 'Read article',
+					),
+					'accentColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'cardBackground'  => array(
+						'type'    => 'color',
+						'label'   => 'Card Background',
+						'default' => '',
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1200,
+						'min'     => 480,
+						'max'     => 1600,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 24,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'shop-filters',
+				'name'           => 'Product Filters',
+				'category'       => 'shop',
+				'template_scope' => 'shop',
+				'icon'           => 'sliders',
+				'description'    => 'Price range and category filters for the current archive.',
+				'settings'       => array(
+					'showPrice'      => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Price Filter',
+						'default' => true,
+					),
+					'showCategories' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Categories',
+						'default' => true,
+					),
+					'showCounts'     => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Category Counts',
+						'default' => true,
+					),
+					'layout'         => array(
+						'type'    => 'select',
+						'label'   => 'Layout',
+						'default' => 'bar',
+						'options' => array(
+							'Horizontal Bar' => 'bar',
+							'Stacked Panel'  => 'panel',
+						),
+					),
+					'accentColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'maxWidth'       => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1200,
+						'min'     => 480,
+						'max'     => 1600,
+					),
+					'padding'        => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 12,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'       => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'        => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'store-mini-cart',
+				'name'        => 'Mini Cart',
+				'category'    => 'store',
+				'icon'        => 'shopping-basket',
+				'description' => 'A floating (or inline) cart button with a live item count and subtotal.',
+				'settings'    => array(
+					'placement'       => array(
+						'type'    => 'select',
+						'label'   => 'Placement',
+						'default' => 'floating',
+						'options' => array(
+							'Floating Bubble' => 'floating',
+							'Inline'          => 'inline',
+						),
+					),
+					'corner'          => array(
+						'type'     => 'select',
+						'label'    => 'Floating Corner',
+						'default'  => 'bottom-right',
+						'options'  => array(
+							'Bottom Right' => 'bottom-right',
+							'Bottom Left'  => 'bottom-left',
+						),
+						'showWhen' => array( 'placement' => 'floating' ),
+					),
+					'showSubtotal'    => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Subtotal',
+						'default' => true,
+					),
+					'hideWhenEmpty'   => array(
+						'type'    => 'toggle',
+						'label'   => 'Hide When Cart Is Empty',
+						'default' => true,
+					),
+					'buttonColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Bubble Color',
+						'default' => '',
+					),
+					'buttonTextColor' => array(
+						'type'    => 'color',
+						'label'   => 'Bubble Text Color',
+						'default' => '',
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 100,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'store-thankyou',
+				'name'        => 'Thank You Banner',
+				'category'    => 'store',
+				'icon'        => 'party-popper',
+				'description' => 'A celebratory order-received banner, shown only after checkout completes.',
+				'settings'    => array(
+					'headingText'     => array(
+						'type'    => 'text',
+						'label'   => 'Heading',
+						'default' => 'Thank you for your order!',
+					),
+					'messageText'     => array(
+						'type'    => 'textarea',
+						'label'   => 'Message',
+						'default' => 'We have received it and sent a confirmation to your email. Your order details are below.',
+					),
+					'showConfetti'    => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Celebration Icon',
+						'default' => true,
+					),
+					'accentColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'backgroundColor' => array(
+						'type'    => 'color',
+						'label'   => 'Background Color',
+						'default' => '',
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 900,
+						'min'     => 480,
+						'max'     => 1400,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 40,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		// SITE Category — WordPress-generic page features: a designable login page,
+		// search page, and member dashboard (see DSF_Site_Pages).
+		$this->register_block(
+			array(
+				'id'          => 'site-login',
+				'name'        => 'Login',
+				'category'    => 'site',
+				'icon'        => 'log-in',
+				'description' => 'A styled WordPress login form with lost-password and register links.',
+				'settings'    => array(
+					'headingText'     => array(
+						'type'    => 'text',
+						'label'   => 'Heading',
+						'default' => 'Welcome back',
+					),
+					'subheadingText'  => array(
+						'type'    => 'text',
+						'label'   => 'Subheading',
+						'default' => 'Sign in to your account',
+					),
+					'showRemember'    => array(
+						'type'    => 'toggle',
+						'label'   => 'Show "Remember Me"',
+						'default' => true,
+					),
+					'showLinks'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Lost-Password / Register Links',
+						'default' => true,
+					),
+					'accentColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'backgroundColor' => array(
+						'type'    => 'color',
+						'label'   => 'Card Background',
+						'default' => '',
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 440,
+						'min'     => 320,
+						'max'     => 720,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 48,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'site-search',
+				'name'        => 'Search',
+				'category'    => 'site',
+				'icon'        => 'search',
+				'description' => 'A search form with styled results — pages, posts, and products.',
+				'settings'    => array(
+					'headingText'    => array(
+						'type'    => 'text',
+						'label'   => 'Heading',
+						'default' => 'Search',
+					),
+					'placeholder'    => array(
+						'type'    => 'text',
+						'label'   => 'Input Placeholder',
+						'default' => 'What are you looking for?',
+					),
+					'showTypeBadges' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Result Type Badges',
+						'default' => true,
+					),
+					'showImages'     => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Result Images',
+						'default' => true,
+					),
+					'accentColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'maxWidth'       => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 760,
+						'min'     => 420,
+						'max'     => 1200,
+					),
+					'padding'        => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 32,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'       => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'        => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'user-dashboard',
+				'name'        => 'User Dashboard',
+				'category'    => 'site',
+				'icon'        => 'gauge',
+				'description' => 'A member hub: greeting, quick links, and recent orders (login prompt for guests).',
+				'settings'    => array(
+					'welcomeText'     => array(
+						'type'    => 'text',
+						'label'   => 'Welcome Text',
+						'default' => 'Welcome back,',
+					),
+					'showOrders'      => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Recent Orders (WooCommerce)',
+						'default' => true,
+					),
+					'showQuickLinks'  => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Quick Links',
+						'default' => true,
+					),
+					'loginPromptText' => array(
+						'type'    => 'text',
+						'label'   => 'Guest Prompt',
+						'default' => 'Sign in to see your dashboard.',
+					),
+					'accentColor'     => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'backgroundColor' => array(
+						'type'    => 'color',
+						'label'   => 'Card Background',
+						'default' => '',
+					),
+					'maxWidth'        => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 1000,
+						'min'     => 480,
+						'max'     => 1400,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 32,
+						'min'     => 0,
+						'max'     => 160,
+					),
+					'paddingX'        => array(
+						'type'    => 'slider',
+						'label'   => 'Horizontal Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 120,
+					),
+					'marginY'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Margin',
+						'default' => 25,
+						'min'     => 0,
+						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
 				'id'          => 'ecommerce-showcase',
 				'name'        => 'Ecommerce Showcase',
 				'category'    => 'ecommerce',
@@ -6252,6 +7763,149 @@ class DSF_Blocks {
 
 		$this->register_block(
 			array(
+				'id'          => 'landing-dock-header',
+				'name'        => 'Floating Dock Header',
+				'category'    => 'marketing',
+				'icon'        => 'layout-template',
+				'description' => 'Floating bottom dock navigation whose leading icon switches to the section you are viewing',
+				'settings'    => array_merge(
+					array(
+						'brandText' => array(
+							'type'    => 'text',
+							'label'   => 'Brand label',
+							'section' => 'content',
+							'default' => 'DesignStudio Flow',
+						),
+						'logoImage' => array(
+							'type'    => 'image',
+							'label'   => 'Logo image',
+							'section' => 'content',
+							'default' => '',
+						),
+						'navLinks'  => array(
+							'type'    => 'dock_nav_links',
+							'label'   => 'Section links',
+							'section' => 'content',
+							'default' => array(
+								array(
+									'label'     => 'Why DSFlow',
+									'url'       => '#why-dsflow',
+									'icon'      => 'dsflow-why',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Blocks',
+									'url'       => '#blocks',
+									'icon'      => 'dsflow-blocks',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Design included',
+									'url'       => '#ready',
+									'icon'      => 'dsflow-ready',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Visual editor',
+									'url'       => '#editor',
+									'icon'      => 'dsflow-editor',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Theme controls',
+									'url'       => '#theme',
+									'icon'      => 'dsflow-theme',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'WooCommerce',
+									'url'       => '#woocommerce',
+									'icon'      => 'dsflow-commerce',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Headers & footers',
+									'url'       => '#layouts',
+									'icon'      => 'dsflow-layouts',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Campaigns',
+									'url'       => '#campaigns',
+									'icon'      => 'dsflow-campaigns',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Forms & growth',
+									'url'       => '#engagement',
+									'icon'      => 'dsflow-engagement',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'SEO',
+									'url'       => '#seo',
+									'icon'      => 'dsflow-seo',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Security',
+									'url'       => '#security',
+									'icon'      => 'dsflow-security',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'For agencies',
+									'url'       => '#audience',
+									'icon'      => 'dsflow-agencies',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Workflow',
+									'url'       => '#workflow',
+									'icon'      => 'dsflow-workflow',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Redirects',
+									'url'       => '#redirects',
+									'icon'      => 'dsflow-redirects',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Email delivery',
+									'url'       => '#mail',
+									'icon'      => 'dsflow-mail',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Get DSFlow',
+									'url'       => '#get-dsflow',
+									'icon'      => 'dsflow-launch',
+									'iconImage' => '',
+								),
+							),
+						),
+						'homeUrl'   => array(
+							'type'    => 'text',
+							'label'   => 'Logo URL',
+							'section' => 'content',
+							'default' => '#top',
+						),
+					),
+					$this->landing_style_settings(
+						array(
+							'background' => '',
+							'text'       => '#111827',
+							'accent'     => '#4AA3FF',
+							'eyebrow'    => '#0091FF',
+						)
+					)
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
 				'id'          => 'landing-hero',
 				'name'        => 'Landing Page Hero',
 				'category'    => 'content',
@@ -6275,6 +7929,166 @@ class DSF_Blocks {
 					),
 					$this->landing_media_settings( 'media', 'Hero visual' ),
 					$this->landing_style_settings( array( 'background' => '#F7F4ED', 'text' => '#111827', 'accent' => '#0091FF', 'eyebrow' => '#0091FF' ) )
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'landing-showcase-hero',
+				'name'        => 'Showcase Hero',
+				'category'    => 'content',
+				'icon'        => 'layout-grid',
+				'description' => 'Content-first hero: a short headline over a visual mosaic that previews the page sections',
+				'settings'    => array_merge(
+					array(
+						'eyebrow'          => array(
+							'type'      => 'text',
+							'label'     => 'Eyebrow',
+							'section'   => 'content',
+							'default'   => 'THE VISUAL WORDPRESS SYSTEM',
+							'maxLength' => 96,
+						),
+						'eyebrowLineColor' => array(
+							'type'    => 'color',
+							'label'   => 'Eyebrow line color',
+							'section' => 'style',
+							'default' => '',
+						),
+						'title'            => array(
+							'type'      => 'text',
+							'label'     => 'Title lead-in',
+							'section'   => 'content',
+							'default'   => 'Design your',
+							'maxLength' => 96,
+						),
+						'rotatingWords'    => array(
+							'type'      => 'text',
+							'label'     => 'Rotating words (comma-separated)',
+							'section'   => 'content',
+							'default'   => 'WordPress site, page visually, online store, next campaign, site securely, client site',
+							'maxLength' => 390,
+							'helper'    => 'Use exactly six unique two-word phrases; each phrase matches the tile in the same position.',
+						),
+						'tagline'          => array(
+							'type'      => 'text',
+							'label'     => 'Tagline',
+							'section'   => 'content',
+							'default'   => 'Design pages, theme styles, WooCommerce stores, layouts, campaigns, and forms in one visual builder.',
+							'maxLength' => 240,
+						),
+						'primaryText'      => array(
+							'type'      => 'text',
+							'label'     => 'Primary Button',
+							'section'   => 'buttons',
+							'default'   => 'Experience DSFlow',
+							'maxLength' => 80,
+						),
+						'primaryUrl'       => array(
+							'type'    => 'text',
+							'label'   => 'Primary URL',
+							'section' => 'buttons',
+							'default' => '#get-dsflow',
+						),
+						'secondaryText'    => array(
+							'type'      => 'text',
+							'label'     => 'Secondary Button',
+							'section'   => 'buttons',
+						'default'   => 'Browse 40+ blocks',
+							'maxLength' => 80,
+						),
+						'secondaryUrl'     => array(
+							'type'    => 'text',
+							'label'   => 'Secondary URL',
+							'section' => 'buttons',
+							'default' => '#blocks',
+						),
+						'buttonColor'      => array(
+							'type'    => 'color',
+							'label'   => 'Primary button background',
+							'section' => 'style',
+							'default' => '',
+						),
+						'buttonTextColor'  => array(
+							'type'    => 'color',
+							'label'   => 'Primary button text color',
+							'section' => 'style',
+							'default' => '',
+						),
+						'chip1'            => array(
+							'type'      => 'text',
+							'label'     => 'Proof chip 1',
+							'section'   => 'content',
+						'default'   => '40+ designed blocks',
+							'maxLength' => 96,
+						),
+						'chip2'            => array(
+							'type'      => 'text',
+							'label'     => 'Proof chip 2',
+							'section'   => 'content',
+							'default'   => 'WooCommerce ready',
+							'maxLength' => 96,
+						),
+						'chip3'            => array(
+							'type'      => 'text',
+							'label'     => 'Proof chip 3',
+							'section'   => 'content',
+							'default'   => 'Built with security in mind',
+							'maxLength' => 96,
+						),
+						'tiles'            => array(
+							'type'     => 'dock_nav_links',
+							'label'    => 'Showcase tiles',
+							'section'  => 'tiles',
+							'maxItems' => 6,
+							'default'  => array(
+								array(
+									'label'     => 'Design included',
+									'url'       => '#ready',
+									'icon'      => 'wand',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Visual editor',
+									'url'       => '#editor',
+									'icon'      => 'mouse-pointer',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'WooCommerce',
+									'url'       => '#woocommerce',
+									'icon'      => 'store',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Forms & growth',
+									'url'       => '#engagement',
+									'icon'      => 'mail',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'Security',
+									'url'       => '#security',
+									'icon'      => 'shield-check',
+									'iconImage' => '',
+								),
+								array(
+									'label'     => 'For agencies',
+									'url'       => '#audience',
+									'icon'      => 'briefcase',
+									'iconImage' => '',
+								),
+							),
+						),
+					),
+					$this->landing_style_settings(
+						array(
+							'background' => '#F7F4ED',
+							'text'       => '#111827',
+							'accent'     => '#0091FF',
+							'eyebrow'    => '#0091FF',
+						)
+					)
 				),
 			)
 		);
@@ -6537,10 +8351,164 @@ class DSF_Blocks {
 	}
 
 	/**
-	 * Register a block
+	 * Register a block.
+	 *
+	 * Public API: add-on plugins call this from the `dsf_register_blocks` action.
+	 * A block is a schema array with at least an `id`; the front-end preview
+	 * component is supplied separately at runtime via
+	 * `window.dsfFlow.registerBlock( id, component )`.
+	 *
+	 * @param array $block Block schema. Required: `id` (string). Recognised keys:
+	 *                     `name`, `category`, `icon`, `description`, `settings`,
+	 *                     `group` (library grouping, e.g. 'heroes'),
+	 *                     `preset_only` (registered for render but hidden from the
+	 *                     library).
+	 * @return bool True when registered, false when the schema is invalid.
 	 */
 	public function register_block( $block ) {
+		if ( ! is_array( $block ) || empty( $block['id'] ) || ! is_string( $block['id'] ) ) {
+			return false;
+		}
+
+		$block['id'] = sanitize_key( $block['id'] );
+		if ( '' === $block['id'] ) {
+			return false;
+		}
+		if ( ! isset( $block['category'] ) || ! is_string( $block['category'] ) ) {
+			$block['category'] = 'content';
+		}
+
+		$block = $this->apply_placeholder_defaults( $block );
 		$this->blocks[ $block['id'] ] = $block;
+		return true;
+	}
+
+	/**
+	 * Ensure a new block is immediately useful before an editor changes it.
+	 *
+	 * A number of the original schemas intentionally left optional presentation
+	 * controls blank so components could fall back to CSS. That made the first
+	 * insert experience look incomplete and left the corresponding controls
+	 * empty. These values are schema-owned defaults (not request data), so the
+	 * existing per-block save sanitizers remain the security boundary.
+	 *
+	 * Site-content selectors deliberately remain empty: product and category IDs
+	 * are validated server-side and cannot be safely invented in a default.
+	 *
+	 * @param array $block Block registration.
+	 * @return array
+	 */
+	private function apply_placeholder_defaults( $block ) {
+		if ( ! is_array( $block ) || empty( $block['settings'] ) || ! is_array( $block['settings'] ) ) {
+			return $block;
+		}
+
+		foreach ( $block['settings'] as $key => $setting ) {
+			if ( ! is_array( $setting ) || ! array_key_exists( 'default', $setting ) ) {
+				continue;
+			}
+
+			if ( is_array( $setting['default'] ) ) {
+				$block['settings'][ $key ]['default'] = $this->hydrate_nested_placeholder_images( $setting['default'] );
+				continue;
+			}
+
+			if ( '' !== $setting['default'] ) {
+				continue;
+			}
+
+			$block['settings'][ $key ]['default'] = $this->get_placeholder_default( $key, $setting );
+		}
+
+		return $block;
+	}
+
+	/**
+	 * Give repeater cards the same ready-to-preview image treatment as image
+	 * controls. Other blank nested values remain optional by contract.
+	 *
+	 * @param array $value Repeater default.
+	 * @return array
+	 */
+	private function hydrate_nested_placeholder_images( $value ) {
+		foreach ( $value as $key => $item ) {
+			if ( is_array( $item ) ) {
+				$value[ $key ] = $this->hydrate_nested_placeholder_images( $item );
+				continue;
+			}
+
+			if ( '' === $item && preg_match( '/(?:image|logo)$/i', (string) $key ) && ! preg_match( '/iconimage$/i', (string) $key ) ) {
+				$value[ $key ] = $this->get_placeholder_image_url();
+			}
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Provide a safe, editable value for an otherwise blank scalar setting.
+	 *
+	 * @param string $key     Setting key.
+	 * @param array  $setting Setting schema.
+	 * @return string
+	 */
+	private function get_placeholder_default( $key, $setting ) {
+		$type  = $setting['type'] ?? 'text';
+		$label = sanitize_text_field( $setting['label'] ?? $key );
+		$key   = strtolower( (string) $key );
+
+		if ( 'image' === $type ) {
+			return $this->get_placeholder_image_url();
+		}
+
+		if ( 'color' === $type ) {
+			if ( false !== strpos( $key, 'buttontext' ) || false !== strpos( $key, 'buttonlabel' ) ) {
+				return '#FFFFFF';
+			}
+			if ( false !== strpos( $key, 'background' ) ) {
+				return '#F7F4ED';
+			}
+			if ( false !== strpos( $key, 'border' ) || false !== strpos( $key, 'divider' ) ) {
+				return '#E5E7EB';
+			}
+			if ( false !== strpos( $key, 'button' ) || false !== strpos( $key, 'accent' ) || false !== strpos( $key, 'eyebrow' ) ) {
+				return '#2563EB';
+			}
+			return '#111827';
+		}
+
+		if ( 'select' === $type && ! empty( $setting['options'] ) && is_array( $setting['options'] ) ) {
+			foreach ( $setting['options'] as $value ) {
+				if ( '' !== $value ) {
+					return (string) $value;
+				}
+			}
+		}
+
+		if ( false !== strpos( $key, 'url' ) || false !== strpos( $key, 'link' ) ) {
+			return '#';
+		}
+
+		if ( 'wysiwyg' === $type ) {
+			return '<p>Replace this placeholder with your content.</p>';
+		}
+
+		if ( false !== strpos( $key, 'alt' ) ) {
+			return 'Placeholder image';
+		}
+
+		return sprintf( 'Add %s', $label ? strtolower( $label ) : 'your content' );
+	}
+
+	/**
+	 * Return the packaged placeholder image instead of relying on a remote host.
+	 *
+	 * @return string
+	 */
+	private function get_placeholder_image_url() {
+		return defined( 'DSF_PLUGIN_URL' )
+			? DSF_PLUGIN_URL . 'assets/images/dsf-placeholder.svg'
+			: '/wp-content/plugins/designstudio-flow/assets/images/dsf-placeholder.svg';
 	}
 
 	/**
@@ -6581,6 +8549,15 @@ class DSF_Blocks {
 				'blocks' => array(),
 			),
 		);
+		/**
+		 * Filter the library categories (and their order) before blocks are
+		 * bucketed into them. Add-ons register a new tab by adding a key here and
+		 * pointing their blocks' `category` (or `group`) at it.
+		 *
+		 * @param array $categories Map of category key => { label, icon, blocks }.
+		 */
+		$categories = apply_filters( 'dsf_block_categories', $categories );
+
 		$hero_block_ids = array( 'hero', 'landing-hero', 'bento-hero', 'spotlight-hero', 'expander-hero', 'duo-hero', 'featured-promo-banner' );
 
 		foreach ( $this->blocks as $block ) {
@@ -6589,10 +8566,15 @@ class DSF_Blocks {
 			if ( ! empty( $block['preset_only'] ) ) {
 				continue;
 			}
-			$cat = $block['category'];
-			if ( in_array( $block['id'], $hero_block_ids, true ) ) {
-				$categories['heroes']['blocks'][] = $block;
-			} elseif ( isset( $categories[ $cat ] ) ) {
+			// An explicit `group` wins; then the historical hero id list; then the
+			// block's own `category`. This lets add-on blocks opt into any tab
+			// (including custom ones added via dsf_block_categories) declaratively.
+			$group = isset( $block['group'] ) && is_string( $block['group'] ) ? $block['group'] : '';
+			if ( '' === $group && in_array( $block['id'], $hero_block_ids, true ) ) {
+				$group = 'heroes';
+			}
+			$cat = ( '' !== $group ) ? $group : ( $block['category'] ?? '' );
+			if ( isset( $categories[ $cat ] ) ) {
 				$categories[ $cat ]['blocks'][] = $block;
 			}
 		}
@@ -6605,5 +8587,87 @@ class DSF_Blocks {
 	 */
 	public function get_block( $block_id ) {
 		return $this->blocks[ $block_id ] ?? null;
+	}
+
+	/**
+	 * Enqueue add-on block scripts on an editor or frontend screen.
+	 *
+	 * Add-on plugins expose their runtime preview components (registered via
+	 * `window.dsfFlow.registerBlock()`) by returning script entries from the
+	 * `dsf_flow_block_assets` filter:
+	 *
+	 *     add_filter( 'dsf_flow_block_assets', function ( $assets ) {
+	 *         $assets['acme-blocks'] = array(
+	 *             'src'     => plugins_url( 'build/blocks.js', __FILE__ ),
+	 *             'version' => '1.0.0',
+	 *         );
+	 *         return $assets;
+	 *     } );
+	 *
+	 * Each script is loaded *after* the DSF bundle (`$dependency_handle`) and, by
+	 * default, as an ES module — so it executes after the bundle has defined
+	 * `window.dsfFlow`, and its registrations resolve without any ordering guard.
+	 *
+	 * @param string $dependency_handle Handle of the DSF bundle on this screen
+	 *                                  (`dsf-editor` or `dsf-frontend-app`).
+	 * @return void
+	 */
+	public static function enqueue_addon_block_assets( $dependency_handle ) {
+		/**
+		 * Filter the add-on block scripts to enqueue.
+		 *
+		 * @param array $assets Map of handle => string src, or handle => array
+		 *                      { src, deps[], version, module (bool) }.
+		 */
+		$assets = apply_filters( 'dsf_flow_block_assets', array() );
+		if ( ! is_array( $assets ) || empty( $assets ) ) {
+			return;
+		}
+
+		$module_handles = array();
+		foreach ( $assets as $handle => $asset ) {
+			$handle = is_string( $handle ) ? sanitize_key( $handle ) : '';
+			if ( '' === $handle ) {
+				continue;
+			}
+
+			$src    = '';
+			$deps   = array();
+			$ver    = false;
+			$module = true;
+			if ( is_string( $asset ) ) {
+				$src = $asset;
+			} elseif ( is_array( $asset ) ) {
+				$src    = isset( $asset['src'] ) ? (string) $asset['src'] : '';
+				$deps   = isset( $asset['deps'] ) && is_array( $asset['deps'] ) ? $asset['deps'] : array();
+				$ver    = isset( $asset['version'] ) ? $asset['version'] : false;
+				$module = ! isset( $asset['module'] ) || (bool) $asset['module'];
+			}
+
+			if ( '' === $src ) {
+				continue;
+			}
+
+			$deps[] = $dependency_handle;
+			wp_enqueue_script( $handle, $src, array_values( array_unique( $deps ) ), $ver, true );
+
+			if ( $module ) {
+				$module_handles[ $handle ] = true;
+			}
+		}
+
+		if ( ! empty( $module_handles ) ) {
+			add_filter(
+				'script_loader_tag',
+				static function ( $tag, $handle ) use ( $module_handles ) {
+					if ( isset( $module_handles[ $handle ] ) && false === strpos( $tag, 'type="module"' ) ) {
+						$tag = str_replace( '<script ', '<script type="module" ', $tag );
+					}
+					return $tag;
+				},
+				10,
+				2
+			);
+		}
 	}
 }

@@ -277,6 +277,74 @@ class DSF_Post_Type {
 				'show_in_rest'       => false,
 			)
 		);
+
+		// Shop Templates — a reusable design for the shop page and product
+		// category/tag archives (theme-builder style). One template applies to the
+		// entire catalog or to specific product categories; its blocks bind to
+		// whichever archive is being viewed. Managed under the DSF menu.
+		register_post_type(
+			'dsf_shop_template',
+			array(
+				'labels'             => array(
+					'name'               => _x( 'Shop Templates', 'Post type general name', 'designstudio-flow' ),
+					'singular_name'      => _x( 'Shop Template', 'Post type singular name', 'designstudio-flow' ),
+					'menu_name'          => __( 'Shop Templates', 'designstudio-flow' ),
+					'all_items'          => __( 'Shop Templates', 'designstudio-flow' ),
+					'add_new'            => __( 'Add New Shop Template', 'designstudio-flow' ),
+					'add_new_item'       => __( 'Add New Shop Template', 'designstudio-flow' ),
+					'edit_item'          => __( 'Edit Shop Template', 'designstudio-flow' ),
+					'search_items'       => __( 'Search Shop Templates', 'designstudio-flow' ),
+					'not_found'          => __( 'No shop templates yet.', 'designstudio-flow' ),
+					'not_found_in_trash' => __( 'No shop templates found in Trash.', 'designstudio-flow' ),
+				),
+				'public'             => false,
+				'publicly_queryable' => false,
+				'show_ui'            => true,
+				'show_in_menu'       => 'designstudio-flow',
+				'query_var'          => false,
+				'rewrite'            => false,
+				'capability_type'    => 'page',
+				'map_meta_cap'       => true,
+				'has_archive'        => false,
+				'hierarchical'       => false,
+				'supports'           => array( 'title', 'author' ),
+				'show_in_rest'       => false,
+			)
+		);
+
+		// Blog Templates — a reusable design for the posts page and post archives
+		// (category, tag, author, date). One template applies to all blog archives
+		// or to specific post categories; its blocks bind to whichever archive is
+		// being viewed. Managed under the DSF menu.
+		register_post_type(
+			'dsf_blog_template',
+			array(
+				'labels'             => array(
+					'name'               => _x( 'Blog Templates', 'Post type general name', 'designstudio-flow' ),
+					'singular_name'      => _x( 'Blog Template', 'Post type singular name', 'designstudio-flow' ),
+					'menu_name'          => __( 'Blog Templates', 'designstudio-flow' ),
+					'all_items'          => __( 'Blog Templates', 'designstudio-flow' ),
+					'add_new'            => __( 'Add New Blog Template', 'designstudio-flow' ),
+					'add_new_item'       => __( 'Add New Blog Template', 'designstudio-flow' ),
+					'edit_item'          => __( 'Edit Blog Template', 'designstudio-flow' ),
+					'search_items'       => __( 'Search Blog Templates', 'designstudio-flow' ),
+					'not_found'          => __( 'No blog templates yet.', 'designstudio-flow' ),
+					'not_found_in_trash' => __( 'No blog templates found in Trash.', 'designstudio-flow' ),
+				),
+				'public'             => false,
+				'publicly_queryable' => false,
+				'show_ui'            => true,
+				'show_in_menu'       => 'designstudio-flow',
+				'query_var'          => false,
+				'rewrite'            => false,
+				'capability_type'    => 'page',
+				'map_meta_cap'       => true,
+				'has_archive'        => false,
+				'hierarchical'       => false,
+				'supports'           => array( 'title', 'author' ),
+				'show_in_rest'       => false,
+			)
+		);
 	}
 
 	/**

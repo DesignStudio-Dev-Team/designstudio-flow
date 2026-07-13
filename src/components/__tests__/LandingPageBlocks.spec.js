@@ -53,10 +53,12 @@ describe('DSFlow landing page blocks', () => {
     })
     expect(hero.find('h1').text()).toBe('Build freely.')
     expect(hero.find('.dsf-studio').exists()).toBe(true)
-    expect(hero.find('.dsf-studio__brand img').attributes('src')).toContain('assets/images/dsflow-logo.png')
-    expect(hero.text()).toContain('Save Page')
+    // New editor UI: the top bar is replaced by a floating dock with the DS Flow mark.
+    expect(hero.find('.dsf-studio__dock').exists()).toBe(true)
+    expect(hero.find('.dsf-studio__dock-mark img').attributes('src')).toContain('assets/images/dsflow-logo.png')
+    expect(hero.find('.dsf-studio__dock-btn--primary').exists()).toBe(true)
+    expect(hero.find('.dsf-studio__dock-btn--accent').exists()).toBe(true)
     expect(hero.text()).toContain('Customize Block')
-    expect(hero.text()).toContain('Add Block')
     expect(hero.find('[data-dsf-builder-art]').exists()).toBe(true)
 
     const explorer = mount(LandingBlockExplorerPreview, {
@@ -91,6 +93,23 @@ describe('DSFlow landing page blocks', () => {
 
     expect(scrollBy).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth' }))
     expect(explorer.find('[aria-label="Show next blocks"]').attributes('aria-controls')).toBe('dsf-block-explorer-rail-blocks-1')
+    explorer.unmount()
+    vi.unstubAllGlobals()
+  })
+
+  it('uses the page-scope registry when the frontend catalog is available', () => {
+    vi.stubGlobal('dsfFrontendData', {
+      blockCatalog: [
+        { id: 'landing-showcase-hero', name: 'Showcase Hero', category: 'content', description: 'A real hero.', template_scope: 'page' },
+        { id: 'brand-carousel', name: 'Brand Carousel', category: 'marketing', description: 'Trusted logos.', template_scope: 'page' },
+        { id: 'product-only', name: 'Product Only', category: 'content', description: 'Hidden.', template_scope: 'product' },
+      ],
+    })
+    const explorer = mount(LandingBlockExplorerPreview, { props: { isEditor: true, settings: {} } })
+    expect(explorer.findAll('.dsf-explorer-card')).toHaveLength(2)
+    expect(explorer.text()).toContain('Showcase Hero')
+    expect(explorer.text()).toContain('Brand Carousel')
+    expect(explorer.text()).not.toContain('Product Only')
     explorer.unmount()
     vi.unstubAllGlobals()
   })
