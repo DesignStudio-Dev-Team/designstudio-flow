@@ -87,6 +87,34 @@ describe('blockWrapperStyle applies each spacing key exactly once', () => {
   })
 })
 
+describe('blockWrapperStyle full-bleed background', () => {
+  it('paints backgroundColor on the full-width wrapper for non-self-padded blocks', () => {
+    const style = blockWrapperStyle({ backgroundColor: '#ff0000', paddingX: 24 }, 'desktop', { type: 'content' })
+    // Background on the wrapper (which is viewport-wide) → full-bleed, while the
+    // paddingX still insets the content.
+    expect(style.backgroundColor).toBe('#ff0000')
+    expect(style.paddingLeft).toBe('24px')
+  })
+
+  it('accepts an rgba background', () => {
+    const style = blockWrapperStyle({ backgroundColor: 'rgba(0, 0, 0, 0.5)' }, 'desktop', { type: 'content' })
+    expect(style.backgroundColor).toBe('rgba(0, 0, 0, 0.5)')
+  })
+
+  it('adds no background when empty or transparent', () => {
+    expect(blockWrapperStyle({ backgroundColor: '' }, 'desktop', { type: 'content' })).not.toHaveProperty('backgroundColor')
+    expect(blockWrapperStyle({ backgroundColor: 'transparent' }, 'desktop', { type: 'content' })).not.toHaveProperty('backgroundColor')
+    expect(blockWrapperStyle({}, 'desktop', { type: 'content' })).not.toHaveProperty('backgroundColor')
+  })
+
+  it('leaves self-padded blocks to paint their own full-width background', () => {
+    // faq self-applies paddingX and renders its own full-width <section> bg, so
+    // the wrapper must not also set it (would double-paint / fight rounded areas).
+    const style = blockWrapperStyle({ backgroundColor: '#ff0000', paddingX: 40 }, 'desktop', { type: 'faq' })
+    expect(style).not.toHaveProperty('backgroundColor')
+  })
+})
+
 describe('self-apply registry', () => {
   it('marks the right blocks as self-padded / self-margined', () => {
     expect(blockSelfAppliesPaddingX('features-grid')).toBe(true)

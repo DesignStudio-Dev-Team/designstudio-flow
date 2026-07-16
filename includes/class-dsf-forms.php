@@ -262,6 +262,22 @@ class DSF_Forms {
 		$rows     = $this->sanitize_form_rows( $rows_data );
 		$settings = $this->sanitize_form_settings( $settings_data );
 
+		if ( class_exists( 'DSF_History' ) ) {
+			$history = DSF_History::get_instance();
+			$next    = $history->proposed_post_payload(
+				$form_id,
+				array(
+					'post_title'  => '' !== $title ? $title : $form->post_title,
+					'post_status' => in_array( $status, array( 'draft', 'publish' ), true ) ? $status : $form->post_status,
+					'meta'        => array( '_dsf_form_rows' => $rows, '_dsf_form_settings' => $settings ),
+				)
+			);
+			$history_result = $history->capture_before_post_mutation( $form_id, 'dsf_form', $next, 'form_save' );
+			if ( is_wp_error( $history_result ) ) {
+				wp_send_json_error( array( 'message' => 'Could not create a Quick Restore point.' ), 500 );
+			}
+		}
+
 		update_post_meta( $form_id, '_dsf_form_rows', $rows );
 		update_post_meta( $form_id, '_dsf_form_settings', $settings );
 

@@ -42,6 +42,7 @@ final class DesignStudio_Flow {
 	private function load_dependencies() {
 		// Core classes.
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-crypto.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-history.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-post-type.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-admin.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-editor.php';
@@ -61,6 +62,7 @@ final class DesignStudio_Flow {
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-connections.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-entries.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-import-export.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-package.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-gf-migration.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-redirects.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-mail-smtp.php';
@@ -87,6 +89,8 @@ final class DesignStudio_Flow {
 	 * Initialize plugin components
 	 */
 	public function init_components() {
+		// Quick Restore history storage is available to every save path.
+		DSF_History::get_instance();
 		// Initialize post type.
 		DSF_Post_Type::get_instance();
 		// Product templates resolve on the frontend and expose admin list helpers.
@@ -118,6 +122,7 @@ final class DesignStudio_Flow {
 		if ( is_admin() ) {
 			DSF_Entries::get_instance();
 			DSF_Import_Export::get_instance();
+			DSF_Package::get_instance();
 			DSF_GF_Migration::get_instance();
 		}
 
@@ -177,6 +182,7 @@ final class DesignStudio_Flow {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
+		DSF_History::install();
 	}
 
 	/**

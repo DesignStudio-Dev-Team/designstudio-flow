@@ -136,6 +136,17 @@
       @save-as-template="openSaveTemplate"
       @add-block="openBlockLibrary"
       @open-structure="showStructure = true"
+      @open-history="openHistory"
+    />
+
+    <HistoryPanel
+      :visible="showHistory"
+      :records="historyRecords"
+      :loading="historyLoading"
+      :restoring="historyRestoring"
+      :error="historyError"
+      @close="showHistory = false"
+      @restore="restoreHistory"
     />
 
     <!-- Block structure / navigator -->
@@ -278,6 +289,7 @@ import BlockLibrary from './components/BlockLibrary.vue'
 import PageSettingsModal from './components/PageSettingsModal.vue'
 import ConfirmDialog from './components/common/ConfirmDialog.vue'
 import SaveBlockModal from './components/SaveBlockModal.vue'
+import HistoryPanel from './components/HistoryPanel.vue'
 import FrontendApp from './frontend/FrontendApp.vue'
 import { applyThemeToBlocks, resolveThemeKey } from './utils/themeSync'
 import { canAddTemplateBlock, isSingleBlockTemplate, normalizeTemplateBlocks } from './utils/templateBlockRules'
@@ -313,6 +325,9 @@ function hydrateFormBlockDefinition() {
 
   const formWithContentField = wpData.blocks?.['form-with-content']?.settings?.formId
   if (formWithContentField) formWithContentField.options = formOptions
+
+  const footerNewsletterField = wpData.blocks?.['footer-commerce']?.settings?.newsletterFormId
+  if (footerNewsletterField) footerNewsletterField.options = formOptions
 }
 
 function buildFormOptions(forms) {
@@ -540,6 +555,12 @@ const showThemePanel = ref(false)
 const showPageSettings = ref(false)
 const showStructure = ref(false)
 const deleteConfirmVisible = ref(false)
+const showHistory = ref(false)
+const historyRecords = ref([])
+const historyCurrentHash = ref('')
+const historyLoading = ref(false)
+const historyRestoring = ref(false)
+const historyError = ref('')
 
 // Site-wide default header/footer: after saving a header/footer we offer to make
 // it the default used by pages that haven't chosen their own.
@@ -595,12 +616,12 @@ const blockCategories = computed(() => {
   const heroOrder = ['hero', 'landing-hero', 'landing-showcase-hero', 'bento-hero', 'spotlight-hero', 'expander-hero', 'duo-hero', 'featured-promo-banner']
   const headerOrder = ['landing-progress-header']
   const contentOrder = ['content', 'faq', 'breadcrumbs', 'text-image', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-engagement-suite', 'landing-trust-workflow', 'features-grid', 'card-columns', 'testimonials', 'form-embed', 'form-with-content']
-  const marketingOrder = ['pricing', 'countdown', 'promo-banner', 'cta-banner', 'brand-carousel']
+  const marketingOrder = ['pricing', 'pricing-tables', 'countdown', 'promo-banner', 'cta-banner', 'brand-carousel']
   const ecommerceOrder = ['ecommerce-showcase', 'featured-product-banner', 'product-grid']
-  const productOrder = ['product-spotlight', 'product-hero', 'product-gallery', 'product-summary', 'product-meta', 'product-add-to-cart', 'product-highlights', 'product-description', 'product-specs', 'product-tabs', 'product-reviews', 'product-related', 'product-upsells']
-  const storeOrder = ['store-cart', 'store-checkout', 'store-steps', 'store-thankyou', 'store-mini-cart', 'store-account']
+  const productOrder = ['product-spotlight', 'product-hero', 'product-details-split', 'product-gallery', 'product-summary', 'product-meta', 'product-add-to-cart', 'product-highlights', 'product-description', 'product-specs', 'product-tabs', 'product-reviews', 'product-related', 'product-upsells']
+  const storeOrder = ['store-cart', 'store-checkout', 'store-steps', 'store-thankyou', 'store-mini-cart', 'store-login', 'store-account']
   const siteOrder = ['site-login', 'site-search', 'user-dashboard']
-  const shopOrder = ['shop-header', 'shop-filters', 'shop-products']
+  const shopOrder = ['shop-category-hero', 'shop-header', 'shop-subcategory-grid', 'shop-filters', 'shop-products']
   const blogOrder = ['blog-header', 'post-loop']
   const footerOrder = ['landing-marketing-footer']
   const heroBlockIds = new Set(heroOrder)
@@ -1240,6 +1261,54 @@ async function confirmDeleteSavedBlock() {
 // Lightweight transient toast for editor actions.
 const toast = ref({ visible: false, message: '', type: 'success' })
 let toastTimer = null
+
+async function openHistory() {
+  if (!wpData.ajaxUrl || !wpData.postId) return
+  showHistory.value = true
+  historyLoading.value = true
+  historyError.value = ''
+  try {
+    const body = new URLSearchParams({
+      action: 'dsf_history_list',
+      nonce: wpData.nonce || '',
+      post_id: String(wpData.postId),
+    })
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body, credentials: 'same-origin' })
+    const json = await response.json()
+    if (!response.ok || !json?.success) throw new Error(json?.data?.message || 'Could not load history.')
+    historyRecords.value = Array.isArray(json.data?.records) ? json.data.records : []
+    historyCurrentHash.value = String(json.data?.currentHash || '')
+  } catch (error) {
+    historyError.value = error?.message || 'Could not load history.'
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+async function restoreHistory(record) {
+  if (!record?.id || historyRestoring.value) return
+  if (!window.confirm('Restore this version? The current version will be saved so you can undo the restore.')) return
+  historyRestoring.value = true
+  historyError.value = ''
+  try {
+    const body = new URLSearchParams({
+      action: 'dsf_history_restore',
+      nonce: wpData.nonce || '',
+      post_id: String(wpData.postId),
+      record_id: String(record.id),
+      current_hash: historyCurrentHash.value,
+    })
+    const response = await fetch(wpData.ajaxUrl, { method: 'POST', body, credentials: 'same-origin' })
+    const json = await response.json()
+    if (!response.ok || !json?.success) throw new Error(json?.data?.message || 'Could not restore this version.')
+    showToast('Version restored. Reloading…')
+    window.setTimeout(() => window.location.reload(), 400)
+  } catch (error) {
+    historyError.value = error?.message || 'Could not restore this version.'
+  } finally {
+    historyRestoring.value = false
+  }
+}
 function showToast(message, type = 'success') {
   toast.value = { visible: true, message, type }
   if (toastTimer) clearTimeout(toastTimer)

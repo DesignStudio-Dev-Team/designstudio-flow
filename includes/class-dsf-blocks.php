@@ -55,19 +55,55 @@ class DSF_Blocks {
 				'icon'        => 'file-text',
 				'description' => 'Simple WYSIWYG content block with width control',
 				'settings'    => array(
-					'content'  => array(
+					'content'         => array(
 						'type'         => 'wysiwyg',
 						'label'        => 'Content',
 						'default'      => '<p>Add your content here.</p>',
 						'allowRawHtml' => true,
 					),
-					'maxWidth' => array(
+					'maxWidth'        => array(
 						'type'    => 'slider',
 						'label'   => 'Content Width',
 						'default' => 900,
 						'min'     => 320,
 						'max'     => 1400,
 					),
+					'backgroundColor' => array(
+						'type'             => 'color',
+						'label'            => 'Background Color',
+						'default'          => '',
+						'skip_placeholder' => true,
+					),
+					'padding'         => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 0,
+						'min'     => 0,
+						'max'     => 200,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'product-details-split',
+				'name'           => 'Product Details Split',
+				'category'       => 'product',
+				'template_scope' => 'product',
+				'icon'           => 'panels-top-left',
+				'description'    => 'A bold split product layout with gallery, purchase panel, and rounded commerce cards.',
+				'settings'       => array(
+					'imageSide'            => array( 'type' => 'select', 'label' => 'Gallery Side', 'default' => 'left', 'options' => array( 'Left' => 'left', 'Right' => 'right' ) ),
+					'showRating'           => array( 'type' => 'toggle', 'label' => 'Show Rating', 'default' => true ),
+					'showShortDescription' => array( 'type' => 'toggle', 'label' => 'Show Description', 'default' => true ),
+					'showAddToCart'        => array( 'type' => 'toggle', 'label' => 'Show Add to Cart', 'default' => true ),
+					'accentColor'          => array( 'type' => 'color', 'label' => 'Accent Color', 'default' => '' ),
+					'backgroundColor'      => array( 'type' => 'color', 'label' => 'Background Color', 'default' => '' ),
+					'buttonColor'          => array( 'type' => 'color', 'label' => 'Button Color', 'default' => '' ),
+					'buttonTextColor'      => array( 'type' => 'color', 'label' => 'Button Text Color', 'default' => '' ),
+					'maxWidth'             => array( 'type' => 'slider', 'label' => 'Max Width', 'default' => 1280, 'min' => 720, 'max' => 1600 ),
+					'padding'              => array( 'type' => 'slider', 'label' => 'Vertical Padding', 'default' => 48, 'min' => 0, 'max' => 160 ),
 				),
 			)
 		);
@@ -845,6 +881,34 @@ class DSF_Blocks {
 						'min'     => 0,
 						'max'     => 100,
 					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'pricing-tables',
+				'name'        => 'Modern Pricing Tables',
+				'category'    => 'marketing',
+				'icon'        => 'panels-top-left',
+				'description' => 'A bold three-plan pricing section with soft rounded cards and a featured plan.',
+				'settings'    => array(
+					'eyebrow'     => array( 'type' => 'text', 'label' => 'Eyebrow', 'default' => 'Plans for every stage' ),
+					'title'       => array( 'type' => 'text', 'label' => 'Title', 'default' => 'Straightforward pricing' ),
+					'description' => array( 'type' => 'textarea', 'label' => 'Description', 'default' => 'Choose the plan that gives your team the room to grow.' ),
+					'plans'       => array(
+						'type'    => 'pricing_plans',
+						'label'   => 'Three Plans',
+						'default' => array(
+							array( 'name' => 'Starter', 'description' => 'For getting started.', 'monthlyPrice' => '19', 'pricePrefix' => '$', 'priceSuffix' => '/month', 'buttonText' => 'Start free', 'buttonUrl' => '#', 'popular' => false, 'badgeText' => '', 'features' => "3 projects\nCore analytics\nEmail support" ),
+							array( 'name' => 'Growth', 'description' => 'For teams building momentum.', 'monthlyPrice' => '49', 'pricePrefix' => '$', 'priceSuffix' => '/month', 'buttonText' => 'Choose Growth', 'buttonUrl' => '#', 'popular' => true, 'badgeText' => 'Most popular', 'features' => "Unlimited projects\nAdvanced analytics\nPriority support\nTeam seats" ),
+							array( 'name' => 'Scale', 'description' => 'For established teams.', 'monthlyPrice' => '99', 'pricePrefix' => '$', 'priceSuffix' => '/month', 'buttonText' => 'Talk to sales', 'buttonUrl' => '#', 'popular' => false, 'badgeText' => '', 'features' => "Everything in Growth\nCustom reporting\nDedicated success manager" ),
+						),
+					),
+					'accentColor' => array( 'type' => 'color', 'label' => 'Accent Color', 'default' => '#5B3DF5' ),
+					'backgroundColor' => array( 'type' => 'color', 'label' => 'Background Color', 'default' => '#F7F7FC' ),
+					'maxWidth'    => array( 'type' => 'slider', 'label' => 'Max Width', 'default' => 1200, 'min' => 760, 'max' => 1600 ),
+					'padding'     => array( 'type' => 'slider', 'label' => 'Vertical Padding', 'default' => 80, 'min' => 0, 'max' => 180 ),
 				),
 			)
 		);
@@ -3307,23 +3371,25 @@ class DSF_Blocks {
 					),
 					'logo'            => array(
 						'type'    => 'image',
-						'label'   => 'Logo',
+						'label'   => 'Brand Logo (Optional)',
 						'default' => '',
+						'helper'  => 'This appears above the selected primary image or video. It does not replace it.',
 					),
 					'logoPadding'     => array(
 						'type'    => 'toggle',
 						'label'   => 'Add Padding to Logo',
 						'default' => false,
+						'showWhenNotEmpty' => array( 'logo' ),
 					),
 					'video'           => array(
 						'type'     => 'text',
-						'label'    => 'Video Embed URL (YouTube / Vimeo)',
+						'label'    => 'Embedded Video URL (YouTube / Vimeo)',
 						'default'  => '',
 						'showWhen' => array( 'mediaType' => 'video' ),
 					),
 					'videoFile'       => array(
 						'type'     => 'video',
-						'label'    => 'Video File (MP4 / WebM from Media Library)',
+						'label'    => 'Or Upload a Video File (MP4 / WebM)',
 						'default'  => '',
 						'showWhen' => array( 'mediaType' => 'video' ),
 					),
@@ -3813,6 +3879,12 @@ class DSF_Blocks {
 						'type'    => 'text',
 						'label'   => 'Heading Text',
 						'default' => 'Description',
+					),
+					'customFieldKeys' => array(
+						'type'        => 'text',
+						'label'       => 'Custom Product Fields',
+						'default'     => '',
+						'helper'      => 'Optional comma-separated product meta keys, for example: material, dimensions, care_instructions.',
 					),
 					'headingColor' => array(
 						'type'    => 'color',
@@ -4842,6 +4914,47 @@ class DSF_Blocks {
 
 		$this->register_block(
 			array(
+				'id'             => 'shop-category-hero',
+				'name'           => 'Category Hero',
+				'category'       => 'shop',
+				'template_scope' => 'shop',
+				'icon'           => 'image',
+				'description'    => 'A product-category banner using the current category title, description, and optional category image.',
+				'settings'       => array(
+					'showImage'      => array( 'type' => 'toggle', 'label' => 'Show Category Image', 'default' => true ),
+					'showDescription' => array( 'type' => 'toggle', 'label' => 'Show Description', 'default' => true ),
+					'showParentLink' => array( 'type' => 'toggle', 'label' => 'Show Parent Category Link', 'default' => true ),
+					'alignment'      => array( 'type' => 'select', 'label' => 'Text Alignment', 'default' => 'left', 'options' => array( 'Left' => 'left', 'Center' => 'center' ) ),
+					'overlayColor'   => array( 'type' => 'color', 'label' => 'Image Overlay Color', 'default' => '' ),
+					'textColor'      => array( 'type' => 'color', 'label' => 'Text Color', 'default' => '' ),
+					'maxWidth'       => array( 'type' => 'slider', 'label' => 'Max Width', 'default' => 1280, 'min' => 480, 'max' => 1600 ),
+					'padding'        => array( 'type' => 'slider', 'label' => 'Vertical Padding', 'default' => 56, 'min' => 0, 'max' => 200 ),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'             => 'shop-subcategory-grid',
+				'name'           => 'Subcategory Grid',
+				'category'       => 'shop',
+				'template_scope' => 'shop',
+				'icon'           => 'layout-grid',
+				'description'    => 'The immediate child categories of the current product category.',
+				'settings'       => array(
+					'showDescription' => array( 'type' => 'toggle', 'label' => 'Show Descriptions', 'default' => true ),
+					'showCount'       => array( 'type' => 'toggle', 'label' => 'Show Product Count', 'default' => true ),
+					'columns'         => array( 'type' => 'slider', 'label' => 'Columns', 'default' => 3, 'min' => 2, 'max' => 4 ),
+					'imageAspect'     => array( 'type' => 'select', 'label' => 'Image Shape', 'default' => 'landscape', 'options' => array( 'Square' => 'square', 'Landscape' => 'landscape', 'Portrait' => 'portrait' ) ),
+					'accentColor'     => array( 'type' => 'color', 'label' => 'Accent Color', 'default' => '' ),
+					'maxWidth'        => array( 'type' => 'slider', 'label' => 'Max Width', 'default' => 1200, 'min' => 480, 'max' => 1600 ),
+					'padding'         => array( 'type' => 'slider', 'label' => 'Vertical Padding', 'default' => 32, 'min' => 0, 'max' => 160 ),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
 				'id'             => 'shop-products',
 				'name'           => 'Product Loop',
 				'category'       => 'shop',
@@ -5119,6 +5232,62 @@ class DSF_Blocks {
 						'default' => 25,
 						'min'     => 0,
 						'max'     => 100,
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'store-login',
+				'name'        => 'Store Login',
+				'category'    => 'store',
+				'icon'        => 'log-in',
+				'description' => 'A dedicated WooCommerce customer sign-in form with a polished card layout.',
+				'settings'    => array(
+					'heading'          => array(
+						'type'    => 'text',
+						'label'   => 'Heading',
+						'default' => 'Welcome back',
+					),
+					'subheading'       => array(
+						'type'    => 'text',
+						'label'   => 'Supporting Text',
+						'default' => 'Sign in to view your orders and saved details.',
+					),
+					'showRegisterLink' => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Create Account Link',
+						'default' => true,
+					),
+					'accentColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '',
+					),
+					'buttonColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Sign In Button Color',
+						'default' => '',
+					),
+					'buttonTextColor'  => array(
+						'type'    => 'color',
+						'label'   => 'Button Text Color',
+						'default' => '',
+					),
+					'maxWidth'         => array(
+						'type'    => 'slider',
+						'label'   => 'Max Width',
+						'default' => 520,
+						'min'     => 360,
+						'max'     => 800,
+					),
+					'padding'          => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Padding',
+						'default' => 48,
+						'min'     => 0,
+						'max'     => 160,
 					),
 				),
 			)
@@ -7307,6 +7476,144 @@ class DSF_Blocks {
 
 		$this->register_block(
 			array(
+				'id'             => 'header-modern-mega',
+				'name'           => 'Header Modern Mega',
+				'category'       => 'content',
+				'template_scope' => 'header',
+				'icon'           => 'layout-template',
+				'description'    => 'Single-row header (logo, centered nav, account/cart/search) that sticks and shrinks on scroll, with rich mega menus: link lists, image cards, icon grids, and a featured card.',
+				'settings'       => array(
+					'logoText'          => array(
+						'type'    => 'text',
+						'label'   => 'Logo Text',
+						'default' => 'YOUR BRAND',
+					),
+					'logoImage'         => array(
+						'type'    => 'image',
+						'label'   => 'Logo Image',
+						'default' => '',
+					),
+					'logoAlt'           => array(
+						'type'    => 'text',
+						'label'   => 'Logo Alt Text',
+						'default' => 'Site logo',
+					),
+					'logoImageSize'     => array(
+						'type'    => 'slider',
+						'label'   => 'Logo Image Size',
+						'default' => 100,
+						'min'     => 30,
+						'max'     => 100,
+						'unit'    => '%',
+					),
+					'homeUrl'           => array(
+						'type'    => 'text',
+						'label'   => 'Logo URL',
+						'default' => '/',
+					),
+					'sticky'            => array(
+						'type'    => 'toggle',
+						'label'   => 'Stick To Top On Scroll',
+						'default' => true,
+					),
+					'shrinkOnScroll'    => array(
+						'type'     => 'toggle',
+						'label'    => 'Shrink When Scrolled',
+						'default'  => true,
+						'showWhen' => array( 'sticky' => true ),
+					),
+					'showSearch'        => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Search',
+						'default' => true,
+					),
+					'searchUrl'         => array(
+						'type'     => 'text',
+						'label'    => 'Search URL',
+						'default'  => '/?s=',
+						'showWhen' => array( 'showSearch' => true ),
+					),
+					'showAccount'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Account Icon',
+						'default' => true,
+					),
+					'accountUrl'        => array(
+						'type'     => 'text',
+						'label'    => 'Account URL',
+						'default'  => '/my-account/',
+						'showWhen' => array( 'showAccount' => true ),
+					),
+					'showCart'          => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Cart Icon',
+						'default' => true,
+					),
+					'cartUrl'           => array(
+						'type'     => 'text',
+						'label'    => 'Cart URL',
+						'default'  => '/cart/',
+						'showWhen' => array( 'showCart' => true ),
+					),
+					'cartCount'         => array(
+						'type'     => 'number',
+						'label'    => 'Cart Count',
+						'default'  => 0,
+						'min'      => 0,
+						'max'      => 99,
+						'showWhen' => array( 'showCart' => true ),
+					),
+					'navBackground'     => array(
+						'type'    => 'color',
+						'label'   => 'Header Background',
+						'default' => '#ffffff',
+					),
+					'navTextColor'      => array(
+						'type'    => 'color',
+						'label'   => 'Nav Text Color',
+						'default' => '#111827',
+					),
+					'accentColor'       => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '#2563eb',
+					),
+					'panelBackground'   => array(
+						'type'    => 'color',
+						'label'   => 'Mega Panel Background',
+						'default' => '#ffffff',
+					),
+					'panelHeadingColor' => array(
+						'type'    => 'color',
+						'label'   => 'Mega Panel Heading Color',
+						'default' => '#111827',
+					),
+					'panelLinkColor'    => array(
+						'type'    => 'color',
+						'label'   => 'Mega Panel Link Color',
+						'default' => '#4b5563',
+					),
+					'mobileBackground'  => array(
+						'type'    => 'color',
+						'label'   => 'Mobile Drawer Background',
+						'default' => '#0f172a',
+					),
+					'mobileTextColor'   => array(
+						'type'    => 'color',
+						'label'   => 'Mobile Drawer Text Color',
+						'default' => '#ffffff',
+					),
+					'menuItems'         => array(
+						'type'    => 'mega_menu_pro',
+						'label'   => 'Primary Menu + Mega Menu Content',
+						'default' => $this->modern_mega_default_menu(),
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
 				'id'             => 'footer-dealers',
 				'name'           => 'Footer Dealers',
 				'category'       => 'content',
@@ -7481,6 +7788,228 @@ class DSF_Blocks {
 
 		$this->register_block(
 			array(
+				'id'             => 'footer-commerce',
+				'name'           => 'Footer Commerce',
+				'category'       => 'content',
+				'template_scope' => 'footer',
+				'icon'           => 'layout-template',
+				'description'    => 'Multi-section store footer: a features/trust bar, brand + social, two link columns, a newsletter form, and a bottom bar with locale, copyright, and payment badges.',
+				'settings'       => array(
+					// Features / trust bar.
+					'showFeatures'         => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Features Bar',
+						'default' => true,
+					),
+					'features'             => array(
+						'type'    => 'icon_items',
+						'label'   => 'Features',
+						'default' => array(
+							array( 'icon' => 'zap', 'title' => 'Fast & Secure Delivery', 'description' => 'Tell about your service.', 'note' => '' ),
+							array( 'icon' => 'shield-check', 'title' => 'Money Back Guarantee', 'description' => 'Within 10 days.', 'note' => '' ),
+							array( 'icon' => 'boxes', 'title' => '24 Hour Return Policy', 'description' => 'No questions asked.', 'note' => '' ),
+							array( 'icon' => 'star', 'title' => 'Pro Quality Support', 'description' => '24/7 live support.', 'note' => '' ),
+						),
+					),
+					// Brand column.
+					'logoImage'            => array(
+						'type'    => 'image',
+						'label'   => 'Logo Image',
+						'default' => '',
+					),
+					'logoText'             => array(
+						'type'    => 'text',
+						'label'   => 'Logo Text',
+						'default' => 'YOUR BRAND',
+					),
+					'brandText'            => array(
+						'type'    => 'textarea',
+						'label'   => 'Brand Description',
+						'default' => 'A short sentence about your company and what you offer.',
+					),
+					'socialLabel'          => array(
+						'type'    => 'text',
+						'label'   => 'Social Heading',
+						'default' => 'Follow us on',
+					),
+					'socialLinks'          => array(
+						'type'    => 'simple_links',
+						'label'   => 'Social Links (label = network name)',
+						'default' => array(
+							array( 'label' => 'Facebook', 'url' => '#' ),
+							array( 'label' => 'Twitter', 'url' => '#' ),
+							array( 'label' => 'Instagram', 'url' => '#' ),
+							array( 'label' => 'LinkedIn', 'url' => '#' ),
+						),
+					),
+					// Link columns.
+					'column1Heading'       => array(
+						'type'    => 'text',
+						'label'   => 'Column 1 Heading',
+						'default' => 'Shop',
+					),
+					'column1Links'         => array(
+						'type'    => 'simple_links',
+						'label'   => 'Column 1 Links',
+						'default' => array(
+							array( 'label' => 'New Arrivals', 'url' => '#' ),
+							array( 'label' => 'Best Sellers', 'url' => '#' ),
+							array( 'label' => 'Categories', 'url' => '#' ),
+							array( 'label' => 'Gift Cards', 'url' => '#' ),
+						),
+					),
+					'column2Heading'       => array(
+						'type'    => 'text',
+						'label'   => 'Column 2 Heading',
+						'default' => 'Support',
+					),
+					'column2Links'         => array(
+						'type'    => 'simple_links',
+						'label'   => 'Column 2 Links',
+						'default' => array(
+							array( 'label' => 'FAQs', 'url' => '#' ),
+							array( 'label' => 'Shipping & Returns', 'url' => '#' ),
+							array( 'label' => 'Track Order', 'url' => '#' ),
+							array( 'label' => 'Contact Us', 'url' => '#' ),
+						),
+					),
+					// Newsletter.
+					'showNewsletter'       => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Newsletter',
+						'default' => true,
+					),
+					'newsletterHeading'    => array(
+						'type'    => 'text',
+						'label'   => 'Newsletter Heading',
+						'default' => 'Subscribe to our Newsletter',
+					),
+					'newsletterText'       => array(
+						'type'    => 'text',
+						'label'   => 'Newsletter Text',
+						'default' => 'Sign up for the latest news and offers.',
+					),
+					'newsletterSource'     => array(
+						'type'    => 'select',
+						'label'   => 'Newsletter Form',
+						'default' => 'inline',
+						'options' => array(
+							'Simple email field' => 'inline',
+							'DSF Form'            => 'dsf',
+							'Gravity Form / embed shortcode' => 'embed',
+						),
+					),
+					'newsletterFormId'     => array(
+						'type'     => 'select',
+						'label'    => 'Choose a DSF Form',
+						'default'  => '',
+						'options'  => array(
+							'Select a form' => '',
+						),
+						'showWhen' => array( 'newsletterSource' => 'dsf' ),
+					),
+					'newsletterEmbedCode'  => array(
+						'type'     => 'textarea',
+						'label'    => 'Form Shortcode / Embed',
+						'default'  => '',
+						'showWhen' => array( 'newsletterSource' => 'embed' ),
+					),
+					'newsletterPlaceholder' => array(
+						'type'     => 'text',
+						'label'    => 'Email Placeholder',
+						'default'  => 'Enter your email address',
+						'showWhen' => array( 'newsletterSource' => 'inline' ),
+					),
+					'newsletterButton'     => array(
+						'type'     => 'text',
+						'label'    => 'Button Label',
+						'default'  => 'Subscribe',
+						'showWhen' => array( 'newsletterSource' => 'inline' ),
+					),
+					'newsletterAction'     => array(
+						'type'     => 'text',
+						'label'    => 'Form Action URL (optional)',
+						'default'  => '',
+						'showWhen' => array( 'newsletterSource' => 'inline' ),
+					),
+					// Bottom bar.
+					'copyrightText'        => array(
+						'type'    => 'text',
+						'label'   => 'Copyright Text',
+						'default' => '© 2025 Your Company. All rights reserved.',
+					),
+					'showLocale'           => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Language / Currency',
+						'default' => true,
+					),
+					'localeText'           => array(
+						'type'    => 'text',
+						'label'   => 'Language Label',
+						'default' => 'English',
+					),
+					'currencyText'         => array(
+						'type'    => 'text',
+						'label'   => 'Currency Label',
+						'default' => 'USD',
+					),
+					'showPayments'         => array(
+						'type'    => 'toggle',
+						'label'   => 'Show Payment Badges',
+						'default' => true,
+					),
+					'payments'             => array(
+						'type'    => 'brand_repeater',
+						'label'   => 'Payment Badges (name, or upload a logo image)',
+						'default' => array(
+							array( 'name' => 'Mastercard', 'logo' => '', 'url' => '' ),
+							array( 'name' => 'Visa', 'logo' => '', 'url' => '' ),
+							array( 'name' => 'PayPal', 'logo' => '', 'url' => '' ),
+							array( 'name' => 'Amex', 'logo' => '', 'url' => '' ),
+						),
+					),
+					// Colors.
+					'background'           => array(
+						'type'    => 'color',
+						'label'   => 'Background',
+						'default' => '#ffffff',
+					),
+					'textColor'            => array(
+						'type'    => 'color',
+						'label'   => 'Body Text Color',
+						'default' => '#64748b',
+					),
+					'headingColor'         => array(
+						'type'    => 'color',
+						'label'   => 'Heading Color',
+						'default' => '#0f172a',
+					),
+					'linkColor'            => array(
+						'type'    => 'color',
+						'label'   => 'Link Color',
+						'default' => '#475569',
+					),
+					'accentColor'          => array(
+						'type'    => 'color',
+						'label'   => 'Accent Color',
+						'default' => '#4f46e5',
+					),
+					'borderColor'          => array(
+						'type'    => 'color',
+						'label'   => 'Border Color',
+						'default' => '#e2e8f0',
+					),
+					'bottomBackground'     => array(
+						'type'    => 'color',
+						'label'   => 'Bottom Bar Background',
+						'default' => '#ffffff',
+					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
 				'id'          => 'cta-banner',
 				'name'        => 'CTA Banner',
 				'category'    => 'marketing',
@@ -7616,6 +8145,163 @@ class DSF_Blocks {
 		);
 
 		$this->register_landing_page_blocks();
+	}
+
+	/**
+	 * Generic starter menu for the Modern Mega header. Neutral, ready-to-edit
+	 * content that exercises every mega-panel layout: link lists, image cards,
+	 * an icon grid, and a featured card.
+	 *
+	 * @return array
+	 */
+	private function modern_mega_default_menu() {
+		$links = static function ( array $labels ) {
+			return array_map(
+				static function ( $label ) {
+					return array(
+						'label' => $label,
+						'url'   => '#',
+						'image' => '',
+						'icon'  => 'sparkles',
+					);
+				},
+				$labels
+			);
+		};
+
+		$icon_links = static function ( array $pairs ) {
+			$out = array();
+			foreach ( $pairs as $label => $icon ) {
+				$out[] = array(
+					'label' => $label,
+					'url'   => '#',
+					'image' => '',
+					'icon'  => $icon,
+				);
+			}
+			return $out;
+		};
+
+		return array(
+			array(
+				'label'   => 'Products',
+				'url'     => '#',
+				'hasMega' => true,
+				'columns' => array(
+					array(
+						'heading'      => 'Categories',
+						'layout'       => 'links',
+						'imageLinks'   => false,
+						'imageColumns' => 2,
+						'links'        => $links( array( 'New Arrivals', 'Best Sellers', 'Collections', 'On Sale' ) ),
+					),
+					array(
+						'heading'      => 'Shop by Brand',
+						'layout'       => 'cards',
+						'imageLinks'   => true,
+						'imageColumns' => 2,
+						'links'        => $links( array( 'Brand One', 'Brand Two', 'Brand Three', 'Brand Four' ) ),
+					),
+					array(
+						'heading'      => 'Quick Links',
+						'layout'       => 'icons',
+						'imageLinks'   => false,
+						'imageColumns' => 2,
+						'links'        => $icon_links(
+							array(
+								'Buying Guide' => 'file-text',
+								'Support'      => 'shield-check',
+								'Warranty'     => 'star',
+								'Contact'      => 'mail',
+							)
+						),
+					),
+				),
+				'banner'  => array(
+					'title'       => 'New Season',
+					'text'        => 'Discover the latest collection.',
+					'buttonLabel' => 'Shop now',
+					'image'       => '',
+					'url'         => '#',
+				),
+			),
+			array(
+				'label'   => 'Solutions',
+				'url'     => '#',
+				'hasMega' => true,
+				'columns' => array(
+					array(
+						'heading'      => 'By Need',
+						'layout'       => 'links',
+						'imageLinks'   => false,
+						'imageColumns' => 2,
+						'links'        => $links( array( 'For Home', 'For Business', 'For Teams' ) ),
+					),
+					array(
+						'heading'      => 'By Industry',
+						'layout'       => 'links',
+						'imageLinks'   => false,
+						'imageColumns' => 2,
+						'links'        => $links( array( 'Retail', 'Hospitality', 'Education' ) ),
+					),
+				),
+				'banner'  => array(
+					'title'       => 'Featured Solution',
+					'text'        => 'See how teams get started.',
+					'buttonLabel' => 'Learn more',
+					'image'       => '',
+					'url'         => '#',
+				),
+			),
+			array(
+				'label'   => 'Resources',
+				'url'     => '#',
+				'hasMega' => true,
+				'columns' => array(
+					array(
+						'heading'      => 'Learn',
+						'layout'       => 'icons',
+						'imageLinks'   => false,
+						'imageColumns' => 2,
+						'links'        => $icon_links(
+							array(
+								'Guides'      => 'file-text',
+								'Blog'        => 'megaphone',
+								'Help Center' => 'shield-check',
+								'Webinars'    => 'monitor',
+							)
+						),
+					),
+					array(
+						'heading'      => 'Company',
+						'layout'       => 'links',
+						'imageLinks'   => false,
+						'imageColumns' => 2,
+						'links'        => $links( array( 'About', 'Careers', 'Contact' ) ),
+					),
+				),
+				'banner'  => array(
+					'title'       => '',
+					'text'        => '',
+					'buttonLabel' => '',
+					'image'       => '',
+					'url'         => '#',
+				),
+			),
+			array(
+				'label'   => 'Contact',
+				'url'     => '#',
+				'hasMega' => false,
+				'columns' => array(),
+				'banner'  => array(
+					'title'       => '',
+					'text'        => '',
+					'buttonLabel' => '',
+					'image'       => '',
+					'url'         => '#',
+				),
+			),
+		);
 	}
 
 	/**
@@ -8405,6 +9091,12 @@ class DSF_Blocks {
 
 		foreach ( $block['settings'] as $key => $setting ) {
 			if ( ! is_array( $setting ) || ! array_key_exists( 'default', $setting ) ) {
+				continue;
+			}
+
+			// A control can opt out of placeholder hydration to keep a genuinely
+			// empty default (e.g. an optional, transparent-by-default background).
+			if ( ! empty( $setting['skip_placeholder'] ) ) {
 				continue;
 			}
 

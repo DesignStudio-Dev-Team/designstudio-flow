@@ -488,9 +488,18 @@ class DSF_Editor {
 			array(
 				'related' => true,
 				'upsells' => true,
+				'custom_fields' => $this->get_requested_product_custom_field_keys( $post_id ),
 			)
 		);
 		return empty( $context ) ? null : $context;
+	}
+
+	private function get_requested_product_custom_field_keys( $post_id ) {
+		$blocks = get_post_meta( absint( $post_id ), '_dsf_blocks', true );
+		if ( ! is_array( $blocks ) ) {
+			$blocks = $blocks ? json_decode( $blocks, true ) : array();
+		}
+		return class_exists( 'DSF_Product_Templates' ) ? DSF_Product_Templates::get_requested_custom_field_keys( $blocks ) : array();
 	}
 
 	/**

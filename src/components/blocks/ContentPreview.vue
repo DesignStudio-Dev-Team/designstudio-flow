@@ -1,5 +1,5 @@
 <template>
-  <section class="dsf-block-preview dsf-content-preview">
+  <section class="dsf-block-preview dsf-content-preview" :style="sectionStyle">
     <div
       class="dsf-content-preview__inner"
       :style="innerStyle"
@@ -25,6 +25,15 @@ const contentHtml = computed(() =>
 const innerStyle = computed(() => ({
   maxWidth: `${props.settings?.maxWidth || 900}px`,
 }))
+
+// Vertical padding sits inside the section so text keeps clear of the (full-bleed,
+// wrapper-painted) background edges. The background itself is applied on the
+// full-width block wrapper, so it runs edge-to-edge while this content stays
+// centered within maxWidth.
+const sectionStyle = computed(() => {
+  const pad = Number(props.settings?.padding) || 0
+  return pad > 0 ? { paddingTop: `${pad}px`, paddingBottom: `${pad}px` } : {}
+})
 </script>
 
 <style scoped>

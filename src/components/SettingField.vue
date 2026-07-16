@@ -329,6 +329,14 @@
       @update:modelValue="$emit('update', $event)"
     />
 
+    <!-- Mega Menu (pro): per-column layout, per-link icon, featured card -->
+    <MegaMenuField
+      v-else-if="config.type === 'mega_menu_pro'"
+      :modelValue="value"
+      pro
+      @update:modelValue="$emit('update', $event)"
+    />
+
     <ShowcaseHeaderNavigationField
       v-else-if="config.type === 'showcase_header_navigation'"
       :modelValue="value"

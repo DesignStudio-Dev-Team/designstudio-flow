@@ -836,6 +836,62 @@ onUnmounted(() => {
   }
 }
 
+/* Landscape tablets (iPads). The desktop icon row renders here — a normal iPad
+   is 1024px wide in landscape, above the 860px compact breakpoint — but 18px
+   glyphs and 42px hit areas are far too small for touch. On coarse-pointer
+   devices across the tablet-landscape width band (regular iPad 1024 through the
+   12.9" Pro at 1366), scale the whole pill up so it's comfortable to tap while
+   the full icon row still fits a 1024px screen. Fine-pointer (mouse) devices at
+   the same widths are untouched. */
+@media (min-width: 861px) and (max-width: 1366px) and (pointer: coarse) {
+  .dsf-dockhdr:not(.is-editor) {
+    bottom: 26px;
+  }
+
+  .dsf-dockhdr__bar {
+    padding: 9px;
+  }
+
+  .dsf-dockhdr__mark {
+    width: 56px;
+    height: 56px;
+  }
+
+  .dsf-dockhdr__mark img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .dsf-dockhdr__mark-media svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .dsf-dockhdr__body {
+    margin-left: 10px;
+  }
+
+  .dsf-dockhdr__divider {
+    height: 32px;
+  }
+
+  .dsf-dockhdr__nav {
+    gap: 3px;
+  }
+
+  .dsf-dockhdr__link {
+    height: 50px;
+    padding: 0 13px;
+    font-size: 15px;
+  }
+
+  .dsf-dockhdr__link svg,
+  .dsf-dockhdr__link-img {
+    width: 22px;
+    height: 22px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dsf-dockhdr__mark,
   .dsf-dockhdr__link,

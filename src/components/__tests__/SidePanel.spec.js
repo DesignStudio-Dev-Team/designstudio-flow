@@ -68,6 +68,28 @@ const simpleDefinition = {
   },
 }
 
+const formWithContentDefinition = {
+  id: 'form-with-content',
+  name: 'Form with Content',
+  settings: {
+    sectionTitle: { type: 'text', label: 'Section Title' },
+    showDivider: { type: 'toggle', label: 'Show Divider' },
+    dividerColor: { type: 'color', label: 'Divider Color' },
+    formSource: { type: 'select', label: 'Form Source' },
+    formId: { type: 'select', label: 'Form', showWhen: { formSource: 'dsf' } },
+    embedCode: { type: 'wysiwyg', label: 'Embed', showWhen: { formSource: 'embed' } },
+    formSide: { type: 'select', label: 'Position' },
+    columnRatio: { type: 'select', label: 'Ratio' },
+    content: { type: 'wysiwyg', label: 'Content' },
+    logo: { type: 'image', label: 'Brand Logo' },
+    logoPadding: { type: 'toggle', label: 'Logo Padding', showWhenNotEmpty: ['logo'] },
+    mediaType: { type: 'select', label: 'Media Type' },
+    image: { type: 'image', label: 'Image', showWhen: { mediaType: 'image' } },
+    video: { type: 'text', label: 'Video URL', showWhen: { mediaType: 'video' } },
+    videoFile: { type: 'video', label: 'Video File', showWhen: { mediaType: 'video' } },
+  },
+}
+
 function mountSidePanel(blockSettings = {}) {
   return mount(SidePanel, {
     props: {
@@ -104,6 +126,13 @@ function mountSimpleSidePanel(blockSettings = {}) {
         SettingField: settingFieldStub,
       },
     },
+  })
+}
+
+function mountFormWithContentPanel(blockSettings = {}) {
+  return mount(SidePanel, {
+    props: { block: { type: 'form-with-content', settings: { formSource: 'dsf', mediaType: 'image', ...blockSettings } }, blockDefinition: formWithContentDefinition },
+    global: { stubs: { SettingField: settingFieldStub } },
   })
 }
 
@@ -162,5 +191,20 @@ describe('SidePanel', () => {
     await filledWrapper.find('.dsf-settings-expander__trigger').trigger('click')
 
     expect(filledWrapper.findAll('.setting-stub').map((node) => node.text())).toContain('bottomButtonAction')
+  })
+
+  it('separates the optional logo from primary image and video controls', async () => {
+    const wrapper = mountFormWithContentPanel()
+
+    expect(wrapper.find('[data-section="brand"]').exists()).toBe(true)
+    expect(wrapper.find('[data-section="media"]').exists()).toBe(true)
+
+    await wrapper.find('[data-section="brand"] .dsf-settings-expander__trigger').trigger('click')
+    expect(wrapper.findAll('.setting-stub').map((node) => node.text())).toContain('logo')
+    expect(wrapper.findAll('.setting-stub').map((node) => node.text())).not.toContain('logoPadding')
+
+    await wrapper.find('[data-section="media"] .dsf-settings-expander__trigger').trigger('click')
+    expect(wrapper.findAll('.setting-stub').map((node) => node.text())).toContain('image')
+    expect(wrapper.findAll('.setting-stub').map((node) => node.text())).not.toContain('video')
   })
 })

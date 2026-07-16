@@ -222,11 +222,15 @@ class DSF_Product_Templates {
 				'reviews'     => false,
 				'related'     => false,
 				'upsells'     => false,
+				'custom_fields' => array(),
 			),
 			is_array( $args ) ? $args : array()
 		);
+		$custom_fields = is_array( $args['custom_fields'] ) ? array_slice( $args['custom_fields'], 0, 12 ) : array();
+		$custom_fields = array_filter( array_map( 'sanitize_key', $custom_fields ) );
+		$args['custom_fields'] = array_values( array_unique( $custom_fields ) );
 
-		$cache_key = $product_id . '|' . ( $args['add_to_cart'] ? '1' : '0' ) . '|' . ( $args['reviews'] ? '1' : '0' ) . '|' . ( $args['related'] ? '1' : '0' ) . '|' . ( $args['upsells'] ? '1' : '0' );
+		$cache_key = $product_id . '|' . ( $args['add_to_cart'] ? '1' : '0' ) . '|' . ( $args['reviews'] ? '1' : '0' ) . '|' . ( $args['related'] ? '1' : '0' ) . '|' . ( $args['upsells'] ? '1' : '0' ) . '|' . implode( ',', $args['custom_fields'] );
 		if ( isset( self::$context_cache[ $cache_key ] ) ) {
 			return self::$context_cache[ $cache_key ];
 		}
@@ -255,6 +259,7 @@ class DSF_Product_Templates {
 			'descriptionHtml'      => wp_kses_post( (string) $description ),
 			'gallery'              => self::build_gallery( $product ),
 			'specs'                => self::build_specs( $product ),
+			'customFields'         => self::build_custom_fields( $product->get_id(), $args['custom_fields'] ),
 			'stockStatus'          => sanitize_key( (string) $product->get_stock_status() ),
 			'stockQuantity'        => null === $product->get_stock_quantity() ? null : (int) $product->get_stock_quantity(),
 			'isInStock'            => (bool) $product->is_in_stock(),
@@ -273,6 +278,41 @@ class DSF_Product_Templates {
 
 		self::$context_cache[ $cache_key ] = $context;
 		return $context;
+	}
+
+	/** Return only explicitly requested, scalar product meta for product blocks. */
+	private static function build_custom_fields( $product_id, $keys ) {
+		$fields = array();
+		foreach ( (array) $keys as $key ) {
+			$key = sanitize_key( $key );
+			if ( '' === $key || 0 === strpos( $key, '_' ) ) {
+				continue;
+			}
+			$value = get_post_meta( absint( $product_id ), $key, true );
+			if ( is_scalar( $value ) && '' !== (string) $value ) {
+				$fields[ $key ] = mb_substr( sanitize_text_field( (string) $value ), 0, 500 );
+			}
+		}
+		return $fields;
+	}
+
+	/** Collect explicitly configured custom product meta keys from product-spec blocks. */
+	public static function get_requested_custom_field_keys( $blocks ) {
+		$keys = array();
+		foreach ( (array) $blocks as $block ) {
+			if ( ! is_array( $block ) || 'product-specs' !== ( $block['type'] ?? '' ) ) {
+				continue;
+			}
+			$raw = isset( $block['settings']['customFieldKeys'] ) ? (string) $block['settings']['customFieldKeys'] : '';
+			$parts = preg_split( '/\s*,\s*/', $raw );
+			foreach ( is_array( $parts ) ? array_slice( $parts, 0, 12 ) : array() as $key ) {
+				$key = sanitize_key( $key );
+				if ( '' !== $key && 0 !== strpos( $key, '_' ) ) {
+					$keys[] = $key;
+				}
+			}
+		}
+		return array_values( array_unique( array_slice( $keys, 0, 12 ) ) );
 	}
 
 	/**

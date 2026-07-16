@@ -25,6 +25,7 @@ class DSF_Store_Pages {
 		'store-cart'     => 'cart',
 		'store-checkout' => 'checkout',
 		'store-account'  => 'account',
+		'store-login'    => 'login',
 	);
 
 	/**
@@ -32,13 +33,14 @@ class DSF_Store_Pages {
 	 * shortcodes only run when a block embeds them.
 	 *
 	 * @param array $blocks Raw page blocks.
-	 * @return array{cart:bool,checkout:bool,account:bool,steps:bool,any:bool}
+	 * @return array{cart:bool,checkout:bool,account:bool,login:bool,steps:bool,any:bool}
 	 */
 	public static function blocks_need_fragments( $blocks ) {
 		$needs = array(
 			'cart'     => false,
 			'checkout' => false,
 			'account'  => false,
+			'login'    => false,
 			'steps'    => false,
 			'minicart' => false,
 			'any'      => false,
@@ -107,6 +109,12 @@ class DSF_Store_Pages {
 				$context['fragments'][ $key ] = $html;
 			}
 		}
+		if ( ! empty( $needs['login'] ) ) {
+			$html = self::capture_login_fragment();
+			if ( '' !== $html ) {
+				$context['fragments']['login'] = $html;
+			}
+		}
 
 		return $context;
 	}
@@ -148,6 +156,20 @@ class DSF_Store_Pages {
 		);
 
 		return DSF_Product_Templates::sanitize_woo_form_html( $html, $extra );
+	}
+
+	/** Capture WooCommerce's native login form without exposing custom HTML settings. */
+	private static function capture_login_fragment() {
+		if ( ! function_exists( 'woocommerce_login_form' ) ) {
+			return '';
+		}
+		ob_start();
+		woocommerce_login_form();
+		$html = ob_get_clean();
+		if ( ! is_string( $html ) || '' === trim( $html ) ) {
+			return '';
+		}
+		return DSF_Product_Templates::sanitize_woo_form_html( $html );
 	}
 
 	/**

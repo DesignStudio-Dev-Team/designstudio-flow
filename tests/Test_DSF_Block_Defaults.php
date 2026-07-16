@@ -12,6 +12,7 @@ class Test_DSF_Block_Defaults extends TestCase {
 		parent::setUp();
 		WP_Mock::setUp();
 		WP_Mock::userFunction( 'sanitize_text_field', array( 'return_arg' => 0 ) );
+		WP_Mock::userFunction( 'sanitize_key', array( 'return' => static function ( $v ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $v ) ); } ) );
 		WP_Mock::userFunction( 'current_datetime', array( 'return' => new DateTimeImmutable( '2026-06-22 12:00:00' ) ) );
 	}
 
@@ -27,6 +28,13 @@ class Test_DSF_Block_Defaults extends TestCase {
 		foreach ( $blocks as $block ) {
 			foreach ( $block['settings'] as $key => $setting ) {
 				if ( ! in_array( $setting['type'] ?? '', $visual_types, true ) ) {
+					continue;
+				}
+
+				// A control may deliberately opt out of placeholder hydration to keep
+				// a genuinely empty default (e.g. an optional, transparent-by-default
+				// background color).
+				if ( ! empty( $setting['skip_placeholder'] ) ) {
 					continue;
 				}
 

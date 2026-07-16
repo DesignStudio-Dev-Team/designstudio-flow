@@ -275,6 +275,7 @@ class DSF_Frontend {
 					'reviews'     => $fragment_needs['reviews'],
 					'related'     => $fragment_needs['related'],
 					'upsells'     => $fragment_needs['upsells'],
+					'custom_fields' => DSF_Product_Templates::get_requested_custom_field_keys( $blocks ),
 				)
 			);
 			$this->enqueue_woo_product_scripts( $fragment_needs, $post_id );
@@ -524,7 +525,7 @@ class DSF_Frontend {
 			}
 
 			// The hero and spotlight embed the add-to-cart form unless it is toggled off.
-			if ( in_array( $type, array( 'product-hero', 'product-spotlight' ), true ) && false !== ( $settings['showAddToCart'] ?? true ) ) {
+			if ( in_array( $type, array( 'product-hero', 'product-details-split', 'product-spotlight' ), true ) && false !== ( $settings['showAddToCart'] ?? true ) ) {
 				$needs['add_to_cart'] = true;
 			}
 
@@ -715,6 +716,11 @@ class DSF_Frontend {
 		}
 
 		$type = isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
+
+		if ( 'footer-commerce' === $type ) {
+			return $this->prepare_footer_commerce_for_frontend( $block );
+		}
+
 		if ( ! in_array( $type, array( 'form-embed', 'form-with-content' ), true ) ) {
 			return $block;
 		}
@@ -745,6 +751,39 @@ class DSF_Frontend {
 		$settings['formTitle']        = ( $form_id && $form && $form->post_title ) ? $form->post_title : '';
 		$settings['renderedFormHtml'] = $form_id ? DSF_Forms::get_instance()->render_form_shortcode( array( 'id' => $form_id ) ) : '';
 		$block['settings']            = $settings;
+
+		return $block;
+	}
+
+	/**
+	 * Resolve the Footer Commerce newsletter into rendered form HTML when it is
+	 * backed by a DSF form or an embedded shortcode (e.g. a Gravity Form). The
+	 * HTML (scripts inline) is handed to the shared FormEmbedPreview renderer,
+	 * which re-runs any embedded scripts on the frontend.
+	 */
+	private function prepare_footer_commerce_for_frontend( $block ) {
+		$settings = isset( $block['settings'] ) && is_array( $block['settings'] ) ? $block['settings'] : array();
+		$source   = isset( $settings['newsletterSource'] ) ? sanitize_key( $settings['newsletterSource'] ) : 'inline';
+
+		$settings['newsletterRenderedFormHtml'] = '';
+
+		if ( 'dsf' === $source ) {
+			$form_id = isset( $settings['newsletterFormId'] ) ? absint( $settings['newsletterFormId'] ) : 0;
+			$form    = $form_id ? get_post( $form_id ) : null;
+			if ( ! $form || 'dsf_form' !== $form->post_type ) {
+				$form_id = 0;
+			}
+			$settings['newsletterFormId']           = $form_id ? (string) $form_id : '';
+			$settings['newsletterRenderedFormHtml'] = $form_id ? DSF_Forms::get_instance()->render_form_shortcode( array( 'id' => $form_id ) ) : '';
+		} elseif ( 'embed' === $source ) {
+			$embed = isset( $settings['newsletterEmbedCode'] ) ? trim( (string) $settings['newsletterEmbedCode'] ) : '';
+			if ( '' !== $embed ) {
+				$this->enqueue_gravity_form_assets_from_embed_code( $embed );
+				$settings['newsletterRenderedFormHtml'] = do_shortcode( $embed );
+			}
+		}
+
+		$block['settings'] = $settings;
 
 		return $block;
 	}
@@ -1684,6 +1723,7 @@ class DSF_Frontend {
 				'reviews'     => $needs['reviews'],
 				'related'     => $needs['related'],
 				'upsells'     => $needs['upsells'],
+				'custom_fields' => DSF_Product_Templates::get_requested_custom_field_keys( $blocks ),
 			)
 		);
 
@@ -2543,7 +2583,7 @@ class DSF_Frontend {
 			)
 		);
 
-		$updated = 0;
+		$changes = array();
 		foreach ( array_merge( (array) $page_ids, (array) $template_ids ) as $post_id ) {
 			$post_id  = absint( $post_id );
 			$settings = get_post_meta( $post_id, '_dsf_settings', true );
@@ -2558,11 +2598,21 @@ class DSF_Frontend {
 				continue;
 			}
 			$settings['layout'][ $key ] = $layout_id;
-			update_post_meta( $post_id, '_dsf_settings', $settings );
-			++$updated;
+			if ( class_exists( 'DSF_History' ) ) {
+				$history = DSF_History::get_instance();
+				$next    = $history->proposed_post_payload( $post_id, array( 'meta' => array( '_dsf_settings' => $settings ) ) );
+				$history_result = $history->capture_before_post_mutation( $post_id, get_post_type( $post_id ), $next, 'default_layout_cascade' );
+				if ( is_wp_error( $history_result ) ) {
+					return 0;
+				}
+			}
+			$changes[] = array( 'id' => $post_id, 'settings' => $settings );
+		}
+		foreach ( $changes as $change ) {
+			update_post_meta( $change['id'], '_dsf_settings', $change['settings'] );
 		}
 
-		return $updated;
+		return count( $changes );
 	}
 
 	private function get_default_settings() {

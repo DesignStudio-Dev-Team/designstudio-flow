@@ -13,6 +13,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 $is_settings_submission = isset( $_POST['dsf_save_settings'] ) || isset( $_POST['dsf_undo_theme_defaults'] );
 $has_valid_nonce        = isset( $_POST['dsf_settings_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['dsf_settings_nonce'] ) ), 'dsf_save_settings' );
 
+$dsf_capture_setting = static function ( $key, $current, $next, $reason = 'settings_save' ) {
+	if ( ! class_exists( 'DSF_History' ) ) {
+		return;
+	}
+	$result = DSF_History::get_instance()->capture_before_settings_mutation( $key, $current, $next, $reason );
+	if ( is_wp_error( $result ) ) {
+		wp_die( esc_html__( 'Could not create a Quick Restore point. The settings were not changed.', 'designstudio-flow' ) );
+	}
+};
+
 if ( $is_settings_submission && ! current_user_can( 'manage_options' ) ) {
 	wp_die( esc_html__( 'You are not allowed to change DesignStudio Flow settings.', 'designstudio-flow' ) );
 }
@@ -50,6 +60,7 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 		'text'       => sanitize_hex_color( sanitize_text_field( wp_unslash( $_POST['dsf_text_color'] ?? '#1F2937' ) ) ),
 		'background' => sanitize_hex_color( sanitize_text_field( wp_unslash( $_POST['dsf_background_color'] ?? '#FFFFFF' ) ) ),
 	);
+	$dsf_capture_setting( 'dsf_default_colors', get_option( 'dsf_default_colors', array() ), $default_colors );
 	update_option( 'dsf_default_colors', $default_colors );
 
 	$recaptcha_enabled         = isset( $_POST['dsf_recaptcha_enabled'] ) ? 1 : 0;
@@ -83,17 +94,16 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 		}
 	}
 
-	update_option(
-		'dsf_seo_defaults',
-		array(
+	$dsf_seo_defaults = array(
 			'defaultSocialImage' => isset( $_POST['dsf_seo_default_image'] ) ? esc_url_raw( trim( (string) wp_unslash( $_POST['dsf_seo_default_image'] ) ) ) : '',
 			'titleSeparator'     => $dsf_title_separator,
 			'orgName'            => isset( $_POST['dsf_seo_org_name'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_seo_org_name'] ) ) : '',
 			'orgLogo'            => isset( $_POST['dsf_seo_org_logo'] ) ? esc_url_raw( trim( (string) wp_unslash( $_POST['dsf_seo_org_logo'] ) ) ) : '',
 			'twitterSite'        => $dsf_twitter_site,
 			'socialProfiles'     => $dsf_social_profiles,
-		)
 	);
+	$dsf_capture_setting( 'dsf_seo_defaults', get_option( 'dsf_seo_defaults', array() ), $dsf_seo_defaults );
+	update_option( 'dsf_seo_defaults', $dsf_seo_defaults );
 
 	// Typography defaults.
 	$typography_mode  = ( isset( $_POST['dsf_typography_mode'] ) && 'override' === $_POST['dsf_typography_mode'] ) ? 'override' : 'theme';
@@ -143,6 +153,7 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 		$typography[ 'size_h4_' . $dsf_bp ] = $dsf_clamp_size( 'dsf_size_h4_' . $dsf_bp );
 	}
 
+	$dsf_capture_setting( 'dsf_typography', get_option( 'dsf_typography', array() ), $typography );
 	update_option( 'dsf_typography', $typography );
 
 	// Default header / footer (applied to pages that don't pick their own).
@@ -162,6 +173,8 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 
 	$dsf_default_header = $dsf_validate_layout( $_POST['dsf_default_header_id'] ?? 0, 'header' );
 	$dsf_default_footer = $dsf_validate_layout( $_POST['dsf_default_footer_id'] ?? 0, 'footer' );
+	$dsf_capture_setting( 'dsf_default_header_id', absint( get_option( 'dsf_default_header_id', 0 ) ), $dsf_default_header, 'default_layout' );
+	$dsf_capture_setting( 'dsf_default_footer_id', absint( get_option( 'dsf_default_footer_id', 0 ) ), $dsf_default_footer, 'default_layout' );
 	update_option( 'dsf_default_header_id', $dsf_default_header );
 	update_option( 'dsf_default_footer_id', $dsf_default_footer );
 
@@ -178,7 +191,9 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 	}
 
 	// Whole-site mode: apply the header/footer to normal (non-DSF) pages/posts too.
-	update_option( 'dsf_global_header_footer', isset( $_POST['dsf_global_header_footer'] ) ? 1 : 0 );
+	$dsf_global_header_footer = isset( $_POST['dsf_global_header_footer'] ) ? 1 : 0;
+	$dsf_capture_setting( 'dsf_global_header_footer', (bool) get_option( 'dsf_global_header_footer', false ), (bool) $dsf_global_header_footer, 'global_layout' );
+	update_option( 'dsf_global_header_footer', $dsf_global_header_footer );
 
 	$notification_bar = DSF_Notification_Bar::sanitize_settings(
 		array(
@@ -198,6 +213,7 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 			'linkColor'       => isset( $_POST['dsf_notification_link_color'] ) ? sanitize_hex_color( wp_unslash( $_POST['dsf_notification_link_color'] ) ) : '#FFFFFF',
 		)
 	);
+	$dsf_capture_setting( 'dsf_notification_bar', get_option( 'dsf_notification_bar', array() ), $notification_bar, 'notification_save' );
 	update_option( 'dsf_notification_bar', $notification_bar );
 
 	echo '<div class="notice notice-success is-dismissible"><p>Settings saved successfully!</p></div>';

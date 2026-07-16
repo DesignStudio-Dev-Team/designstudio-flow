@@ -514,8 +514,21 @@ const bentoStyleSections = [
   { key: 'lastTile', title: 'Last Box', fields: ['ctaColor','ctaTextColor'] },
 ]
 
+// Keep the optional brand logo separate from the primary image/video choice.
+// This avoids implying that a logo is an alternative media type, and makes the
+// two video source controls read as alternatives within one clear section.
+const formWithContentSections = [
+  { key: 'heading', title: 'Section Heading', fields: ['sectionTitle', 'showDivider', 'dividerColor'] },
+  { key: 'form', title: 'Form Setup', fields: ['formSource', 'formId', 'embedCode', 'formSide', 'columnRatio'] },
+  { key: 'content', title: 'Content Copy', fields: ['content'] },
+  { key: 'brand', title: 'Optional Brand Logo', fields: ['logo', 'logoPadding'] },
+  { key: 'media', title: 'Primary Image or Video', fields: ['mediaType', 'image', 'video', 'videoFile'] },
+]
+
 const contentSettingSections = computed(() => {
-  const explicit = blockId.value === 'bento-hero' ? bentoCotentSections : null
+  const explicit = blockId.value === 'bento-hero'
+    ? bentoCotentSections
+    : (blockId.value === 'form-with-content' ? formWithContentSections : null)
   return buildSections(contentSettings.value, props.block?.settings || {}, explicit)
 })
 

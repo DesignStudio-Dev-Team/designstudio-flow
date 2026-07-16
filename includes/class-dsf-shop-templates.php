@@ -147,6 +147,17 @@ class DSF_Shop_Templates {
 				$cats = array_values( array_unique( array_filter( array_map( 'absint', $raw['categoryIds'] ) ) ) );
 			}
 		}
+		if ( function_exists( 'get_term' ) ) {
+			$cats = array_values(
+				array_filter(
+					$cats,
+					static function ( $term_id ) {
+						$term = get_term( absint( $term_id ), 'product_cat' );
+						return $term && ! is_wp_error( $term ) && 'product_cat' === $term->taxonomy;
+					}
+				)
+			);
+		}
 
 		return array(
 			'mode'        => $mode,
@@ -173,6 +184,17 @@ class DSF_Shop_Templates {
 					100
 				);
 			}
+		}
+		if ( function_exists( 'get_term' ) ) {
+			$cats = array_values(
+				array_filter(
+					$cats,
+					static function ( $term_id ) {
+						$term = get_term( absint( $term_id ), 'product_cat' );
+						return $term && ! is_wp_error( $term ) && 'product_cat' === $term->taxonomy;
+					}
+				)
+			);
 		}
 
 		if ( 'categories' === $mode && empty( $cats ) ) {
@@ -272,6 +294,8 @@ class DSF_Shop_Templates {
 			'orderby'         => $requested,
 			'orderbyOptions'  => self::get_orderby_options(),
 			'categories'      => self::build_category_links(),
+			'currentCategory' => self::build_current_category(),
+			'subcategories'   => self::build_subcategory_links(),
 			'priceFilter'     => self::build_price_filter_state(),
 		);
 	}
@@ -313,6 +337,75 @@ class DSF_Shop_Templates {
 		}
 
 		return $links;
+	}
+
+	/** Build the current product category's safe display data, if applicable. */
+	private static function build_current_category( $term_id = 0 ) {
+		$term_id = absint( $term_id );
+		if ( ! $term_id && function_exists( 'is_product_category' ) && is_product_category() ) {
+			$term    = get_queried_object();
+			$term_id = ( $term && isset( $term->term_id ) ) ? absint( $term->term_id ) : 0;
+		}
+		$term = $term_id ? get_term( $term_id, 'product_cat' ) : null;
+		if ( ! $term || is_wp_error( $term ) || 'product_cat' !== $term->taxonomy ) {
+			return null;
+		}
+		$link = get_term_link( $term );
+		$image = '';
+		$thumbnail_id = absint( get_term_meta( $term->term_id, 'thumbnail_id', true ) );
+		if ( $thumbnail_id ) {
+			$image = wp_get_attachment_image_url( $thumbnail_id, 'large' );
+			$image = $image ? esc_url_raw( $image ) : '';
+		}
+		$parent = $term->parent ? get_term( $term->parent, 'product_cat' ) : null;
+		$parent_link = ( $parent && ! is_wp_error( $parent ) ) ? get_term_link( $parent ) : '';
+		return array(
+			'id'         => (int) $term->term_id,
+			'name'       => sanitize_text_field( $term->name ),
+			'slug'       => sanitize_title( $term->slug ),
+			'image'      => $image,
+			'url'        => is_wp_error( $link ) ? '' : esc_url_raw( $link ),
+			'parentName' => ( $parent && ! is_wp_error( $parent ) ) ? sanitize_text_field( $parent->name ) : '',
+			'parentUrl'  => is_wp_error( $parent_link ) ? '' : esc_url_raw( $parent_link ),
+		);
+	}
+
+	/** Immediate child product categories for category pages; never exposes raw term meta. */
+	private static function build_subcategory_links( $parent_id = 0 ) {
+		$parent_id = absint( $parent_id );
+		if ( ! $parent_id && function_exists( 'is_product_category' ) && is_product_category() ) {
+			$term = get_queried_object();
+			$parent_id = ( $term && isset( $term->term_id ) ) ? absint( $term->term_id ) : 0;
+		}
+		if ( ! $parent_id ) {
+			return array();
+		}
+		$terms = get_terms(
+			array(
+				'taxonomy'   => 'product_cat',
+				'hide_empty' => true,
+				'parent'     => $parent_id,
+				'number'     => 24,
+			)
+		);
+		if ( is_wp_error( $terms ) || ! is_array( $terms ) ) {
+			return array();
+		}
+		$items = array();
+		foreach ( $terms as $term ) {
+			$link = get_term_link( $term );
+			$thumbnail_id = absint( get_term_meta( $term->term_id, 'thumbnail_id', true ) );
+			$image = $thumbnail_id ? wp_get_attachment_image_url( $thumbnail_id, 'medium_large' ) : '';
+			$items[] = array(
+				'id' => (int) $term->term_id,
+				'name' => sanitize_text_field( $term->name ),
+				'description' => mb_substr( sanitize_text_field( wp_strip_all_tags( term_description( $term ) ) ), 0, 240 ),
+				'image' => $image ? esc_url_raw( $image ) : '',
+				'url' => is_wp_error( $link ) ? '' : esc_url_raw( $link ),
+				'count' => (int) $term->count,
+			);
+		}
+		return $items;
 	}
 
 	/**
@@ -409,6 +502,8 @@ class DSF_Shop_Templates {
 			'orderby'         => 'menu_order',
 			'orderbyOptions'  => self::get_orderby_options(),
 			'categories'      => self::build_category_links(),
+			'currentCategory' => self::build_current_category( $term_id ),
+			'subcategories'   => self::build_subcategory_links( $term_id ),
 			'priceFilter'     => array(
 				'min'    => '',
 				'max'    => '',

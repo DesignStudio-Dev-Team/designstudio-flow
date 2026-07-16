@@ -74,6 +74,7 @@ import BentoHeroPreview from './blocks/BentoHeroPreview.vue'
 import SpotlightHeroPreview from './blocks/SpotlightHeroPreview.vue'
 import ExpanderHeroPreview from './blocks/ExpanderHeroPreview.vue'
 import PricingPreview from './blocks/PricingPreview.vue'
+import PricingTablesPreview from './blocks/PricingTablesPreview.vue'
 import TextImagePreview from './blocks/TextImagePreview.vue'
 import TestimonialsPreview from './blocks/TestimonialsPreview.vue'
 import CtaBannerPreview from './blocks/CtaBannerPreview.vue'
@@ -89,6 +90,7 @@ import ProductSpecsPreview from './blocks/ProductSpecsPreview.vue'
 import ProductTabsPreview from './blocks/ProductTabsPreview.vue'
 import ProductAddToCartPreview from './blocks/ProductAddToCartPreview.vue'
 import ProductHeroPreview from './blocks/ProductHeroPreview.vue'
+import ProductDetailsSplitPreview from './blocks/ProductDetailsSplitPreview.vue'
 import ProductHighlightsPreview from './blocks/ProductHighlightsPreview.vue'
 import ProductRelatedPreview from './blocks/ProductRelatedPreview.vue'
 import ProductSpotlightPreview from './blocks/ProductSpotlightPreview.vue'
@@ -98,8 +100,11 @@ import ProductMetaPreview from './blocks/ProductMetaPreview.vue'
 import StoreCartPreview from './blocks/StoreCartPreview.vue'
 import StoreCheckoutPreview from './blocks/StoreCheckoutPreview.vue'
 import StoreAccountPreview from './blocks/StoreAccountPreview.vue'
+import StoreLoginPreview from './blocks/StoreLoginPreview.vue'
 import StoreStepsPreview from './blocks/StoreStepsPreview.vue'
 import ShopHeaderPreview from './blocks/ShopHeaderPreview.vue'
+import ShopCategoryHeroPreview from './blocks/ShopCategoryHeroPreview.vue'
+import ShopSubcategoryGridPreview from './blocks/ShopSubcategoryGridPreview.vue'
 import ShopProductsPreview from './blocks/ShopProductsPreview.vue'
 import ShopFiltersPreview from './blocks/ShopFiltersPreview.vue'
 import StoreMiniCartPreview from './blocks/StoreMiniCartPreview.vue'
@@ -114,7 +119,9 @@ import FeaturedPromoBannerPreview from './blocks/FeaturedPromoBannerPreview.vue'
 import HeaderMegaMenuPreview from './blocks/HeaderMegaMenuPreview.vue'
 import HeaderShowcaseMegaPreview from './blocks/HeaderShowcaseMegaPreview.vue'
 import HeaderCutoutMegaPreview from './blocks/HeaderCutoutMegaPreview.vue'
+import HeaderModernMegaPreview from './blocks/HeaderModernMegaPreview.vue'
 import FooterDealersPreview from './blocks/FooterDealersPreview.vue'
+import FooterCommercePreview from './blocks/FooterCommercePreview.vue'
 import FormEmbedPreview from './blocks/FormEmbedPreview.vue'
 import FormWithContentPreview from './blocks/FormWithContentPreview.vue'
 import LandingProgressHeaderPreview from './blocks/LandingProgressHeaderPreview.vue'
@@ -170,6 +177,7 @@ const previewComponents = {
   'spotlight-hero': SpotlightHeroPreview,
   'expander-hero': ExpanderHeroPreview,
   'pricing': PricingPreview,
+  'pricing-tables': PricingTablesPreview,
   'text-image': TextImagePreview,
   'testimonials': TestimonialsPreview,
   'cta-banner': CtaBannerPreview,
@@ -185,6 +193,7 @@ const previewComponents = {
   'product-tabs': ProductTabsPreview,
   'product-add-to-cart': ProductAddToCartPreview,
   'product-hero': ProductHeroPreview,
+  'product-details-split': ProductDetailsSplitPreview,
   'product-highlights': ProductHighlightsPreview,
   'product-related': ProductRelatedPreview,
   'product-spotlight': ProductSpotlightPreview,
@@ -194,8 +203,11 @@ const previewComponents = {
   'store-cart': StoreCartPreview,
   'store-checkout': StoreCheckoutPreview,
   'store-account': StoreAccountPreview,
+  'store-login': StoreLoginPreview,
   'store-steps': StoreStepsPreview,
   'shop-header': ShopHeaderPreview,
+  'shop-category-hero': ShopCategoryHeroPreview,
+  'shop-subcategory-grid': ShopSubcategoryGridPreview,
   'shop-products': ShopProductsPreview,
   'shop-filters': ShopFiltersPreview,
   'store-mini-cart': StoreMiniCartPreview,
@@ -210,7 +222,9 @@ const previewComponents = {
   'header-mega-menu': HeaderMegaMenuPreview,
   'header-showcase-mega': HeaderShowcaseMegaPreview,
   'header-cutout-mega': HeaderCutoutMegaPreview,
+  'header-modern-mega': HeaderModernMegaPreview,
   'footer-dealers': FooterDealersPreview,
+  'footer-commerce': FooterCommercePreview,
   'form-embed': FormEmbedPreview,
   'form-with-content': FormWithContentPreview,
   'landing-progress-header': LandingProgressHeaderPreview,
@@ -233,7 +247,7 @@ function getPreviewComponent(blockType) {
   return previewComponents[blockType] || getCustomBlock(blockType) || GenericBlockPreview
 }
 
-const templateBlockTypes = new Set(['header-mega-menu', 'header-showcase-mega', 'header-cutout-mega', 'footer-dealers', 'landing-progress-header', 'landing-dock-header', 'landing-hero', 'landing-showcase-hero', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-redirect-tool', 'landing-mail-tool', 'landing-marketing-footer'])
+const templateBlockTypes = new Set(['header-mega-menu', 'header-showcase-mega', 'header-cutout-mega', 'header-modern-mega', 'footer-dealers', 'footer-commerce', 'landing-progress-header', 'landing-dock-header', 'landing-hero', 'landing-showcase-hero', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-redirect-tool', 'landing-mail-tool', 'landing-marketing-footer'])
 const isLandingBlock = computed(() => props.block?.type?.startsWith('landing-') === true)
 
 const defaultMargin = computed(() => (

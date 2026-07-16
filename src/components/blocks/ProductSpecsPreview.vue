@@ -59,7 +59,22 @@ const { product } = useProductContext()
 const LAYOUTS = ['striped', 'cards', 'inline', 'bordered']
 const layout = computed(() => (LAYOUTS.includes(props.settings?.layout) ? props.settings.layout : 'striped'))
 
-const specs = computed(() => (Array.isArray(product.value?.specs) ? product.value.specs : []))
+const customFieldKeys = computed(() => String(props.settings?.customFieldKeys || '')
+  .split(',')
+  .map((key) => key.trim())
+  .filter(Boolean)
+  .slice(0, 12))
+
+const specs = computed(() => {
+  const attributes = Array.isArray(product.value?.specs) ? product.value.specs : []
+  const fields = product.value?.customFields && typeof product.value.customFields === 'object'
+    ? product.value.customFields
+    : {}
+  const custom = customFieldKeys.value
+    .filter((key) => typeof fields[key] === 'string' && fields[key])
+    .map((key) => ({ name: key.replace(/[_-]+/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()), value: fields[key] }))
+  return [...attributes, ...custom]
+})
 
 const accent = computed(() => props.settings?.accentColor || 'var(--dsf-gray-100, #f3f4f6)')
 

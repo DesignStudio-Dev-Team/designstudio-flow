@@ -81,6 +81,16 @@
           <Save :size="19" />
           <span class="dsf-dock__tip">{{ isSaving ? 'Saving…' : saveLabel }}</span>
         </button>
+
+        <button
+          type="button"
+          class="dsf-dock__btn"
+          aria-label="History"
+          @click="emit('open-history')"
+        >
+          <History :size="19" />
+          <span class="dsf-dock__tip">History</span>
+        </button>
       </div>
 
       <span class="dsf-dock__divider" aria-hidden="true"></span>
@@ -153,7 +163,7 @@ import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { gsap } from 'gsap'
 import {
   Monitor, Tablet, Smartphone, Palette, Settings,
-  ExternalLink, Save, LayoutTemplate, Plus, ListTree,
+  ExternalLink, Save, LayoutTemplate, Plus, ListTree, History,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -168,7 +178,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   'view', 'save', 'set-preview-mode', 'open-theme',
-  'open-settings', 'save-as-template', 'add-block', 'open-structure',
+  'open-settings', 'save-as-template', 'add-block', 'open-structure', 'open-history',
 ])
 
 const logoUrl = computed(() => `${window.dsfEditorData?.pluginUrl || ''}assets/images/dsflow-logo.png`)

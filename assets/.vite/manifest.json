@@ -17,8 +17,8 @@
     "file": "js/_plugin-vue_export-helper-DS7kMhdH.js",
     "name": "_plugin-vue_export-helper"
   },
-  "_main-owiGqGvF.js": {
-    "file": "js/main-owiGqGvF.js",
+  "_main-CwDTHb72.js": {
+    "file": "js/main-CwDTHb72.js",
     "name": "main",
     "imports": [
       "__plugin-vue_export-helper-DS7kMhdH.js"
@@ -51,7 +51,7 @@
     "isEntry": true,
     "imports": [
       "__plugin-vue_export-helper-DS7kMhdH.js",
-      "_main-owiGqGvF.js"
+      "_main-CwDTHb72.js"
     ]
   },
   "src/frontend/notificationBar.js": {
@@ -70,7 +70,7 @@
     "isEntry": true,
     "imports": [
       "__plugin-vue_export-helper-DS7kMhdH.js",
-      "_main-owiGqGvF.js",
+      "_main-CwDTHb72.js",
       "_ColorPicker-CIUlrPkS.js"
     ],
     "css": [

@@ -51,6 +51,16 @@ export function blockWrapperStyle(settings = {}, breakpoint = 'desktop', options
     const paddingX = getResponsiveValue(settings, breakpoint, 'paddingX') ?? 0
     style.paddingLeft = `${paddingX}px`
     style.paddingRight = `${paddingX}px`
+
+    // The wrapper is full viewport width, but its horizontal padding insets the
+    // block's own background-bearing root, leaving side gaps. Painting the block
+    // background on the wrapper instead lets it run edge-to-edge (full-bleed)
+    // while the content stays inset by the padding / its own max-width.
+    // Self-padded blocks already render a full-width background, so are skipped.
+    const background = settings.backgroundColor
+    if (typeof background === 'string' && background !== '' && background !== 'transparent') {
+      style.backgroundColor = background
+    }
   }
 
   if (hasResponsiveKey(settings, 'height')) {

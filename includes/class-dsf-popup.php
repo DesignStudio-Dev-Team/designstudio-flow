@@ -239,7 +239,16 @@ class DSF_Popup {
 			return;
 		}
 
-		update_post_meta( $post_id, self::META_KEY, self::sanitize_settings( $decoded ) );
+		$settings = self::sanitize_settings( $decoded );
+		if ( class_exists( 'DSF_History' ) ) {
+			$history = DSF_History::get_instance();
+			$next    = $history->proposed_post_payload( $post_id, array( 'meta' => array( self::META_KEY => $settings ) ) );
+			$result  = $history->capture_before_post_mutation( $post_id, self::POST_TYPE, $next, 'popup_save' );
+			if ( is_wp_error( $result ) ) {
+				return;
+			}
+		}
+		update_post_meta( $post_id, self::META_KEY, $settings );
 	}
 
 	/**

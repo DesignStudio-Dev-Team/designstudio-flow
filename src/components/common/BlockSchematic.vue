@@ -31,7 +31,7 @@
     </template>
 
     <!-- Header Mega Menu -->
-    <template v-else-if="type === 'header-mega-menu' || type === 'header-showcase-mega'">
+    <template v-else-if="type === 'header-mega-menu' || type === 'header-showcase-mega' || type === 'header-modern-mega'">
       <div class="dsf-schematic__header-mega">
         <div class="dsf-schematic__header-mega-top">
           <div class="dsf-schematic__line dsf-schematic__line--xxs"></div>
@@ -65,7 +65,15 @@
         <div class="dsf-schematic__footer-dealers-bottom"></div>
       </div>
     </template>
-    
+
+    <!-- Footer Commerce -->
+    <template v-else-if="type === 'footer-commerce'">
+      <div class="dsf-schematic__l-footer">
+        <div class="dsf-schematic__l-footer-cols"><span v-for="i in 4" :key="i"></span></div>
+        <div class="dsf-schematic__footer-dealers-bottom"></div>
+      </div>
+    </template>
+
     <!-- Features Grid -->
     <template v-else-if="type === 'features-grid'">
       <div class="dsf-schematic__features-grid">

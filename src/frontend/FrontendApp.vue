@@ -46,6 +46,7 @@ import BentoHeroPreview from '../components/blocks/BentoHeroPreview.vue'
 import SpotlightHeroPreview from '../components/blocks/SpotlightHeroPreview.vue'
 import ExpanderHeroPreview from '../components/blocks/ExpanderHeroPreview.vue'
 import PricingPreview from '../components/blocks/PricingPreview.vue'
+import PricingTablesPreview from '../components/blocks/PricingTablesPreview.vue'
 import TextImagePreview from '../components/blocks/TextImagePreview.vue'
 import TestimonialsPreview from '../components/blocks/TestimonialsPreview.vue'
 import CtaBannerPreview from '../components/blocks/CtaBannerPreview.vue'
@@ -61,6 +62,7 @@ import ProductSpecsPreview from '../components/blocks/ProductSpecsPreview.vue'
 import ProductTabsPreview from '../components/blocks/ProductTabsPreview.vue'
 import ProductAddToCartPreview from '../components/blocks/ProductAddToCartPreview.vue'
 import ProductHeroPreview from '../components/blocks/ProductHeroPreview.vue'
+import ProductDetailsSplitPreview from '../components/blocks/ProductDetailsSplitPreview.vue'
 import ProductHighlightsPreview from '../components/blocks/ProductHighlightsPreview.vue'
 import ProductRelatedPreview from '../components/blocks/ProductRelatedPreview.vue'
 import ProductSpotlightPreview from '../components/blocks/ProductSpotlightPreview.vue'
@@ -70,8 +72,11 @@ import ProductMetaPreview from '../components/blocks/ProductMetaPreview.vue'
 import StoreCartPreview from '../components/blocks/StoreCartPreview.vue'
 import StoreCheckoutPreview from '../components/blocks/StoreCheckoutPreview.vue'
 import StoreAccountPreview from '../components/blocks/StoreAccountPreview.vue'
+import StoreLoginPreview from '../components/blocks/StoreLoginPreview.vue'
 import StoreStepsPreview from '../components/blocks/StoreStepsPreview.vue'
 import ShopHeaderPreview from '../components/blocks/ShopHeaderPreview.vue'
+import ShopCategoryHeroPreview from '../components/blocks/ShopCategoryHeroPreview.vue'
+import ShopSubcategoryGridPreview from '../components/blocks/ShopSubcategoryGridPreview.vue'
 import ShopProductsPreview from '../components/blocks/ShopProductsPreview.vue'
 import ShopFiltersPreview from '../components/blocks/ShopFiltersPreview.vue'
 import StoreMiniCartPreview from '../components/blocks/StoreMiniCartPreview.vue'
@@ -86,7 +91,9 @@ import FeaturedPromoBannerPreview from '../components/blocks/FeaturedPromoBanner
 import HeaderMegaMenuPreview from '../components/blocks/HeaderMegaMenuPreview.vue'
 import HeaderShowcaseMegaPreview from '../components/blocks/HeaderShowcaseMegaPreview.vue'
 import HeaderCutoutMegaPreview from '../components/blocks/HeaderCutoutMegaPreview.vue'
+import HeaderModernMegaPreview from '../components/blocks/HeaderModernMegaPreview.vue'
 import FooterDealersPreview from '../components/blocks/FooterDealersPreview.vue'
+import FooterCommercePreview from '../components/blocks/FooterCommercePreview.vue'
 import FormEmbedPreview from '../components/blocks/FormEmbedPreview.vue'
 import FormWithContentPreview from '../components/blocks/FormWithContentPreview.vue'
 import LandingProgressHeaderPreview from '../components/blocks/LandingProgressHeaderPreview.vue'
@@ -138,6 +145,7 @@ const previewComponents = {
   'spotlight-hero': SpotlightHeroPreview,
   'expander-hero': ExpanderHeroPreview,
   'pricing': PricingPreview,
+  'pricing-tables': PricingTablesPreview,
   'text-image': TextImagePreview,
   'testimonials': TestimonialsPreview,
   'cta-banner': CtaBannerPreview,
@@ -153,6 +161,7 @@ const previewComponents = {
   'product-tabs': ProductTabsPreview,
   'product-add-to-cart': ProductAddToCartPreview,
   'product-hero': ProductHeroPreview,
+  'product-details-split': ProductDetailsSplitPreview,
   'product-highlights': ProductHighlightsPreview,
   'product-related': ProductRelatedPreview,
   'product-spotlight': ProductSpotlightPreview,
@@ -162,8 +171,11 @@ const previewComponents = {
   'store-cart': StoreCartPreview,
   'store-checkout': StoreCheckoutPreview,
   'store-account': StoreAccountPreview,
+  'store-login': StoreLoginPreview,
   'store-steps': StoreStepsPreview,
   'shop-header': ShopHeaderPreview,
+  'shop-category-hero': ShopCategoryHeroPreview,
+  'shop-subcategory-grid': ShopSubcategoryGridPreview,
   'shop-products': ShopProductsPreview,
   'shop-filters': ShopFiltersPreview,
   'store-mini-cart': StoreMiniCartPreview,
@@ -178,7 +190,9 @@ const previewComponents = {
   'header-mega-menu': HeaderMegaMenuPreview,
   'header-showcase-mega': HeaderShowcaseMegaPreview,
   'header-cutout-mega': HeaderCutoutMegaPreview,
+  'header-modern-mega': HeaderModernMegaPreview,
   'footer-dealers': FooterDealersPreview,
+  'footer-commerce': FooterCommercePreview,
   'form-embed': FormEmbedPreview,
   'form-with-content': FormWithContentPreview,
   'landing-progress-header': LandingProgressHeaderPreview,
@@ -211,6 +225,11 @@ const currentProduct = ref(
   (typeof window !== 'undefined' && window.dsfFrontendData?.currentProduct) || null
 )
 provide('dsfProductContext', currentProduct)
+
+const storeContext = ref(
+  (typeof window !== 'undefined' && window.dsfFrontendData?.storeContext) || null
+)
+provide('dsfStoreContext', storeContext)
 
 // Shop blocks (in a shop template) read the viewed archive from this context.
 const currentArchive = ref(
@@ -284,7 +303,7 @@ onUnmounted(() => {
 })
 
 function getDefaultMarginByType(blockType) {
-  if (blockType === 'header-mega-menu' || blockType === 'header-showcase-mega' || blockType === 'header-cutout-mega' || blockType === 'footer-dealers' || blockType?.startsWith('landing-')) {
+  if (blockType === 'header-mega-menu' || blockType === 'header-showcase-mega' || blockType === 'header-cutout-mega' || blockType === 'header-modern-mega' || blockType === 'footer-dealers' || blockType === 'footer-commerce' || blockType?.startsWith('landing-')) {
     return 0
   }
   return 25

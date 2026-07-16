@@ -63,7 +63,20 @@
             <button class="dsf-mega-menu-field__danger" @click="removeColumn(itemIndex, columnIndex)">Remove</button>
           </div>
 
-          <div class="dsf-mega-menu-field__column-mode">
+          <div v-if="pro" class="dsf-mega-menu-field__column-grid">
+            <span class="dsf-mega-menu-field__column-grid-label">Layout</span>
+            <select
+              class="dsf-input"
+              :value="column.layout || (column.imageLinks ? 'cards' : 'links')"
+              @change="updateColumnLayout(itemIndex, columnIndex, $event.target.value)"
+            >
+              <option value="links">Links</option>
+              <option value="cards">Image Cards</option>
+              <option value="icons">Icon Grid</option>
+            </select>
+          </div>
+
+          <div v-else class="dsf-mega-menu-field__column-mode">
             <span class="dsf-mega-menu-field__column-mode-label">Image Links</span>
             <button
               class="dsf-toggle"
@@ -140,19 +153,47 @@
                 {{ link.image ? 'Change' : 'Select Image' }}
               </button>
             </div>
+            <div v-if="pro && column.layout === 'icons'" class="dsf-mega-menu-field__column-grid">
+              <span class="dsf-mega-menu-field__column-grid-label">Icon</span>
+              <select
+                class="dsf-input"
+                :value="link.icon || 'sparkles'"
+                @change="updateLink(itemIndex, columnIndex, linkIndex, 'icon', $event.target.value)"
+              >
+                <option v-for="name in iconNames" :key="name" :value="name">{{ name }}</option>
+              </select>
+            </div>
           </div>
         </div>
 
         <div class="dsf-mega-menu-field__banner">
-          <strong>Mega Menu Banner</strong>
+          <strong>{{ pro ? 'Featured Card' : 'Mega Menu Banner' }}</strong>
           <div class="dsf-mega-menu-field__row">
             <div class="dsf-form-group">
-              <label class="dsf-label">Banner Title</label>
+              <label class="dsf-label">{{ pro ? 'Card Title' : 'Banner Title' }}</label>
               <input
                 type="text"
                 class="dsf-input"
                 :value="item.banner?.title || ''"
                 @input="updateBanner(itemIndex, 'title', $event.target.value)"
+              />
+            </div>
+            <div v-if="pro" class="dsf-form-group">
+              <label class="dsf-label">Card Description</label>
+              <input
+                type="text"
+                class="dsf-input"
+                :value="item.banner?.text || ''"
+                @input="updateBanner(itemIndex, 'text', $event.target.value)"
+              />
+            </div>
+            <div v-if="pro" class="dsf-form-group">
+              <label class="dsf-label">Button Label</label>
+              <input
+                type="text"
+                class="dsf-input"
+                :value="item.banner?.buttonLabel || ''"
+                @input="updateBanner(itemIndex, 'buttonLabel', $event.target.value)"
               />
             </div>
             <div class="dsf-form-group">
@@ -198,13 +239,30 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { X, ImagePlus } from 'lucide-vue-next'
+import { LANDING_ICON_NAMES } from '../../utils/landingIcons'
 
 const props = defineProps({
   modelValue: {
     type: Array,
     default: () => [],
   },
+  // "Pro" mode (used by the Modern Mega header) reveals a per-column layout
+  // select, a per-link preset icon, and featured-card copy on the banner. When
+  // false the field — and the data it emits — is identical to the original, so
+  // blocks like Header Mega Menu are untouched.
+  pro: {
+    type: Boolean,
+    default: false,
+  },
 })
+
+const iconNames = LANDING_ICON_NAMES
+const COLUMN_LAYOUTS = ['links', 'cards', 'icons']
+
+function normalizeLayout(layout, imageLinks) {
+  if (COLUMN_LAYOUTS.includes(layout)) return layout
+  return imageLinks ? 'cards' : 'links'
+}
 
 const emit = defineEmits(['update:modelValue'])
 
@@ -223,13 +281,14 @@ function id(prefix) {
 }
 
 function createLink() {
-  return { __id: id('link'), label: 'Link', url: '#', image: '' }
+  return { __id: id('link'), label: 'Link', url: '#', image: '', icon: 'sparkles' }
 }
 
 function createColumn(imageLinks = false, imageColumns = 2) {
   return {
     __id: id('column'),
     heading: 'Sub Heading',
+    layout: imageLinks ? 'cards' : 'links',
     imageLinks,
     imageColumns: resolveImageColumns(imageColumns),
     links: [createLink(), createLink()],
@@ -245,6 +304,8 @@ function createItem() {
     columns: [createColumn(true, 2), createColumn(false, 2)],
     banner: {
       title: '',
+      text: '',
+      buttonLabel: '',
       image: '',
       url: '#',
     },
@@ -257,20 +318,29 @@ function normalizeItems(items) {
     label: item?.label || 'Menu Item',
     url: item?.url || '#',
     hasMega: !!item?.hasMega,
-    columns: (Array.isArray(item?.columns) && item.columns.length ? item.columns : [createColumn()]).map((column, columnIndex) => ({
-      __id: column.__id || id('column'),
-      heading: column?.heading || 'Sub Heading',
-      imageLinks: typeof column?.imageLinks === 'boolean' ? column.imageLinks : columnIndex === 0,
-      imageColumns: resolveImageColumns(column?.imageColumns),
-      links: (Array.isArray(column?.links) && column.links.length ? column.links : [createLink()]).map((link) => ({
-        __id: link.__id || id('link'),
-        label: link?.label || 'Link',
-        url: link?.url || '#',
-        image: link?.image || '',
-      })),
-    })),
+    columns: (Array.isArray(item?.columns) && item.columns.length ? item.columns : [createColumn()]).map((column, columnIndex) => {
+      const rawImageLinks = typeof column?.imageLinks === 'boolean' ? column.imageLinks : columnIndex === 0
+      const layout = normalizeLayout(column?.layout, rawImageLinks)
+      return {
+        __id: column.__id || id('column'),
+        heading: column?.heading || 'Sub Heading',
+        layout,
+        // In pro mode the layout select owns "cards"; otherwise honor the toggle.
+        imageLinks: props.pro ? layout === 'cards' : rawImageLinks,
+        imageColumns: resolveImageColumns(column?.imageColumns),
+        links: (Array.isArray(column?.links) && column.links.length ? column.links : [createLink()]).map((link) => ({
+          __id: link.__id || id('link'),
+          label: link?.label || 'Link',
+          url: link?.url || '#',
+          image: link?.image || '',
+          icon: link?.icon || 'sparkles',
+        })),
+      }
+    }),
     banner: {
       title: item?.banner?.title || '',
+      text: item?.banner?.text || '',
+      buttonLabel: item?.banner?.buttonLabel || '',
       image: item?.banner?.image || '',
       url: item?.banner?.url || '#',
     },
@@ -278,26 +348,37 @@ function normalizeItems(items) {
 }
 
 function toCleanData() {
-  return localItems.value.map((item) => ({
-    label: item.label,
-    url: item.url,
-    hasMega: !!item.hasMega,
-    columns: item.columns.map((column) => ({
-      heading: column.heading,
-      imageLinks: !!column.imageLinks,
-      imageColumns: resolveImageColumns(column.imageColumns),
-      links: column.links.map((link) => ({
-        label: link.label,
-        url: link.url,
-        image: link.image || '',
-      })),
-    })),
-    banner: {
+  return localItems.value.map((item) => {
+    const banner = {
       title: item.banner?.title || '',
       image: item.banner?.image || '',
       url: item.banner?.url || '#',
-    },
-  }))
+    }
+    if (props.pro) {
+      banner.text = item.banner?.text || ''
+      banner.buttonLabel = item.banner?.buttonLabel || ''
+    }
+    return {
+      label: item.label,
+      url: item.url,
+      hasMega: !!item.hasMega,
+      columns: item.columns.map((column) => {
+        const clean = {
+          heading: column.heading,
+          imageLinks: !!column.imageLinks,
+          imageColumns: resolveImageColumns(column.imageColumns),
+          links: column.links.map((link) => {
+            const cleanLink = { label: link.label, url: link.url, image: link.image || '' }
+            if (props.pro) cleanLink.icon = link.icon || 'sparkles'
+            return cleanLink
+          }),
+        }
+        if (props.pro) clean.layout = normalizeLayout(column.layout, column.imageLinks)
+        return clean
+      }),
+      banner,
+    }
+  })
 }
 
 function emitUpdate() {
@@ -345,9 +426,19 @@ function updateColumn(itemIndex, columnIndex, key, value) {
 function toggleColumnImageLinks(itemIndex, columnIndex) {
   const column = localItems.value[itemIndex].columns[columnIndex]
   column.imageLinks = !column.imageLinks
+  column.layout = column.imageLinks ? 'cards' : 'links'
   if (column.imageLinks) {
     column.imageColumns = resolveImageColumns(column.imageColumns)
   }
+  emitUpdate()
+}
+
+function updateColumnLayout(itemIndex, columnIndex, value) {
+  const column = localItems.value[itemIndex].columns[columnIndex]
+  column.layout = normalizeLayout(value, column.imageLinks)
+  // "Image cards" is the only layout that renders images, so keep the legacy
+  // imageLinks flag in sync for back-compat and the image-columns control.
+  column.imageLinks = column.layout === 'cards'
   emitUpdate()
 }
 
@@ -371,7 +462,7 @@ function updateLink(itemIndex, columnIndex, linkIndex, key, value) {
 
 function updateBanner(itemIndex, key, value) {
   if (!localItems.value[itemIndex].banner) {
-    localItems.value[itemIndex].banner = { title: '', image: '', url: '#' }
+    localItems.value[itemIndex].banner = { title: '', text: '', buttonLabel: '', image: '', url: '#' }
   }
   localItems.value[itemIndex].banner[key] = value
   emitUpdate()

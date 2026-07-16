@@ -21,6 +21,10 @@ class DSF_Ajax {
 	private function __construct() {
 		// Save page
 		add_action( 'wp_ajax_dsf_save_page', array( $this, 'save_page' ) );
+		add_action( 'wp_ajax_dsf_history_list', array( $this, 'history_list' ) );
+		add_action( 'wp_ajax_dsf_history_restore', array( $this, 'history_restore' ) );
+		add_action( 'wp_ajax_dsf_history_settings_list', array( $this, 'history_settings_list' ) );
+		add_action( 'wp_ajax_dsf_history_settings_restore', array( $this, 'history_settings_restore' ) );
 
 		// Get products
 		add_action( 'wp_ajax_dsf_get_products', array( $this, 'get_products' ) );
@@ -79,6 +83,85 @@ class DSF_Ajax {
 		add_action( 'wp_ajax_dsf_set_default_layout', array( $this, 'set_default_layout' ) );
 	}
 
+	/** Return the current object's safe history metadata. */
+	public function history_list() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+		$post    = $post_id ? get_post( $post_id ) : null;
+		if ( ! $post || ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+		$history = DSF_History::get_instance();
+		wp_send_json_success(
+			array(
+				'currentHash' => $history->current_post_hash( $post_id ),
+				'records'     => $history->list_records( 'post', $post_id, '', $post->post_type ),
+			)
+		);
+	}
+
+	/** Restore one authorized history record. */
+	public function history_restore() {
+		if ( ! check_ajax_referer( 'dsf_editor_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+		}
+		$this->verify_permissions();
+		$post_id  = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+		$record_id = isset( $_POST['record_id'] ) ? absint( $_POST['record_id'] ) : 0;
+		$expected = isset( $_POST['current_hash'] ) ? sanitize_text_field( wp_unslash( $_POST['current_hash'] ) ) : '';
+		if ( ! preg_match( '/^[a-f0-9]{64}$/', $expected ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid current state.' ), 400 );
+		}
+		$post = $post_id ? get_post( $post_id ) : null;
+		if ( ! $post || ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+		$history = DSF_History::get_instance();
+		$record  = $history->get_record( $record_id );
+		if ( is_wp_error( $record ) ) {
+			wp_send_json_error( array( 'message' => $record->get_error_message() ), 400 );
+		}
+		$result = $history->restore_post_record( $record, $post_id, $expected );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message(), 'code' => $result->get_error_code() ), 409 );
+		}
+		wp_send_json_success( $result );
+	}
+
+	public function history_settings_list() {
+		if ( ! check_ajax_referer( 'dsf_save_settings', 'nonce', false ) || ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+		$key = isset( $_POST['settings_key'] ) ? sanitize_key( wp_unslash( $_POST['settings_key'] ) ) : '';
+		$history = DSF_History::get_instance();
+		wp_send_json_success( array( 'currentHash' => $history->current_settings_hash( $key ), 'records' => $history->list_records( 'settings', 0, $key, 'settings' ) ) );
+	}
+
+	public function history_settings_restore() {
+		if ( ! check_ajax_referer( 'dsf_save_settings', 'nonce', false ) || ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+		$key      = isset( $_POST['settings_key'] ) ? sanitize_key( wp_unslash( $_POST['settings_key'] ) ) : '';
+		$record_id = isset( $_POST['record_id'] ) ? absint( $_POST['record_id'] ) : 0;
+		$expected = isset( $_POST['current_hash'] ) ? sanitize_text_field( wp_unslash( $_POST['current_hash'] ) ) : '';
+		if ( ! preg_match( '/^[a-f0-9]{64}$/', $expected ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid current state.' ), 400 );
+		}
+		$history = DSF_History::get_instance();
+		$record  = $history->get_record( $record_id );
+		if ( is_wp_error( $record ) ) {
+			wp_send_json_error( array( 'message' => $record->get_error_message() ), 400 );
+		}
+		$result = $history->restore_settings_record( $record, $key, $expected );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message(), 'code' => $result->get_error_code() ), 409 );
+		}
+		wp_send_json_success( $result );
+	}
+
 	/**
 	 * Set or clear the site-wide default header/footer layout.
 	 *
@@ -100,6 +183,12 @@ class DSF_Ajax {
 		if ( ! $enabled ) {
 			// Only clear the default if this layout is the current one.
 			if ( $layout_id && absint( get_option( $option_key, 0 ) ) === $layout_id ) {
+				if ( class_exists( 'DSF_History' ) ) {
+					$history_result = DSF_History::get_instance()->capture_before_settings_mutation( $option_key, absint( get_option( $option_key, 0 ) ), 0, 'default_layout' );
+					if ( is_wp_error( $history_result ) ) {
+						wp_send_json_error( array( 'message' => 'Could not create a Quick Restore point.' ), 500 );
+					}
+				}
 				update_option( $option_key, 0 );
 			}
 			wp_send_json_success( array( 'defaultId' => absint( get_option( $option_key, 0 ) ) ) );
@@ -123,6 +212,12 @@ class DSF_Ajax {
 			wp_send_json_error( array( 'message' => 'Layout type mismatch' ) );
 		}
 
+		if ( class_exists( 'DSF_History' ) ) {
+			$history_result = DSF_History::get_instance()->capture_before_settings_mutation( $option_key, absint( get_option( $option_key, 0 ) ), $layout_id, 'default_layout' );
+			if ( is_wp_error( $history_result ) ) {
+				wp_send_json_error( array( 'message' => 'Could not create a Quick Restore point.' ), 500 );
+			}
+		}
 		update_option( $option_key, $layout_id );
 		wp_send_json_success( array( 'defaultId' => $layout_id ) );
 	}
@@ -594,6 +689,14 @@ class DSF_Ajax {
 		$settings     = isset( $sanitized[0]['settings'] ) && is_array( $sanitized[0]['settings'] ) ? $sanitized[0]['settings'] : array();
 
 		$title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+		if ( class_exists( 'DSF_History' ) ) {
+			$history = DSF_History::get_instance();
+			$next    = $history->proposed_post_payload( $post_id, array( 'post_title' => '' !== $title ? $title : get_the_title( $post_id ), 'meta' => array( '_dsf_block_type' => $type, '_dsf_block_settings' => $settings ) ) );
+			$history_result = $history->capture_before_post_mutation( $post_id, 'dsf_saved_block', $next, 'saved_block_save' );
+			if ( is_wp_error( $history_result ) ) {
+				wp_send_json_error( array( 'message' => 'Could not create a Quick Restore point.' ), 500 );
+			}
+		}
 		if ( '' !== $title ) {
 			wp_update_post( array( 'ID' => $post_id, 'post_title' => $title ) );
 		}
@@ -602,6 +705,9 @@ class DSF_Ajax {
 		update_post_meta( $post_id, '_dsf_block_settings', $settings );
 
 		$synced = $this->sync_saved_block_instances( $post_id, $settings );
+		if ( is_wp_error( $synced ) ) {
+			wp_send_json_error( array( 'message' => 'Could not create all Quick Restore points; no linked pages were changed.' ), 500 );
+		}
 
 		wp_send_json_success(
 			array(
@@ -624,7 +730,7 @@ class DSF_Ajax {
 	private function sync_saved_block_instances( $saved_block_id, $settings ) {
 		$posts = get_posts(
 			array(
-				'post_type'      => array( 'page', 'dsf_layout', 'dsf_product_template' ),
+				'post_type'      => array( 'page', 'dsf_layout', 'dsf_product_template', 'dsf_shop_template', 'dsf_blog_template' ),
 				'post_status'    => array( 'publish', 'draft', 'pending', 'private', 'future' ),
 				'posts_per_page' => -1,
 				'no_found_rows'  => true,
@@ -633,7 +739,7 @@ class DSF_Ajax {
 			)
 		);
 
-		$updated = 0;
+		$changes = array();
 		foreach ( $posts as $pid ) {
 			$blocks = get_post_meta( $pid, '_dsf_blocks', true );
 			if ( ! is_array( $blocks ) ) {
@@ -649,14 +755,23 @@ class DSF_Ajax {
 			unset( $block );
 
 			if ( $changed ) {
-				update_post_meta( $pid, '_dsf_blocks', $blocks );
-				// Drop the cached first-paint snapshot so the page re-renders fresh.
-				delete_post_meta( $pid, '_dsf_html_snapshot' );
-				$updated++;
+				if ( class_exists( 'DSF_History' ) ) {
+					$history = DSF_History::get_instance();
+					$next    = $history->proposed_post_payload( $pid, array( 'meta' => array( '_dsf_blocks' => $blocks ) ) );
+					$history_result = $history->capture_before_post_mutation( $pid, get_post_type( $pid ), $next, 'saved_block_sync' );
+					if ( is_wp_error( $history_result ) ) {
+						return $history_result;
+					}
+				}
+				$changes[] = array( 'id' => absint( $pid ), 'blocks' => $blocks );
 			}
 		}
+		foreach ( $changes as $change ) {
+			update_post_meta( $change['id'], '_dsf_blocks', $change['blocks'] );
+			delete_post_meta( $change['id'], '_dsf_html_snapshot' );
+		}
 
-		return $updated;
+		return count( $changes );
 	}
 
 	/**
@@ -925,6 +1040,90 @@ class DSF_Ajax {
 	}
 
 	/**
+	 * Re-sanitize a Quick Restore post payload through the current Flow contracts.
+	 * History records are old database data and must not bypass save-time rules.
+	 *
+	 * @param string $post_type Post type.
+	 * @param array  $payload   Stored history payload.
+	 * @return array
+	 */
+	public function sanitize_history_post_payload( $post_type, $payload ) {
+		$post_type = sanitize_key( $post_type );
+		$payload   = is_array( $payload ) ? $payload : array();
+		$allowed_types = array( 'page', 'dsf_layout', 'dsf_saved_block', 'dsf_template', 'dsf_product_template', 'dsf_shop_template', 'dsf_blog_template', 'dsf_form', 'dsf_popup' );
+		if ( ! in_array( $post_type, $allowed_types, true ) ) {
+			return array();
+		}
+		$status = sanitize_key( $payload['post_status'] ?? 'draft' );
+		$clean  = array(
+			'post_type'   => $post_type,
+			'post_title'  => mb_substr( sanitize_text_field( $payload['post_title'] ?? '' ), 0, 200 ),
+			'post_name'   => mb_substr( sanitize_title( $payload['post_name'] ?? '' ), 0, 200 ),
+			'post_parent' => absint( $payload['post_parent'] ?? 0 ),
+			'post_status' => in_array( $status, array( 'draft', 'publish', 'private', 'pending', 'future' ), true ) ? $status : 'draft',
+			'meta'        => array(),
+		);
+		$meta = isset( $payload['meta'] ) && is_array( $payload['meta'] ) ? $payload['meta'] : array();
+		$blocks = isset( $meta['_dsf_blocks'] ) && is_array( $meta['_dsf_blocks'] ) ? $this->sanitize_known_block_settings( $meta['_dsf_blocks'] ) : null;
+		if ( null !== $blocks && in_array( $post_type, array( 'page', 'dsf_layout', 'dsf_product_template', 'dsf_shop_template', 'dsf_blog_template' ), true ) ) {
+			$clean['meta']['_dsf_blocks'] = $blocks;
+		}
+		if ( isset( $meta['_dsf_settings'] ) && is_array( $meta['_dsf_settings'] ) ) {
+			$settings           = $meta['_dsf_settings'];
+			$settings['theme']  = $this->sanitize_page_theme_settings( $settings['theme'] ?? array() );
+			$settings['layout'] = $this->sanitize_page_layout_settings( $settings['layout'] ?? array() );
+			$settings['popup']  = $this->sanitize_popup_settings( $settings['popup'] ?? array() );
+			$settings['popupId'] = absint( $settings['popupId'] ?? 0 );
+			$settings['seo']    = $this->sanitize_page_seo_settings( $settings['seo'] ?? array() );
+			$clean['meta']['_dsf_settings'] = $settings;
+		}
+		if ( 'dsf_template' === $post_type ) {
+			$clean['meta']['_dsf_template_blocks'] = $this->sanitize_template_blocks( $meta['_dsf_template_blocks'] ?? array() );
+			$clean['meta']['_dsf_template_theme']  = $this->sanitize_page_theme_settings( $meta['_dsf_template_theme'] ?? array() );
+			$clean['meta']['_dsf_template_kind']   = in_array( sanitize_key( $meta['_dsf_template_kind'] ?? 'page' ), array( 'page', 'section' ), true ) ? sanitize_key( $meta['_dsf_template_kind'] ?? 'page' ) : 'page';
+		}
+		if ( 'dsf_form' === $post_type && class_exists( 'DSF_Forms' ) ) {
+			$form = DSF_Forms::get_instance()->sanitize_imported_form( $meta['_dsf_form_rows'] ?? array(), $meta['_dsf_form_settings'] ?? array() );
+			$clean['meta']['_dsf_form_rows']     = $form['rows'];
+			$clean['meta']['_dsf_form_settings'] = $form['settings'];
+		}
+		if ( 'dsf_popup' === $post_type ) {
+			$clean['meta']['_dsf_popup_settings'] = DSF_Popup::sanitize_settings( $meta['_dsf_popup_settings'] ?? array() );
+		}
+		if ( 'dsf_saved_block' === $post_type ) {
+			$type = sanitize_key( $meta['_dsf_block_type'] ?? '' );
+			$clean['meta']['_dsf_block_type']     = $type;
+			$clean['meta']['_dsf_block_settings'] = self::sanitize_block_settings_by_schema( $meta['_dsf_block_settings'] ?? array(), $type );
+			$clean['meta']['_dsf_block_category'] = mb_substr( sanitize_text_field( $meta['_dsf_block_category'] ?? '' ), 0, 100 );
+			$clean['meta']['_dsf_block_tags']     = array_values( array_slice( array_map( 'sanitize_key', is_array( $meta['_dsf_block_tags'] ?? null ) ? $meta['_dsf_block_tags'] : array() ), 0, 30 ) );
+			$clean['meta']['_dsf_block_featured'] = ! empty( $meta['_dsf_block_featured'] );
+		}
+		foreach ( array( '_dsf_layout_type', '_dsf_enabled', '_dsf_noindex', '_dsf_pt_active', '_dsf_st_active', '_dsf_bt_active' ) as $key ) {
+			if ( array_key_exists( $key, $meta ) ) {
+				$clean['meta'][ $key ] = in_array( $key, array( '_dsf_layout_type' ), true ) ? ( 'footer' === sanitize_key( $meta[ $key ] ) ? 'footer' : 'header' ) : ! empty( $meta[ $key ] );
+			}
+		}
+		foreach ( array( '_dsf_pt_preview_product', '_dsf_st_preview_term', '_dsf_bt_preview_term' ) as $key ) {
+			if ( array_key_exists( $key, $meta ) ) {
+				$clean['meta'][ $key ] = absint( $meta[ $key ] );
+			}
+		}
+		foreach ( array( '_dsf_pt_assignment', '_dsf_st_assignment', '_dsf_bt_assignment' ) as $key ) {
+			if ( ! array_key_exists( $key, $meta ) ) {
+				continue;
+			}
+			if ( '_dsf_pt_assignment' === $key ) {
+				$clean['meta'][ $key ] = DSF_Product_Templates::sanitize_assignment( $meta[ $key ] );
+			} elseif ( '_dsf_st_assignment' === $key ) {
+				$clean['meta'][ $key ] = DSF_Shop_Templates::sanitize_assignment( $meta[ $key ] );
+			} else {
+				$clean['meta'][ $key ] = DSF_Blog_Templates::sanitize_assignment( $meta[ $key ] );
+			}
+		}
+		return $clean;
+	}
+
+	/**
 	 * Normalize request payloads that may arrive as scalars, arrays, or JSON strings.
 	 *
 	 * @param mixed $value Raw request value.
@@ -953,6 +1152,44 @@ class DSF_Ajax {
 		}
 
 		return $ids;
+	}
+
+	/** Create a Quick Restore point before an editor mutation. */
+	private function capture_history_before_editor_save( $post_id, $post_type, $blocks_data, $settings_data, $title, $slug, $status ) {
+		$post = get_post( $post_id );
+		if ( ! $post || ! class_exists( 'DSF_History' ) ) {
+			return;
+		}
+		$meta = array(
+			'_dsf_blocks'   => $blocks_data,
+			'_dsf_settings' => $settings_data,
+		);
+		if ( 'dsf_template' === $post_type ) {
+			$meta = array(
+				'_dsf_template_blocks' => $blocks_data,
+				'_dsf_template_theme'  => $settings_data['theme'] ?? array(),
+			);
+		} elseif ( 'dsf_saved_block' === $post_type ) {
+			$first = isset( $blocks_data[0] ) && is_array( $blocks_data[0] ) ? $blocks_data[0] : array();
+			$meta = array(
+				'_dsf_block_type'     => $first['type'] ?? '',
+				'_dsf_block_settings' => $first['settings'] ?? array(),
+			);
+		}
+		$history = DSF_History::get_instance();
+		$next    = $history->proposed_post_payload(
+			$post_id,
+			array(
+				'post_title'  => '' !== $title ? $title : $post->post_title,
+				'post_name'   => '' !== $slug ? $slug : $post->post_name,
+				'post_status' => in_array( $status, array( 'draft', 'publish' ), true ) ? $status : $post->post_status,
+				'meta'        => $meta,
+			)
+		);
+		$result = $history->capture_before_post_mutation( $post_id, $post_type, $next, 'editor_save' );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => 'Could not create a Quick Restore point.' ), 500 );
+		}
 	}
 
 	/**
@@ -1008,6 +1245,7 @@ class DSF_Ajax {
 		$settings_data['seo']     = $this->sanitize_page_seo_settings( $settings_data['seo'] ?? array() );
 
 		$post_type = get_post_type( $post_id );
+		$this->capture_history_before_editor_save( $post_id, $post_type, $blocks_data, $settings_data, $title, $slug, $status );
 
 		// Saved blocks + templates are edited in Flow but persist to their own
 		// meta (not _dsf_blocks). This sends the JSON response and exits.
@@ -1421,8 +1659,16 @@ class DSF_Ajax {
 				$block['settings'] = $this->sanitize_faq_settings( $block['settings'] ?? array() );
 				continue;
 			}
+			if ( 'pricing-tables' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_pricing_tables_settings( $block['settings'] ?? array() );
+				continue;
+			}
 			if ( 'breadcrumbs' === ( $block['type'] ?? '' ) ) {
 				$block['settings'] = $this->sanitize_breadcrumbs_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'content' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_content_settings( $block['settings'] ?? array() );
 				continue;
 			}
 			if ( 'text-image' === ( $block['type'] ?? '' ) ) {
@@ -1465,7 +1711,7 @@ class DSF_Ajax {
 				$block['settings'] = $this->sanitize_product_add_to_cart_settings( $block['settings'] ?? array() );
 				continue;
 			}
-			if ( 'product-hero' === ( $block['type'] ?? '' ) ) {
+			if ( in_array( $block['type'] ?? '', array( 'product-hero', 'product-details-split' ), true ) ) {
 				$block['settings'] = $this->sanitize_product_hero_settings( $block['settings'] ?? array() );
 				continue;
 			}
@@ -1493,7 +1739,7 @@ class DSF_Ajax {
 				$block['settings'] = $this->sanitize_product_meta_settings( $block['settings'] ?? array() );
 				continue;
 			}
-			if ( in_array( $block['type'] ?? '', array( 'store-cart', 'store-checkout', 'store-account' ), true ) ) {
+			if ( in_array( $block['type'] ?? '', array( 'store-cart', 'store-checkout', 'store-account', 'store-login' ), true ) ) {
 				$block['settings'] = $this->sanitize_store_fragment_settings( $block['type'], $block['settings'] ?? array() );
 				continue;
 			}
@@ -1503,6 +1749,14 @@ class DSF_Ajax {
 			}
 			if ( 'shop-header' === ( $block['type'] ?? '' ) ) {
 				$block['settings'] = $this->sanitize_shop_header_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'shop-category-hero' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_shop_category_hero_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'shop-subcategory-grid' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_shop_subcategory_grid_settings( $block['settings'] ?? array() );
 				continue;
 			}
 			if ( 'shop-products' === ( $block['type'] ?? '' ) ) {
@@ -1543,6 +1797,14 @@ class DSF_Ajax {
 			}
 			if ( in_array( $block['type'] ?? '', array( 'form-embed', 'form-with-content' ), true ) ) {
 				$block['settings'] = $this->sanitize_form_block_settings( $block['type'], $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'header-modern-mega' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_modern_mega_header_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'footer-commerce' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_footer_commerce_settings( $block['settings'] ?? array() );
 				continue;
 			}
 			if ( 'header-showcase-mega' !== ( $block['type'] ?? '' ) ) {
@@ -1603,6 +1865,38 @@ class DSF_Ajax {
 		unset( $block );
 
 		return $blocks;
+	}
+
+	/**
+	 * Sanitize Content block settings.
+	 *
+	 * The `content` field intentionally allows raw HTML (an edit_pages-gated,
+	 * trusted authoring surface with allowRawHtml in its schema), so it is left
+	 * as-is; only the presentation fields — the optional full-bleed background
+	 * color and the numeric widths/paddings — are sanitized/clamped in place.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_content_settings( $settings ) {
+		if ( ! is_array( $settings ) ) {
+			return array();
+		}
+
+		if ( array_key_exists( 'backgroundColor', $settings ) ) {
+			$settings['backgroundColor'] = $this->sanitize_card_columns_color( $settings['backgroundColor'] );
+		}
+		if ( array_key_exists( 'maxWidth', $settings ) ) {
+			$settings['maxWidth'] = max( 320, min( 1400, (int) $settings['maxWidth'] ) );
+		}
+		if ( array_key_exists( 'padding', $settings ) ) {
+			$settings['padding'] = max( 0, min( 200, (int) $settings['padding'] ) );
+		}
+		if ( array_key_exists( 'paddingX', $settings ) ) {
+			$settings['paddingX'] = max( 0, min( 200, (int) $settings['paddingX'] ) );
+		}
+
+		return $settings;
 	}
 
 	/**
@@ -1705,6 +1999,49 @@ class DSF_Ajax {
 		}
 
 		return $clean;
+	}
+
+	/** Sanitize the bounded three-card Modern Pricing Tables block. */
+	private function sanitize_pricing_tables_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$plans = array();
+		$raw_plans = is_array( $settings['plans'] ?? null ) ? array_slice( $settings['plans'], 0, 3 ) : array();
+		foreach ( $raw_plans as $plan ) {
+			if ( ! is_array( $plan ) ) {
+				continue;
+			}
+			$features = is_array( $plan['features'] ?? null ) ? $plan['features'] : preg_split( '/\r?\n/', (string) ( $plan['features'] ?? '' ) );
+			$features = is_array( $features ) ? array_slice( $features, 0, 12 ) : array();
+			$features = array_values( array_filter( array_map( static function ( $feature ) { return mb_substr( sanitize_text_field( (string) $feature ), 0, 160 ); }, $features ) ) );
+			$plans[] = array(
+				'name'         => mb_substr( sanitize_text_field( $plan['name'] ?? '' ), 0, 80 ),
+				'description'  => mb_substr( sanitize_text_field( $plan['description'] ?? '' ), 0, 240 ),
+				'monthlyPrice' => mb_substr( sanitize_text_field( $plan['monthlyPrice'] ?? '' ), 0, 32 ),
+				'pricePrefix'  => mb_substr( sanitize_text_field( $plan['pricePrefix'] ?? '' ), 0, 8 ),
+				'priceSuffix'  => mb_substr( sanitize_text_field( $plan['priceSuffix'] ?? '' ), 0, 32 ),
+				'buttonText'   => mb_substr( sanitize_text_field( $plan['buttonText'] ?? '' ), 0, 80 ),
+				'buttonUrl'    => esc_url_raw( $plan['buttonUrl'] ?? '' ),
+				'popular'      => ! empty( $plan['popular'] ),
+				'badgeText'    => mb_substr( sanitize_text_field( $plan['badgeText'] ?? '' ), 0, 80 ),
+				'features'     => $features,
+			);
+		}
+		$defaults = array( 'Starter', 'Growth', 'Scale' );
+		while ( count( $plans ) < 3 ) {
+			$plans[] = array( 'name' => $defaults[ count( $plans ) ], 'description' => '', 'monthlyPrice' => '', 'pricePrefix' => '', 'priceSuffix' => '', 'buttonText' => '', 'buttonUrl' => '', 'popular' => false, 'badgeText' => '', 'features' => array() );
+		}
+		$accent = sanitize_hex_color( $settings['accentColor'] ?? '' );
+		$background = sanitize_hex_color( $settings['backgroundColor'] ?? '' );
+		return array(
+			'eyebrow' => mb_substr( sanitize_text_field( $settings['eyebrow'] ?? 'Plans for every stage' ), 0, 100 ),
+			'title' => mb_substr( sanitize_text_field( $settings['title'] ?? 'Straightforward pricing' ), 0, 160 ),
+			'description' => mb_substr( sanitize_textarea_field( $settings['description'] ?? '' ), 0, 400 ),
+			'plans' => $plans,
+			'accentColor' => $accent ? $accent : '#5B3DF5',
+			'backgroundColor' => $background ? $background : '#F7F7FC',
+			'maxWidth' => max( 760, min( 1600, absint( $settings['maxWidth'] ?? 1200 ) ) ),
+			'padding' => max( 0, min( 180, absint( $settings['padding'] ?? 80 ) ) ),
+		);
 	}
 
 	/**
@@ -1940,7 +2277,6 @@ class DSF_Ajax {
 			'marginY'     => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
 			'responsive'  => $this->sanitize_product_responsive_spacing( $settings ),
 		);
-
 		foreach ( array( 'headingColor', 'accentColor', 'backgroundColor' ) as $key ) {
 			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
 			$clean[ $key ] = $color ? $color : '';
@@ -2375,6 +2711,38 @@ class DSF_Ajax {
 	 * @param array $settings Submitted settings.
 	 * @return array
 	 */
+	private function sanitize_shop_category_hero_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$overlay = sanitize_hex_color( $settings['overlayColor'] ?? '' );
+		$text = sanitize_hex_color( $settings['textColor'] ?? '' );
+		return array(
+			'showImage' => ! isset( $settings['showImage'] ) || ! empty( $settings['showImage'] ),
+			'showDescription' => ! isset( $settings['showDescription'] ) || ! empty( $settings['showDescription'] ),
+			'showParentLink' => ! isset( $settings['showParentLink'] ) || ! empty( $settings['showParentLink'] ),
+			'alignment' => 'center' === ( $settings['alignment'] ?? '' ) ? 'center' : 'left',
+			'overlayColor' => $overlay ? $overlay : '',
+			'textColor' => $text ? $text : '',
+			'maxWidth' => max( 480, min( 1600, absint( $settings['maxWidth'] ?? 1280 ) ) ),
+			'padding' => max( 0, min( 200, absint( $settings['padding'] ?? 56 ) ) ),
+			'responsive' => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+	}
+
+	private function sanitize_shop_subcategory_grid_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$accent = sanitize_hex_color( $settings['accentColor'] ?? '' );
+		return array(
+			'showDescription' => ! isset( $settings['showDescription'] ) || ! empty( $settings['showDescription'] ),
+			'showCount' => ! isset( $settings['showCount'] ) || ! empty( $settings['showCount'] ),
+			'columns' => max( 2, min( 4, absint( $settings['columns'] ?? 3 ) ) ),
+			'imageAspect' => in_array( $settings['imageAspect'] ?? '', array( 'square', 'landscape', 'portrait' ), true ) ? $settings['imageAspect'] : 'landscape',
+			'accentColor' => $accent ? $accent : '',
+			'maxWidth' => max( 480, min( 1600, absint( $settings['maxWidth'] ?? 1200 ) ) ),
+			'padding' => max( 0, min( 160, absint( $settings['padding'] ?? 32 ) ) ),
+			'responsive' => $this->sanitize_product_responsive_spacing( $settings ),
+		);
+	}
+
 	private function sanitize_shop_products_settings( $settings ) {
 		$settings = is_array( $settings ) ? $settings : array();
 
@@ -2436,6 +2804,13 @@ class DSF_Ajax {
 			$colors[]        = 'buttonTextColor';
 		} elseif ( 'store-account' === $type ) {
 			$clean['navStyle'] = 'top' === ( $settings['navStyle'] ?? '' ) ? 'top' : 'side';
+		} elseif ( 'store-login' === $type ) {
+			$clean['maxWidth']         = max( 360, min( 800, absint( $settings['maxWidth'] ?? 520 ) ) );
+			$clean['heading']          = mb_substr( sanitize_text_field( $settings['heading'] ?? 'Welcome back' ), 0, 120 );
+			$clean['subheading']       = mb_substr( sanitize_text_field( $settings['subheading'] ?? 'Sign in to view your orders and saved details.' ), 0, 240 );
+			$clean['showRegisterLink'] = ! isset( $settings['showRegisterLink'] ) || ! empty( $settings['showRegisterLink'] );
+			$colors[]                  = 'buttonColor';
+			$colors[]                  = 'buttonTextColor';
 		}
 
 		foreach ( $colors as $key ) {
@@ -2574,6 +2949,10 @@ class DSF_Ajax {
 			'marginY'     => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
 			'responsive'  => $this->sanitize_product_responsive_spacing( $settings ),
 		);
+		$keys = preg_split( '/\s*,\s*/', (string) ( $settings['customFieldKeys'] ?? '' ) );
+		$keys = is_array( $keys ) ? $keys : array();
+		$keys = array_filter( array_map( 'sanitize_key', array_slice( $keys, 0, 12 ) ) );
+		$clean['customFieldKeys'] = implode( ',', array_unique( $keys ) );
 
 		foreach ( array( 'headingColor', 'labelColor', 'valueColor', 'accentColor' ) as $key ) {
 			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
@@ -3475,6 +3854,194 @@ class DSF_Ajax {
 			return '';
 		}
 		return esc_url_raw( $value, array( 'http', 'https', 'mailto', 'tel' ) );
+	}
+
+	/**
+	 * Sanitize the Modern Mega header (single-row header with rich mega menus).
+	 *
+	 * @param array $settings Raw settings from the client.
+	 * @return array
+	 */
+	private function sanitize_modern_mega_header_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$clean    = array();
+
+		$clean['logoText']      = sanitize_text_field( $settings['logoText'] ?? '' );
+		$clean['logoAlt']       = sanitize_text_field( $settings['logoAlt'] ?? '' );
+		$clean['logoImage']     = esc_url_raw( $settings['logoImage'] ?? '', array( 'http', 'https' ) );
+		$clean['logoImageSize'] = max( 30, min( 100, absint( $settings['logoImageSize'] ?? 100 ) ) );
+
+		foreach ( array( 'homeUrl', 'searchUrl', 'accountUrl', 'cartUrl' ) as $key ) {
+			$clean[ $key ] = $this->sanitize_showcase_url( $settings[ $key ] ?? '' );
+		}
+
+		foreach ( array( 'sticky', 'shrinkOnScroll', 'showSearch', 'showAccount', 'showCart' ) as $key ) {
+			$clean[ $key ] = ! empty( $settings[ $key ] );
+		}
+		$clean['cartCount'] = max( 0, min( 99, absint( $settings['cartCount'] ?? 0 ) ) );
+
+		foreach ( array( 'navBackground', 'navTextColor', 'accentColor', 'panelBackground', 'panelHeadingColor', 'panelLinkColor', 'mobileBackground', 'mobileTextColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		$clean['menuItems'] = $this->sanitize_modern_mega_menu_items( $settings['menuItems'] ?? array() );
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Modern Mega header's menu items (label/url + hasMega + columns
+	 * with a layout, links, and a featured card). Counts are capped and each
+	 * value is filtered by kind.
+	 *
+	 * @param mixed $items Raw menu items.
+	 * @return array
+	 */
+	private function sanitize_modern_mega_menu_items( $items ) {
+		$items   = is_array( $items ) ? $items : array();
+		$layouts = array( 'links', 'cards', 'icons' );
+		$icons   = array( 'sparkles', 'shield-check', 'lock', 'fingerprint', 'code', 'file-code', 'file-search', 'paintbrush', 'palette', 'layers', 'layout', 'columns', 'grid', 'briefcase', 'store', 'users', 'mail', 'form-input', 'bell', 'megaphone', 'clock', 'calendar', 'search', 'filter', 'zap', 'rocket', 'check', 'star', 'heart', 'globe', 'monitor', 'smartphone', 'file-text', 'settings', 'mouse-pointer', 'panel-top', 'wand', 'gauge', 'boxes' );
+
+		$clean = array();
+		foreach ( array_slice( $items, 0, 12 ) as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+
+			$columns = array();
+			foreach ( array_slice( is_array( $item['columns'] ?? null ) ? $item['columns'] : array(), 0, 6 ) as $column ) {
+				if ( ! is_array( $column ) ) {
+					continue;
+				}
+				$layout = in_array( $column['layout'] ?? '', $layouts, true ) ? $column['layout'] : 'links';
+				$links  = array();
+				foreach ( array_slice( is_array( $column['links'] ?? null ) ? $column['links'] : array(), 0, 12 ) as $link ) {
+					if ( ! is_array( $link ) ) {
+						continue;
+					}
+					$links[] = array(
+						'label' => sanitize_text_field( $link['label'] ?? '' ),
+						'url'   => $this->sanitize_showcase_url( $link['url'] ?? '' ),
+						'image' => esc_url_raw( $link['image'] ?? '', array( 'http', 'https' ) ),
+						'icon'  => in_array( $link['icon'] ?? '', $icons, true ) ? $link['icon'] : 'sparkles',
+					);
+				}
+				$columns[] = array(
+					'heading'      => sanitize_text_field( $column['heading'] ?? '' ),
+					'layout'       => $layout,
+					'imageLinks'   => 'cards' === $layout,
+					'imageColumns' => max( 1, min( 4, absint( $column['imageColumns'] ?? 2 ) ) ),
+					'links'        => $links,
+				);
+			}
+
+			$banner_raw = is_array( $item['banner'] ?? null ) ? $item['banner'] : array();
+			$banner     = array(
+				'title'       => sanitize_text_field( $banner_raw['title'] ?? '' ),
+				'text'        => sanitize_text_field( $banner_raw['text'] ?? '' ),
+				'buttonLabel' => sanitize_text_field( $banner_raw['buttonLabel'] ?? '' ),
+				'image'       => esc_url_raw( $banner_raw['image'] ?? '', array( 'http', 'https' ) ),
+				'url'         => $this->sanitize_showcase_url( $banner_raw['url'] ?? '' ),
+			);
+
+			$clean[] = array(
+				'label'   => sanitize_text_field( $item['label'] ?? '' ),
+				'url'     => $this->sanitize_showcase_url( $item['url'] ?? '' ),
+				'hasMega' => ! empty( $item['hasMega'] ),
+				'columns' => $columns,
+				'banner'  => $banner,
+			);
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize the Footer Commerce block (features bar, brand + social, two link
+	 * columns, newsletter, and a bottom bar with locale, copyright, and payments).
+	 *
+	 * @param array $settings Raw settings from the client.
+	 * @return array
+	 */
+	private function sanitize_footer_commerce_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$clean    = array();
+
+		foreach ( array( 'showFeatures', 'showNewsletter', 'showLocale', 'showPayments' ) as $key ) {
+			$clean[ $key ] = ! empty( $settings[ $key ] );
+		}
+
+		foreach ( array( 'logoText', 'socialLabel', 'column1Heading', 'column2Heading', 'newsletterHeading', 'newsletterText', 'newsletterPlaceholder', 'newsletterButton', 'copyrightText', 'localeText', 'currencyText' ) as $key ) {
+			$clean[ $key ] = sanitize_text_field( $settings[ $key ] ?? '' );
+		}
+		$clean['brandText'] = sanitize_textarea_field( $settings['brandText'] ?? '' );
+		$clean['logoImage'] = esc_url_raw( $settings['logoImage'] ?? '', array( 'http', 'https' ) );
+
+		foreach ( array( 'newsletterAction' ) as $key ) {
+			$clean[ $key ] = $this->sanitize_showcase_url( $settings[ $key ] ?? '' );
+		}
+
+		// Newsletter form source: a simple email field, a DSF form, or an embedded
+		// shortcode (e.g. a Gravity Form). The embed code is filtered through the
+		// same shortcode/embed sanitizer the Form blocks use.
+		$clean['newsletterSource']    = in_array( $settings['newsletterSource'] ?? '', array( 'inline', 'dsf', 'embed' ), true ) ? $settings['newsletterSource'] : 'inline';
+		$clean['newsletterFormId']    = absint( $settings['newsletterFormId'] ?? 0 ) ? (string) absint( $settings['newsletterFormId'] ) : '';
+		$clean['newsletterEmbedCode'] = $this->sanitize_form_embed_code( $settings['newsletterEmbedCode'] ?? '' );
+
+		$clean['features']     = $this->sanitize_landing_icon_items( $settings['features'] ?? array() );
+		$clean['socialLinks']  = $this->sanitize_footer_links( $settings['socialLinks'] ?? array() );
+		$clean['column1Links'] = $this->sanitize_footer_links( $settings['column1Links'] ?? array() );
+		$clean['column2Links'] = $this->sanitize_footer_links( $settings['column2Links'] ?? array() );
+		$clean['payments']     = $this->sanitize_footer_payments( $settings['payments'] ?? array() );
+
+		foreach ( array( 'background', 'textColor', 'headingColor', 'linkColor', 'accentColor', 'borderColor', 'bottomBackground' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize a simple {label,url} link list (capped).
+	 *
+	 * @param mixed $links Raw links.
+	 * @return array
+	 */
+	private function sanitize_footer_links( $links ) {
+		$clean = array();
+		foreach ( array_slice( is_array( $links ) ? $links : array(), 0, 12 ) as $link ) {
+			if ( ! is_array( $link ) ) {
+				continue;
+			}
+			$clean[] = array(
+				'label' => sanitize_text_field( $link['label'] ?? '' ),
+				'url'   => $this->sanitize_showcase_url( $link['url'] ?? '' ),
+			);
+		}
+		return $clean;
+	}
+
+	/**
+	 * Sanitize payment badges: a {name, logo, url} repeater (capped).
+	 *
+	 * @param mixed $payments Raw payment badges.
+	 * @return array
+	 */
+	private function sanitize_footer_payments( $payments ) {
+		$clean = array();
+		foreach ( array_slice( is_array( $payments ) ? $payments : array(), 0, 12 ) as $pay ) {
+			if ( ! is_array( $pay ) ) {
+				continue;
+			}
+			$clean[] = array(
+				'name' => sanitize_text_field( $pay['name'] ?? '' ),
+				'logo' => esc_url_raw( $pay['logo'] ?? '', array( 'http', 'https' ) ),
+				'url'  => $this->sanitize_showcase_url( $pay['url'] ?? '' ),
+			);
+		}
+		return $clean;
 	}
 
 	private function sanitize_popup_settings( $popup ) {

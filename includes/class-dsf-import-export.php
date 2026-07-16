@@ -56,20 +56,29 @@ class DSF_Import_Export {
 			return false;
 		}
 
-		if ( in_array( $post->post_type, array( 'dsf_layout', 'dsf_saved_block', 'dsf_template' ), true ) ) {
+		if ( in_array( $post->post_type, array( 'dsf_layout', 'dsf_saved_block', 'dsf_template', 'dsf_popup', 'dsf_product_template', 'dsf_shop_template', 'dsf_blog_template' ), true ) ) {
 			return true;
 		}
 
-		if ( 'page' !== $post->post_type ) {
+		if ( ! in_array( $post->post_type, array( 'page', 'post' ), true ) ) {
 			return false;
 		}
 
 		return (bool) get_post_meta( $post->ID, '_dsf_enabled', true ) || get_post_meta( $post->ID, '_dsf_blocks', true );
 	}
 
-	private function get_meta_keys_for_type( $post_type ) {
+	/**
+	 * Post-meta keys carried through export/import for a given post type.
+	 *
+	 * Public so the whole-site packager ({@see DSF_Package}) reuses the exact same
+	 * key map when building and restoring items.
+	 *
+	 * @param string $post_type Post type.
+	 * @return string[]
+	 */
+	public function get_meta_keys_for_type( $post_type ) {
 		$keys = array();
-		if ( in_array( $post_type, array( 'page', 'dsf_page' ), true ) ) {
+		if ( in_array( $post_type, array( 'page', 'post', 'dsf_page' ), true ) ) {
 			$keys = array( '_dsf_blocks', '_dsf_settings', '_dsf_theme_colors' );
 		} elseif ( 'dsf_layout' === $post_type ) {
 			$keys = array( '_dsf_blocks', '_dsf_settings', '_dsf_layout_type' );
@@ -77,6 +86,14 @@ class DSF_Import_Export {
 			$keys = array( '_dsf_block_type', '_dsf_block_settings', '_dsf_block_category', '_dsf_block_tags' );
 		} elseif ( 'dsf_template' === $post_type ) {
 			$keys = array( '_dsf_template_blocks', '_dsf_template_theme', '_dsf_template_kind' );
+		} elseif ( 'dsf_popup' === $post_type ) {
+			$keys = array( '_dsf_popup_settings' );
+		} elseif ( 'dsf_product_template' === $post_type ) {
+			$keys = array( '_dsf_blocks', '_dsf_settings', '_dsf_pt_active', '_dsf_pt_assignment' );
+		} elseif ( 'dsf_shop_template' === $post_type ) {
+			$keys = array( '_dsf_blocks', '_dsf_settings', '_dsf_st_active', '_dsf_st_assignment' );
+		} elseif ( 'dsf_blog_template' === $post_type ) {
+			$keys = array( '_dsf_blocks', '_dsf_settings', '_dsf_bt_active', '_dsf_bt_assignment' );
 		}
 
 		/**
@@ -273,7 +290,16 @@ class DSF_Import_Export {
 		exit;
 	}
 
-	private function build_export_item( $post ) {
+	/**
+	 * Build the portable representation of a single post (type, title, slug,
+	 * status, excerpt, and the type's block/settings meta).
+	 *
+	 * Public so {@see DSF_Package} composes whole-site exports from the same shape.
+	 *
+	 * @param WP_Post $post Post to export.
+	 * @return array
+	 */
+	public function build_export_item( $post ) {
 		$item = array(
 			'post_type' => $post->post_type,
 			'title'     => $post->post_title,
@@ -351,6 +377,7 @@ class DSF_Import_Export {
 	private function get_tabs() {
 		return array(
 			'pages'     => __( 'Pages, Headers & Footers', 'designstudio-flow' ),
+			'package'   => __( 'Site Package', 'designstudio-flow' ),
 			'forms'     => __( 'Forms', 'designstudio-flow' ),
 			'redirects' => __( 'Redirects', 'designstudio-flow' ),
 			'mail'      => __( 'Mail / SMTP', 'designstudio-flow' ),
@@ -381,7 +408,9 @@ class DSF_Import_Export {
 			</nav>
 
 			<?php
-			if ( 'forms' === $active ) {
+			if ( 'package' === $active && class_exists( 'DSF_Package' ) ) {
+				DSF_Package::get_instance()->render_admin_tab();
+			} elseif ( 'forms' === $active ) {
 				$this->render_forms_tab();
 			} elseif ( 'redirects' === $active && class_exists( 'DSF_Redirects' ) ) {
 				DSF_Redirects::get_instance()->render_admin_tab();
@@ -515,10 +544,7 @@ class DSF_Import_Export {
 		// deadline, so a media-heavy import can't run past PHP's time limit. Any
 		// media beyond the budget keeps its original URL.
 		if ( $import_media ) {
-			$this->media_files_remaining = (int) apply_filters( 'dsf_import_media_max_files', 100 );
-			$time_budget                 = (int) apply_filters( 'dsf_import_media_time_budget', 25 );
-			$this->media_deadline        = $time_budget > 0 ? ( microtime( true ) + $time_budget ) : 0;
-			$this->media_skipped         = 0;
+			$this->begin_media_budget();
 		}
 
 		$imported = 0;
@@ -575,13 +601,26 @@ class DSF_Import_Export {
 		return is_array( $item ) ? $item : array();
 	}
 
-	private function import_item( $item, $status, $import_media = false ) {
+	/**
+	 * Import one exported item as a brand-new post and return its ID (or false).
+	 *
+	 * Public so {@see DSF_Package} restores every domain through the same insert +
+	 * media-sideload path. When $media_source is an array (url => local file path),
+	 * media is pulled from those bundled files instead of the network.
+	 *
+	 * @param array      $item         Exported item.
+	 * @param string     $status       Post status for the new post.
+	 * @param bool       $import_media Whether to sideload referenced media.
+	 * @param array|null $media_source Optional url => local-path map (package import).
+	 * @return int|false New post ID, or false on failure/unsupported type.
+	 */
+	public function import_item( $item, $status, $import_media = false, $media_source = null ) {
 		if ( ! is_array( $item ) || empty( $item ) ) {
 			return false;
 		}
 
 		$post_type = isset( $item['post_type'] ) ? sanitize_key( $item['post_type'] ) : '';
-		if ( ! in_array( $post_type, array( 'page', 'dsf_page', 'dsf_layout', 'dsf_saved_block', 'dsf_template' ), true ) ) {
+		if ( ! in_array( $post_type, array( 'page', 'post', 'dsf_page', 'dsf_layout', 'dsf_saved_block', 'dsf_template', 'dsf_popup', 'dsf_product_template', 'dsf_shop_template', 'dsf_blog_template' ), true ) ) {
 			return false;
 		}
 
@@ -611,14 +650,14 @@ class DSF_Import_Export {
 		$meta        = isset( $item['meta'] ) && is_array( $item['meta'] ) ? $item['meta'] : array();
 		$media_cache = array();
 		// Meta keys whose block settings may reference images/videos by URL.
-		$media_keys = array( '_dsf_blocks', '_dsf_block_settings', '_dsf_template_blocks', '_dsf_settings' );
+		$media_keys = array( '_dsf_blocks', '_dsf_block_settings', '_dsf_template_blocks', '_dsf_settings', '_dsf_popup_settings' );
 		foreach ( $this->get_meta_keys_for_type( $post_type ) as $key ) {
 			if ( ! array_key_exists( $key, $meta ) ) {
 				continue;
 			}
 			$value = $meta[ $key ];
 			if ( $import_media && in_array( $key, $media_keys, true ) ) {
-				$value = $this->sideload_media_in_value( $value, $post_id, $media_cache );
+				$value = $this->sideload_media_in_value( $value, $post_id, $media_cache, $media_source );
 			}
 			update_post_meta( $post_id, $key, wp_slash( $value ) );
 		}
@@ -633,7 +672,10 @@ class DSF_Import_Export {
 			update_post_meta( $post_id, '_dsf_layout_type', $layout_type );
 		}
 
-		if ( 'page' === $post_type ) {
+		// Only mark a page/post as Flow-enabled when it actually carries Flow
+		// blocks; a plain page/post pulled in by the whole-site packager stays a
+		// normal post so the front end renders its post_content, not empty blocks.
+		if ( in_array( $post_type, array( 'page', 'post' ), true ) && ! empty( $meta['_dsf_blocks'] ) ) {
 			update_post_meta( $post_id, '_dsf_enabled', true );
 		}
 
@@ -641,31 +683,76 @@ class DSF_Import_Export {
 	}
 
 	/**
+	 * Sideload a single media URL and return the new local URL (or the original on
+	 * any failure). Thin public wrapper over the shared sideload path so the
+	 * packager can rewrite media referenced outside block meta — featured images
+	 * and inline images in post_content.
+	 *
+	 * @param string     $url          Candidate media URL.
+	 * @param int        $post_id      Post to attach the media to.
+	 * @param array      $cache        Original-URL => new-URL cache (dedupes).
+	 * @param array|null $media_source Optional url => local-path map (package import).
+	 * @return string
+	 */
+	public function import_media_url( $url, $post_id, &$cache, $media_source = null ) {
+		if ( ! is_string( $url ) || ! $this->looks_like_media_url( $url ) ) {
+			return $url;
+		}
+		return $this->sideload_url( $url, $post_id, $cache, $media_source );
+	}
+
+	/**
+	 * Start a fresh media-sideloading budget (file-count cap + wall-clock deadline)
+	 * for the current import run. Public so the packager reuses the same limits;
+	 * a whole-site package passes its own, larger caps since it legitimately
+	 * carries far more media than a single-item import.
+	 *
+	 * @param int|null $max_files   File-count cap (null = single-import default).
+	 * @param int|null $time_budget Wall-clock seconds (null = single-import default).
+	 */
+	public function begin_media_budget( $max_files = null, $time_budget = null ) {
+		$this->media_files_remaining = null === $max_files ? (int) apply_filters( 'dsf_import_media_max_files', 100 ) : (int) $max_files;
+		$seconds                     = null === $time_budget ? (int) apply_filters( 'dsf_import_media_time_budget', 25 ) : (int) $time_budget;
+		$this->media_deadline        = $seconds > 0 ? ( microtime( true ) + $seconds ) : 0;
+		$this->media_skipped         = 0;
+	}
+
+	/**
+	 * Number of media files left as remote URLs because the budget was exhausted.
+	 *
+	 * @return int
+	 */
+	public function get_media_skipped() {
+		return (int) $this->media_skipped;
+	}
+
+	/**
 	 * Recursively walk an imported meta value, downloading any referenced media
 	 * (images/videos/etc.) into this site's media library and rewriting the URL
 	 * to the new local attachment. Originals are kept on any failure.
 	 *
-	 * @param mixed $value   Settings value (array or scalar).
-	 * @param int   $post_id Post the media is attached to.
-	 * @param array $cache   Original-URL => new-URL map (dedupes downloads).
+	 * @param mixed      $value        Settings value (array or scalar).
+	 * @param int        $post_id      Post the media is attached to.
+	 * @param array      $cache        Original-URL => new-URL map (dedupes downloads).
+	 * @param array|null $media_source Optional url => local-path map (package import).
 	 * @return mixed
 	 */
-	private function sideload_media_in_value( $value, $post_id, &$cache ) {
+	private function sideload_media_in_value( $value, $post_id, &$cache, $media_source = null ) {
 		if ( is_array( $value ) ) {
 			foreach ( $value as $key => $item ) {
-				$value[ $key ] = $this->sideload_media_in_value( $item, $post_id, $cache );
+				$value[ $key ] = $this->sideload_media_in_value( $item, $post_id, $cache, $media_source );
 			}
 			return $value;
 		}
 
 		if ( is_string( $value ) && $this->looks_like_media_url( $value ) ) {
-			return $this->sideload_url( $value, $post_id, $cache );
+			return $this->sideload_url( $value, $post_id, $cache, $media_source );
 		}
 
 		return $value;
 	}
 
-	private function looks_like_media_url( $url ) {
+	public function looks_like_media_url( $url ) {
 		if ( ! preg_match( '#^https?://#i', $url ) ) {
 			return false;
 		}
@@ -682,7 +769,7 @@ class DSF_Import_Export {
 		return false !== strpos( $url, '/wp-content/uploads/' );
 	}
 
-	private function sideload_url( $url, $post_id, &$cache ) {
+	private function sideload_url( $url, $post_id, &$cache, $media_source = null ) {
 		if ( isset( $cache[ $url ] ) ) {
 			return $cache[ $url ];
 		}
@@ -693,10 +780,17 @@ class DSF_Import_Export {
 			return $url;
 		}
 
-		// SSRF guard: never fetch from private/reserved/unresolvable hosts.
-		if ( ! $this->is_safe_remote_host( $url ) ) {
-			$cache[ $url ] = $url;
-			return $url;
+		// Package import: the media travels inside the ZIP. Use the bundled file
+		// when we have it; if a referenced URL wasn't bundled, keep the URL rather
+		// than reaching out to the network (a package is meant to import offline).
+		$local_path = null;
+		if ( is_array( $media_source ) ) {
+			if ( isset( $media_source[ $url ] ) && is_string( $media_source[ $url ] ) && file_exists( $media_source[ $url ] ) ) {
+				$local_path = $media_source[ $url ];
+			} else {
+				$cache[ $url ] = $url;
+				return $url;
+			}
 		}
 
 		// Respect the import-wide media budget (file count + wall clock). Anything
@@ -709,32 +803,55 @@ class DSF_Import_Export {
 			}
 		}
 
-		// Skip oversized media when the server advertises a length over the cap.
-		$max_bytes = (int) apply_filters( 'dsf_import_media_max_bytes', 64 * 1024 * 1024 );
-		if ( $max_bytes > 0 ) {
-			$head = wp_remote_head( $url, array( 'timeout' => 10, 'redirection' => 3 ) );
-			if ( ! is_wp_error( $head ) ) {
-				$length = (int) wp_remote_retrieve_header( $head, 'content-length' );
-				if ( $length > 0 && $length > $max_bytes ) {
-					$cache[ $url ] = $url;
-					return $url;
-				}
-			}
-		}
-
-		// Consume one slot from the file-count budget for this download attempt.
-		if ( null !== $this->media_files_remaining ) {
-			$this->media_files_remaining--;
-		}
-
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 		require_once ABSPATH . 'wp-admin/includes/media.php';
 		require_once ABSPATH . 'wp-admin/includes/image.php';
 
-		$tmp = download_url( $url, 30 );
-		if ( is_wp_error( $tmp ) ) {
-			$cache[ $url ] = $url;
-			return $url;
+		$max_bytes = (int) apply_filters( 'dsf_import_media_max_bytes', 64 * 1024 * 1024 );
+
+		if ( null !== $local_path ) {
+			// Bundled file: enforce the size cap from disk, consume a budget slot,
+			// then copy it to a temp file (media_handle_sideload moves what it's given).
+			if ( $max_bytes > 0 && (int) filesize( $local_path ) > $max_bytes ) {
+				$cache[ $url ] = $url;
+				return $url;
+			}
+			if ( null !== $this->media_files_remaining ) {
+				$this->media_files_remaining--;
+			}
+			$tmp = wp_tempnam( basename( $local_path ) );
+			if ( ! $tmp || ! @copy( $local_path, $tmp ) ) {
+				if ( $tmp && file_exists( $tmp ) ) {
+					wp_delete_file( $tmp );
+				}
+				$cache[ $url ] = $url;
+				return $url;
+			}
+		} else {
+			// Remote URL: SSRF guard, then an optional HEAD size pre-check.
+			if ( ! $this->is_safe_remote_host( $url ) ) {
+				$cache[ $url ] = $url;
+				return $url;
+			}
+			if ( $max_bytes > 0 ) {
+				$head = wp_remote_head( $url, array( 'timeout' => 10, 'redirection' => 3 ) );
+				if ( ! is_wp_error( $head ) ) {
+					$length = (int) wp_remote_retrieve_header( $head, 'content-length' );
+					if ( $length > 0 && $length > $max_bytes ) {
+						$cache[ $url ] = $url;
+						return $url;
+					}
+				}
+			}
+			// Consume one slot from the file-count budget for this download attempt.
+			if ( null !== $this->media_files_remaining ) {
+				$this->media_files_remaining--;
+			}
+			$tmp = download_url( $url, 30 );
+			if ( is_wp_error( $tmp ) ) {
+				$cache[ $url ] = $url;
+				return $url;
+			}
 		}
 
 		$name = basename( (string) wp_parse_url( $url, PHP_URL_PATH ) );
