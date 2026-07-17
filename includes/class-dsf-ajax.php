@@ -391,6 +391,9 @@ class DSF_Ajax {
 				true
 			);
 		} else {
+			if ( ! current_user_can( 'publish_pages' ) ) {
+				wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+			}
 			$post_id = wp_insert_post(
 				array(
 					'post_type'   => 'dsf_saved_block',
@@ -409,6 +412,12 @@ class DSF_Ajax {
 		update_post_meta( $post_id, '_dsf_block_settings', $settings );
 		update_post_meta( $post_id, '_dsf_block_category', $category );
 		update_post_meta( $post_id, '_dsf_block_tags', $tags );
+		if ( ! $update_id ) {
+			$published = DSF_Multilingual::get_instance()->get_publish_gate()->finalize_new_post_publication( $post_id );
+			if ( is_wp_error( $published ) ) {
+				wp_send_json_error( array( 'message' => 'The saved block remained a draft because publication checks failed.' ), 409 );
+			}
+		}
 
 		wp_send_json_success(
 			array(
@@ -555,6 +564,9 @@ class DSF_Ajax {
 			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
 		}
 		$this->verify_permissions();
+		if ( ! current_user_can( 'publish_pages' ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
 
 		$payload = isset( $_POST['payload'] ) ? wp_unslash( $_POST['payload'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON payload is validated and per-field sanitized in parse_saved_block_import().
 		$items   = $this->parse_saved_block_import( $payload );
@@ -581,6 +593,10 @@ class DSF_Ajax {
 			update_post_meta( $post_id, '_dsf_block_settings', $item['settings'] );
 			update_post_meta( $post_id, '_dsf_block_category', $item['category'] );
 			update_post_meta( $post_id, '_dsf_block_tags', $item['tags'] );
+			$published = DSF_Multilingual::get_instance()->get_publish_gate()->finalize_new_post_publication( $post_id );
+			if ( is_wp_error( $published ) ) {
+				continue;
+			}
 
 			$imported[] = array(
 				'id'        => $post_id,
@@ -611,6 +627,9 @@ class DSF_Ajax {
 			wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
 		}
 		$this->verify_permissions();
+		if ( ! current_user_can( 'publish_pages' ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
 
 		$payload = isset( $_POST['payload'] ) ? wp_unslash( $_POST['payload'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON payload is validated + per-field sanitized below.
 		$data    = $payload ? json_decode( $payload, true ) : null;
@@ -648,6 +667,10 @@ class DSF_Ajax {
 			update_post_meta( $post_id, '_dsf_template_blocks', $blocks );
 			update_post_meta( $post_id, '_dsf_template_theme', $theme );
 			update_post_meta( $post_id, '_dsf_template_kind', $kind );
+			$published = DSF_Multilingual::get_instance()->get_publish_gate()->finalize_new_post_publication( $post_id );
+			if ( is_wp_error( $published ) ) {
+				continue;
+			}
 
 			$imported[] = $this->format_template( get_post( $post_id ) );
 		}
@@ -676,7 +699,6 @@ class DSF_Ajax {
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
 			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
 		}
-
 		$type = isset( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
 		if ( '' === $type ) {
 			$type = get_post_meta( $post_id, '_dsf_block_type', true );
@@ -903,6 +925,9 @@ class DSF_Ajax {
 			}
 			$post_id = wp_update_post( array( 'ID' => $update_id, 'post_title' => $name ), true );
 		} else {
+			if ( ! current_user_can( 'publish_pages' ) ) {
+				wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+			}
 			$post_id = wp_insert_post( array( 'post_type' => 'dsf_template', 'post_status' => 'publish', 'post_title' => $name ), true );
 		}
 
@@ -913,6 +938,12 @@ class DSF_Ajax {
 		update_post_meta( $post_id, '_dsf_template_blocks', $blocks );
 		update_post_meta( $post_id, '_dsf_template_theme', $theme );
 		update_post_meta( $post_id, '_dsf_template_kind', $kind );
+		if ( ! $update_id ) {
+			$published = DSF_Multilingual::get_instance()->get_publish_gate()->finalize_new_post_publication( $post_id );
+			if ( is_wp_error( $published ) ) {
+				wp_send_json_error( array( 'message' => 'The template remained a draft because publication checks failed.' ), 409 );
+			}
+		}
 
 		wp_send_json_success( $this->format_template( get_post( $post_id ) ) );
 	}
@@ -1221,6 +1252,10 @@ class DSF_Ajax {
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
 			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
 		}
+		$post_type = get_post_type( $post_id );
+		if ( ! is_string( $post_type ) || '' === $post_type ) {
+			wp_send_json_error( array( 'message' => 'Invalid post type' ), 400 );
+		}
 
 		// Validate JSON
 		$blocks_raw  = wp_unslash( $blocks );
@@ -1243,8 +1278,8 @@ class DSF_Ajax {
 		}
 		$settings_data['popupId'] = isset( $settings_data['popupId'] ) ? absint( $settings_data['popupId'] ) : 0;
 		$settings_data['seo']     = $this->sanitize_page_seo_settings( $settings_data['seo'] ?? array() );
+		$this->verify_editor_publish_permission( $post_id, $post_type, $status, $settings_data );
 
-		$post_type = get_post_type( $post_id );
 		$this->capture_history_before_editor_save( $post_id, $post_type, $blocks_data, $settings_data, $title, $slug, $status );
 
 		// Saved blocks + templates are edited in Flow but persist to their own
@@ -1358,6 +1393,26 @@ class DSF_Ajax {
 				'preview_url' => $preview_url,
 			)
 		);
+	}
+
+	/** Require the exact object publish capability before live status/activation. */
+	private function verify_editor_publish_permission( $post_id, $post_type, $status, $settings_data ) {
+		$requires_publish = 'page' === $post_type || 'publish' === $status;
+		$config_keys      = array(
+			'dsf_product_template' => 'productTemplate',
+			'dsf_shop_template'    => 'shopTemplate',
+			'dsf_blog_template'    => 'blogTemplate',
+		);
+		if ( isset( $config_keys[ $post_type ] ) ) {
+			$config = isset( $settings_data[ $config_keys[ $post_type ] ] ) && is_array( $settings_data[ $config_keys[ $post_type ] ] )
+				? $settings_data[ $config_keys[ $post_type ] ]
+				: array();
+			$requires_publish = $requires_publish || ! empty( $config['active'] );
+		}
+
+		if ( $requires_publish && ! current_user_can( 'publish_post', $post_id ) ) {
+			wp_send_json_error( array( 'message' => 'You are not allowed to publish this item.' ), 403 );
+		}
 	}
 
 	/**
@@ -4735,6 +4790,17 @@ class DSF_Ajax {
 
 		if ( ! current_user_can( 'publish_post', $post_id ) || ! current_user_can( 'edit_post', $post_id ) ) {
 			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
+
+		// Surface the centralized multilingual publication decision to the editor.
+		// The native post-data filter remains the enforcement boundary for every
+		// other save path; this preflight only avoids reporting a blocked publish as
+		// successful to this AJAX caller.
+		if ( class_exists( 'DSF_Multilingual' ) ) {
+			$decision = DSF_Multilingual::get_instance()->get_publish_gate()->evaluate_post( $post_id, true, false );
+			if ( is_wp_error( $decision ) ) {
+				wp_send_json_error( array( 'message' => $decision->get_error_message() ), 409 );
+			}
 		}
 
 		wp_update_post(

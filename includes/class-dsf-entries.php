@@ -422,7 +422,7 @@ class DSF_Entries {
 	// ── Import handlers ─────────────────────────────────────────────────────
 
 	public function handle_import_forms() {
-		if ( ! current_user_can( 'edit_pages' ) ) {
+		if ( ! current_user_can( 'edit_pages' ) || ! current_user_can( 'publish_pages' ) ) {
 			wp_die( esc_html__( 'You do not have permission to import.', 'designstudio-flow' ) );
 		}
 		check_admin_referer( 'dsf_import_forms', 'dsf_import_nonce' );
@@ -708,6 +708,10 @@ class DSF_Entries {
 		// form builder's sanitize_form_rows/sanitize_form_settings paths.
 		update_post_meta( $new_id, '_dsf_form_rows', $rows );
 		update_post_meta( $new_id, '_dsf_form_settings', $settings );
+		$published = DSF_Multilingual::get_instance()->get_publish_gate()->finalize_new_post_publication( $new_id );
+		if ( is_wp_error( $published ) ) {
+			return false;
+		}
 		return true;
 	}
 

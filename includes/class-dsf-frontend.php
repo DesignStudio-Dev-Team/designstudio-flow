@@ -2585,7 +2585,10 @@ class DSF_Frontend {
 
 		$changes = array();
 		foreach ( array_merge( (array) $page_ids, (array) $template_ids ) as $post_id ) {
-			$post_id  = absint( $post_id );
+			$post_id = absint( $post_id );
+			if ( ! apply_filters( 'dsf_default_layout_cascade_allows_post', true, $post_id, $layout_id, $type ) ) {
+				continue;
+			}
 			$settings = get_post_meta( $post_id, '_dsf_settings', true );
 			if ( ! is_array( $settings ) ) {
 				$decoded  = $settings ? json_decode( $settings, true ) : array();

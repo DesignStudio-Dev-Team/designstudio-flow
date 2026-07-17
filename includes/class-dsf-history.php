@@ -264,6 +264,23 @@ class DSF_History {
 		if ( is_wp_error( $target ) ) {
 			return $target;
 		}
+		if ( $this->payload_requests_public_state( $target ) ) {
+			if ( ! current_user_can( 'edit_post', $post_id ) || ! current_user_can( 'publish_post', $post_id ) ) {
+				return new WP_Error( 'dsf_history_publish_forbidden', 'You are not allowed to restore a public version of this object.' );
+			}
+			if ( class_exists( 'DSF_Multilingual' ) ) {
+				$incoming = array(
+					'post_title'   => $target['post_title'],
+					'post_name'    => $target['post_name'],
+					'post_excerpt' => isset( $post->post_excerpt ) ? $post->post_excerpt : '',
+					'post_content' => isset( $post->post_content ) ? $post->post_content : '',
+				);
+				$eligible = DSF_Multilingual::get_instance()->get_publish_gate()->evaluate_post( $post_id, true, false, $incoming );
+				if ( is_wp_error( $eligible ) ) {
+					return $eligible;
+				}
+			}
+		}
 		$target_hash = hash( 'sha256', $this->canonical_json( $target ) );
 		if ( $current_hash === $target_hash ) {
 			return array(
@@ -310,11 +327,28 @@ class DSF_History {
 			return new WP_Error( 'dsf_history_restore_failed', 'The previous version could not be restored.' );
 		}
 		delete_post_meta( $post_id, '_dsf_html_snapshot' );
+		if ( get_post_status( $post_id ) !== $target['post_status'] ) {
+			return new WP_Error( 'dsf_history_restore_blocked', 'The requested public state did not pass publication checks.' );
+		}
 		$this->prune( 'post', $post_id, '', $post->post_type );
 		return array(
 			'message' => 'Version restored.',
 			'hash'    => $target_hash,
 		);
+	}
+
+	/** Whether a sanitized restore payload publishes or activates an object. */
+	private function payload_requests_public_state( $payload ) {
+		if ( in_array( $payload['post_status'] ?? '', array( 'publish', 'future' ), true ) ) {
+			return true;
+		}
+		$meta = isset( $payload['meta'] ) && is_array( $payload['meta'] ) ? $payload['meta'] : array();
+		foreach ( array( '_dsf_pt_active', '_dsf_st_active', '_dsf_bt_active' ) as $key ) {
+			if ( ! empty( $meta[ $key ] ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public function prune( $source_kind, $source_id = 0, $source_key = '', $source_type = '' ) {

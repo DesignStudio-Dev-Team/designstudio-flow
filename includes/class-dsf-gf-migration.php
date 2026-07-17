@@ -45,7 +45,7 @@ class DSF_GF_Migration {
 	 * admin-post handler: convert one Gravity Form into a DSF form.
 	 */
 	public function handle_migrate() {
-		if ( ! current_user_can( 'edit_pages' ) ) {
+		if ( ! current_user_can( 'edit_pages' ) || ! current_user_can( 'publish_pages' ) ) {
 			wp_die( esc_html__( 'You are not allowed to migrate forms.', 'designstudio-flow' ) );
 		}
 
@@ -107,6 +107,11 @@ class DSF_GF_Migration {
 
 		update_post_meta( $post_id, '_dsf_form_rows', $clean['rows'] );
 		update_post_meta( $post_id, '_dsf_form_settings', $clean['settings'] );
+		$published = DSF_Multilingual::get_instance()->get_publish_gate()->finalize_new_post_publication( $post_id );
+		if ( is_wp_error( $published ) ) {
+			wp_safe_redirect( add_query_arg( 'dsf_gf_migrate', 'failed', $redirect ) );
+			exit;
+		}
 
 		wp_safe_redirect(
 			add_query_arg(

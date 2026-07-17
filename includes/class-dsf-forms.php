@@ -248,6 +248,9 @@ class DSF_Forms {
 		$status       = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : '';
 		$rows_raw     = isset( $_POST['rows'] ) ? wp_unslash( $_POST['rows'] ) : '[]';
 		$settings_raw = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : '{}';
+		if ( 'publish' === $status && ! current_user_can( 'publish_post', $form_id ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied' ), 403 );
+		}
 
 		$rows_data = json_decode( $rows_raw, true );
 		if ( ! is_array( $rows_data ) ) {

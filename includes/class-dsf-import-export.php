@@ -612,9 +612,10 @@ class DSF_Import_Export {
 	 * @param string     $status       Post status for the new post.
 	 * @param bool       $import_media Whether to sideload referenced media.
 	 * @param array|null $media_source Optional url => local-path map (package import).
+	 * @param bool       $defer_publication Keep requested public objects draft for a multi-pass importer.
 	 * @return int|false New post ID, or false on failure/unsupported type.
 	 */
-	public function import_item( $item, $status, $import_media = false, $media_source = null ) {
+	public function import_item( $item, $status, $import_media = false, $media_source = null, $defer_publication = false ) {
 		if ( ! is_array( $item ) || empty( $item ) ) {
 			return false;
 		}
@@ -631,11 +632,16 @@ class DSF_Import_Export {
 		$title   = isset( $item['title'] ) ? sanitize_text_field( $item['title'] ) : '';
 		$slug    = isset( $item['slug'] ) ? sanitize_title( $item['slug'] ) : '';
 		$excerpt = isset( $item['excerpt'] ) ? wp_kses_post( $item['excerpt'] ) : '';
+		$publish_requested = in_array( $status, array( 'publish', 'future' ), true );
+		if ( $publish_requested && ! current_user_can( 'publish_pages' ) ) {
+			return false;
+		}
+		$insert_status = $publish_requested && $defer_publication ? 'draft' : $status;
 
 		$post_id = wp_insert_post(
 			array(
 				'post_type'    => $post_type,
-				'post_status'  => $status,
+				'post_status'  => $insert_status,
 				'post_title'   => $title ? $title : __( 'Imported', 'designstudio-flow' ),
 				'post_name'    => $slug,
 				'post_excerpt' => $excerpt,
@@ -677,6 +683,12 @@ class DSF_Import_Export {
 		// normal post so the front end renders its post_content, not empty blocks.
 		if ( in_array( $post_type, array( 'page', 'post' ), true ) && ! empty( $meta['_dsf_blocks'] ) ) {
 			update_post_meta( $post_id, '_dsf_enabled', true );
+		}
+		if ( $publish_requested && ! $defer_publication ) {
+			$published = DSF_Multilingual::get_instance()->get_publish_gate()->finalize_new_post_publication( $post_id );
+			if ( is_wp_error( $published ) ) {
+				return false;
+			}
 		}
 
 		return $post_id;
