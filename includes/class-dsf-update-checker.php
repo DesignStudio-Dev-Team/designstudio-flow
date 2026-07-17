@@ -94,6 +94,87 @@ class DSF_Update_Checker {
 
 		// Normalize extracted GitHub package folders to the plugin directory name.
 		add_filter( 'upgrader_source_selection', array( $this, 'normalize_package_source' ), 10, 4 );
+
+		// "Check for updates" row action on the Plugins screen + its handler, so a
+		// fresh GitHub check is one click away (WordPress's own "Check again" does
+		// not clear our GitHub cache).
+		add_filter( 'plugin_action_links_' . $this->plugin_basename, array( $this, 'add_check_updates_link' ) );
+		add_action( 'admin_post_dsf_check_updates', array( $this, 'handle_manual_check' ) );
+		add_action( 'admin_notices', array( $this, 'manual_check_notice' ) );
+	}
+
+	/**
+	 * Add a "Check for updates" link to the plugin's row on the Plugins screen.
+	 *
+	 * @param array $links Existing action links.
+	 * @return array
+	 */
+	public function add_check_updates_link( $links ) {
+		if ( ! current_user_can( 'update_plugins' ) ) {
+			return $links;
+		}
+
+		$url = wp_nonce_url(
+			add_query_arg( 'action', 'dsf_check_updates', admin_url( 'admin-post.php' ) ),
+			'dsf_check_updates'
+		);
+
+		$links['dsf_check_updates'] = '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Check for updates', 'designstudio-flow' ) . '</a>';
+
+		return $links;
+	}
+
+	/**
+	 * Clear the GitHub cache and force a fresh update check, then return to the
+	 * Plugins screen where the result (and any available update) is shown.
+	 */
+	public function handle_manual_check() {
+		if ( ! current_user_can( 'update_plugins' ) ) {
+			wp_die( esc_html__( 'You are not allowed to check for updates.', 'designstudio-flow' ) );
+		}
+
+		check_admin_referer( 'dsf_check_updates' );
+
+		delete_transient( $this->cache_key );
+		delete_site_transient( 'update_plugins' );
+
+		// Re-run the plugin update check now (with our cache cleared this re-queries
+		// GitHub) so the Plugins screen reflects the latest release immediately.
+		if ( function_exists( 'wp_update_plugins' ) ) {
+			wp_update_plugins();
+		}
+
+		wp_safe_redirect( add_query_arg( 'dsf_update_checked', '1', self_admin_url( 'plugins.php' ) ) );
+		exit;
+	}
+
+	/**
+	 * Confirmation notice after a manual "Check for updates" run.
+	 */
+	public function manual_check_notice() {
+		if ( empty( $_GET['dsf_update_checked'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
+
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || 'plugins' !== $screen->id ) {
+			return;
+		}
+
+		$remote = $this->get_remote_version();
+		if ( $remote && version_compare( $this->current_version, $remote->version, '<' ) ) {
+			$class   = 'notice-success';
+			$message = sprintf(
+				/* translators: %s: available version number */
+				__( 'DesignStudio Flow %s is available — see the update option below.', 'designstudio-flow' ),
+				$remote->version
+			);
+		} else {
+			$class   = 'notice-info';
+			$message = __( 'DesignStudio Flow is up to date.', 'designstudio-flow' );
+		}
+
+		printf( '<div class="notice %s is-dismissible"><p>%s</p></div>', esc_attr( $class ), esc_html( $message ) );
 	}
 
 	/**
@@ -102,6 +183,14 @@ class DSF_Update_Checker {
 	public function check_for_updates( $transient ) {
 		if ( empty( $transient->checked ) ) {
 			return $transient;
+		}
+
+		// A manual "Check again" (Dashboard → Updates) reaches this filter with
+		// force-check set. WordPress clears its own update_plugins transient then,
+		// but not our GitHub cache — so honor the forced check by dropping our
+		// cached result so the latest release is re-fetched immediately.
+		if ( ! empty( $_GET['force-check'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			delete_transient( $this->cache_key );
 		}
 
 		$remote_version = $this->get_remote_version();
