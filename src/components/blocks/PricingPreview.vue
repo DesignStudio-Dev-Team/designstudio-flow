@@ -1,5 +1,5 @@
 <template>
-  <section class="dsf-pricing-preview" :style="sectionStyle">
+  <section class="dsf-pricing-preview" :class="`dsf-pricing-preview--${layout}`" :style="sectionStyle">
     <div class="dsf-pricing-preview__inner" :style="innerStyle">
       <header class="dsf-pricing-preview__header">
         <InlineText
@@ -59,18 +59,16 @@
           :style="cardStyle(plan)"
         >
           <div class="dsf-pricing-preview__plan-heading">
-            <h3 :style="plan.popular ? { color: accentColor } : null">{{ plan.name }}</h3>
+            <InlineText v-model="plan.name" tagName="h3" :style="plan.popular ? { color: accentColor } : null" :is-editor="isEditor" placeholder="Plan name" />
             <span
               v-if="plan.popular && plan.badgeText"
               class="dsf-pricing-preview__badge"
               :style="badgeStyle"
             >
-              {{ plan.badgeText }}
+              <InlineText v-model="plan.badgeText" tagName="span" :is-editor="isEditor" placeholder="Most popular" />
             </span>
           </div>
-          <p class="dsf-pricing-preview__plan-description" :style="{ color: mutedColor }">
-            {{ plan.description }}
-          </p>
+          <InlineText v-model="plan.description" tagName="p" class="dsf-pricing-preview__plan-description" :style="{ color: mutedColor }" :is-editor="isEditor" :multiline="true" placeholder="Describe this plan" />
 
           <div class="dsf-pricing-preview__price">
             <span class="dsf-pricing-preview__price-prefix">{{ plan.pricePrefix }}</span>
@@ -82,11 +80,11 @@
             v-if="plan.buttonText"
             class="dsf-pricing-preview__button"
             :class="{ 'dsf-pricing-preview__button--primary': plan.popular }"
-            :href="plan.buttonUrl || '#'"
+            :href="safeUrl(plan.buttonUrl)"
             :style="buttonStyle(plan)"
             @click="handleLinkClick($event, plan.buttonUrl)"
           >
-            {{ plan.buttonText }}
+            <InlineText v-model="plan.buttonText" tagName="span" :is-editor="isEditor" placeholder="Choose plan" />
           </a>
 
           <ul class="dsf-pricing-preview__features">
@@ -119,6 +117,7 @@ const props = defineProps({
 })
 
 const billingCycle = ref('monthly')
+const layout = computed(() => props.settings?.layout === 'modern' ? 'modern' : 'classic')
 const accentColor = computed(() => props.settings.accentColor || '#4F36F5')
 const mutedColor = computed(() => props.settings.mutedColor || '#4B5563')
 const eyebrowColor = computed(() => props.settings.eyebrowColor || accentColor.value)
@@ -184,7 +183,19 @@ function buttonStyle(plan) {
 }
 
 function handleLinkClick(event, url) {
-  if (props.isEditor || !url || url === '#') event.preventDefault()
+  if (props.isEditor || safeUrl(url) === '#') event.preventDefault()
+}
+
+function safeUrl(url) {
+  if (typeof url !== 'string') return '#'
+  const value = url.trim()
+  if (value === '#' || /^#[A-Za-z][A-Za-z0-9_:.-]*$/.test(value) || (value.startsWith('/') && !value.startsWith('//'))) return value
+  try {
+    const parsed = new URL(value)
+    return ['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol) ? value : '#'
+  } catch {
+    return '#'
+  }
 }
 </script>
 
@@ -374,6 +385,28 @@ function handleLinkClick(event, url) {
   line-height: 1.2;
 }
 
+/* Modern layout: luminous canvas, glass cards, and a stronger featured-plan hierarchy. */
+.dsf-pricing-preview--modern {
+  background-image: radial-gradient(circle at 12% 0%, rgb(129 140 248 / 20%), transparent 34rem), radial-gradient(circle at 90% 12%, rgb(45 212 191 / 16%), transparent 30rem), linear-gradient(135deg, #f8faff 0%, #eef2ff 52%, #f0fdfa 100%);
+}
+.dsf-pricing-preview--modern .dsf-pricing-preview__header { max-width: 860px; }
+.dsf-pricing-preview--modern .dsf-pricing-preview__eyebrow { display: inline-flex; padding: 8px 12px; border: 1px solid rgb(79 70 229 / 18%); border-radius: 999px; background: rgb(255 255 255 / 65%); letter-spacing: 0.1em; }
+.dsf-pricing-preview--modern .dsf-pricing-preview__title { font-size: clamp(2.5rem, 6vw, 5rem); letter-spacing: -0.07em; }
+.dsf-pricing-preview--modern .dsf-pricing-preview__description { max-width: 620px; margin-right: auto; margin-left: auto; }
+.dsf-pricing-preview--modern .dsf-pricing-preview__billing { padding: 5px; border-color: rgb(255 255 255 / 80%); background: rgb(255 255 255 / 55%); box-shadow: 0 10px 30px rgb(30 41 59 / 8%); backdrop-filter: blur(14px); }
+.dsf-pricing-preview--modern .dsf-pricing-preview__grid { gap: 18px; }
+.dsf-pricing-preview--modern .dsf-pricing-preview__card { padding: 30px; border: 1px solid rgb(255 255 255 / 80%); border-radius: 30px; background: rgb(255 255 255 / 72%); box-shadow: 0 24px 60px rgb(30 41 59 / 10%); backdrop-filter: blur(18px); }
+.dsf-pricing-preview--modern .dsf-pricing-preview__card--popular { position: relative; border-color: var(--dsf-pricing-accent); background: linear-gradient(155deg, rgb(255 255 255 / 94%), rgb(238 242 255 / 86%)); box-shadow: 0 28px 70px color-mix(in srgb, var(--dsf-pricing-accent) 24%, transparent); transform: translateY(-18px); }
+.dsf-pricing-preview--modern .dsf-pricing-preview__card--popular::before { position: absolute; inset: 0 0 auto; height: 5px; border-radius: 30px 30px 0 0; background: linear-gradient(90deg, var(--dsf-pricing-accent), #14b8a6); content: ''; }
+.dsf-pricing-preview--modern .dsf-pricing-preview__badge { padding: 7px 11px; background: var(--dsf-pricing-accent); color: #fff; box-shadow: 0 8px 20px color-mix(in srgb, var(--dsf-pricing-accent) 28%, transparent); }
+.dsf-pricing-preview--modern .dsf-pricing-preview__plan-description { min-height: 4.5em; margin-top: 18px; }
+.dsf-pricing-preview--modern .dsf-pricing-preview__price { margin: 1.25rem 0 1.5rem; }
+.dsf-pricing-preview--modern .dsf-pricing-preview__price-value { font-size: clamp(3rem, 5vw, 4.5rem); letter-spacing: -0.08em; }
+.dsf-pricing-preview--modern .dsf-pricing-preview__button { border-radius: 999px; padding: 14px 20px; }
+.dsf-pricing-preview--modern .dsf-pricing-preview__features { gap: 10px; margin-top: 1.4rem; padding-top: 1.2rem; border-top: 1px solid rgb(100 116 139 / 16%); }
+.dsf-pricing-preview--modern .dsf-pricing-preview__features li { align-items: center; padding: 8px 10px; border-radius: 10px; background: rgb(255 255 255 / 52%); }
+.dsf-pricing-preview--modern .dsf-pricing-preview__check { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 999px; background: color-mix(in srgb, var(--dsf-pricing-accent) 12%, transparent); }
+
 @media (max-width: 1024px) {
   .dsf-pricing-preview__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -386,5 +419,6 @@ function handleLinkClick(event, url) {
   .dsf-pricing-preview__card { padding: 28px; border-radius: 18px; }
   .dsf-pricing-preview__card--popular { padding: 27px; }
   .dsf-pricing-preview__plan-description { min-height: 0; }
+  .dsf-pricing-preview--modern .dsf-pricing-preview__card--popular { transform: none; }
 }
 </style>

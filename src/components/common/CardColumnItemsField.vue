@@ -60,6 +60,17 @@
               />
             </div>
             <div class="dsf-form-group">
+              <label class="dsf-label">Media Type</label>
+              <select class="dsf-input" :value="element.mediaType || 'image'" @change="updateField(index, 'mediaType', $event.target.value)">
+                <option value="image">Image</option>
+                <option value="video">Video</option>
+              </select>
+            </div>
+            <div v-if="element.mediaType === 'video'" class="dsf-form-group">
+              <label class="dsf-label">Video (MP4)</label>
+              <VideoPicker :modelValue="element.video" @update:modelValue="updateField(index, 'video', $event)" />
+            </div>
+            <div class="dsf-form-group">
               <label class="dsf-label">Card Background</label>
               <select class="dsf-input" :value="element.backgroundType || 'solid'" @change="updateField(index, 'backgroundType', $event.target.value)">
                 <option value="transparent">Transparent</option>
@@ -99,22 +110,20 @@
               </div>
             </template>
             <div class="dsf-form-group">
-              <label class="dsf-label dsf-card-column-items-field__toggle">
-                <input
-                  type="checkbox"
-                  :checked="!!element.showButton"
-                  @change="updateField(index, 'showButton', $event.target.checked)"
-                />
-                Show button
-              </label>
+              <label class="dsf-label">Card Link</label>
+              <select class="dsf-input" :value="linkMode(element)" @change="updateField(index, 'linkMode', $event.target.value)">
+                <option value="none">No link</option>
+                <option value="button">Show button</option>
+                <option value="card">Link whole card</option>
+              </select>
             </div>
-            <template v-if="element.showButton">
-              <div class="dsf-form-group">
+            <template v-if="linkMode(element) !== 'none'">
+              <div v-if="linkMode(element) === 'button'" class="dsf-form-group">
                 <label class="dsf-label">Button Text</label>
                 <input type="text" class="dsf-input" placeholder="Learn More" :value="element.buttonText" @input="updateField(index, 'buttonText', $event.target.value)" />
               </div>
               <div class="dsf-form-group">
-                <label class="dsf-label">Button URL</label>
+                <label class="dsf-label">{{ linkMode(element) === 'card' ? 'Card URL' : 'Button URL' }}</label>
                 <input type="text" class="dsf-input" placeholder="https://…" :value="element.buttonUrl" @input="updateField(index, 'buttonUrl', $event.target.value)" />
               </div>
             </template>
@@ -136,6 +145,7 @@ import draggable from 'vuedraggable'
 import { ChevronDown, GripVertical, Plus, Trash2 } from 'lucide-vue-next'
 import { LANDING_ICON_NAMES } from '../../utils/landingIcons'
 import MediaPicker from './MediaPicker.vue'
+import VideoPicker from './VideoPicker.vue'
 import ColorPicker from './ColorPicker.vue'
 
 const MAX = 8
@@ -158,11 +168,14 @@ function defaultCard(index) {
     title: `Card ${index + 1}`,
     description: '',
     image: '',
+    mediaType: 'image',
+    video: '',
     backgroundType: 'solid',
     backgroundColor: '#F3F4F6',
     gradientStart: '#F3F4F6',
     gradientEnd: '#E5E7EB',
     gradientDirection: 'top-bottom',
+    linkMode: 'none',
     showButton: false,
     buttonText: '',
     buttonUrl: '',
@@ -180,6 +193,8 @@ watch(() => props.modelValue, (newValue) => {
     }
     // Legacy cards have no iconType; a non-empty icon means preset.
     if (!item.iconType) merged.iconType = merged.icon ? 'preset' : 'none'
+    // Legacy cards used showButton before the explicit link mode existed.
+    if (!item.linkMode) merged.linkMode = item.showButton ? 'button' : 'none'
     return merged
   })
 }, { immediate: true, deep: true })
@@ -199,7 +214,15 @@ function updateField(index, key, value) {
   if (key === 'iconType' && value === 'preset' && !localItems.value[index].icon) {
     localItems.value[index].icon = 'sparkles'
   }
+  if (key === 'linkMode') {
+    localItems.value[index].showButton = value === 'button'
+  }
   emitUpdate()
+}
+
+function linkMode(item) {
+  if (item?.linkMode === 'button' || item?.linkMode === 'card') return item.linkMode
+  return item?.showButton ? 'button' : 'none'
 }
 
 function addItem() {

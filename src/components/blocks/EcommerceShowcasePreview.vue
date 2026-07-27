@@ -21,6 +21,14 @@
       >
         {{ settings.shopAllText || 'SHOP ALL' }}
       </a>
+
+      <span
+        v-if="settings.displayMode === 'products' && settings.showProductCount !== false"
+        class="dsf-ecommerce-showcase__count"
+        :style="{ color: settings.countColor || '#6B7280' }"
+      >
+        {{ productCountText }}
+      </span>
       
       <!-- Pagination indicator (when slider mode) -->
       <div v-if="isSliderMode" class="dsf-ecommerce-showcase__pagination">
@@ -56,33 +64,51 @@
           
           <!-- Product Mode -->
           <template v-else>
-            <a 
+            <article
               v-for="product in displayProducts" 
               :key="product.id"
-              :href="product.permalink || '#'"
               class="dsf-showcase-product"
               :style="{ width: productWidth + 'px' }"
-              @click.stop
             >
-              <div class="dsf-showcase-product__image">
-                <img v-if="product.image" :src="product.image" :alt="product.name" />
-                <Package v-else :size="48" style="color: #CBD5E1;" />
-                <span v-if="product.onSale" class="dsf-showcase-product__badge">SALE</span>
-                <span v-if="!isEditor" class="dsf-showcase-product__hover-cta" aria-hidden="true">View details →</span>
-              </div>
-              <div class="dsf-showcase-product__info">
-                <div class="dsf-showcase-product__price" :style="priceStyle(product)">
-                  <template v-if="product.onSale">
-                    <span class="dsf-showcase-product__price--regular">{{ formatPrice(product.regularPrice) }}</span>
-                    <span class="dsf-showcase-product__price--sale">{{ formatPrice(product.salePrice) }}</span>
-                  </template>
-                  <template v-else>
-                    {{ formatPrice(product.price) }}
-                  </template>
+              <a
+                :href="product.permalink || '#'"
+                class="dsf-showcase-product__details"
+                @click.stop="handleProductLink"
+              >
+                <div class="dsf-showcase-product__image">
+                  <img
+                    v-if="product.image"
+                    :src="product.image"
+                    :alt="product.name"
+                    :style="{ objectFit: productImageFit }"
+                  />
+                  <Package v-else :size="48" style="color: #CBD5E1;" />
+                  <span v-if="product.onSale" class="dsf-showcase-product__badge">SALE</span>
+                  <span v-if="!isEditor" class="dsf-showcase-product__hover-cta" aria-hidden="true">View details →</span>
                 </div>
-                <h4 class="dsf-showcase-product__name">{{ product.name }}</h4>
-              </div>
-            </a>
+                <div class="dsf-showcase-product__info">
+                  <div class="dsf-showcase-product__price" :style="priceStyle(product)">
+                    <template v-if="product.onSale">
+                      <span class="dsf-showcase-product__price--regular">{{ formatPrice(product.regularPrice) }}</span>
+                      <span class="dsf-showcase-product__price--sale">{{ formatPrice(product.salePrice) }}</span>
+                    </template>
+                    <template v-else>
+                      {{ formatPrice(product.price) }}
+                    </template>
+                  </div>
+                  <h4 class="dsf-showcase-product__name">{{ product.name }}</h4>
+                </div>
+              </a>
+              <a
+                v-if="settings.showAddToCart !== false"
+                :href="productActionUrl(product)"
+                class="dsf-showcase-product__cart"
+                :style="buttonStyle"
+                @click.stop="handleProductLink"
+              >
+                {{ settings.buttonText || 'Add to Cart' }}
+              </a>
+            </article>
           </template>
         </div>
       </div>
@@ -90,14 +116,18 @@
       <!-- Slider Navigation Arrows -->
       <button 
         v-if="isSliderMode && canScrollPrev"
+        type="button"
         class="dsf-ecommerce-showcase__nav dsf-ecommerce-showcase__nav--prev"
+        aria-label="Show previous products"
         @click="scrollPrev"
       >
         <ArrowLeft :size="20" />
       </button>
       <button 
         v-if="isSliderMode && canScrollNext"
+        type="button"
         class="dsf-ecommerce-showcase__nav dsf-ecommerce-showcase__nav--next"
+        aria-label="Show next products"
         @click="scrollNext"
       >
         <ArrowRight :size="20" />
@@ -113,7 +143,10 @@ import InlineText from '../common/InlineText.vue'
 import { getResponsiveValue } from '../../utils/responsiveSettings'
 
 const props = defineProps({
-  settings: Object,
+  settings: {
+    type: Object,
+    default: () => ({}),
+  },
   isEditor: Boolean,
   previewMode: {
     type: String,
@@ -170,6 +203,20 @@ const isSliderMode = computed(() => displayItems.value.length > itemsPerPage.val
 const totalPages = computed(() => Math.ceil(displayItems.value.length / itemsPerPage.value))
 const canScrollNext = computed(() => currentPage.value < totalPages.value)
 const canScrollPrev = computed(() => currentPage.value > 1)
+const totalProductCount = computed(() => products.value.length || DEMO_PRODUCTS.length)
+const productCountText = computed(() => {
+  const template = props.settings?.countText || '{count} products total'
+  return String(template).replace(/\{count\}/g, String(totalProductCount.value))
+})
+const buttonStyle = computed(() => ({
+  backgroundColor: props.settings?.buttonColor || '#2C5F5D',
+  color: props.settings?.buttonTextColor || '#FFFFFF',
+}))
+const productImageFit = computed(() => (
+  ['contain', 'cover', 'scale-down'].includes(props.settings?.imageFit)
+    ? props.settings.imageFit
+    : 'contain'
+))
 
 // Categories
 const displayCategories = computed(() => {
@@ -199,6 +246,15 @@ const displayCategories = computed(() => {
   return categories.slice(0, limit)
 })
 
+const DEMO_PRODUCTS = [
+  { id: 1, name: '42" Rd. Chat Height Capri Fire Pit', price: '$3,499.00', image: null, onSale: false, permalink: '#', addToCartUrl: '#' },
+  { id: 2, name: '42" Rd. Occasional Height Capri Fire Pit', price: '$3,499.00', image: null, onSale: false, permalink: '#', addToCartUrl: '#' },
+  { id: 3, name: '36 X 58 Occasional Height', price: '$4,999.00', image: null, onSale: false, permalink: '#', addToCartUrl: '#' },
+  { id: 4, name: '30" X 50" Santorini Firepit', price: '$3,799.00', image: null, onSale: false, permalink: '#', addToCartUrl: '#' },
+  { id: 5, name: 'Paso Robles Round Counter Height Fire Table', regularPrice: '$2,799.00', salePrice: '$2,379.00', image: null, onSale: true, permalink: '#', addToCartUrl: '#' },
+  { id: 6, name: 'Modern Fire Bowl', price: '$2,199.00', image: null, onSale: false, permalink: '#', addToCartUrl: '#' },
+]
+
 // Products
 const displayProducts = computed(() => {
   if (products.value.length > 0) {
@@ -206,14 +262,7 @@ const displayProducts = computed(() => {
   }
   
   // Demo products matching the reference design
-  return [
-    { id: 1, name: '42" Rd. Chat Height Capri Fire Pit', price: '$3,499.00', image: null, onSale: false, permalink: '#' },
-    { id: 2, name: '42" Rd. Occasional Height Capri Fire Pit', price: '$3,499.00', image: null, onSale: false, permalink: '#' },
-    { id: 3, name: '36 X 58 Occasional Height', price: '$4,999.00', image: null, onSale: false, permalink: '#' },
-    { id: 4, name: '30" X 50" Santorini Firepit', price: '$3,799.00', image: null, onSale: false, permalink: '#' },
-    { id: 5, name: 'Paso Robles Round Counter Height Fire Table', regularPrice: '$2,799.00', salePrice: '$2,379.00', image: null, onSale: true, permalink: '#' },
-    { id: 6, name: 'Modern Fire Bowl', price: '$2,199.00', image: null, onSale: false, permalink: '#' },
-  ]
+  return DEMO_PRODUCTS.slice(0, props.settings?.limit || 10)
 })
 
 function priceStyle(product) {
@@ -232,6 +281,16 @@ function formatPrice(value) {
     return ''
   }
   return text.includes('$') ? text : `$${text}`
+}
+
+function productActionUrl(product) {
+  return product?.addToCartUrl || product?.add_to_cart_url || product?.permalink || '#'
+}
+
+function handleProductLink(event) {
+  if (props.isEditor) {
+    event.preventDefault()
+  }
 }
 
 function scrollNext() {
@@ -317,6 +376,7 @@ async function fetchProducts() {
     if (result.success) {
       products.value = result.data.products.map(p => ({
         ...p,
+        addToCartUrl: p.addToCartUrl || p.add_to_cart_url || p.permalink || '#',
         onSale: p.sale_price && p.sale_price !== p.price,
         regularPrice: p.regular_price || p.price,
         salePrice: p.sale_price || '',
@@ -358,7 +418,7 @@ watch(() => [
 
 .dsf-ecommerce-showcase__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: var(--dsf-theme-h1, 42px);
+  font-size: var(--dsf-theme-h2, 37px);
   font-weight: 700;
   margin: 0;
   line-height: 1.2;
@@ -378,6 +438,13 @@ watch(() => [
 
 .dsf-ecommerce-showcase__shop-all:hover {
   text-decoration: underline;
+}
+
+.dsf-ecommerce-showcase__count {
+  font-family: var(--dsf-theme-body-font, inherit);
+  font-size: var(--dsf-theme-text-base, 16px);
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .dsf-ecommerce-showcase__pagination {
@@ -483,6 +550,11 @@ watch(() => [
   width: calc((100% - 96px) / 5);
 }
 
+.dsf-showcase-product__details {
+  color: inherit;
+  text-decoration: none;
+}
+
 .dsf-showcase-product__image {
   position: relative;
   aspect-ratio: 1;
@@ -582,6 +654,28 @@ watch(() => [
   overflow: hidden;
   word-wrap: break-word;
   overflow-wrap: break-word;
+}
+
+.dsf-showcase-product__cart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  margin-top: 0.9rem;
+  padding: 0.65rem 1rem;
+  border-radius: var(--dsf-radius-md);
+  font-family: var(--dsf-theme-body-font, inherit);
+  font-size: var(--dsf-theme-text-base, 16px);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.dsf-showcase-product__cart:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
 }
 
 @container (max-width: 1024px) {

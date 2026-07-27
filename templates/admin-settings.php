@@ -54,11 +54,15 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 	// Whether the DSF editor / product templates apply to WooCommerce products.
 	update_option( 'dsf_products_enabled', isset( $_POST['dsf_products_enabled'] ) ? 1 : 0 );
 
-	$default_colors = array(
-		'primary'    => sanitize_hex_color( sanitize_text_field( wp_unslash( $_POST['dsf_primary_color'] ?? '#2C5F5D' ) ) ),
-		'secondary'  => sanitize_hex_color( sanitize_text_field( wp_unslash( $_POST['dsf_secondary_color'] ?? '#1E40AF' ) ) ),
-		'text'       => sanitize_hex_color( sanitize_text_field( wp_unslash( $_POST['dsf_text_color'] ?? '#1F2937' ) ) ),
-		'background' => sanitize_hex_color( sanitize_text_field( wp_unslash( $_POST['dsf_background_color'] ?? '#FFFFFF' ) ) ),
+	$dsf_sanitize_default_color = static function ( $key, $fallback ) {
+		$color = sanitize_hex_color( sanitize_text_field( wp_unslash( $_POST[ $key ] ?? $fallback ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- settings nonce verified above.
+		return $color ? $color : $fallback;
+	};
+	$default_colors             = array(
+		'primary'    => $dsf_sanitize_default_color( 'dsf_primary_color', '#2C5F5D' ),
+		'secondary'  => $dsf_sanitize_default_color( 'dsf_secondary_color', '#1E40AF' ),
+		'text'       => $dsf_sanitize_default_color( 'dsf_text_color', '#1F2937' ),
+		'background' => $dsf_sanitize_default_color( 'dsf_background_color', '#FFFFFF' ),
 	);
 	$dsf_capture_setting( 'dsf_default_colors', get_option( 'dsf_default_colors', array() ), $default_colors );
 	update_option( 'dsf_default_colors', $default_colors );
@@ -163,7 +167,7 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 			return 0;
 		}
 		$layout_post = get_post( $id );
-		if ( ! $layout_post || 'dsf_layout' !== $layout_post->post_type ) {
+		if ( ! $layout_post || 'dsf_layout' !== $layout_post->post_type || 'publish' !== $layout_post->post_status ) {
 			return 0;
 		}
 		$stored = get_post_meta( $id, '_dsf_layout_type', true );
@@ -455,43 +459,28 @@ $font_options = array(
 				
 				<table class="form-table">
 					<tr>
-						<th scope="row">Primary Color</th>
+						<th scope="row"><label for="dsf-primary-color">Primary Color</label></th>
 						<td>
-							<input type="color" name="dsf_primary_color" 
-								value="<?php echo esc_attr( $default_colors['primary'] ); ?>">
-							<span class="description" style="margin-left: 8px;">
-								<?php echo esc_html( $default_colors['primary'] ); ?>
-							</span>
+							<input type="text" id="dsf-primary-color" class="regular-text code" name="dsf_primary_color" value="<?php echo esc_attr( $default_colors['primary'] ); ?>" pattern="#[0-9A-Fa-f]{6}" maxlength="7" placeholder="#286632" spellcheck="false" autocomplete="off">
 						</td>
 					</tr>
 					<tr>
-						<th scope="row">Secondary Color</th>
+						<th scope="row"><label for="dsf-secondary-color">Secondary Color</label></th>
 						<td>
-							<input type="color" name="dsf_secondary_color" 
-								value="<?php echo esc_attr( $default_colors['secondary'] ); ?>">
-							<span class="description" style="margin-left: 8px;">
-								<?php echo esc_html( $default_colors['secondary'] ); ?>
-							</span>
+							<input type="text" id="dsf-secondary-color" class="regular-text code" name="dsf_secondary_color" value="<?php echo esc_attr( $default_colors['secondary'] ); ?>" pattern="#[0-9A-Fa-f]{6}" maxlength="7" placeholder="#286632" spellcheck="false" autocomplete="off">
 						</td>
 					</tr>
 					<tr>
-						<th scope="row">Text Color</th>
+						<th scope="row"><label for="dsf-text-color">Text Color</label></th>
 						<td>
-							<input type="color" name="dsf_text_color" 
-								value="<?php echo esc_attr( $default_colors['text'] ); ?>">
-							<span class="description" style="margin-left: 8px;">
-								<?php echo esc_html( $default_colors['text'] ); ?>
-							</span>
+							<input type="text" id="dsf-text-color" class="regular-text code" name="dsf_text_color" value="<?php echo esc_attr( $default_colors['text'] ); ?>" pattern="#[0-9A-Fa-f]{6}" maxlength="7" placeholder="#286632" spellcheck="false" autocomplete="off">
 						</td>
 					</tr>
 					<tr>
-						<th scope="row">Background Color</th>
+						<th scope="row"><label for="dsf-background-color">Background Color</label></th>
 						<td>
-							<input type="color" name="dsf_background_color" 
-								value="<?php echo esc_attr( $default_colors['background'] ); ?>">
-							<span class="description" style="margin-left: 8px;">
-								<?php echo esc_html( $default_colors['background'] ); ?>
-							</span>
+							<input type="text" id="dsf-background-color" class="regular-text code" name="dsf_background_color" value="<?php echo esc_attr( $default_colors['background'] ); ?>" pattern="#[0-9A-Fa-f]{6}" maxlength="7" placeholder="#286632" spellcheck="false" autocomplete="off">
+							<p class="description">Enter a six-digit hex color, including the #.</p>
 						</td>
 					</tr>
 				</table>

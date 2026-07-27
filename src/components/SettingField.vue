@@ -233,6 +233,12 @@
       @update:modelValue="$emit('update', $event)"
     />
 
+    <TabbedShowcaseTabsField
+      v-else-if="config.type === 'tabbed_showcase_tabs'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+
     <ExpanderCardsField
       v-else-if="config.type === 'expander_cards'"
       :modelValue="value"
@@ -241,6 +247,25 @@
 
     <GalleryItemsField
       v-else-if="config.type === 'gallery_items'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+
+    <AnchorGalleryItemsField
+      v-else-if="config.type === 'anchor_gallery_items'"
+      :modelValue="value"
+      :all-settings="allSettings"
+      @update:modelValue="$emit('update', $event)"
+    />
+
+    <ImageLogoGridItemsField
+      v-else-if="config.type === 'image_logo_grid_items'"
+      :modelValue="value"
+      @update:modelValue="$emit('update', $event)"
+    />
+
+    <BrandShowcaseCardsField
+      v-else-if="config.type === 'brand_showcase_cards'"
       :modelValue="value"
       @update:modelValue="$emit('update', $event)"
     />
@@ -372,8 +397,12 @@ import ProductAttributeFiltersField from './common/ProductAttributeFiltersField.
 import ProductTagsFilterField from './common/ProductTagsFilterField.vue'
 import FaqItemsField from './common/FaqItemsField.vue'
 import ProductTabsField from './common/ProductTabsField.vue'
+import TabbedShowcaseTabsField from './common/TabbedShowcaseTabsField.vue'
 import ExpanderCardsField from './common/ExpanderCardsField.vue'
 import GalleryItemsField from './common/GalleryItemsField.vue'
+import AnchorGalleryItemsField from './common/AnchorGalleryItemsField.vue'
+import ImageLogoGridItemsField from './common/ImageLogoGridItemsField.vue'
+import BrandShowcaseCardsField from './common/BrandShowcaseCardsField.vue'
 import IconItemsField from './common/IconItemsField.vue'
 import CardColumnItemsField from './common/CardColumnItemsField.vue'
 import PricingPlansField from './common/PricingPlansField.vue'

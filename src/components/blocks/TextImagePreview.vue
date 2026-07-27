@@ -43,7 +43,13 @@
         </a>
       </div>
       <div class="dsf-text-image-preview__image">
-        <img v-if="imageSrc" :src="imageSrc" alt="" />
+        <MediaVisual
+          v-if="settings.image || settings.video"
+          :mode="settings.mediaType || 'image'"
+          :image="settings.image"
+          :video="settings.video"
+          alt=""
+        />
         <div v-else class="dsf-text-image-preview__placeholder">
           <ImageIcon :size="48" />
         </div>
@@ -56,6 +62,7 @@
 import { computed } from 'vue'
 import { Image as ImageIcon } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import MediaVisual from '../common/MediaVisual.vue'
 import { useFlowModal } from '../common/useFlowModal'
 import { getResponsiveValue } from '../../utils/responsiveSettings'
 import { safePublicUrl } from '../../utils/safeUrl'
@@ -77,8 +84,6 @@ const { openModal } = useFlowModal()
 const descriptionSize = computed(() => (
   props.settings?.descriptionSize === 'normal' ? 'normal' : 'large'
 ))
-const imageSrc = computed(() => safePublicUrl(props.settings?.image, ''))
-
 const buttonHref = computed(() =>
   (props.settings?.buttonAction || 'link') === 'link'
     ? safePublicUrl(props.settings?.buttonUrl)
@@ -153,7 +158,7 @@ const containerStyle = computed(() => {
 
 .dsf-text-image-preview__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: var(--dsf-theme-h1, 42px);
+  font-size: var(--dsf-theme-h2, 37px);
   font-weight: 600;
   color: var(--dsf-gray-800);
   margin-bottom: 1rem;

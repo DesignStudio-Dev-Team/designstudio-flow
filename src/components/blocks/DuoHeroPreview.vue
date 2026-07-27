@@ -12,9 +12,11 @@
           flex: `0 0 calc(${splitRatio}% - ${(gapValue / 2)}px)`
         }"
       >
-        <img 
-          v-if="settings.leftImage" 
-          :src="settings.leftImage" 
+        <MediaVisual
+          v-if="settings.leftImage || settings.leftVideo"
+          :mode="settings.leftMediaType || 'image'"
+          :image="settings.leftImage"
+          :video="settings.leftVideo"
           alt="Left Hero"
           class="dsf-duo-hero__panel-img"
         />
@@ -76,9 +78,11 @@
           flex: `0 0 calc(${100 - splitRatio}% - ${(gapValue / 2)}px)`
         }"
       >
-        <img 
-          v-if="settings.rightImage" 
-          :src="settings.rightImage" 
+        <MediaVisual
+          v-if="settings.rightImage || settings.rightVideo"
+          :mode="settings.rightMediaType || 'image'"
+          :image="settings.rightImage"
+          :video="settings.rightVideo"
           alt="Right Hero"
           class="dsf-duo-hero__panel-img"
         />
@@ -139,6 +143,7 @@
 import { computed, ref } from 'vue'
 import { Search } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import MediaVisual from '../common/MediaVisual.vue'
 import { useFlowModal } from '../common/useFlowModal'
 import { getResponsiveValue } from '../../utils/responsiveSettings'
 

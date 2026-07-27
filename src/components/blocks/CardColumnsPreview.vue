@@ -15,7 +15,7 @@
       <InlineText
         tagName="p"
         class="dsf-card-columns__description"
-        :style="{ color: settings.descriptionColor || '#4B5563' }"
+        :style="descriptionStyle"
         v-model="settings.description"
         :is-editor="isEditor"
         :multiline="true"
@@ -24,19 +24,24 @@
     </div>
 
     <div class="dsf-card-columns__grid" :style="gridStyle">
-      <article
+      <component
         v-for="(card, index) in displayCards"
         :key="index"
+        :is="cardTag(card)"
         class="dsf-card-columns__card"
         :class="{
           'dsf-card-columns__card--left': contentAlign === 'left',
           'dsf-card-columns__card--overlay': isOverlay,
+          'dsf-card-columns__card--linked': isWholeCardLink(card),
         }"
         :style="cardStyle(card)"
+        :href="wholeCardHref(card)"
+        :aria-label="isWholeCardLink(card) ? (card.title || 'View card') : undefined"
+        @click="handleCardClick($event, card)"
       >
         <template v-if="isOverlay">
-          <div v-if="cardImage(card)" class="dsf-card-columns__card-bg" aria-hidden="true">
-            <img :src="cardImage(card)" alt="" loading="lazy" />
+          <div v-if="cardMedia(card)" class="dsf-card-columns__card-bg" aria-hidden="true">
+            <MediaVisual :image="card.image" :video="card.video" :mode="card.mediaType || 'image'" alt="" />
           </div>
           <div class="dsf-card-columns__card-scrim" :style="scrimStyle" aria-hidden="true"></div>
         </template>
@@ -89,8 +94,8 @@
           <ArrowRight v-if="buttonStyle === 'text-arrow'" :size="16" aria-hidden="true" />
         </a>
 
-        <div v-if="!isOverlay && cardImage(card)" class="dsf-card-columns__card-media" :style="mediaStyle">
-          <img :src="cardImage(card)" alt="" loading="lazy" />
+        <div v-if="!isOverlay && cardMedia(card)" class="dsf-card-columns__card-media" :style="mediaStyle">
+          <MediaVisual :image="card.image" :video="card.video" :mode="card.mediaType || 'image'" alt="" />
         </div>
 
         <a
@@ -103,7 +108,7 @@
         >
           <ArrowRight :size="18" aria-hidden="true" />
         </a>
-      </article>
+      </component>
     </div>
   </section>
 </template>
@@ -112,6 +117,7 @@
 import { computed } from 'vue'
 import { ArrowRight } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import MediaVisual from '../common/MediaVisual.vue'
 import { iconFor } from '../../utils/landingIcons'
 import { getResponsiveValue } from '../../utils/responsiveSettings'
 import { safePublicUrl } from '../../utils/safeUrl'
@@ -153,6 +159,10 @@ const headerLayout = computed(() => (props.settings?.headerLayout === 'split' ? 
 const contentAlign = computed(() => (props.settings?.contentAlign === 'left' ? 'left' : 'center'))
 const isOverlay = computed(() => props.settings?.cardLayout === 'overlay')
 const overlayTextColor = computed(() => props.settings?.overlayTextColor || '#FFFFFF')
+const descriptionStyle = computed(() => ({
+  color: props.settings?.descriptionColor || '#4B5563',
+  maxWidth: `${clampNumber(props.settings?.descriptionMaxWidth, 240, 1200, 640)}px`,
+}))
 
 const scrimStyle = computed(() => {
   const strength = clampNumber(props.settings?.overlayStrength, 0, 100, 60) / 100
@@ -244,8 +254,31 @@ function cardImage(card) {
   return url && url !== '#' ? url : ''
 }
 
+function cardMedia(card) {
+  if (cardImage(card)) return true
+  const video = safePublicUrl(card?.video, '')
+  return card?.mediaType === 'video' && /\.(mp4|webm|ogg|ogv)(?:\?.*)?$/i.test(video)
+}
+
 function showsButton(card) {
-  return !!card?.showButton
+  return cardLinkMode(card) === 'button'
+}
+
+function cardLinkMode(card) {
+  if (card?.linkMode === 'button' || card?.linkMode === 'card') return card.linkMode
+  return card?.showButton ? 'button' : 'none'
+}
+
+function isWholeCardLink(card) {
+  return cardLinkMode(card) === 'card'
+}
+
+function cardTag(card) {
+  return isWholeCardLink(card) ? 'a' : 'article'
+}
+
+function wholeCardHref(card) {
+  return isWholeCardLink(card) ? buttonHref(card) : undefined
 }
 
 function buttonHref(card) {
@@ -256,6 +289,10 @@ function handleButtonClick(event) {
   if (props.isEditor) {
     event.preventDefault()
   }
+}
+
+function handleCardClick(event, card) {
+  if (props.isEditor && isWholeCardLink(card)) event.preventDefault()
 }
 </script>
 
@@ -333,6 +370,12 @@ function handleButtonClick(event) {
   text-align: center;
   gap: 0.625rem;
   overflow: hidden;
+}
+
+.dsf-card-columns__card--linked {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .dsf-card-columns__card--left {

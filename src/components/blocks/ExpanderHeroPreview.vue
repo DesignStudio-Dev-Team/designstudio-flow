@@ -190,11 +190,25 @@ const ExpanderCardContent = {
     textColor: String,
   },
   setup(componentProps) {
+    const image = safePublicUrl(componentProps.card?.image, '')
+    const video = safePublicUrl(componentProps.card?.video, '')
+    const isVideo = componentProps.card?.mediaType === 'video' && /\.(mp4|webm|ogg|ogv)(?:\?.*)?$/i.test(video)
     return () => [
-      safePublicUrl(componentProps.card?.image, '')
+      isVideo
+        ? h('video', {
+            class: 'dsf-expander-hero__card-img',
+            src: video,
+            autoplay: true,
+            muted: true,
+            loop: true,
+            playsinline: true,
+            poster: image || undefined,
+            'aria-hidden': 'true',
+          })
+        : image
         ? h('img', {
             class: 'dsf-expander-hero__card-img',
-            src: safePublicUrl(componentProps.card.image, ''),
+            src: image,
             alt: '',
           })
         : h('div', { class: 'dsf-expander-hero__card-placeholder' }),

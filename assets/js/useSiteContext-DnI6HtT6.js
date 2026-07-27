@@ -1,0 +1,1 @@
+import{O as e,_ as t}from"./_plugin-vue_export-helper-BTdm89ns.js";e();function n(){return{site:t(()=>{if(typeof window>`u`)return null;let e=window.dsfFrontendData?.siteContext;return e&&typeof e==`object`?e:null})}}export{n as t};

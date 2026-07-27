@@ -1175,6 +1175,49 @@ body > .dsf-confirm-overlay .dsf-confirm-btn--danger:hover {
   flex: 0 0 auto;
 }
 
+#dsf-editor-app .dsf-dock__preview-picker { position: relative; }
+
+/* A compact upward-opening picker keeps responsive choices close to the dock
+   without permanently consuming three icon slots. */
+#dsf-editor-app .dsf-dock__preview-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 14px);
+  z-index: 6;
+  display: grid;
+  min-width: 174px;
+  padding: 6px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 13px;
+  background: rgb(25 29 35 / 98%);
+  box-shadow: 0 18px 42px rgb(0 0 0 / 42%), inset 0 1px 0 rgb(255 255 255 / 8%);
+  transform-origin: bottom right;
+}
+
+#dsf-editor-app .dsf-dock__preview-option {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgb(255 255 255 / 76%);
+  cursor: pointer;
+  font-family: var(--dsf-font-ui);
+  font-size: 13px;
+  font-weight: 650;
+  text-align: left;
+}
+
+#dsf-editor-app .dsf-dock__preview-option small { color: rgb(255 255 255 / 42%); font-size: 11px; font-weight: 600; }
+#dsf-editor-app .dsf-dock__preview-option:hover { background: rgb(255 255 255 / 10%); color: #fff; }
+#dsf-editor-app .dsf-dock__preview-option.is-active { background: rgb(12 95 168 / 52%); color: #fff; }
+#dsf-editor-app .dsf-preview-menu-enter-active, #dsf-editor-app .dsf-preview-menu-leave-active { transition: opacity 150ms ease, transform 150ms ease; }
+#dsf-editor-app .dsf-preview-menu-enter-from, #dsf-editor-app .dsf-preview-menu-leave-to { opacity: 0; transform: translateY(8px) scale(.96); }
+
 #dsf-editor-app .dsf-dock__divider {
   flex: 0 0 auto;
   width: 1px;
@@ -1304,6 +1347,34 @@ body > .dsf-confirm-overlay .dsf-confirm-btn--danger:hover {
     bottom: 14px;
     max-width: calc(100vw - 20px);
   }
+
+  /* On phones, keep the dock to its brand mark and a single overflow trigger.
+     The action panel opens upward so it remains above browser controls. */
+  #dsf-editor-app .dsf-dock__more { display: inline-flex; }
+
+  #dsf-editor-app .dsf-dock__body--mobile-menu {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: min(390px, calc(100vw - 24px));
+    margin-left: 0;
+    padding: 8px;
+    border: 1px solid rgb(255 255 255 / 12%);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgb(38 43 51 / 99%), rgb(20 23 28 / 99%));
+    box-shadow: 0 20px 48px rgb(0 0 0 / 42%), inset 0 1px 0 rgb(255 255 255 / 8%);
+    transform: translateX(-50%);
+  }
+
+  #dsf-editor-app .dsf-dock__body--mobile-menu .dsf-dock__group { flex-wrap: wrap; justify-content: center; }
+  #dsf-editor-app .dsf-dock__body--mobile-menu .dsf-dock__divider { display: none; }
+  #dsf-editor-app .dsf-mobile-actions-enter-active,
+  #dsf-editor-app .dsf-mobile-actions-leave-active { transition: opacity 180ms ease, transform 180ms ease; }
+  #dsf-editor-app .dsf-mobile-actions-enter-from,
+  #dsf-editor-app .dsf-mobile-actions-leave-to { opacity: 0; transform: translateX(-50%) translateY(12px); }
 
   #dsf-editor-app .dsf-dock__btn {
     width: 38px;

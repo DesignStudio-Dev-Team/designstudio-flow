@@ -7,7 +7,7 @@
     >
       <div class="dsf-mega-menu-field__item-head">
         <strong>Menu Item {{ itemIndex + 1 }}</strong>
-        <button class="dsf-mega-menu-field__danger" @click="removeItem(itemIndex)">Remove</button>
+        <button type="button" class="dsf-mega-menu-field__danger" @click="removeItem(itemIndex)">Remove</button>
       </div>
 
       <div class="dsf-mega-menu-field__row">
@@ -16,6 +16,7 @@
           <input
             type="text"
             class="dsf-input"
+            maxlength="160"
             :value="item.label"
             @input="updateItem(itemIndex, 'label', $event.target.value)"
           />
@@ -25,13 +26,27 @@
           <input
             type="text"
             class="dsf-input"
+            maxlength="2048"
             :value="item.url"
             @input="updateItem(itemIndex, 'url', $event.target.value)"
           />
         </div>
-        <div class="dsf-form-group">
+        <div v-if="pro" class="dsf-form-group">
+          <label class="dsf-label">Menu Type</label>
+          <select
+            class="dsf-input"
+            :value="item.menuType"
+            @change="updateMenuType(itemIndex, $event.target.value)"
+          >
+            <option value="link">Direct Link</option>
+            <option value="dropdown">Single Column</option>
+            <option value="mega">Mega Menu</option>
+          </select>
+        </div>
+        <div v-else class="dsf-form-group">
           <label class="dsf-label">Enable Mega Menu</label>
           <button
+            type="button"
             class="dsf-toggle"
             :class="{ 'dsf-toggle--active': !!item.hasMega }"
             @click="toggleMega(itemIndex)"
@@ -44,7 +59,7 @@
       <div v-if="item.hasMega" class="dsf-mega-menu-field__mega">
         <div class="dsf-mega-menu-field__columns-head">
           <strong>Columns</strong>
-          <button class="dsf-mega-menu-field__small" @click="addColumn(itemIndex)">Add Column</button>
+          <button v-if="!pro || item.menuType === 'mega'" type="button" class="dsf-mega-menu-field__small" @click="addColumn(itemIndex)">Add Column</button>
         </div>
 
         <div
@@ -56,11 +71,12 @@
             <input
               type="text"
               class="dsf-input"
+              maxlength="160"
               :value="column.heading"
               @input="updateColumn(itemIndex, columnIndex, 'heading', $event.target.value)"
               placeholder="Column heading"
             />
-            <button class="dsf-mega-menu-field__danger" @click="removeColumn(itemIndex, columnIndex)">Remove</button>
+            <button v-if="!pro || item.menuType === 'mega'" type="button" class="dsf-mega-menu-field__danger" @click="removeColumn(itemIndex, columnIndex)">Remove</button>
           </div>
 
           <div v-if="pro" class="dsf-mega-menu-field__column-grid">
@@ -79,6 +95,7 @@
           <div v-else class="dsf-mega-menu-field__column-mode">
             <span class="dsf-mega-menu-field__column-mode-label">Image Links</span>
             <button
+              type="button"
               class="dsf-toggle"
               :class="{ 'dsf-toggle--active': !!column.imageLinks }"
               @click="toggleColumnImageLinks(itemIndex, columnIndex)"
@@ -102,7 +119,10 @@
 
           <div class="dsf-mega-menu-field__links-head">
             <span>Links</span>
-            <button class="dsf-mega-menu-field__small" @click="addLink(itemIndex, columnIndex)">Add Link</button>
+            <span class="dsf-mega-menu-field__links-actions">
+              <button v-if="pro && column.layout === 'links'" type="button" class="dsf-mega-menu-field__small" @click="addLink(itemIndex, columnIndex, 'heading')">Add Section Heading</button>
+              <button type="button" class="dsf-mega-menu-field__small" @click="addLink(itemIndex, columnIndex)">Add Link</button>
+            </span>
           </div>
 
           <div
@@ -111,22 +131,36 @@
             class="dsf-mega-menu-field__link-row"
             :class="{ 'dsf-mega-menu-field__link-row--with-images': !!column.imageLinks }"
           >
-            <div class="dsf-mega-menu-field__link-main">
+            <div class="dsf-mega-menu-field__link-main" :class="{ 'dsf-mega-menu-field__link-main--typed': pro && column.layout === 'links' }">
+              <select
+                v-if="pro && column.layout === 'links'"
+                class="dsf-input dsf-mega-menu-field__link-kind"
+                :value="link.kind || 'link'"
+                aria-label="Row type"
+                @change="updateLink(itemIndex, columnIndex, linkIndex, 'kind', $event.target.value)"
+              >
+                <option value="link">Link</option>
+                <option value="heading">Section Heading</option>
+              </select>
               <input
                 type="text"
                 class="dsf-input"
+                maxlength="160"
                 :value="link.label"
                 @input="updateLink(itemIndex, columnIndex, linkIndex, 'label', $event.target.value)"
-                placeholder="Link label"
+                :placeholder="link.kind === 'heading' ? 'Section heading' : 'Link label'"
               />
               <input
+                v-if="link.kind !== 'heading'"
                 type="text"
                 class="dsf-input"
+                maxlength="2048"
                 :value="link.url"
                 @input="updateLink(itemIndex, columnIndex, linkIndex, 'url', $event.target.value)"
                 placeholder="Link URL"
               />
               <button
+                type="button"
                 class="dsf-mega-menu-field__icon-btn"
                 title="Remove link"
                 @click="removeLink(itemIndex, columnIndex, linkIndex)"
@@ -134,10 +168,11 @@
                 x
               </button>
             </div>
-            <div v-if="column.imageLinks" class="dsf-mega-menu-field__image-controls">
+            <div v-if="column.imageLinks && link.kind !== 'heading'" class="dsf-mega-menu-field__image-controls">
               <div v-if="link.image" class="dsf-mega-menu-field__image-preview">
                 <img :src="link.image" alt="" />
                 <button
+                  type="button"
                   class="dsf-mega-menu-field__image-remove"
                   title="Remove image"
                   @click="updateLink(itemIndex, columnIndex, linkIndex, 'image', '')"
@@ -146,6 +181,7 @@
                 </button>
               </div>
               <button
+                type="button"
                 class="dsf-mega-menu-field__small dsf-mega-menu-field__image-btn"
                 @click="openLinkImageLibrary(itemIndex, columnIndex, linkIndex)"
               >
@@ -153,7 +189,7 @@
                 {{ link.image ? 'Change' : 'Select Image' }}
               </button>
             </div>
-            <div v-if="pro && column.layout === 'icons'" class="dsf-mega-menu-field__column-grid">
+            <div v-if="pro && column.layout === 'icons' && link.kind !== 'heading'" class="dsf-mega-menu-field__column-grid">
               <span class="dsf-mega-menu-field__column-grid-label">Icon</span>
               <select
                 class="dsf-input"
@@ -166,7 +202,7 @@
           </div>
         </div>
 
-        <div class="dsf-mega-menu-field__banner">
+        <div v-if="!pro || item.menuType === 'mega'" class="dsf-mega-menu-field__banner">
           <strong>{{ pro ? 'Featured Card' : 'Mega Menu Banner' }}</strong>
           <div class="dsf-mega-menu-field__row">
             <div class="dsf-form-group">
@@ -174,6 +210,7 @@
               <input
                 type="text"
                 class="dsf-input"
+                maxlength="160"
                 :value="item.banner?.title || ''"
                 @input="updateBanner(itemIndex, 'title', $event.target.value)"
               />
@@ -183,6 +220,7 @@
               <input
                 type="text"
                 class="dsf-input"
+                maxlength="300"
                 :value="item.banner?.text || ''"
                 @input="updateBanner(itemIndex, 'text', $event.target.value)"
               />
@@ -192,6 +230,7 @@
               <input
                 type="text"
                 class="dsf-input"
+                maxlength="80"
                 :value="item.banner?.buttonLabel || ''"
                 @input="updateBanner(itemIndex, 'buttonLabel', $event.target.value)"
               />
@@ -202,6 +241,7 @@
                 <div v-if="item.banner?.image" class="dsf-mega-menu-field__image-preview">
                   <img :src="item.banner.image" alt="" />
                   <button
+                    type="button"
                     class="dsf-mega-menu-field__image-remove"
                     title="Remove image"
                     @click="updateBanner(itemIndex, 'image', '')"
@@ -210,6 +250,7 @@
                   </button>
                 </div>
                 <button
+                  type="button"
                   class="dsf-mega-menu-field__small"
                   @click="openBannerImageLibrary(itemIndex)"
                 >
@@ -223,6 +264,7 @@
               <input
                 type="text"
                 class="dsf-input"
+                maxlength="2048"
                 :value="item.banner?.url || '#'"
                 @input="updateBanner(itemIndex, 'url', $event.target.value)"
               />
@@ -232,7 +274,7 @@
       </div>
     </div>
 
-    <button class="dsf-mega-menu-field__add" @click="addItem">Add Menu Item</button>
+    <button type="button" class="dsf-mega-menu-field__add" @click="addItem">Add Menu Item</button>
   </div>
 </template>
 
@@ -258,6 +300,7 @@ const props = defineProps({
 
 const iconNames = LANDING_ICON_NAMES
 const COLUMN_LAYOUTS = ['links', 'cards', 'icons']
+const MENU_TYPES = ['link', 'dropdown', 'mega']
 
 function normalizeLayout(layout, imageLinks) {
   if (COLUMN_LAYOUTS.includes(layout)) return layout
@@ -281,7 +324,7 @@ function id(prefix) {
 }
 
 function createLink() {
-  return { __id: id('link'), label: 'Link', url: '#', image: '', icon: 'sparkles' }
+  return { __id: id('link'), kind: 'link', label: 'Link', url: '#', image: '', icon: 'sparkles' }
 }
 
 function createColumn(imageLinks = false, imageColumns = 2) {
@@ -300,6 +343,7 @@ function createItem() {
     __id: id('item'),
     label: 'PRODUCT LINE',
     url: '#',
+    menuType: 'link',
     hasMega: false,
     columns: [createColumn(true, 2), createColumn(false, 2)],
     banner: {
@@ -313,38 +357,47 @@ function createItem() {
 }
 
 function normalizeItems(items) {
-  return items.map((item) => ({
-    __id: item.__id || id('item'),
-    label: item?.label || 'Menu Item',
-    url: item?.url || '#',
-    hasMega: !!item?.hasMega,
-    columns: (Array.isArray(item?.columns) && item.columns.length ? item.columns : [createColumn()]).map((column, columnIndex) => {
-      const rawImageLinks = typeof column?.imageLinks === 'boolean' ? column.imageLinks : columnIndex === 0
-      const layout = normalizeLayout(column?.layout, rawImageLinks)
-      return {
-        __id: column.__id || id('column'),
-        heading: column?.heading || 'Sub Heading',
-        layout,
-        // In pro mode the layout select owns "cards"; otherwise honor the toggle.
-        imageLinks: props.pro ? layout === 'cards' : rawImageLinks,
-        imageColumns: resolveImageColumns(column?.imageColumns),
-        links: (Array.isArray(column?.links) && column.links.length ? column.links : [createLink()]).map((link) => ({
-          __id: link.__id || id('link'),
-          label: link?.label || 'Link',
-          url: link?.url || '#',
-          image: link?.image || '',
-          icon: link?.icon || 'sparkles',
-        })),
-      }
-    }),
-    banner: {
-      title: item?.banner?.title || '',
-      text: item?.banner?.text || '',
-      buttonLabel: item?.banner?.buttonLabel || '',
-      image: item?.banner?.image || '',
-      url: item?.banner?.url || '#',
-    },
-  }))
+  return items.map((item, itemIndex) => {
+    const previousItem = localItems.value[itemIndex]
+    const menuType = props.pro && MENU_TYPES.includes(item?.menuType)
+      ? item.menuType
+      : (item?.hasMega ? 'mega' : 'link')
+    return {
+      __id: item.__id || previousItem?.__id || id('item'),
+      label: item?.label ?? 'Menu Item',
+      url: item?.url ?? '#',
+      menuType,
+      hasMega: menuType !== 'link',
+      columns: (Array.isArray(item?.columns) && item.columns.length ? item.columns : [createColumn()]).map((column, columnIndex) => {
+        const previousColumn = previousItem?.columns?.[columnIndex]
+        const rawImageLinks = typeof column?.imageLinks === 'boolean' ? column.imageLinks : columnIndex === 0
+        const layout = normalizeLayout(column?.layout, rawImageLinks)
+        return {
+          __id: column.__id || previousColumn?.__id || id('column'),
+          heading: column?.heading ?? 'Sub Heading',
+          layout,
+          // In pro mode the layout select owns "cards"; otherwise honor the toggle.
+          imageLinks: props.pro ? layout === 'cards' : rawImageLinks,
+          imageColumns: resolveImageColumns(column?.imageColumns),
+          links: (Array.isArray(column?.links) && column.links.length ? column.links : [createLink()]).map((link, linkIndex) => ({
+            __id: link.__id || previousColumn?.links?.[linkIndex]?.__id || id('link'),
+            kind: link?.kind === 'heading' ? 'heading' : 'link',
+            label: link?.label ?? 'Link',
+            url: link?.url ?? '#',
+            image: link?.image ?? '',
+            icon: link?.icon ?? 'sparkles',
+          })),
+        }
+      }),
+      banner: {
+        title: item?.banner?.title || '',
+        text: item?.banner?.text || '',
+        buttonLabel: item?.banner?.buttonLabel || '',
+        image: item?.banner?.image || '',
+        url: item?.banner?.url || '#',
+      },
+    }
+  })
 }
 
 function toCleanData() {
@@ -358,7 +411,7 @@ function toCleanData() {
       banner.text = item.banner?.text || ''
       banner.buttonLabel = item.banner?.buttonLabel || ''
     }
-    return {
+    const cleanItem = {
       label: item.label,
       url: item.url,
       hasMega: !!item.hasMega,
@@ -369,7 +422,10 @@ function toCleanData() {
           imageColumns: resolveImageColumns(column.imageColumns),
           links: column.links.map((link) => {
             const cleanLink = { label: link.label, url: link.url, image: link.image || '' }
-            if (props.pro) cleanLink.icon = link.icon || 'sparkles'
+            if (props.pro) {
+              cleanLink.kind = link.kind === 'heading' ? 'heading' : 'link'
+              cleanLink.icon = link.icon || 'sparkles'
+            }
             return cleanLink
           }),
         }
@@ -378,6 +434,8 @@ function toCleanData() {
       }),
       banner,
     }
+    if (props.pro) cleanItem.menuType = MENU_TYPES.includes(item.menuType) ? item.menuType : 'link'
+    return cleanItem
   })
 }
 
@@ -402,6 +460,13 @@ function updateItem(itemIndex, key, value) {
 
 function toggleMega(itemIndex) {
   localItems.value[itemIndex].hasMega = !localItems.value[itemIndex].hasMega
+  emitUpdate()
+}
+
+function updateMenuType(itemIndex, value) {
+  const menuType = MENU_TYPES.includes(value) ? value : 'link'
+  localItems.value[itemIndex].menuType = menuType
+  localItems.value[itemIndex].hasMega = menuType !== 'link'
   emitUpdate()
 }
 
@@ -442,8 +507,12 @@ function updateColumnLayout(itemIndex, columnIndex, value) {
   emitUpdate()
 }
 
-function addLink(itemIndex, columnIndex) {
-  localItems.value[itemIndex].columns[columnIndex].links.push(createLink())
+function addLink(itemIndex, columnIndex, kind = 'link') {
+  const link = createLink()
+  link.kind = kind === 'heading' ? 'heading' : 'link'
+  link.label = link.kind === 'heading' ? 'Section Heading' : 'Link'
+  link.url = link.kind === 'heading' ? '' : '#'
+  localItems.value[itemIndex].columns[columnIndex].links.push(link)
   emitUpdate()
 }
 
@@ -612,6 +681,17 @@ function parseImageColumns(value) {
   display: grid;
   grid-template-columns: 1fr 1fr auto;
   gap: 0.375rem;
+}
+
+.dsf-mega-menu-field__links-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.dsf-mega-menu-field__link-main--typed {
+  grid-template-columns: 112px minmax(0, 1fr) minmax(0, 1fr) auto;
 }
 
 .dsf-mega-menu-field__image-controls {

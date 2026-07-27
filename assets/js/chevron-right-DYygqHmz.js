@@ -1,0 +1,1 @@
+import{r as e}from"./_plugin-vue_export-helper-BTdm89ns.js";var t=e(`ChevronRightIcon`,[[`path`,{d:`m9 18 6-6-6-6`,key:`mthhwq`}]]);export{t};

@@ -3,6 +3,14 @@
     class="dsf-block-preview dsf-cta-banner-preview"
     :style="previewStyle"
   >
+    <MediaVisual
+      v-if="settings.backgroundImage || settings.backgroundVideo"
+      class="dsf-cta-banner-preview__media"
+      :mode="settings.backgroundMediaType || 'color'"
+      :image="settings.backgroundImage"
+      :video="settings.backgroundVideo"
+      alt=""
+    />
     <div class="dsf-cta-banner-preview__inner">
       <div class="dsf-cta-banner-preview__text">
         <InlineText 
@@ -45,6 +53,7 @@
 <script setup>
 import { computed } from 'vue'
 import InlineText from '../common/InlineText.vue'
+import MediaVisual from '../common/MediaVisual.vue'
 import { useFlowModal } from '../common/useFlowModal'
 import { getResponsiveValue } from '../../utils/responsiveSettings'
 
@@ -99,6 +108,8 @@ const previewStyle = computed(() => {
 
 <style scoped>
 .dsf-cta-banner-preview__inner {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -108,12 +119,24 @@ const previewStyle = computed(() => {
 }
 
 .dsf-cta-banner-preview {
+  position: relative;
+  overflow: hidden;
+}
+
+.dsf-cta-banner-preview__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.42;
+}
+
+.dsf-cta-banner-preview {
   container-type: inline-size;
 }
 
 .dsf-cta-banner-preview__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: var(--dsf-theme-h1, 42px);
+  font-size: var(--dsf-theme-h2, 37px);
   font-weight: 600;
   margin-bottom: 0.25rem;
   line-height: 1.15;

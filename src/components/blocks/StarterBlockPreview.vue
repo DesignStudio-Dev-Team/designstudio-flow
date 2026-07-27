@@ -77,7 +77,7 @@ const blockStyle = computed(() => {
 
 .dsf-starter-block__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: var(--dsf-theme-h1, 2.5rem);
+  font-size: var(--dsf-theme-h2, 2.3125rem);
   font-weight: 700;
   margin: 0;
   line-height: 1.15;

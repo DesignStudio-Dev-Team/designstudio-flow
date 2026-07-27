@@ -113,6 +113,12 @@ if (current === next) fail(`Computed version equals current (${current}).`);
 
 ensureRemoteTagFree(tag);
 
+// Audit the complete tree, including build and test tooling. A release must not
+// create a public version while high- or critical-severity known issues are in
+// the committed lockfile.
+info("Checking dependency security (npm audit --audit-level=high)…");
+shInherit("npm audit --audit-level=high");
+
 console.log(`\n📦 Releasing ${current} → ${next}\n`);
 
 // Bump versions

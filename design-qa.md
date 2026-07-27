@@ -1,49 +1,41 @@
-# Design QA — Landing Showcase Hero
+# Header Modern Mega — Design QA
+
+- Source visual truth: `/var/folders/jj/pphf4_4d5j9f74pzrbwmznvc0000gn/T/TemporaryItems/NSIRD_screencaptureui_bWDsv1/Screenshot 2026-07-20 at 11.40.17 AM.png`
+- Implementation screenshot: `/Users/juantamayo/.codex/visualizations/2026/07/20/019f80d2-7c71-7073-a7ae-e8e7ab48da89/header-mega-menu-implementation.png`
+- Combined comparison: `/Users/juantamayo/.codex/visualizations/2026/07/20/019f80d2-7c71-7073-a7ae-e8e7ab48da89/header-mega-menu-comparison.png`
+- Viewport: 1062 × 774 desktop; responsive behavior also checked at 390 × 844.
+- State: first desktop mega menu open; mobile drawer open with the first nested group expanded.
+
+## Full-view comparison evidence
+
+The implementation reproduces the reference's core content model: a full-width panel, four usable content tracks, independent column headings, dense vertical link lists, and additional section headings within a column. The adjustable item gap changes the panel's vertical rhythm without changing the content structure. The exact tab treatment, language, and typography remain those of the existing Header Modern Mega component and theme rather than replacing that header's established design system.
+
+## Focused region comparison evidence
+
+The panel body was checked closely because its grouped headings and vertical rhythm are the relevant reference details. `STIHL Kits` and `Batteries and Chargers` render as non-link section headings within link columns, followed by normal links. The desktop panel has no clipping or horizontal overflow. No raster image assets appear in the reference panel, so image-asset fidelity is not applicable to this menu configuration.
+
+## Required fidelity surfaces
+
+- Fonts and typography: Existing theme body/heading fonts are preserved. Column headings and nested section headings remain visually distinct, and long link labels wrap without clipping.
+- Spacing and layout rhythm: Four-column content reads cleanly at desktop. The bounded `menuItemSpacing` control changes link-list rhythm from 0–32px. Mobile width has no horizontal overflow.
+- Colors and visual tokens: Existing header and panel color settings drive the preview; the green/white reference palette can be reproduced through those settings.
+- Image quality and asset fidelity: No image assets are required for the reference link-list layout. Existing image-card and featured-card modes remain available and unchanged.
+- Copy and content: Reference-like grouped content renders correctly; saved labels remain editable and portable.
+- Accessibility and behavior: Desktop menus expose expanded state, Escape handling remains intact, the mobile drawer locks body scrolling, nested groups expand, and direct-link items do not expose popup state.
+- Browser console: No errors or warnings were recorded during the desktop and mobile interaction checks.
+
+## Comparison history
+
+1. Initial responsive check found a P1 issue: a desktop mega/dropdown panel that was open before crossing the breakpoint remained visible above the mobile drawer.
+2. Fix: the desktop panel wrapper is now hidden at the mobile breakpoint.
+3. Post-fix evidence: at 390 × 844 only the mobile menu button is visible before opening; the drawer opens successfully, body scrolling is locked, nested groups expand, and document `scrollWidth` equals the 390px viewport.
+
+## Findings
+
+No actionable P0/P1/P2 findings remain.
+
+## Follow-up polish
+
+- P3: The exact active-tab fill treatment from the supplied reference is not introduced because this request extends the existing Modern Mega header's content capabilities rather than replacing its established navigation styling.
 
 final result: passed
-
-## Scope
-
-- Page: `http://dsnshowcase.test/landing-page/`
-- Reference: generated modern starting-hub concept
-- Implementation: `LandingShowcaseHeroPreview.vue`
-- Viewports reviewed: 1440 × 1024, 430 × 932, and 375 × 812
-
-## Visual comparison
-
-- Preserves the established hero structure: message and actions on the left, six editor-inspired destination tiles on the right, and the floating navigation dock at the bottom.
-- Removes the need for a conventional site header and keeps the first viewport focused on what DSFlow does.
-- Uses six distinct mini-scenes based on the real editor's global styles, block selection, responsive controls, WooCommerce, forms, security, and reusable page structure.
-- The production result intentionally keeps the live page's warmer grid background and brand typography instead of copying the reference literally.
-
-Comparison artifact: `/Users/juantamayo/.codex/visualizations/2026/07/13/019f5a68-470c-7672-b059-2192295fd6c6/landing-hero-reference-comparison.png`
-
-Final captures:
-
-- Desktop: `/Users/juantamayo/.codex/visualizations/2026/07/13/019f5a68-470c-7672-b059-2192295fd6c6/landing-hero-two-word-final.png`
-- Mobile: `/Users/juantamayo/.codex/visualizations/2026/07/13/019f5a68-470c-7672-b059-2192295fd6c6/landing-hero-two-word-mobile.png`
-
-## Behavior and accessibility
-
-- All six phrases are unique, exactly two words, and use the same active index as their matching tile.
-- Rotating text leaves enough line box and bottom padding for descenders; the `g` and `y` in “page visually” were geometry-checked inside their visible bounds.
-- The visible pause control has been removed; reduced-motion mode still removes automatic movement.
-- The stable screen-reader headline contains the complete message without an interrupting live region.
-- Editor and snapshot modes do not start animation timers.
-
-## Responsive and runtime checks
-
-- No horizontal document overflow at 430 px or 375 px.
-- The destination hub remains a two-column grid at common mobile widths and collapses only on very narrow screens.
-- The bottom dock remains fixed and usable without reintroducing a top header.
-- Tile navigation was verified against the `#editor` destination.
-- Frontend console review found no errors or warnings.
-
-## Verification
-
-- Vitest: 60 files, 430 tests passed.
-- PHPUnit: 230 tests, 1,418 assertions passed.
-- Security audit: 0 vulnerabilities.
-- Production build completed successfully.
-- PHP syntax checks and focused PHPCS checks passed.
-- `git diff --check` passed.

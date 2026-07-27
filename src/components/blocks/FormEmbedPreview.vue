@@ -1,6 +1,6 @@
 <template>
   <div class="dsf-block-preview dsf-form-embed-preview" :style="blockStyle">
-    <h3 v-if="blockTitle" class="dsf-form-embed-preview__title">{{ blockTitle }}</h3>
+    <h2 v-if="blockTitle" class="dsf-form-embed-preview__title">{{ blockTitle }}</h2>
 
     <div v-if="isEditor" class="dsf-form-embed-preview__editor">
       <div class="dsf-form-embed-preview__badge">DesignStudio Flow Form</div>

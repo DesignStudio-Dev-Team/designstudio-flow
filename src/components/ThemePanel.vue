@@ -1,5 +1,5 @@
 <template>
-  <aside class="dsf-panel">
+  <aside class="dsf-panel" data-dsf-help="theme-panel">
     <div class="dsf-panel__header">
       <div>
         <h2 class="dsf-panel__title">Theme Settings</h2>
@@ -98,14 +98,29 @@
       <div class="dsf-form-group">
         <label class="dsf-label">Container Width</label>
         <div class="dsf-slider-group">
-          <div class="dsf-slider-value">{{ settings.layout?.containerWidth || 1800 }}px</div>
+          <div class="dsf-slider-header">
+            <input
+              type="number"
+              class="dsf-slider-input"
+              aria-label="Container width in pixels"
+              :value="layoutValue('containerWidth')"
+              min="1000"
+              max="1800"
+              step="1"
+              @input="onLayoutNumberInput('containerWidth', $event)"
+              @blur="commitLayoutInput('containerWidth', $event)"
+              @keydown.enter.prevent="commitLayoutInput('containerWidth', $event)"
+            />
+            <span class="dsf-slider-unit">px</span>
+          </div>
           <input 
             type="range"
             class="dsf-slider"
-            :value="settings.layout?.containerWidth || 1800"
+            aria-label="Container width slider"
+            :value="layoutValue('containerWidth')"
             min="1000"
             max="1800"
-            @input="updateLayout('containerWidth', parseInt($event.target.value))"
+            @input="updateLayoutNumber('containerWidth', $event.target.value)"
           />
         </div>
       </div>
@@ -114,14 +129,29 @@
       <div class="dsf-form-group">
         <label class="dsf-label">Content Padding</label>
         <div class="dsf-slider-group">
-          <div class="dsf-slider-value">{{ settings.layout?.contentPadding || 24 }}px</div>
+          <div class="dsf-slider-header">
+            <input
+              type="number"
+              class="dsf-slider-input"
+              aria-label="Content padding in pixels"
+              :value="layoutValue('contentPadding')"
+              min="0"
+              max="64"
+              step="1"
+              @input="onLayoutNumberInput('contentPadding', $event)"
+              @blur="commitLayoutInput('contentPadding', $event)"
+              @keydown.enter.prevent="commitLayoutInput('contentPadding', $event)"
+            />
+            <span class="dsf-slider-unit">px</span>
+          </div>
           <input 
             type="range"
             class="dsf-slider"
-            :value="settings.layout?.contentPadding || 24"
+            aria-label="Content padding slider"
+            :value="layoutValue('contentPadding')"
             min="0"
             max="64"
-            @input="updateLayout('contentPadding', parseInt($event.target.value))"
+            @input="updateLayoutNumber('contentPadding', $event.target.value)"
           />
         </div>
       </div>
@@ -174,7 +204,7 @@
             {{ formatTemplateOption(template) }}
           </option>
         </select>
-        <p class="dsf-helper-text">Select a custom header for this page.</p>
+        <p class="dsf-helper-text">Select a custom header for this page. Publish the template for it to appear to logged-out visitors.</p>
         <a
           v-if="layoutCreateUrls?.header"
           class="dsf-theme-panel-link"
@@ -218,7 +248,7 @@
             {{ formatTemplateOption(template) }}
           </option>
         </select>
-        <p class="dsf-helper-text">Select a custom footer for this page.</p>
+        <p class="dsf-helper-text">Select a custom footer for this page. Publish the template for it to appear to logged-out visitors.</p>
         <a
           v-if="layoutCreateUrls?.footer"
           class="dsf-theme-panel-link"
@@ -271,6 +301,10 @@ const emit = defineEmits(['close', 'update:settings', 'undo-theme', 'restore-def
 
 const headerTemplates = computed(() => props.layoutTemplates?.headers || [])
 const footerTemplates = computed(() => props.layoutTemplates?.footers || [])
+const layoutNumberFields = {
+  containerWidth: { min: 1000, max: 1800, fallback: 1800 },
+  contentPadding: { min: 0, max: 64, fallback: 0 },
+}
 
 function updateTheme(key, value) {
   emit('update:settings', {
@@ -289,6 +323,36 @@ function updateLayout(key, value) {
       [key]: value,
     },
   })
+}
+
+function layoutValue(key) {
+  const field = layoutNumberFields[key]
+  const value = Number(props.settings?.layout?.[key] ?? field.fallback)
+  return Number.isFinite(value) ? Math.min(field.max, Math.max(field.min, value)) : field.fallback
+}
+
+function clampLayoutNumber(key, value) {
+  const field = layoutNumberFields[key]
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return field.fallback
+  return Math.min(field.max, Math.max(field.min, Math.round(parsed)))
+}
+
+function updateLayoutNumber(key, value) {
+  updateLayout(key, clampLayoutNumber(key, value))
+}
+
+function onLayoutNumberInput(key, event) {
+  const raw = event.target.value
+  if (raw === '' || raw === '-') return
+  const parsed = Number(raw)
+  const field = layoutNumberFields[key]
+  if (!Number.isFinite(parsed) || parsed < field.min) return
+  updateLayout(key, Math.min(field.max, Math.round(parsed)))
+}
+
+function commitLayoutInput(key, event) {
+  updateLayoutNumber(key, event.target.value)
 }
 
 function parseTemplateId(value) {

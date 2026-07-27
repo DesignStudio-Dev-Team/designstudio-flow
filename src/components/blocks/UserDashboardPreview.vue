@@ -16,7 +16,7 @@
           <img v-if="user.avatarUrl" class="dsf-user-dashboard__avatar" :src="user.avatarUrl" alt="" />
           <div class="dsf-user-dashboard__hero-text">
             <p class="dsf-user-dashboard__welcome">{{ settings.welcomeText || 'Welcome back,' }}</p>
-            <h1 class="dsf-user-dashboard__name">{{ user.displayName }}</h1>
+            <h2 class="dsf-user-dashboard__name">{{ user.displayName }}</h2>
           </div>
           <a
             class="dsf-user-dashboard__logout"
@@ -43,7 +43,7 @@
         </nav>
 
         <div v-if="settings.showOrders !== false" class="dsf-user-dashboard__orders">
-          <h2 class="dsf-user-dashboard__orders-heading">Recent orders</h2>
+          <h3 class="dsf-user-dashboard__orders-heading">Recent orders</h3>
           <ul v-if="orders.length" class="dsf-user-dashboard__orders-list">
             <li v-for="(order, i) in orders" :key="i">
               <a

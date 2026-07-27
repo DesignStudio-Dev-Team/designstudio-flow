@@ -57,6 +57,35 @@ class Test_DSF_Notification_Bar extends TestCase {
 		$this->assertSame( '', $this->sanitize_datetime( 'javascript:alert(1)' ) );
 	}
 
+	public function test_disabled_notification_does_not_require_a_link_url() {
+		$defaults = DSF_Notification_Bar::get_defaults();
+		$clean    = DSF_Notification_Bar::sanitize_settings(
+			array(
+				'enabled' => false,
+				'linkUrl' => '',
+			)
+		);
+
+		$this->assertSame( '', $defaults['linkUrl'] );
+		$this->assertFalse( $clean['enabled'] );
+		$this->assertSame( '', $clean['linkUrl'] );
+	}
+
+	public function test_legacy_hash_notification_url_is_removed() {
+		WP_Mock::userFunction(
+			'get_option',
+			array(
+				'return' => array(
+					'enabled' => false,
+					'linkUrl' => '#',
+				),
+			)
+		);
+		$clean = DSF_Notification_Bar::get_settings();
+
+		$this->assertSame( '', $clean['linkUrl'] );
+	}
+
 	public function test_notification_settings_are_allowlisted_and_bounded() {
 		$clean = DSF_Notification_Bar::sanitize_settings(
 			array(

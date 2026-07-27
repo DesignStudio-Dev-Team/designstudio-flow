@@ -46,7 +46,7 @@ export function resolveThemeKey(value, key = '') {
   return null
 }
 
-export function shouldSyncSetting(currentValue, themeKey, oldThemeValue) {
+export function shouldSyncSetting(currentValue, themeKey, oldThemeValue, options = {}) {
   if (currentValue === undefined || currentValue === null || currentValue === '') {
     return true
   }
@@ -55,6 +55,8 @@ export function shouldSyncSetting(currentValue, themeKey, oldThemeValue) {
   
   // For fonts or exact matches
   if (oldThemeValue && normalized === normalizeValue(oldThemeValue)) return true
+
+  if (options.allowAliases === false) return false
   
   // For color aliases
   const aliasSet = THEME_COLOR_ALIASES[themeKey]
@@ -79,7 +81,7 @@ export function applyThemeToBlocks(blocksList, oldTheme, newTheme, linkedSetting
 
       const themeValueChanged = normalizeValue(oldTheme[themeKey]) !== normalizeValue(newTheme[themeKey])
       if (!themeValueChanged) return
-      if (!options.forceChangedThemeKeys && !shouldSyncSetting(nextSettings[settingKey], themeKey, oldTheme[themeKey])) return
+      if (!options.forceChangedThemeKeys && !shouldSyncSetting(nextSettings[settingKey], themeKey, oldTheme[themeKey], options)) return
       
       nextSettings[settingKey] = newTheme[themeKey]
       updated = true

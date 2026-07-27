@@ -68,4 +68,48 @@ describe('Modern Mega Header', () => {
     const wrapper = mount(HeaderModernMegaPreview, { props: { settings: {}, isEditor: false } })
     expect(wrapper.findAll('.dsf-mmega__nav-item').length).toBeGreaterThan(0)
   })
+
+  it('renders a single-column dropdown without the featured card', async () => {
+    const dropdownSettings = {
+      ...settings,
+      menuItems: [{
+        label: 'Services',
+        url: '#',
+        menuType: 'dropdown',
+        hasMega: true,
+        columns: [
+          { heading: 'Explore', layout: 'links', links: [{ label: 'Repairs', url: '/repairs' }] },
+          { heading: 'Hidden', layout: 'links', links: [{ label: 'Extra', url: '#' }] },
+        ],
+        banner: { title: 'Not shown', url: '#' },
+      }],
+    }
+    const wrapper = mount(HeaderModernMegaPreview, { props: { settings: dropdownSettings, isEditor: true } })
+    await wrapper.find('.dsf-mmega__nav-item').trigger('click')
+
+    expect(wrapper.find('.dsf-mmega__panel--dropdown').exists()).toBe(true)
+    expect(wrapper.findAll('.dsf-mmega__col')).toHaveLength(1)
+    expect(wrapper.find('.dsf-mmega__featured').exists()).toBe(false)
+  })
+
+  it('renders grouped section headings and applies the item spacing control', async () => {
+    const groupedSettings = {
+      ...settings,
+      menuItemSpacing: 18,
+      menuItems: [{
+        ...settings.menuItems[0],
+        menuType: 'mega',
+        columns: [{ heading: 'Products', layout: 'links', links: [
+          { kind: 'link', label: 'Chainsaws', url: '#' },
+          { kind: 'heading', label: 'Service Kits', url: '' },
+          { kind: 'link', label: 'Cut Kits', url: '#' },
+        ] }],
+      }],
+    }
+    const wrapper = mount(HeaderModernMegaPreview, { props: { settings: groupedSettings, isEditor: true } })
+    await wrapper.find('.dsf-mmega__nav-item').trigger('click')
+
+    expect(wrapper.find('.dsf-mmega__section-heading').text()).toBe('Service Kits')
+    expect(wrapper.attributes('style')).toContain('--mmega-item-gap: 18px')
+  })
 })

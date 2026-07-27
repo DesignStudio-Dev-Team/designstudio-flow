@@ -39,6 +39,17 @@
                 @update:modelValue="updateField(index, 'image', $event)"
               />
             </div>
+            <div class="dsf-form-group">
+              <label class="dsf-label">Media Type</label>
+              <select class="dsf-input" :value="element.mediaType || 'image'" @change="updateField(index, 'mediaType', $event.target.value)">
+                <option value="image">Image</option>
+                <option value="video">Video</option>
+              </select>
+            </div>
+            <div v-if="element.mediaType === 'video'" class="dsf-form-group">
+              <label class="dsf-label">Video (MP4)</label>
+              <VideoPicker :modelValue="element.video" @update:modelValue="updateField(index, 'video', $event)" />
+            </div>
 
             <div class="dsf-form-group">
               <label class="dsf-label">Title</label>
@@ -81,6 +92,7 @@ import { ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import { ChevronDown, GripVertical, Plus, Trash2 } from 'lucide-vue-next'
 import MediaPicker from './MediaPicker.vue'
+import VideoPicker from './VideoPicker.vue'
 
 const props = defineProps({
   modelValue: {
@@ -99,6 +111,8 @@ watch(() => props.modelValue, (newValue) => {
   localCards.value = (newValue || []).slice(0, 6).map((item, index) => ({
     title: `Card ${index + 1}`,
     image: '',
+    mediaType: 'image',
+    video: '',
     url: '#',
     ...item,
     id: item.id || previousIds[index] || `expander-card-${index}-${Date.now()}`,
@@ -130,6 +144,8 @@ function addItem() {
     id: `expander-card-${Date.now()}`,
     title: `Card ${nextIndex}`,
     image: '',
+    mediaType: 'image',
+    video: '',
     url: '#',
   })
   openItems.value.push(localCards.value.length - 1)

@@ -43,6 +43,7 @@ describe('DSFlow landing page blocks', () => {
           eyebrow: 'Visual builder',
           title: 'Build freely.',
           description: 'A focused WordPress workflow.',
+          descriptionMaxWidth: 510,
           primaryText: 'Explore',
           primaryUrl: '#blocks',
           secondaryText: 'See how',
@@ -52,6 +53,7 @@ describe('DSFlow landing page blocks', () => {
       },
     })
     expect(hero.find('h1').text()).toBe('Build freely.')
+    expect(hero.find('.dsf-product-hero__copy > p').attributes('style')).toContain('max-width: 510px')
     expect(hero.find('.dsf-studio').exists()).toBe(true)
     // New editor UI: the top bar is replaced by a floating dock with the DS Flow mark.
     expect(hero.find('.dsf-studio__dock').exists()).toBe(true)
@@ -62,19 +64,33 @@ describe('DSFlow landing page blocks', () => {
     expect(hero.find('[data-dsf-builder-art]').exists()).toBe(true)
 
     const explorer = mount(LandingBlockExplorerPreview, {
-      props: { isEditor: true, settings: { eyebrow: 'Blocks', title: 'Explore', description: 'Choose well.', footnote: 'More to come.' } },
+      props: {
+        isEditor: true,
+        settings: {
+          source: 'manual',
+          eyebrow: 'Content',
+          title: 'Explore',
+          description: 'Choose well.',
+          footnote: 'More to come.',
+          items: [
+            { title: 'Service One', category: 'Services', kind: 'generic', description: 'First service.' },
+            { title: 'Service Two', category: 'Services', kind: 'generic', description: 'Second service.' },
+            { title: 'Resource One', category: 'Resources', kind: 'generic', description: 'First resource.' },
+          ],
+        },
+      },
     })
-    expect(explorer.findAll('.dsf-explorer-card')).toHaveLength(18)
-    expect(explorer.findAll('[data-dsf-card]')).toHaveLength(18)
-    expect(explorer.text()).toContain('Product Grid')
+    expect(explorer.findAll('.dsf-explorer-card')).toHaveLength(3)
+    expect(explorer.findAll('[data-dsf-card]')).toHaveLength(3)
+    expect(explorer.text()).toContain('Service One')
 
     // Filtering keeps every card mounted but focuses only the matches.
-    const ecommerceButton = explorer.findAll('.dsf-block-explorer__filters button').find((button) => button.text() === 'Ecommerce')
-    await ecommerceButton.trigger('click')
+    const servicesButton = explorer.findAll('.dsf-block-explorer__filters button').find((button) => button.text() === 'Services')
+    await servicesButton.trigger('click')
     const focused = explorer.findAll('.dsf-explorer-card.is-focus')
-    expect(focused).toHaveLength(1)
-    expect(focused.at(0).text()).toContain('Product Grid')
-    expect(explorer.findAll('.dsf-explorer-card.is-dim')).toHaveLength(17)
+    expect(focused).toHaveLength(2)
+    expect(focused.at(0).text()).toContain('Service One')
+    expect(explorer.findAll('.dsf-explorer-card.is-dim')).toHaveLength(1)
     expect(explorer.find('[aria-label="Show previous blocks"]').attributes('disabled')).toBeDefined()
     expect(explorer.find('[aria-label="Show next blocks"]').attributes('aria-controls')).toContain('dsf-block-explorer-rail-')
   })
@@ -105,13 +121,20 @@ describe('DSFlow landing page blocks', () => {
         { id: 'product-only', name: 'Product Only', category: 'content', description: 'Hidden.', template_scope: 'product' },
       ],
     })
-    const explorer = mount(LandingBlockExplorerPreview, { props: { isEditor: true, settings: {} } })
+    const explorer = mount(LandingBlockExplorerPreview, { props: { isEditor: true, settings: { source: 'block-library' } } })
     expect(explorer.findAll('.dsf-explorer-card')).toHaveLength(2)
     expect(explorer.text()).toContain('Showcase Hero')
     expect(explorer.text()).toContain('Brand Carousel')
     expect(explorer.text()).not.toContain('Product Only')
     explorer.unmount()
     vi.unstubAllGlobals()
+  })
+
+  it('keeps a fresh content carousel generic until a preset or custom items are chosen', () => {
+    const explorer = mount(LandingBlockExplorerPreview, { props: { isEditor: true, settings: {} } })
+    expect(explorer.findAll('.dsf-explorer-card')).toHaveLength(3)
+    expect(explorer.text()).toContain('Featured item one')
+    expect(explorer.text()).not.toContain('Product Grid')
   })
 
   it('switches product story and trust visuals by bounded variants', () => {

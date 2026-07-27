@@ -52,6 +52,39 @@ describe('Theme sync', () => {
     expect(result[0].settings.backgroundColor).toBe('#FF0000')
   })
 
+  it('preserves custom backgrounds through a theme change and undo', () => {
+    const blocks = [
+      { type: 'hero', settings: { backgroundColor: '#FF0000' } },
+      { type: 'hero', settings: { backgroundColor: '#FFFFFF' } },
+      { type: 'hero', settings: { backgroundColor: '#FCFBF7' } },
+    ]
+    const linkedSettings = { hero: { backgroundColor: 'backgroundColor' } }
+    const originalTheme = { backgroundColor: '#FCFBF7' }
+    const changedTheme = { backgroundColor: '#111827' }
+
+    const changedBlocks = applyThemeToBlocks(
+      blocks,
+      originalTheme,
+      changedTheme,
+      linkedSettings,
+      { allowAliases: false }
+    )
+    const undoneBlocks = applyThemeToBlocks(
+      changedBlocks,
+      changedTheme,
+      originalTheme,
+      linkedSettings,
+      { allowAliases: false }
+    )
+
+    expect(changedBlocks[0].settings.backgroundColor).toBe('#FF0000')
+    expect(changedBlocks[1].settings.backgroundColor).toBe('#FFFFFF')
+    expect(changedBlocks[2].settings.backgroundColor).toBe('#111827')
+    expect(undoneBlocks[0].settings.backgroundColor).toBe('#FF0000')
+    expect(undoneBlocks[1].settings.backgroundColor).toBe('#FFFFFF')
+    expect(undoneBlocks[2].settings.backgroundColor).toBe('#FCFBF7')
+  })
+
   it('maps semantic color setting names to page theme tokens', async () => {
     const { resolveThemeKey } = await import('../../utils/themeSync.js')
 

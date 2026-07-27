@@ -65,6 +65,40 @@ class Test_DSF_GF_Migration extends TestCase {
 		$this->assertSame( 'paragraph_text', $mapped['rows'][2]['fields'][0]['type'] );
 	}
 
+	public function test_adjacent_gravity_forms_half_width_fields_become_a_dsf_fifty_fifty_row() {
+		$mapped = $this->map(
+			array(
+				'fields' => array(
+					array( 'id' => 1, 'type' => 'text', 'label' => 'First Name', 'layoutGroupId' => 'contact-row', 'layoutGridColumnSpan' => 6 ),
+					array( 'id' => 2, 'type' => 'text', 'label' => 'Last Name', 'layoutGroupId' => 'contact-row', 'layoutGridColumnSpan' => '6' ),
+					array( 'id' => 3, 'type' => 'email', 'label' => 'Email', 'layoutGroupId' => 'email-row', 'layoutGridColumnSpan' => 12 ),
+				),
+			)
+		);
+
+		$this->assertCount( 2, $mapped['rows'] );
+		$this->assertCount( 2, $mapped['rows'][0]['fields'] );
+		$this->assertSame( 'half', $mapped['rows'][0]['fields'][0]['width'] );
+		$this->assertSame( 'half', $mapped['rows'][0]['fields'][1]['width'] );
+		$this->assertSame( 'First Name', $mapped['rows'][0]['fields'][0]['label'] );
+		$this->assertSame( 'Last Name', $mapped['rows'][0]['fields'][1]['label'] );
+		$this->assertSame( 'full', $mapped['rows'][1]['fields'][0]['width'] );
+	}
+
+	public function test_legacy_gravity_forms_half_width_classes_become_a_dsf_fifty_fifty_row() {
+		$mapped = $this->map(
+			array(
+				'fields' => array(
+					array( 'id' => 1, 'type' => 'text', 'label' => 'First Name', 'cssClass' => 'custom gf_left_half' ),
+					array( 'id' => 2, 'type' => 'text', 'label' => 'Last Name', 'cssClass' => 'gf_right_half' ),
+				),
+			)
+		);
+
+		$this->assertCount( 1, $mapped['rows'] );
+		$this->assertCount( 2, $mapped['rows'][0]['fields'] );
+	}
+
 	public function test_choices_map_to_options_with_selection_and_values() {
 		$mapped = $this->map(
 			array(
@@ -118,6 +152,34 @@ class Test_DSF_GF_Migration extends TestCase {
 		$this->assertSame( 'Family Name', $fields[1]['label'] );
 	}
 
+	public function test_name_field_imports_all_visible_sub_inputs_and_their_settings() {
+		$mapped = $this->map(
+			array(
+				'fields' => array(
+					array(
+						'id'     => 15,
+						'type'   => 'name',
+						'label'  => 'Contact',
+						'inputs' => array(
+							array( 'id' => '15.2', 'label' => 'Prefix', 'inputType' => 'radio', 'choices' => array( array( 'text' => 'Dr.', 'value' => 'Dr.' ) ) ),
+							array( 'id' => '15.3', 'label' => 'First', 'customLabel' => 'Given Name', 'name' => 'first_name', 'placeholder' => 'Ada' ),
+							array( 'id' => '15.4', 'label' => 'Middle', 'defaultValue' => 'M' ),
+							array( 'id' => '15.6', 'label' => 'Last' ),
+							array( 'id' => '15.8', 'label' => 'Suffix', 'isHidden' => true ),
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertCount( 2, $mapped['rows'] );
+		$this->assertSame( 'radio_buttons', $mapped['rows'][0]['fields'][0]['type'] );
+		$this->assertSame( 'Given Name', $mapped['rows'][0]['fields'][1]['label'] );
+		$this->assertSame( 'first_name', $mapped['rows'][0]['fields'][1]['paramName'] );
+		$this->assertSame( 'M', $mapped['rows'][1]['fields'][0]['defaultValue'] );
+		$this->assertSame( 'gf-15-last', $mapped['rows'][1]['fields'][1]['id'] );
+	}
+
 	public function test_address_field_expands_into_three_rows() {
 		$mapped = $this->map(
 			array(
@@ -130,8 +192,45 @@ class Test_DSF_GF_Migration extends TestCase {
 		$this->assertCount( 3, $mapped['rows'] );
 		$this->assertSame( 'gf-6-street', $mapped['rows'][0]['fields'][0]['id'] );
 		$this->assertSame( 'Street Address', $mapped['rows'][0]['fields'][0]['label'] );
+		$this->assertSame( 'gf-6-street_2', $mapped['rows'][0]['fields'][1]['id'] );
 		$this->assertCount( 2, $mapped['rows'][1]['fields'] );
 		$this->assertCount( 2, $mapped['rows'][2]['fields'] );
+	}
+
+	public function test_hidden_visibility_and_admin_only_fields_become_hidden_inputs() {
+		$mapped = $this->map(
+			array(
+				'fields' => array(
+					array( 'id' => 21, 'type' => 'text', 'label' => 'Campaign', 'visibility' => 'hidden', 'defaultValue' => 'summer' ),
+					array(
+						'id'        => 22,
+						'type'      => 'select',
+						'label'     => 'Status',
+						'adminOnly' => true,
+						'choices'   => array(
+							array( 'text' => 'New', 'value' => 'new', 'isSelected' => true ),
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 'hidden', $mapped['rows'][0]['fields'][0]['type'] );
+		$this->assertSame( 'summer', $mapped['rows'][0]['fields'][0]['defaultValue'] );
+		$this->assertSame( 'hidden', $mapped['rows'][1]['fields'][0]['type'] );
+		$this->assertSame( 'new', $mapped['rows'][1]['fields'][0]['defaultValue'] );
+	}
+
+	public function test_dynamic_population_parameter_is_preserved() {
+		$mapped = $this->map(
+			array(
+				'fields' => array(
+					array( 'id' => 23, 'type' => 'hidden', 'label' => 'Campaign', 'allowsPrepopulate' => true, 'inputName' => 'utm_campaign' ),
+				),
+			)
+		);
+
+		$this->assertSame( 'utm_campaign', $mapped['rows'][0]['fields'][0]['paramName'] );
 	}
 
 	public function test_conditional_logic_remaps_field_ids_and_operators() {
@@ -183,9 +282,10 @@ class Test_DSF_GF_Migration extends TestCase {
 			)
 		);
 
-		$this->assertSame( array( 'captcha', 'list' ), $mapped['skipped'] );
-		$this->assertSame( 'page_break', $mapped['rows'][0]['fields'][0]['type'] );
-		$this->assertSame( '<p>Hello</p>', $mapped['rows'][1]['fields'][0]['html'] );
+		$this->assertSame( array( 'captcha' ), $mapped['skipped'] );
+		$this->assertSame( 'paragraph_text', $mapped['rows'][0]['fields'][0]['type'] );
+		$this->assertSame( 'page_break', $mapped['rows'][1]['fields'][0]['type'] );
+		$this->assertSame( '<p>Hello</p>', $mapped['rows'][2]['fields'][0]['html'] );
 	}
 
 	public function test_duplicate_labels_get_unique_machine_names() {

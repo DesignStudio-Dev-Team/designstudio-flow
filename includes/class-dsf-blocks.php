@@ -295,6 +295,13 @@ class DSF_Blocks {
 						'label'   => 'Subtitle',
 						'default' => 'Discover amazing products',
 					),
+					'descriptionMaxWidth'    => array(
+						'type'    => 'slider',
+						'label'   => 'Paragraph Width',
+						'default' => 800,
+						'min'     => 240,
+						'max'     => 1200,
+					),
 					'layoutStyle'            => array(
 						'type'    => 'select',
 						'label'   => 'Layout Style',
@@ -395,6 +402,18 @@ class DSF_Blocks {
 						'type'    => 'image',
 						'label'   => 'Background Image',
 						'default' => '',
+					),
+					'backgroundMediaType'   => array(
+						'type'    => 'select',
+						'label'   => 'Background Media Type',
+						'default' => 'image',
+						'options' => array( 'Image' => 'image', 'Video' => 'video' ),
+					),
+					'backgroundVideo'       => array(
+						'type'     => 'video',
+						'label'    => 'Background Video (MP4)',
+						'default'  => '',
+						'showWhen' => array( 'backgroundMediaType' => 'video' ),
 					),
 					'backgroundColor'        => array(
 						'type'    => 'color',
@@ -726,10 +745,16 @@ class DSF_Blocks {
 			array(
 				'id'          => 'pricing',
 				'name'        => 'Pricing',
-				'category'    => 'marketing',
+				'category'    => 'ecommerce',
 				'icon'        => 'badge-dollar-sign',
 				'description' => 'Pricing plans with monthly and annual billing options',
 				'settings'    => array(
+					'layout'          => array(
+						'type'    => 'select',
+						'label'   => 'Pricing Layout',
+						'default' => 'classic',
+						'options' => array( 'Classic Pricing' => 'classic', 'Modern Pricing' => 'modern' ),
+					),
 					'eyebrow'         => array(
 						'type'    => 'text',
 						'label'   => 'Eyebrow',
@@ -888,6 +913,7 @@ class DSF_Blocks {
 		$this->register_block(
 			array(
 				'id'          => 'pricing-tables',
+				'preset_only' => true,
 				'name'        => 'Modern Pricing Tables',
 				'category'    => 'marketing',
 				'icon'        => 'panels-top-left',
@@ -934,12 +960,12 @@ class DSF_Blocks {
 						'type'    => 'expander_cards',
 						'label'   => 'Cards',
 						'default' => array(
-							array( 'title' => 'Card 1', 'image' => '', 'url' => '#' ),
-							array( 'title' => 'Card 2', 'image' => '', 'url' => '#' ),
-							array( 'title' => 'Card 3', 'image' => '', 'url' => '#' ),
-							array( 'title' => 'Card 4', 'image' => '', 'url' => '#' ),
-							array( 'title' => 'Card 5', 'image' => '', 'url' => '#' ),
-							array( 'title' => 'Card 6', 'image' => '', 'url' => '#' ),
+							array( 'title' => 'Card 1', 'image' => '', 'mediaType' => 'image', 'video' => '', 'url' => '#' ),
+							array( 'title' => 'Card 2', 'image' => '', 'mediaType' => 'image', 'video' => '', 'url' => '#' ),
+							array( 'title' => 'Card 3', 'image' => '', 'mediaType' => 'image', 'video' => '', 'url' => '#' ),
+							array( 'title' => 'Card 4', 'image' => '', 'mediaType' => 'image', 'video' => '', 'url' => '#' ),
+							array( 'title' => 'Card 5', 'image' => '', 'mediaType' => 'image', 'video' => '', 'url' => '#' ),
+							array( 'title' => 'Card 6', 'image' => '', 'mediaType' => 'image', 'video' => '', 'url' => '#' ),
 						),
 					),
 					'barPosition'     => array(
@@ -1080,6 +1106,8 @@ class DSF_Blocks {
 								'title'                  => 'Easy to Use',
 								'description'            => 'Intuitive drag-and-drop interface',
 								'image'                  => '',
+								'mediaType'              => 'image',
+								'video'                  => '',
 								'imagePosition'          => 'above',
 								'buttonText'             => 'Learn More',
 								'buttonUrl'              => '#',
@@ -1094,6 +1122,8 @@ class DSF_Blocks {
 								'title'                  => 'Customizable',
 								'description'            => 'Full control over styling',
 								'image'                  => '',
+								'mediaType'              => 'image',
+								'video'                  => '',
 								'imagePosition'          => 'above',
 								'buttonText'             => 'Learn More',
 								'buttonUrl'              => '#',
@@ -1108,6 +1138,8 @@ class DSF_Blocks {
 								'title'                  => 'Responsive',
 								'description'            => 'Works on all devices',
 								'image'                  => '',
+								'mediaType'              => 'image',
+								'video'                  => '',
 								'imagePosition'          => 'above',
 								'buttonText'             => 'Learn More',
 								'buttonUrl'              => '#',
@@ -1298,6 +1330,14 @@ class DSF_Blocks {
 						'section' => 'header',
 						'default' => 'Add a short introduction that explains the value of what you offer.',
 					),
+					'descriptionMaxWidth'  => array(
+						'type'    => 'slider',
+						'label'   => 'Paragraph Width',
+						'section' => 'header',
+						'default' => 640,
+						'min'     => 240,
+						'max'     => 1200,
+					),
 					// Cards
 					'cards'                => array(
 						'type'    => 'card_column_items',
@@ -1316,6 +1356,7 @@ class DSF_Blocks {
 								'gradientStart'     => '#F3F4F6',
 								'gradientEnd'       => '#E5E7EB',
 								'gradientDirection' => 'top-bottom',
+								'linkMode'          => 'none',
 								'showButton'        => false,
 								'buttonText'        => '',
 								'buttonUrl'         => '',
@@ -1332,6 +1373,7 @@ class DSF_Blocks {
 								'gradientStart'     => '#F3F4F6',
 								'gradientEnd'       => '#E5E7EB',
 								'gradientDirection' => 'top-bottom',
+								'linkMode'          => 'none',
 								'showButton'        => false,
 								'buttonText'        => '',
 								'buttonUrl'         => '',
@@ -1348,6 +1390,7 @@ class DSF_Blocks {
 								'gradientStart'     => '#F3F4F6',
 								'gradientEnd'       => '#E5E7EB',
 								'gradientDirection' => 'top-bottom',
+								'linkMode'          => 'none',
 								'showButton'        => false,
 								'buttonText'        => '',
 								'buttonUrl'         => '',
@@ -1561,6 +1604,59 @@ class DSF_Blocks {
 						'min'     => 0,
 						'max'     => 100,
 					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'anchor-gallery',
+				'name'        => 'Anchor Gallery',
+				'category'    => 'content',
+				'icon'        => 'layout-grid',
+				'description' => 'Image gallery with an anchor layout and optional title overlays.',
+				'settings'    => array(
+					'showEyebrow'   => array( 'type' => 'toggle', 'label' => 'Show Eyebrow', 'default' => true ),
+					'eyebrow'       => array( 'type' => 'text', 'label' => 'Eyebrow', 'default' => '' ),
+					'title'         => array( 'type' => 'text', 'label' => 'Title', 'default' => 'Explore our featured collections' ),
+					'description'   => array( 'type' => 'textarea', 'label' => 'Description', 'default' => 'Discover products and experiences selected for your space.' ),
+					'layout'        => array(
+						'type'    => 'select',
+						'label'   => 'Layout',
+						'default' => 'anchor',
+						'options' => array( 'Anchor' => 'anchor', 'Grid' => 'grid' ),
+					),
+					'titlePosition' => array(
+						'type'    => 'select',
+						'label'   => 'Tile Title Position',
+						'default' => 'below',
+						'options' => array( 'Below Image' => 'below', 'Overlay Image' => 'overlay' ),
+					),
+					'textAlign'     => array(
+						'type'    => 'select',
+						'label'   => 'Tile Text Alignment',
+						'default' => 'center',
+						'options' => array( 'Left' => 'left', 'Center' => 'center', 'Right' => 'right' ),
+					),
+					'items'         => array(
+						'type'     => 'anchor_gallery_items',
+						'label'    => 'Gallery Tiles',
+						'maxItems' => 8,
+						'default'  => array(
+							array( 'title' => 'Featured Item 1', 'image' => '', 'mediaType' => 'image', 'video' => '', 'url' => '#' ),
+							array( 'title' => 'Featured Item 2', 'image' => '', 'mediaType' => 'image', 'video' => '', 'url' => '#' ),
+							array( 'title' => 'Featured Item 3', 'image' => '', 'mediaType' => 'image', 'video' => '', 'url' => '#' ),
+							array( 'title' => 'Featured Item 4', 'image' => '', 'mediaType' => 'image', 'video' => '', 'url' => '#' ),
+							array( 'title' => 'Featured Item 5', 'image' => '', 'mediaType' => 'image', 'video' => '', 'url' => '#' ),
+						),
+					),
+					'gap'           => array( 'type' => 'slider', 'label' => 'Tile Gap', 'default' => 16, 'min' => 0, 'max' => 40 ),
+					'padding'       => array( 'type' => 'slider', 'label' => 'Vertical Padding', 'default' => 40, 'min' => 0, 'max' => 160 ),
+					'paddingX'      => array( 'type' => 'slider', 'label' => 'Horizontal Padding', 'default' => 24, 'min' => 0, 'max' => 120 ),
+					'marginY'       => array( 'type' => 'slider', 'label' => 'Vertical Margin', 'default' => 25, 'min' => 0, 'max' => 100 ),
+					'backgroundColor' => array( 'type' => 'color', 'label' => 'Background Color', 'default' => '#FFFFFF' ),
+					'titleColor'     => array( 'type' => 'color', 'label' => 'Title Color', 'default' => '#111827' ),
+					'descriptionColor' => array( 'type' => 'color', 'label' => 'Description Color', 'default' => '#6B7280' ),
 				),
 			)
 		);
@@ -2392,6 +2488,18 @@ class DSF_Blocks {
 						'label'   => 'Left Image',
 						'default' => '',
 					),
+					'leftMediaType'              => array(
+						'type'    => 'select',
+						'label'   => 'Left Media Type',
+						'default' => 'image',
+						'options' => array( 'Image' => 'image', 'Video' => 'video' ),
+					),
+					'leftVideo'                  => array(
+						'type'     => 'video',
+						'label'    => 'Left Video (MP4)',
+						'default'  => '',
+						'showWhen' => array( 'leftMediaType' => 'video' ),
+					),
 					'leftTitle'                   => array(
 						'type'    => 'text',
 						'label'   => 'Left Title',
@@ -2521,6 +2629,18 @@ class DSF_Blocks {
 						'type'    => 'image',
 						'label'   => 'Right Image',
 						'default' => '',
+					),
+					'rightMediaType'              => array(
+						'type'    => 'select',
+						'label'   => 'Right Media Type',
+						'default' => 'image',
+						'options' => array( 'Image' => 'image', 'Video' => 'video' ),
+					),
+					'rightVideo'                  => array(
+						'type'     => 'video',
+						'label'    => 'Right Video (MP4)',
+						'default'  => '',
+						'showWhen' => array( 'rightMediaType' => 'video' ),
 					),
 					'rightTitle'                  => array(
 						'type'    => 'text',
@@ -2691,10 +2811,29 @@ class DSF_Blocks {
 						'label'   => 'Description',
 						'default' => 'Default text here',
 					),
+					'descriptionMaxWidth'    => array(
+						'type'    => 'slider',
+						'label'   => 'Paragraph Width',
+						'default' => 600,
+						'min'     => 240,
+						'max'     => 1200,
+					),
 					'image'                  => array(
 						'type'    => 'image',
 						'label'   => 'Banner Image',
 						'default' => '',
+					),
+					'mediaType'              => array(
+						'type'    => 'select',
+						'label'   => 'Banner Media Type',
+						'default' => 'image',
+						'options' => array( 'Image' => 'image', 'Video' => 'video' ),
+					),
+					'video'                  => array(
+						'type'     => 'video',
+						'label'    => 'Banner Video (MP4)',
+						'default'  => '',
+						'showWhen' => array( 'mediaType' => 'video' ),
 					),
 					'imagePosition'          => array(
 						'type'    => 'select',
@@ -2949,6 +3088,40 @@ class DSF_Blocks {
 
 		$this->register_block(
 			array(
+				'id'          => 'feature-image-cta',
+				'name'        => 'Feature Image CTA + Icons',
+				'category'    => 'content',
+				'icon'        => 'image',
+				'description' => 'A split feature section with highlights, a CTA, and an adjustable image.',
+				'settings'    => array(
+					'title'           => array( 'type' => 'text', 'label' => 'Title', 'default' => 'Add your heading' ),
+					'description'     => array( 'type' => 'textarea', 'label' => 'Description', 'default' => 'Add a short description for this feature.' ),
+					'features'        => array(
+						'type'    => 'icon_items',
+						'label'   => 'Highlights',
+						'default' => array(
+							array( 'icon' => 'zap', 'title' => 'Add icon label', 'description' => '', 'note' => '' ),
+							array( 'icon' => 'sparkles', 'title' => 'Add icon label', 'description' => '', 'note' => '' ),
+							array( 'icon' => 'settings', 'title' => 'Add icon label', 'description' => '', 'note' => '' ),
+						),
+					),
+					'showButton'      => array( 'type' => 'toggle', 'label' => 'Show CTA', 'default' => true ),
+					'buttonText'      => array( 'type' => 'text', 'label' => 'CTA Text', 'default' => 'Add CTA text', 'showWhen' => array( 'showButton' => true ) ),
+					'buttonUrl'       => array( 'type' => 'text', 'label' => 'CTA URL', 'default' => '#', 'showWhen' => array( 'showButton' => true ) ),
+					'image'           => array( 'type' => 'image', 'label' => 'Image', 'default' => '' ),
+					'imagePosition'   => array( 'type' => 'select', 'label' => 'Image Position', 'default' => 'right', 'options' => array( 'Left' => 'left', 'Right' => 'right' ) ),
+					'imageInset'      => array( 'type' => 'slider', 'label' => 'Image Inset', 'default' => 0, 'min' => 0, 'max' => 200, 'unit' => 'px' ),
+					'backgroundColor' => array( 'type' => 'color', 'label' => 'Background Color', 'default' => '#f3f4f6' ),
+					'buttonColor'     => array( 'type' => 'color', 'label' => 'CTA Color', 'default' => '#2473a6', 'showWhen' => array( 'showButton' => true ) ),
+					'buttonTextColor' => array( 'type' => 'color', 'label' => 'CTA Text Color', 'default' => '#ffffff', 'showWhen' => array( 'showButton' => true ) ),
+					'borderRadius'    => array( 'type' => 'slider', 'label' => 'Corner Radius', 'default' => 20, 'min' => 0, 'max' => 48, 'unit' => 'px' ),
+					'paddingY'        => array( 'type' => 'slider', 'label' => 'Vertical Padding', 'default' => 48, 'min' => 0, 'max' => 160, 'unit' => 'px' ),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
 				'id'          => 'text-image',
 				'name'        => 'Text & Image',
 				'category'    => 'content',
@@ -2958,12 +3131,12 @@ class DSF_Blocks {
 					'title'                  => array(
 						'type'    => 'text',
 						'label'   => 'Title',
-						'default' => 'About Our Story',
+						'default' => 'Add your section title',
 					),
 					'content'                => array(
 						'type'    => 'textarea',
 						'label'   => 'Description',
-						'default' => 'Share your brand story here.',
+						'default' => 'Add supporting content that explains this section.',
 					),
 					'descriptionSize'        => array(
 						'type'    => 'select',
@@ -2982,7 +3155,7 @@ class DSF_Blocks {
 					'buttonText'             => array(
 						'type'    => 'text',
 						'label'   => 'Button Text',
-						'default' => 'Learn More',
+						'default' => 'Learn more',
 					),
 					'buttonUrl'              => array(
 						'type'     => 'text',
@@ -3064,6 +3237,18 @@ class DSF_Blocks {
 						'type'    => 'image',
 						'label'   => 'Image',
 						'default' => '',
+					),
+					'mediaType'              => array(
+						'type'    => 'select',
+						'label'   => 'Media Type',
+						'default' => 'image',
+						'options' => array( 'Image' => 'image', 'Video' => 'video' ),
+					),
+					'video'                  => array(
+						'type'     => 'video',
+						'label'    => 'Video (MP4)',
+						'default'  => '',
+						'showWhen' => array( 'mediaType' => 'video' ),
 					),
 					'imagePosition'          => array(
 						'type'    => 'select',
@@ -3402,12 +3587,12 @@ class DSF_Blocks {
 					'contentBg'       => array(
 						'type'    => 'color',
 						'label'   => 'Content Background',
-						'default' => '',
+						'default' => '#FFFFFF',
 					),
 					'formBg'          => array(
 						'type'    => 'color',
 						'label'   => 'Form Column Background',
-						'default' => '',
+						'default' => '#FFFFFF',
 					),
 					'textColor'       => array(
 						'type'    => 'color',
@@ -4923,6 +5108,13 @@ class DSF_Blocks {
 				'settings'       => array(
 					'showImage'      => array( 'type' => 'toggle', 'label' => 'Show Category Image', 'default' => true ),
 					'showDescription' => array( 'type' => 'toggle', 'label' => 'Show Description', 'default' => true ),
+					'descriptionMaxWidth' => array(
+						'type'    => 'slider',
+						'label'   => 'Paragraph Width',
+						'default' => 900,
+						'min'     => 240,
+						'max'     => 1200,
+					),
 					'showParentLink' => array( 'type' => 'toggle', 'label' => 'Show Parent Category Link', 'default' => true ),
 					'alignment'      => array( 'type' => 'select', 'label' => 'Text Alignment', 'default' => 'left', 'options' => array( 'Left' => 'left', 'Center' => 'center' ) ),
 					'overlayColor'   => array( 'type' => 'color', 'label' => 'Image Overlay Color', 'default' => '' ),
@@ -5974,6 +6166,61 @@ class DSF_Blocks {
 
 		$this->register_block(
 			array(
+				'id'          => 'tabbed-product-showcase',
+				'name'        => 'Tabbed Product Showcase',
+				'category'    => 'ecommerce',
+				'icon'        => 'layout-template',
+				'description' => 'Show live products or curated images in selectable tabs.',
+					'settings'    => array(
+						'title'           => array( 'type' => 'text', 'label' => 'Section Title', 'default' => 'Featured Collections', 'maxLength' => 160 ),
+						'showDescription' => array( 'type' => 'toggle', 'label' => 'Show Description', 'default' => true ),
+						'description'     => array( 'type' => 'textarea', 'label' => 'Description', 'default' => 'Explore featured products and collections for your space.' ),
+					'style'           => array(
+						'type'    => 'select',
+						'label'   => 'Showcase Style',
+						'default' => 'image',
+						'options' => array(
+							'Image Showcase'   => 'image',
+							'Product Showcase' => 'products',
+							'Standard Tabs'    => 'tabs',
+						),
+					),
+					'tabStyle'        => array(
+						'type'    => 'select',
+						'label'   => 'Tab System Style',
+						'default' => 'modern',
+						'options' => array(
+							'Modern Tabs'     => 'modern',
+							'Underline Tabs'  => 'underline',
+							'Chevron Tabs'    => 'chevron',
+						),
+					),
+					'tabs'            => array(
+						'type'    => 'tabbed_showcase_tabs',
+						'label'   => 'Showcase Tabs',
+						'default' => array(
+							array( 'label' => 'Featured', 'source' => 'images', 'supportingText' => '', 'productIds' => array(), 'images' => array() ),
+							array( 'label' => 'Popular', 'source' => 'images', 'supportingText' => '', 'productIds' => array(), 'images' => array() ),
+							array( 'label' => 'New Arrivals', 'source' => 'images', 'supportingText' => '', 'productIds' => array(), 'images' => array() ),
+						),
+					),
+					'showButtons'      => array( 'type' => 'toggle', 'label' => 'Show Call-to-Action Buttons', 'default' => true ),
+					'primaryText'      => array( 'type' => 'text', 'label' => 'Primary Button Text', 'default' => 'Explore All', 'maxLength' => 80 ),
+					'primaryUrl'       => array( 'type' => 'url', 'label' => 'Primary Button URL', 'default' => '#' ),
+					'secondaryText'    => array( 'type' => 'text', 'label' => 'Secondary Button Text', 'default' => 'Learn More', 'maxLength' => 80 ),
+					'secondaryUrl'     => array( 'type' => 'url', 'label' => 'Secondary Button URL', 'default' => '#' ),
+					'backgroundColor'  => array( 'type' => 'color', 'label' => 'Background Color', 'default' => '#FFFFFF' ),
+					'titleColor'       => array( 'type' => 'color', 'label' => 'Title Color', 'default' => '#111111' ),
+					'accentColor'      => array( 'type' => 'color', 'label' => 'Active Tab Color', 'default' => '#2C7FA3' ),
+					'padding'          => array( 'type' => 'slider', 'label' => 'Vertical Padding', 'default' => 56, 'min' => 0, 'max' => 160 ),
+					'paddingX'         => array( 'type' => 'slider', 'label' => 'Horizontal Padding', 'default' => 24, 'min' => 0, 'max' => 120 ),
+					'marginY'          => array( 'type' => 'slider', 'label' => 'Vertical Margin', 'default' => 25, 'min' => 0, 'max' => 100 ),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
 				'id'          => 'ecommerce-showcase',
 				'name'        => 'Ecommerce Showcase',
 				'category'    => 'ecommerce',
@@ -5999,6 +6246,22 @@ class DSF_Blocks {
 						'type'    => 'toggle',
 						'label'   => 'Show Shop All Link',
 						'default' => true,
+					),
+					'showProductCount' => array(
+						'type'     => 'toggle',
+						'label'    => 'Show Product Count',
+						'default'  => true,
+						'showWhen' => array( 'displayMode' => 'products' ),
+					),
+					'countText'        => array(
+						'type'      => 'text',
+						'label'     => 'Product Count Text',
+						'default'   => '{count} products total',
+						'maxLength' => 120,
+						'showWhen'  => array(
+							'displayMode'      => 'products',
+							'showProductCount' => true,
+						),
 					),
 					// Categories mode settings (only show when displayMode is 'categories')
 					'categoryIds'      => array(
@@ -6029,6 +6292,17 @@ class DSF_Blocks {
 						'min'     => 1,
 						'max'     => 20,
 					),
+					'imageFit'         => array(
+						'type'     => 'select',
+						'label'    => 'Product Image Fit',
+						'default'  => 'contain',
+						'options'  => array(
+							'Fit Inside'     => 'contain',
+							'Fill Frame'     => 'cover',
+							'Do Not Enlarge' => 'scale-down',
+						),
+						'showWhen' => array( 'displayMode' => 'products' ),
+					),
 					// Style settings
 					'backgroundColor'  => array(
 						'type'    => 'color',
@@ -6052,6 +6326,49 @@ class DSF_Blocks {
 						'default'  => '#DC2626',
 						'showWhen' => array( 'displayMode' => 'products' ),
 					),
+					'countColor'       => array(
+						'type'     => 'color',
+						'label'    => 'Product Count Color',
+						'default'  => '#6B7280',
+						'showWhen' => array(
+							'displayMode'      => 'products',
+							'showProductCount' => true,
+						),
+					),
+					'showAddToCart'    => array(
+						'type'     => 'toggle',
+						'label'    => 'Show Add to Cart',
+						'default'  => true,
+						'showWhen' => array( 'displayMode' => 'products' ),
+					),
+					'buttonText'       => array(
+						'type'      => 'text',
+						'label'     => 'Add to Cart Text',
+						'default'   => 'Add to Cart',
+						'maxLength' => 80,
+						'showWhen'  => array(
+							'displayMode'   => 'products',
+							'showAddToCart' => true,
+						),
+					),
+					'buttonColor'      => array(
+						'type'     => 'color',
+						'label'    => 'Add to Cart Color',
+						'default'  => '#2C5F5D',
+						'showWhen' => array(
+							'displayMode'   => 'products',
+							'showAddToCart' => true,
+						),
+					),
+					'buttonTextColor'  => array(
+						'type'     => 'color',
+						'label'    => 'Add to Cart Text Color',
+						'default'  => '#FFFFFF',
+						'showWhen' => array(
+							'displayMode'   => 'products',
+							'showAddToCart' => true,
+						),
+					),
 					'padding'          => array(
 						'type'    => 'slider',
 						'label'   => 'Vertical Padding',
@@ -6073,6 +6390,61 @@ class DSF_Blocks {
 						'min'     => 0,
 						'max'     => 100,
 					),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'brand-showcase-grid',
+				'name'        => 'Brand Showcase Grid',
+				'category'    => 'marketing',
+				'icon'        => 'layout-grid',
+				'description' => 'A row of brand cards with bottom-aligned images and optional links.',
+				'settings'    => array(
+					'title'           => array( 'type' => 'text', 'label' => 'Heading', 'default' => 'Add your heading' ),
+					'description'     => array( 'type' => 'textarea', 'label' => 'Description', 'default' => 'Add a short introduction for your brand collection.' ),
+					'cards'           => array(
+						'type'    => 'brand_showcase_cards',
+						'label'   => 'Brand Cards',
+						'default' => array(
+							array( 'title' => 'Brand name', 'subtitle' => 'Add a short brand message', 'image' => '', 'backgroundColor' => '#E8F4FE', 'textColor' => '#111111', 'url' => '' ),
+							array( 'title' => 'Brand name', 'subtitle' => 'Add a short brand message', 'image' => '', 'backgroundColor' => '#F2F2F2', 'textColor' => '#111111', 'url' => '' ),
+							array( 'title' => 'Brand name', 'subtitle' => 'Add a short brand message', 'image' => '', 'backgroundColor' => '#EEE7E1', 'textColor' => '#111111', 'url' => '' ),
+							array( 'title' => 'Brand name', 'subtitle' => 'Add a short brand message', 'image' => '', 'backgroundColor' => '#E7ECF2', 'textColor' => '#111111', 'url' => '' ),
+							array( 'title' => 'Brand name', 'subtitle' => 'Add a short brand message', 'image' => '', 'backgroundColor' => '#1B1B1B', 'textColor' => '#FFFFFF', 'url' => '' ),
+						),
+					),
+					'backgroundColor' => array( 'type' => 'color', 'label' => 'Section Background', 'default' => '#FFFFFF' ),
+					'paddingY'        => array( 'type' => 'slider', 'label' => 'Vertical Padding', 'default' => 48, 'min' => 0, 'max' => 160 ),
+					'paddingX'        => array( 'type' => 'slider', 'label' => 'Horizontal Padding', 'default' => 20, 'min' => 0, 'max' => 120 ),
+					'cardRadius'      => array( 'type' => 'slider', 'label' => 'Card Corner Radius', 'default' => 20, 'min' => 0, 'max' => 48 ),
+					'cardGap'         => array( 'type' => 'slider', 'label' => 'Card Gap', 'default' => 16, 'min' => 0, 'max' => 48 ),
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
+				'id'          => 'image-logo-grid',
+				'name'        => 'Image + Logo Grid',
+				'category'    => 'marketing',
+				'icon'        => 'layout-grid',
+				'description' => 'Show image cards with an overlapping logo panel, up to two rows of four.',
+				'settings'    => array(
+					'title'          => array( 'type' => 'text', 'label' => 'Heading', 'default' => 'Explore our featured collections', 'maxLength' => 160 ),
+					'description'    => array( 'type' => 'textarea', 'label' => 'Description', 'default' => 'Discover trusted products and brands selected to help you find the right fit for your space.', 'maxLength' => 300 ),
+					'items'          => array(
+						'type'    => 'image_logo_grid_items',
+						'label'   => 'Image and Logo Cards',
+					'default' => array( array( 'image' => '', 'logo' => '', 'url' => '' ), array( 'image' => '', 'logo' => '', 'url' => '' ), array( 'image' => '', 'logo' => '', 'url' => '' ) ),
+					),
+					'backgroundColor'=> array( 'type' => 'color', 'label' => 'Background Color', 'default' => '#FFFFFF' ),
+					'titleColor'     => array( 'type' => 'color', 'label' => 'Heading Color', 'default' => '#111111' ),
+					'bodyColor'      => array( 'type' => 'color', 'label' => 'Body Color', 'default' => '#111111' ),
+					'padding'        => array( 'type' => 'slider', 'label' => 'Vertical Padding', 'default' => 48, 'min' => 0, 'max' => 160 ),
+					'paddingX'       => array( 'type' => 'slider', 'label' => 'Horizontal Padding', 'default' => 24, 'min' => 0, 'max' => 120 ),
+					'marginY'        => array( 'type' => 'slider', 'label' => 'Vertical Margin', 'default' => 25, 'min' => 0, 'max' => 100 ),
 				),
 			)
 		);
@@ -6180,6 +6552,18 @@ class DSF_Blocks {
 						'type'    => 'image',
 						'label'   => 'Banner Image',
 						'default' => '',
+					),
+					'mediaType'              => array(
+						'type'    => 'select',
+						'label'   => 'Banner Media Type',
+						'default' => 'image',
+						'options' => array( 'Image' => 'image', 'Video' => 'video' ),
+					),
+					'video'                  => array(
+						'type'     => 'video',
+						'label'    => 'Banner Video (MP4)',
+						'default'  => '',
+						'showWhen' => array( 'mediaType' => 'video' ),
 					),
 					'imagePosition'          => array(
 						'type'    => 'select',
@@ -7593,6 +7977,14 @@ class DSF_Blocks {
 						'label'   => 'Mega Panel Link Color',
 						'default' => '#4b5563',
 					),
+					'menuItemSpacing'   => array(
+						'type'    => 'slider',
+						'label'   => 'Vertical Space Between Menu Items',
+						'default' => 10,
+						'min'     => 0,
+						'max'     => 32,
+						'unit'    => 'px',
+					),
 					'mobileBackground'  => array(
 						'type'    => 'color',
 						'label'   => 'Mobile Drawer Background',
@@ -8046,6 +8438,24 @@ class DSF_Blocks {
 							'Open Modal' => 'modal',
 						),
 					),
+					'backgroundMediaType'    => array(
+						'type'    => 'select',
+						'label'   => 'Background Media Type',
+						'default' => 'color',
+						'options' => array( 'Color' => 'color', 'Image' => 'image', 'Video' => 'video' ),
+					),
+					'backgroundImage'        => array(
+						'type'     => 'image',
+						'label'    => 'Background Image',
+						'default'  => '',
+						'showWhen' => array( 'backgroundMediaType' => 'image' ),
+					),
+					'backgroundVideo'        => array(
+						'type'     => 'video',
+						'label'    => 'Background Video (MP4)',
+						'default'  => '',
+						'showWhen' => array( 'backgroundMediaType' => 'video' ),
+					),
 					'buttonModalLayout'      => array(
 						'type'     => 'select',
 						'label'    => 'Modal Layout',
@@ -8451,7 +8861,7 @@ class DSF_Blocks {
 			array(
 				'id'          => 'landing-dock-header',
 				'name'        => 'Floating Dock Header',
-				'category'    => 'marketing',
+				'category'    => 'headers',
 				'icon'        => 'layout-template',
 				'description' => 'Floating bottom dock navigation whose leading icon switches to the section you are viewing',
 				'settings'    => array_merge(
@@ -8605,6 +9015,14 @@ class DSF_Blocks {
 						'buttonTextColor'  => array( 'type' => 'color', 'label' => 'Primary button text color', 'section' => 'style', 'default' => '' ),
 						'title'         => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'Build freely. Stay beautifully consistent.' ),
 						'description'   => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'DesignStudio Flow gives teams the freedom to create ambitious WordPress pages without losing the design system, content model, or publishing workflow beneath them.' ),
+						'descriptionMaxWidth' => array(
+							'type'    => 'slider',
+							'label'   => 'Paragraph Width',
+							'section' => 'content',
+							'default' => 590,
+							'min'     => 240,
+							'max'     => 1200,
+						),
 						'primaryText'   => array( 'type' => 'text', 'label' => 'Primary Button', 'section' => 'buttons', 'default' => 'Explore the block library' ),
 						'primaryUrl'    => array( 'type' => 'text', 'label' => 'Primary URL', 'section' => 'buttons', 'default' => '#blocks' ),
 						'secondaryText' => array( 'type' => 'text', 'label' => 'Secondary Button', 'section' => 'buttons', 'default' => 'See how it works' ),
@@ -8662,6 +9080,14 @@ class DSF_Blocks {
 							'section'   => 'content',
 							'default'   => 'Design pages, theme styles, WooCommerce stores, layouts, campaigns, and forms in one visual builder.',
 							'maxLength' => 240,
+						),
+						'descriptionMaxWidth' => array(
+							'type'    => 'slider',
+							'label'   => 'Paragraph Width',
+							'section' => 'content',
+							'default' => 736,
+							'min'     => 240,
+							'max'     => 1200,
 						),
 						'primaryText'      => array(
 							'type'      => 'text',
@@ -8788,12 +9214,80 @@ class DSF_Blocks {
 				'description' => 'Filterable horizontal carousel of visual content cards',
 				'settings'    => array_merge(
 					array(
-						'eyebrow'     => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'A LIBRARY WITH A POINT OF VIEW' ),
-						'eyebrowLineColor' => array( 'type' => 'color', 'label' => 'Eyebrow line color', 'section' => 'style', 'default' => '' ),
-						'title'       => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'Start with structure. Finish with something original.' ),
-						'description' => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'Each block solves a real page-building problem, then gives your team the right amount of creative control.' ),
-						'footnote'    => array( 'type' => 'text', 'label' => 'Footnote', 'section' => 'content', 'default' => 'New blocks inherit the same editing, theme, responsive, and frontend rendering workflow.' ),
-						'items'       => array( 'type' => 'gallery_items', 'label' => 'Gallery items', 'section' => 'items', 'default' => array() ),
+						'source'           => array(
+							'type'    => 'select',
+							'label'   => 'Content source',
+							'section' => 'content',
+							'default' => 'manual',
+							'options' => array(
+								'Custom items'          => 'manual',
+								'DS Flow block library' => 'block-library',
+							),
+						),
+						'eyebrow'          => array(
+							'type'    => 'text',
+							'label'   => 'Eyebrow',
+							'section' => 'content',
+							'default' => 'FEATURED CONTENT',
+						),
+						'eyebrowLineColor' => array(
+							'type'    => 'color',
+							'label'   => 'Eyebrow line color',
+							'section' => 'style',
+							'default' => '',
+						),
+						'title'             => array(
+							'type'    => 'text',
+							'label'   => 'Title',
+							'section' => 'content',
+							'default' => 'Explore what we have to offer.',
+						),
+						'description'       => array(
+							'type'    => 'textarea',
+							'label'   => 'Description',
+							'section' => 'content',
+							'default' => 'Add a collection of services, resources, products, or stories for visitors to browse.',
+						),
+						'footnote'          => array(
+							'type'    => 'text',
+							'label'   => 'Footnote',
+							'section' => 'content',
+							'default' => 'Select an item to learn more.',
+						),
+						'items'             => array(
+							'type'     => 'gallery_items',
+							'label'    => 'Carousel items',
+							'section'  => 'items',
+							'showWhen' => array(
+								'source' => 'manual',
+							),
+							'default'  => array(
+								array(
+									'category'    => 'Category One',
+									'title'       => 'Featured item one',
+									'description' => 'Add a short description for this item.',
+									'image'       => '',
+									'kind'        => 'generic',
+									'url'         => '#',
+								),
+								array(
+									'category'    => 'Category One',
+									'title'       => 'Featured item two',
+									'description' => 'Add a short description for this item.',
+									'image'       => '',
+									'kind'        => 'generic',
+									'url'         => '#',
+								),
+								array(
+									'category'    => 'Category Two',
+									'title'       => 'Featured item three',
+									'description' => 'Add a short description for this item.',
+									'image'       => '',
+									'kind'        => 'generic',
+									'url'         => '#',
+								),
+							),
+						),
 					),
 					$this->landing_style_settings( array( 'background' => '#F7F4ED', 'text' => '#111827', 'accent' => '#0091FF', 'eyebrow' => '#0091FF' ) )
 				),
@@ -8803,6 +9297,7 @@ class DSF_Blocks {
 		$this->register_block(
 			array(
 				'id'          => 'landing-block-ready',
+				'preset_only' => true,
 				'name'        => 'Design-Ready Block',
 				'category'    => 'content',
 				'icon'        => 'boxes',
@@ -8832,7 +9327,37 @@ class DSF_Blocks {
 
 		$this->register_block(
 			array(
+				'id'          => 'steps-image',
+				'name'        => 'Steps + Image',
+				'category'    => 'content',
+				'icon'        => 'list-checks',
+				'description' => 'Generic process section with editable copy, optional steps, and a supporting image.',
+				'settings'    => array_merge(
+					array(
+						'layout'       => array( 'type' => 'select', 'label' => 'Layout', 'section' => 'content', 'default' => 'image-right', 'options' => array( 'Image Right' => 'image-right', 'Image Left' => 'image-left', 'Stacked' => 'stacked' ) ),
+						'eyebrow'      => array( 'type' => 'text', 'label' => 'Eyebrow', 'section' => 'content', 'default' => 'A simpler way forward' ),
+						'title'        => array( 'type' => 'text', 'label' => 'Title', 'section' => 'content', 'default' => 'Bring the next idea to life with a clear process.' ),
+						'description'  => array( 'type' => 'textarea', 'label' => 'Description', 'section' => 'content', 'default' => 'Give people the context they need, then guide them through the moments that matter.' ),
+						'showSteps'    => array( 'type' => 'toggle', 'label' => 'Show Steps', 'section' => 'steps', 'default' => true ),
+						'step1Title'   => array( 'type' => 'text', 'label' => 'Step 1 title', 'section' => 'steps', 'default' => 'Start with the essentials' ),
+						'step1Text'    => array( 'type' => 'textarea', 'label' => 'Step 1 text', 'section' => 'steps', 'default' => 'Choose the details that help people understand what comes next.' ),
+						'step2Title'   => array( 'type' => 'text', 'label' => 'Step 2 title', 'section' => 'steps', 'default' => 'Make it easy to follow' ),
+						'step2Text'    => array( 'type' => 'textarea', 'label' => 'Step 2 text', 'section' => 'steps', 'default' => 'Keep the experience focused with a simple, confident sequence.' ),
+						'step3Title'   => array( 'type' => 'text', 'label' => 'Step 3 title', 'section' => 'steps', 'default' => 'Finish with a clear next step' ),
+						'step3Text'    => array( 'type' => 'textarea', 'label' => 'Step 3 text', 'section' => 'steps', 'default' => 'Help visitors know where to go and what they can do now.' ),
+						'showNote'     => array( 'type' => 'toggle', 'label' => 'Show Supporting Note', 'section' => 'content', 'default' => true ),
+						'note'         => array( 'type' => 'text', 'label' => 'Supporting Note', 'section' => 'content', 'default' => 'Thoughtful structure makes every message easier to act on.' ),
+						'image'        => array( 'type' => 'image', 'label' => 'Supporting Image', 'section' => 'media', 'default' => '' ),
+					),
+					$this->landing_style_settings( array( 'background' => '#F7F4ED', 'text' => '#111827', 'accent' => '#0091FF', 'eyebrow' => '#0091FF' ) )
+				),
+			)
+		);
+
+		$this->register_block(
+			array(
 				'id'          => 'landing-product-story',
+				'preset_only' => true,
 				'name'        => 'Split Content',
 				'category'    => 'content',
 				'icon'        => 'columns',
@@ -9064,9 +9589,38 @@ class DSF_Blocks {
 			$block['category'] = 'content';
 		}
 
+		$block = $this->apply_zero_layout_spacing_defaults( $block );
 		$block = $this->apply_placeholder_defaults( $block );
 		$this->blocks[ $block['id'] ] = $block;
 		return true;
+	}
+
+	/**
+	 * Use zero spacing for a newly inserted block unless the editor explicitly
+	 * changes it. This convention applies to every registered block, including
+	 * future add-on blocks, and keeps layout spacing controlled at the page level.
+	 *
+	 * @param array $block Block registration.
+	 * @return array
+	 */
+	private function apply_zero_layout_spacing_defaults( $block ) {
+		if ( ! is_array( $block ) || empty( $block['settings'] ) || ! is_array( $block['settings'] ) ) {
+			return $block;
+		}
+
+		$spacing_keys = array( 'padding', 'paddingX', 'paddingY', 'marginY' );
+		foreach ( $spacing_keys as $key ) {
+			if ( ! isset( $block['settings'][ $key ] ) || ! is_array( $block['settings'][ $key ] ) || ! array_key_exists( 'default', $block['settings'][ $key ] ) ) {
+				continue;
+			}
+
+			$block['settings'][ $key ]['default'] = 0;
+			if ( isset( $block['settings'][ $key ]['min'] ) && is_numeric( $block['settings'][ $key ]['min'] ) && 0 < (int) $block['settings'][ $key ]['min'] ) {
+				$block['settings'][ $key ]['min'] = 0;
+			}
+		}
+
+		return $block;
 	}
 
 	/**
@@ -9116,8 +9670,8 @@ class DSF_Blocks {
 	}
 
 	/**
-	 * Give repeater cards the same ready-to-preview image treatment as image
-	 * controls. Other blank nested values remain optional by contract.
+	 * Give repeater cards the same ready-to-preview treatment as scalar controls.
+	 * URLs, IDs, colors, and other optional values remain empty by contract.
 	 *
 	 * @param array $value Repeater default.
 	 * @return array
@@ -9129,12 +9683,51 @@ class DSF_Blocks {
 				continue;
 			}
 
-			if ( '' === $item && preg_match( '/(?:image|logo)$/i', (string) $key ) && ! preg_match( '/iconimage$/i', (string) $key ) ) {
+			if ( '' !== $item ) {
+				continue;
+			}
+
+			$key_string = (string) $key;
+			if ( preg_match( '/(?:image|logo)$/i', $key_string ) && ! preg_match( '/iconimage$/i', $key_string ) ) {
 				$value[ $key ] = $this->get_placeholder_image_url();
+				continue;
+			}
+
+			if ( preg_match( '/(?:title|heading|description|content|text|label|name|eyebrow|subtitle|caption|quote|author|feature\w*)$/i', $key_string ) ) {
+				$value[ $key ] = $this->get_nested_placeholder_text( $key_string );
 			}
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Return neutral editable copy for a blank nested text value.
+	 *
+	 * @param string $key Nested setting key.
+	 * @return string
+	 */
+	private function get_nested_placeholder_text( $key ) {
+		$key = strtolower( (string) $key );
+		if ( false !== strpos( $key, 'button' ) || 'label' === $key ) {
+			return 'Learn more';
+		}
+		if ( false !== strpos( $key, 'description' ) || false !== strpos( $key, 'content' ) || 'text' === $key ) {
+			return 'Add supporting content.';
+		}
+		if ( false !== strpos( $key, 'author' ) ) {
+			return 'Author name';
+		}
+		if ( false !== strpos( $key, 'caption' ) ) {
+			return 'Add a caption';
+		}
+		if ( false !== strpos( $key, 'quote' ) ) {
+			return 'Add a quote';
+		}
+		if ( false !== strpos( $key, 'eyebrow' ) || false !== strpos( $key, 'category' ) ) {
+			return 'Category';
+		}
+		return 'Add a title';
 	}
 
 	/**

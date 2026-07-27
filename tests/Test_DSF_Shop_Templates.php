@@ -133,6 +133,14 @@ class Test_DSF_Shop_Templates extends TestCase {
 		$this->assertSame( '#123456', $clean['textColor'] );
 	}
 
+	public function test_category_hero_paragraph_width_is_bounded() {
+		$clean = $this->sanitize(
+			'sanitize_shop_category_hero_settings',
+			array( 'descriptionMaxWidth' => 9999 )
+		);
+		$this->assertSame( 1200, $clean['descriptionMaxWidth'] );
+	}
+
 	// ---- shop-products sanitizer ----
 
 	public function test_shop_products_defaults_and_clamps() {

@@ -4,6 +4,13 @@
     :class="{ 'dsf-hero-centered-preview--bottom-split': isBottomSplit }"
     :style="previewStyle"
   >
+    <MediaVisual
+      v-if="settings.backgroundMediaType === 'video' && settings.backgroundVideo"
+      class="dsf-hero-centered-preview__background-media"
+      mode="video"
+      :video="settings.backgroundVideo"
+      alt=""
+    />
     <div
       v-if="showBottomGradient"
       class="dsf-hero-centered-preview__gradient"
@@ -25,6 +32,7 @@
         <InlineText
           tagName="p"
           class="dsf-hero-centered-preview__subtitle"
+          :style="subtitleStyle"
           v-model="settings.subtitle"
           :is-editor="isEditor"
           placeholder="Enter subtitle description..."
@@ -52,6 +60,7 @@
 <script setup>
 import { computed } from 'vue'
 import InlineText from '../common/InlineText.vue'
+import MediaVisual from '../common/MediaVisual.vue'
 import { getResponsiveValue } from '../../utils/responsiveSettings'
 import { useFlowModal } from '../common/useFlowModal'
 
@@ -70,6 +79,9 @@ const buttonAction = computed(() => props.settings?.buttonAction || 'link')
 const layoutStyle = computed(() => props.settings?.layoutStyle || 'centered')
 const isBottomSplit = computed(() => layoutStyle.value === 'bottom-split')
 const showBottomGradient = computed(() => props.settings?.gradientType === 'bottom-dark')
+const subtitleStyle = computed(() => ({
+  maxWidth: `${Math.min(1200, Math.max(240, getNumberSetting('descriptionMaxWidth', 800)))}px`,
+}))
 const buttonHref = computed(() =>
   buttonAction.value === 'link' ? (props.settings?.buttonUrl || '#') : '#'
 )
@@ -140,7 +152,7 @@ const previewStyle = computed(() => {
       : `${verticalPad}px ${horizontalPad}px`,
     backgroundColor: props.settings?.backgroundColor || '#3B82F6',
     color: props.settings?.textColor || '#FFFFFF',
-    backgroundImage: props.settings?.backgroundImage 
+    backgroundImage: props.settings?.backgroundMediaType !== 'video' && props.settings?.backgroundImage
       ? `url(${props.settings.backgroundImage})` 
       : 'none',
     backgroundSize: 'cover',
@@ -222,6 +234,18 @@ const textStyle = computed(() => {
   /* alignment handled by inline styles now */
   container-type: inline-size;
   overflow: hidden;
+}
+
+.dsf-hero-centered-preview__background-media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.dsf-hero-centered-preview__background-media :deep(.dsf-media-visual__el) {
+  position: absolute;
+  inset: 0;
 }
 
 .dsf-hero-centered-preview__gradient {

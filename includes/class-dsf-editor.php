@@ -154,6 +154,16 @@ class DSF_Editor {
 			$editor_js_version  = $this->get_asset_version( 'assets/js/editor.js' );
 
 			// Production - load built assets
+			// Keep editor typography consistent after the frontend stylesheet stopped
+			// using a render-blocking Google Fonts @import. Public pages enqueue the
+			// selected fonts through DSF_Frontend; the editor can use the defaults.
+			wp_enqueue_style(
+				'dsf-editor-fonts',
+				'https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap',
+				array(),
+				null
+			);
+
 			wp_enqueue_style(
 				'dsf-main',
 				DSF_PLUGIN_URL . 'assets/css/main.css',
@@ -722,7 +732,7 @@ class DSF_Editor {
 			'theme'  => DSF_Frontend::get_default_theme_settings(),
 			'layout' => array(
 				'containerWidth'   => DSF_Frontend::get_typography_option()['container_width'],
-				'contentPadding'   => 10,
+				'contentPadding'   => 0,
 				'showHeader'       => true,
 				'showFooter'       => true,
 				'headerTemplateId' => 0,

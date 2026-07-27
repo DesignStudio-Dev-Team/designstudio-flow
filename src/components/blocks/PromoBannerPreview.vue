@@ -6,9 +6,11 @@
   >
     <!-- Image Section -->
     <div class="dsf-promo-banner__image">
-      <img 
-        v-if="settings.image" 
-        :src="settings.image" 
+      <MediaVisual
+        v-if="settings.image || settings.video"
+        :mode="settings.mediaType || 'image'"
+        :image="settings.image"
+        :video="settings.video"
         alt="Promotional banner"
         :style="{ objectPosition: 'center ' + (settings.imagePosition || 'center') }"
       />
@@ -99,6 +101,7 @@
 import { computed } from 'vue'
 import { Image } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import MediaVisual from '../common/MediaVisual.vue'
 import { useFlowModal } from '../common/useFlowModal'
 
 const props = defineProps({

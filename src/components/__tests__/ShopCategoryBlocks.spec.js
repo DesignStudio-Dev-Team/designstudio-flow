@@ -15,10 +15,11 @@ const archive = ref({
 
 describe('Shop category blocks', () => {
   it('renders the current category hero from server-built archive data', () => {
-    const wrapper = mount(ShopCategoryHeroPreview, { props: { settings: {} }, global: { provide: { dsfShopContext: archive } } })
+    const wrapper = mount(ShopCategoryHeroPreview, { props: { settings: { descriptionMaxWidth: 540 } }, global: { provide: { dsfShopContext: archive } } })
     expect(wrapper.text()).toContain('Outdoor Living')
     expect(wrapper.find('img').attributes('src')).toBe('https://example.test/outdoor.jpg')
     expect(wrapper.find('a').attributes('href')).toBe('/shop/')
+    expect(wrapper.find('.dsf-shop-category-hero__description').attributes('style')).toContain('max-width: 540px')
   })
 
   it('renders only the provided immediate child categories', () => {

@@ -60,6 +60,19 @@ describe('PricingPreview', () => {
     expect(wrapper.find('.dsf-pricing-preview__inner').attributes('style')).toContain('max-width: 1200px')
   })
 
+  it('supports the unified modern layout and inline plan text editing', () => {
+    const wrapper = mount(PricingPreview, { props: { isEditor: true, settings: { ...settings, layout: 'modern', plans: settings.plans.slice(0, 3) } } })
+    expect(wrapper.classes()).toContain('dsf-pricing-preview--modern')
+    expect(wrapper.find('.dsf-pricing-preview__plan-heading h3').attributes('contenteditable')).toBe('true')
+    expect(wrapper.find('.dsf-pricing-preview__plan-description').attributes('contenteditable')).toBe('true')
+    expect(wrapper.find('.dsf-pricing-preview__button').attributes('href')).toBe('#')
+  })
+
+  it('preserves safe plan URLs on the frontend', () => {
+    const wrapper = mount(PricingPreview, { props: { settings: { ...settings, plans: [{ ...settings.plans[0], buttonUrl: '/start' }] } } })
+    expect(wrapper.find('.dsf-pricing-preview__button').attributes('href')).toBe('/start')
+  })
+
   it('switches each card from monthly to annual pricing', async () => {
     const wrapper = mount(PricingPreview, { props: { settings } })
 

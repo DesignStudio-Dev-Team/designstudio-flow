@@ -129,6 +129,24 @@ describe('CardColumnsPreview', () => {
     expect(wrapper.find('.dsf-card-columns__card-btn--arrow').exists()).toBe(false)
   })
 
+  it('can link the whole card instead of rendering a nested button', () => {
+    const wrapper = mountBlock({
+      cards: [{ title: 'Explore Spas', linkMode: 'card', buttonUrl: '/spas' }],
+    })
+    const card = wrapper.find('.dsf-card-columns__card')
+    expect(card.element.tagName).toBe('A')
+    expect(card.attributes('href')).toBe('/spas')
+    expect(card.attributes('aria-label')).toBe('Explore Spas')
+    expect(card.classes()).toContain('dsf-card-columns__card--linked')
+    expect(card.find('.dsf-card-columns__card-btn').exists()).toBe(false)
+  })
+
+  it('prevents whole-card navigation in the editor', () => {
+    const wrapper = mountBlock({ cards: [{ title: 'Card', linkMode: 'card', buttonUrl: '/away' }] }, true)
+    const card = wrapper.find('.dsf-card-columns__card').element
+    expect(card.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))).toBe(false)
+  })
+
   it('hides the button when showButton is off', () => {
     const wrapper = mountBlock({ cards: [{ title: 'Quiet', showButton: false, buttonUrl: '/x' }] })
     expect(wrapper.find('.dsf-card-columns__card-btn').exists()).toBe(false)
@@ -165,6 +183,11 @@ describe('CardColumnsPreview', () => {
     expect(desktop.find('.dsf-card-columns').attributes('style')).toContain('padding: 60px 24px')
     const mobile = mountBlock(settings, false, 'mobile')
     expect(mobile.find('.dsf-card-columns').attributes('style')).toContain('padding: 20px 10px')
+  })
+
+  it('applies the configured header paragraph width', () => {
+    const wrapper = mountBlock({ description: 'Short intro', descriptionMaxWidth: 420 })
+    expect(wrapper.find('.dsf-card-columns__description').attributes('style')).toContain('max-width: 420px')
   })
 
   it('applies the responsive gap and column count to the grid', () => {

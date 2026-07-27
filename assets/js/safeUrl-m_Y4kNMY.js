@@ -1,0 +1,1 @@
+var e=new Set([`http:`,`https:`,`mailto:`,`tel:`]);function t(t,n=`#`){if(typeof t!=`string`)return n;let r=t.trim();if(!r)return n;if(/^#[A-Za-z][A-Za-z0-9_:.-]*$/.test(r)||r===`#`||r.startsWith(`/`)&&!r.startsWith(`//`)||r.startsWith(`./`)||r.startsWith(`../`))return r;try{let t=new URL(r);return e.has(t.protocol)?r:n}catch{return n}}export{t};

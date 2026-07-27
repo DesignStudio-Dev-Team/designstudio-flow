@@ -175,6 +175,25 @@ class Test_DSF_Ajax_Card_Columns extends TestCase {
 		$this->assertSame( '/relative/path', $clean['cards'][1]['buttonUrl'] );
 	}
 
+	public function test_card_link_modes_are_allowlisted_and_legacy_buttons_are_preserved() {
+		$clean = $this->sanitize(
+			array(
+				'cards' => array(
+					array( 'linkMode' => 'card', 'buttonUrl' => '/whole-card' ),
+					array( 'linkMode' => 'popup', 'showButton' => true, 'buttonUrl' => '/legacy-button' ),
+					array( 'linkMode' => 'none', 'showButton' => true ),
+				),
+			)
+		);
+
+		$this->assertSame( 'card', $clean['cards'][0]['linkMode'] );
+		$this->assertFalse( $clean['cards'][0]['showButton'] );
+		$this->assertSame( 'button', $clean['cards'][1]['linkMode'] );
+		$this->assertTrue( $clean['cards'][1]['showButton'] );
+		$this->assertSame( 'none', $clean['cards'][2]['linkMode'] );
+		$this->assertFalse( $clean['cards'][2]['showButton'] );
+	}
+
 	public function test_colors_accept_hex_and_strict_rgba_but_reject_css_injection() {
 		$clean = $this->sanitize(
 			array(
@@ -197,6 +216,7 @@ class Test_DSF_Ajax_Card_Columns extends TestCase {
 	public function test_dimensions_and_responsive_values_are_clamped() {
 		$clean = $this->sanitize(
 			array(
+				'descriptionMaxWidth' => 9999,
 				'padding'       => 9999,
 				'paddingX'      => -50,
 				'gap'           => 500,
@@ -216,6 +236,7 @@ class Test_DSF_Ajax_Card_Columns extends TestCase {
 		);
 
 		$this->assertSame( 160, $clean['padding'] );
+		$this->assertSame( 1200, $clean['descriptionMaxWidth'] );
 		$this->assertSame( 50, $clean['paddingX'] );
 		$this->assertSame( 64, $clean['gap'] );
 		$this->assertSame( 100, $clean['marginY'] );

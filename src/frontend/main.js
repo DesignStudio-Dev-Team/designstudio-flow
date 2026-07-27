@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import FrontendApp from './FrontendApp.vue'
+import { preloadPreviewComponents } from './lazyBlockRegistry.js'
 import '../styles/main.css'
 
 const data = window.dsfFrontendData || {}
@@ -26,7 +27,7 @@ function revealLandingPage(root) {
   })
 }
 
-function mountBlocksApp(rootId, blocks, options = {}) {
+async function mountBlocksApp(rootId, blocks, options = {}) {
   const root = document.getElementById(rootId)
   if (!root) return
 
@@ -39,6 +40,10 @@ function mountBlocksApp(rootId, blocks, options = {}) {
     root.textContent = ''
     return
   }
+
+  // Resolve the page's block chunks before mounting so the loading veil is
+  // removed only after the real content is ready to paint.
+  await preloadPreviewComponents(safeBlocks)
 
   createApp(FrontendApp, {
     blocks: safeBlocks,

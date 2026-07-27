@@ -142,6 +142,7 @@ Implementation rules:
 
 - Use semantic HTML: `section`, headings in logical order, lists for lists, buttons for actions, and anchors for navigation.
 - Use `InlineText` for appropriate editor text, but do not mutate unrelated props during render.
+- Every text setting intended to be edited in the builder MUST render through `InlineText` in the shared component. This includes headings, labels, descriptions, captions, and repeater/item titles. Plain interpolation is reserved for non-editable metadata, generated data, or editor-only controls. Add a focused test confirming builder-mode text exposes the inline editing surface and that editor links/actions do not navigate.
 - Use theme tokens such as `--dsf-theme-heading-font` and `--dsf-theme-body-font`.
 - Use `getResponsiveValue()` for responsive settings.
 - Keep block styles in the component's scoped style unless a documented global integration requires otherwise.

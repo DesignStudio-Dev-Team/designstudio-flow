@@ -70,12 +70,14 @@ import ProductGridPreview from './blocks/ProductGridPreview.vue'
 import EcommerceShowcasePreview from './blocks/EcommerceShowcasePreview.vue'
 import FeaturesGridPreview from './blocks/FeaturesGridPreview.vue'
 import CardColumnsPreview from './blocks/CardColumnsPreview.vue'
+import AnchorGalleryPreview from './blocks/AnchorGalleryPreview.vue'
 import BentoHeroPreview from './blocks/BentoHeroPreview.vue'
 import SpotlightHeroPreview from './blocks/SpotlightHeroPreview.vue'
 import ExpanderHeroPreview from './blocks/ExpanderHeroPreview.vue'
 import PricingPreview from './blocks/PricingPreview.vue'
 import PricingTablesPreview from './blocks/PricingTablesPreview.vue'
 import TextImagePreview from './blocks/TextImagePreview.vue'
+import FeatureImageCtaPreview from './blocks/FeatureImageCtaPreview.vue'
 import TestimonialsPreview from './blocks/TestimonialsPreview.vue'
 import CtaBannerPreview from './blocks/CtaBannerPreview.vue'
 import CountdownPreview from './blocks/CountdownPreview.vue'
@@ -88,6 +90,9 @@ import ProductGalleryPreview from './blocks/ProductGalleryPreview.vue'
 import ProductDescriptionPreview from './blocks/ProductDescriptionPreview.vue'
 import ProductSpecsPreview from './blocks/ProductSpecsPreview.vue'
 import ProductTabsPreview from './blocks/ProductTabsPreview.vue'
+import TabbedProductShowcasePreview from './blocks/TabbedProductShowcasePreview.vue'
+import ImageLogoGridPreview from './blocks/ImageLogoGridPreview.vue'
+import BrandShowcaseGridPreview from './blocks/BrandShowcaseGridPreview.vue'
 import ProductAddToCartPreview from './blocks/ProductAddToCartPreview.vue'
 import ProductHeroPreview from './blocks/ProductHeroPreview.vue'
 import ProductDetailsSplitPreview from './blocks/ProductDetailsSplitPreview.vue'
@@ -130,6 +135,7 @@ import LandingHeroPreview from './blocks/LandingHeroPreview.vue'
 import LandingShowcaseHeroPreview from './blocks/LandingShowcaseHeroPreview.vue'
 import LandingBlockExplorerPreview from './blocks/LandingBlockExplorerPreview.vue'
 import LandingBlockReadyPreview from './blocks/LandingBlockReadyPreview.vue'
+import StepsImagePreview from './blocks/StepsImagePreview.vue'
 import LandingProductStoryPreview from './blocks/LandingProductStoryPreview.vue'
 import LandingTrustWorkflowPreview from './blocks/LandingTrustWorkflowPreview.vue'
 import LandingEngagementSuitePreview from './blocks/LandingEngagementSuitePreview.vue'
@@ -173,12 +179,14 @@ const previewComponents = {
   'ecommerce-showcase': EcommerceShowcasePreview,
   'features-grid': FeaturesGridPreview,
   'card-columns': CardColumnsPreview,
+  'anchor-gallery': AnchorGalleryPreview,
   'bento-hero': BentoHeroPreview,
   'spotlight-hero': SpotlightHeroPreview,
   'expander-hero': ExpanderHeroPreview,
   'pricing': PricingPreview,
   'pricing-tables': PricingTablesPreview,
   'text-image': TextImagePreview,
+  'feature-image-cta': FeatureImageCtaPreview,
   'testimonials': TestimonialsPreview,
   'cta-banner': CtaBannerPreview,
   'countdown': CountdownPreview,
@@ -191,6 +199,9 @@ const previewComponents = {
   'product-description': ProductDescriptionPreview,
   'product-specs': ProductSpecsPreview,
   'product-tabs': ProductTabsPreview,
+  'tabbed-product-showcase': TabbedProductShowcasePreview,
+  'image-logo-grid': ImageLogoGridPreview,
+  'brand-showcase-grid': BrandShowcaseGridPreview,
   'product-add-to-cart': ProductAddToCartPreview,
   'product-hero': ProductHeroPreview,
   'product-details-split': ProductDetailsSplitPreview,
@@ -233,6 +244,7 @@ const previewComponents = {
   'landing-showcase-hero': LandingShowcaseHeroPreview,
   'landing-block-explorer': LandingBlockExplorerPreview,
   'landing-block-ready': LandingBlockReadyPreview,
+  'steps-image': StepsImagePreview,
   'landing-product-story': LandingProductStoryPreview,
   'landing-trust-workflow': LandingTrustWorkflowPreview,
   'landing-engagement-suite': LandingEngagementSuitePreview,
@@ -247,7 +259,7 @@ function getPreviewComponent(blockType) {
   return previewComponents[blockType] || getCustomBlock(blockType) || GenericBlockPreview
 }
 
-const templateBlockTypes = new Set(['header-mega-menu', 'header-showcase-mega', 'header-cutout-mega', 'header-modern-mega', 'footer-dealers', 'footer-commerce', 'landing-progress-header', 'landing-dock-header', 'landing-hero', 'landing-showcase-hero', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-redirect-tool', 'landing-mail-tool', 'landing-marketing-footer'])
+const templateBlockTypes = new Set(['header-mega-menu', 'header-showcase-mega', 'header-cutout-mega', 'header-modern-mega', 'footer-dealers', 'footer-commerce', 'landing-progress-header', 'landing-dock-header', 'landing-hero', 'landing-showcase-hero', 'landing-block-explorer', 'landing-block-ready', 'steps-image', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-redirect-tool', 'landing-mail-tool', 'landing-marketing-footer'])
 const isLandingBlock = computed(() => props.block?.type?.startsWith('landing-') === true)
 
 const defaultMargin = computed(() => (
