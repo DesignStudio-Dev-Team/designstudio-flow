@@ -135,6 +135,13 @@ updatePhpVersions(next);
 info("Building production assets (npm run build)…");
 shInherit("npm run build");
 
+// Ensure the frontend and builder still render, then verify that Vite emitted
+// lazy block styles with the plugin-scoped URL required by WordPress admin.
+info("Running render smoke tests (npm run test:run)…");
+shInherit("npm run test:run");
+info("Verifying release assets (npm run verify:release-assets)…");
+shInherit("npm run verify:release-assets");
+
 // Stage everything (bundles any pre-existing dirty tree into the release commit).
 info("Staging changes…");
 shInherit("git add -A");

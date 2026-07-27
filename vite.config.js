@@ -4,9 +4,10 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [vue()],
-  // The plugin is installed below a WordPress site root. Relative URLs ensure
-  // Vite's lazy-loaded CSS and chunks resolve from assets/js rather than /.
-  base: './',
+  // Dynamic block chunks must resolve from the installed plugin, not from the
+  // current wp-admin URL. Vite otherwise derives CSS URLs from admin.php and
+  // the editor renders every block without its component stylesheet.
+  base: '/wp-content/plugins/designstudio-flow/assets/',
 
   root: './',
   
