@@ -46,7 +46,7 @@ mkdir -p build/designstudio-flow
 
 # Copy production files
 echo "📁 Copying production files..."
-rsync -a --exclude-from=".distignore" ./ build/designstudio-flow/
+rsync -a --include='/README.md' --exclude='*.md' --exclude-from=".distignore" ./ build/designstudio-flow/
 
 # Create ZIP
 echo "🗜️  Creating ZIP archive..."

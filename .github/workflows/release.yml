@@ -50,7 +50,7 @@ jobs:
       - name: Package plugin with distignore
         run: |
           mkdir -p build/designstudio-flow
-          rsync -a --exclude-from=".distignore" ./ build/designstudio-flow/
+          rsync -a --include='/README.md' --exclude='*.md' --exclude-from=".distignore" ./ build/designstudio-flow/
           echo "📁 Packaged files:"
           find build/designstudio-flow -type f | sort
 

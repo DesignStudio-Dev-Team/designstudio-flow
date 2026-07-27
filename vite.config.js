@@ -60,7 +60,27 @@ export default defineConfig({
         chunkFileNames: 'js/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
           if (assetInfo.name?.endsWith('.css')) {
-            return 'css/[name][extname]'
+            // The entry stylesheets are enqueued by WordPress with a file
+            // version, so keep their stable URLs. Lazy Vue component styles
+            // are injected by the browser directly, however; a stable URL
+            // lets an old scoped stylesheet survive a plugin update and no
+            // longer match the new component's data-v scope. Hash those files
+            // so the JS chunk and its stylesheet are always from one build.
+            const stableEntryStyles = new Set([
+              'editor',
+              'main',
+              'frontend',
+              'notification-bar',
+              'popup-editor',
+              'editor.css',
+              'main.css',
+              'frontend.css',
+              'notification-bar.css',
+              'popup-editor.css',
+            ])
+            return stableEntryStyles.has(assetInfo.name)
+              ? 'css/[name][extname]'
+              : 'css/[name]-[hash][extname]'
           }
           return 'assets/[name][extname]'
         },

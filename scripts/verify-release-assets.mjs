@@ -30,9 +30,26 @@ if (!runtimeSource.includes('new URL(e,t).href')) {
   fail('Lazy frontend assets are not resolved relative to their runtime module.')
 }
 
-const representativeCss = asset('css/LandingBlockReadyPreview.css')
-if (!existsSync(representativeCss) || !readFileSync(representativeCss, 'utf8').includes('.dsf-ready')) {
+const representativeCss = Object.values(manifest)
+  .flatMap((entry) => entry.css || [])
+  .find((file) => /^css\/LandingBlockReadyPreview-[A-Za-z0-9_-]+\.css$/.test(file))
+if (!representativeCss || !existsSync(asset(representativeCss)) || !readFileSync(asset(representativeCss), 'utf8').includes('.dsf-ready')) {
   fail('A representative lazy block stylesheet is missing or invalid.')
+}
+
+const explorerEntry = Object.entries(manifest)
+  .find(([key]) => key.includes('LandingBlockExplorerPreview'))?.[1]
+const explorerCss = explorerEntry?.css?.[0]
+if (!explorerEntry?.file || !explorerCss || !/^css\/LandingBlockExplorerPreview-[A-Za-z0-9_-]+\.css$/.test(explorerCss)) {
+  fail('The Content Carousel JavaScript and hashed stylesheet are not paired in the manifest.')
+}
+
+const explorerJsSource = readFileSync(asset(explorerEntry.file), 'utf8')
+const explorerCssSource = readFileSync(asset(explorerCss), 'utf8')
+const jsScopes = new Set(explorerJsSource.match(/data-v-[a-f0-9]+/g) || [])
+const cssScopes = new Set(explorerCssSource.match(/data-v-[a-f0-9]+/g) || [])
+if (![...jsScopes].some((scope) => cssScopes.has(scope))) {
+  fail('The Content Carousel stylesheet scope does not match its JavaScript component.')
 }
 
 const editorCss = asset('css/editor.css')
