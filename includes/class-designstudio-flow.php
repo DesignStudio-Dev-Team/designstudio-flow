@@ -48,6 +48,7 @@ final class DesignStudio_Flow {
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-editor.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-ajax.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-frontend.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-tracking-code.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-popup.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-notification-bar.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-blocks.php';
@@ -99,6 +100,7 @@ final class DesignStudio_Flow {
 		DSF_Blog_Templates::get_instance();
 		// SEO meta output for DSF-rendered URLs (defers to Yoast/Rank Math/etc).
 		DSF_SEO::get_instance();
+		DSF_Tracking_Code::get_instance();
 		$this->migrate_legacy_flow_pages();
 
 		// Initialize admin.

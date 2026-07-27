@@ -213,13 +213,16 @@ class DSF_Frontend {
 		// that resolves to an active DSF blog template.
 		$blog_template_id = DSF_Blog_Templates::get_instance()->resolve_template_for_current_archive();
 		$is_blog_flow     = ( ! $is_shop_flow && 0 !== $blog_template_id );
+		// A 404 has no queried post, but whole-site header/footer mode still needs
+		// its frontend bundle so the configured default layouts can mount.
+		$is_global_hf_candidate = $this->should_apply_global_hf( $post_id );
 
-		if ( ! $post_id && ! $is_shop_flow && ! $is_blog_flow ) {
+		if ( ! $post_id && ! $is_shop_flow && ! $is_blog_flow && ! $is_global_hf_candidate ) {
 			return;
 		}
 
 		$current_post = $post_id ? get_post( $post_id ) : null;
-		if ( ! $current_post && ! $is_shop_flow && ! $is_blog_flow ) {
+		if ( ! $current_post && ! $is_shop_flow && ! $is_blog_flow && ! $is_global_hf_candidate ) {
 			return;
 		}
 
@@ -231,7 +234,7 @@ class DSF_Frontend {
 		$is_product_flow     = ( 0 !== $product_template_id );
 		// Whole-site header/footer: a non-DSF page/post that should still get the
 		// site header/footer (no DSF page blocks — just the header/footer apps).
-		$is_global_hf = ( ! $is_page_flow && ! $is_product_flow && ! $is_shop_flow && ! $is_blog_flow && $this->should_apply_global_hf( $post_id ) );
+		$is_global_hf = ( ! $is_page_flow && ! $is_product_flow && ! $is_shop_flow && ! $is_blog_flow && $is_global_hf_candidate );
 
 		if ( ! $is_page_flow && ! $is_product_flow && ! $is_global_hf && ! $is_shop_flow && ! $is_blog_flow ) {
 			return;
@@ -603,16 +606,18 @@ class DSF_Frontend {
 	/**
 	 * Whether whole-site header/footer mode should wrap the current request.
 	 *
-	 * Opt-in (Settings → Theme). Applies to singular Pages and Posts the theme
-	 * would normally render — NOT DSF pages (handled elsewhere), products,
-	 * WooCommerce utility pages, or non-singular views (archives/search/404).
+	 * Opt-in (Settings → Theme). Applies to normal singular Pages and Posts, plus
+	 * WordPress 404 requests. DSF pages are handled elsewhere; products,
+	 * WooCommerce utility pages, and archive/search views retain their native
+	 * templates.
 	 *
 	 * @param int $post_id Queried post ID.
 	 * @return bool
 	 */
 	public function should_apply_global_hf( $post_id ) {
 		$post_id = intval( $post_id );
-		if ( ! $post_id || is_admin() || ! is_singular() ) {
+		$is_404 = is_404();
+		if ( is_admin() || ( ! $is_404 && ( ! $post_id || ! is_singular() ) ) ) {
 			return false;
 		}
 		if ( ! (bool) get_option( 'dsf_global_header_footer', false ) ) {
@@ -621,6 +626,9 @@ class DSF_Frontend {
 		// Need at least one default header/footer configured.
 		if ( ! self::get_default_layout_id( 'header' ) && ! self::get_default_layout_id( 'footer' ) ) {
 			return false;
+		}
+		if ( $is_404 ) {
+			return (bool) apply_filters( 'dsf_apply_global_header_footer', true, 0 );
 		}
 
 		$post_type = get_post_type( $post_id );
@@ -1522,6 +1530,12 @@ class DSF_Frontend {
 				$blog_template = DSF_PLUGIN_DIR . 'templates/flow-blog.php';
 				return file_exists( $blog_template ) ? $blog_template : $template;
 			}
+		}
+
+		if ( is_404() && $this->should_apply_global_hf( 0 ) ) {
+			$this->is_global_hf_page = true;
+			$universal               = DSF_PLUGIN_DIR . 'templates/flow-universal.php';
+			return file_exists( $universal ) ? $universal : $template;
 		}
 
 		if ( ! is_singular() ) {
@@ -2472,7 +2486,7 @@ class DSF_Frontend {
 	private function get_assigned_layout_template_data( $post_id, $type ) {
 		$post_id = intval( $post_id );
 		$type    = sanitize_key( $type );
-		if ( ! $post_id || ! in_array( $type, array( 'header', 'footer' ), true ) ) {
+		if ( ! in_array( $type, array( 'header', 'footer' ), true ) ) {
 			return array();
 		}
 

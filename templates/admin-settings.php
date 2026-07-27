@@ -78,36 +78,16 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 	update_option( 'dsf_recaptcha_secret_key', DSF_Crypto::encrypt( $recaptcha_secret_key ) );
 	update_option( 'dsf_recaptcha_threshold', $recaptcha_threshold );
 
-	// Global SEO defaults: the fallback og:image, the {sep} title separator, and
-	// the site's Organization identity + social profiles that feed JSON-LD.
-	$dsf_allowed_separators = array( '–', '—', '-', '|', '·', '•', ':', '/' );
-	$dsf_title_separator    = isset( $_POST['dsf_seo_title_separator'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_seo_title_separator'] ) ) : '–';
-	if ( ! in_array( $dsf_title_separator, $dsf_allowed_separators, true ) ) {
-		$dsf_title_separator = '–';
+	// Existing SEO defaults remain untouched now that their dedicated UI is gone.
+	if ( current_user_can( 'unfiltered_html' ) ) {
+		$dsf_tracking_code = DSF_Tracking_Code::sanitize_settings(
+			array(
+				'head' => isset( $_POST['dsf_tracking_head'] ) ? wp_unslash( $_POST['dsf_tracking_head'] ) : '', // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified above.
+				'body' => isset( $_POST['dsf_tracking_body'] ) ? wp_unslash( $_POST['dsf_tracking_body'] ) : '', // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified above.
+			)
+		);
+		update_option( DSF_Tracking_Code::OPTION_KEY, $dsf_tracking_code );
 	}
-
-	$dsf_twitter_site = isset( $_POST['dsf_seo_twitter_site'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_seo_twitter_site'] ) ) : '';
-	$dsf_twitter_site = preg_replace( '/[^A-Za-z0-9_]/', '', ltrim( trim( $dsf_twitter_site ), '@' ) );
-	$dsf_twitter_site = '' !== $dsf_twitter_site ? '@' . substr( $dsf_twitter_site, 0, 15 ) : '';
-
-	$dsf_social_profiles = array();
-	foreach ( array( 'facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'tiktok' ) as $dsf_network ) {
-		$dsf_profile_url = isset( $_POST[ 'dsf_seo_social_' . $dsf_network ] ) ? esc_url_raw( trim( (string) wp_unslash( $_POST[ 'dsf_seo_social_' . $dsf_network ] ) ) ) : '';
-		if ( '' !== $dsf_profile_url && preg_match( '#^https?://#i', $dsf_profile_url ) ) {
-			$dsf_social_profiles[] = $dsf_profile_url;
-		}
-	}
-
-	$dsf_seo_defaults = array(
-			'defaultSocialImage' => isset( $_POST['dsf_seo_default_image'] ) ? esc_url_raw( trim( (string) wp_unslash( $_POST['dsf_seo_default_image'] ) ) ) : '',
-			'titleSeparator'     => $dsf_title_separator,
-			'orgName'            => isset( $_POST['dsf_seo_org_name'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_seo_org_name'] ) ) : '',
-			'orgLogo'            => isset( $_POST['dsf_seo_org_logo'] ) ? esc_url_raw( trim( (string) wp_unslash( $_POST['dsf_seo_org_logo'] ) ) ) : '',
-			'twitterSite'        => $dsf_twitter_site,
-			'socialProfiles'     => $dsf_social_profiles,
-	);
-	$dsf_capture_setting( 'dsf_seo_defaults', get_option( 'dsf_seo_defaults', array() ), $dsf_seo_defaults );
-	update_option( 'dsf_seo_defaults', $dsf_seo_defaults );
 
 	// Typography defaults.
 	$typography_mode  = ( isset( $_POST['dsf_typography_mode'] ) && 'override' === $_POST['dsf_typography_mode'] ) ? 'override' : 'theme';
@@ -235,37 +215,20 @@ $default_colors       = get_option(
 		'background' => '#FFFFFF',
 	)
 );
+$dsf_color_picker_value = static function ( $color, $fallback ) {
+	$color = sanitize_hex_color( $color );
+	if ( $color && 4 === strlen( $color ) ) {
+		$color = '#' . $color[1] . $color[1] . $color[2] . $color[2] . $color[3] . $color[3];
+	}
+	return $color ?: $fallback;
+};
 $recaptcha_enabled    = (bool) get_option( 'dsf_recaptcha_enabled', false );
 $recaptcha_site_key   = get_option( 'dsf_recaptcha_site_key', '' );
 $recaptcha_secret_key = DSF_Crypto::decrypt( get_option( 'dsf_recaptcha_secret_key', '' ) );
 $recaptcha_threshold  = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
 $notification_bar     = DSF_Notification_Bar::get_settings();
-$seo_defaults         = class_exists( 'DSF_SEO' ) ? DSF_SEO::get_defaults() : array(
-	'defaultSocialImage' => '',
-	'titleSeparator'     => '–',
-	'orgName'            => '',
-	'orgLogo'            => '',
-	'twitterSite'        => '',
-	'socialProfiles'     => array(),
-);
-$seo_social_by_network = array();
-foreach ( (array) ( $seo_defaults['socialProfiles'] ?? array() ) as $seo_profile_url ) {
-	$seo_host = wp_parse_url( (string) $seo_profile_url, PHP_URL_HOST );
-	$seo_host = $seo_host ? strtolower( $seo_host ) : '';
-	if ( false !== strpos( $seo_host, 'facebook' ) ) {
-		$seo_social_by_network['facebook'] = $seo_profile_url;
-	} elseif ( false !== strpos( $seo_host, 'twitter' ) || false !== strpos( $seo_host, 'x.com' ) ) {
-		$seo_social_by_network['twitter'] = $seo_profile_url;
-	} elseif ( false !== strpos( $seo_host, 'instagram' ) ) {
-		$seo_social_by_network['instagram'] = $seo_profile_url;
-	} elseif ( false !== strpos( $seo_host, 'linkedin' ) ) {
-		$seo_social_by_network['linkedin'] = $seo_profile_url;
-	} elseif ( false !== strpos( $seo_host, 'youtube' ) ) {
-		$seo_social_by_network['youtube'] = $seo_profile_url;
-	} elseif ( false !== strpos( $seo_host, 'tiktok' ) ) {
-		$seo_social_by_network['tiktok'] = $seo_profile_url;
-	}
-}
+$tracking_code        = DSF_Tracking_Code::get_settings();
+$can_manage_tracking  = current_user_can( 'unfiltered_html' );
 $previous_theme_value = get_option( 'dsf_previous_theme_defaults', array() );
 $has_previous_theme   = is_array( $previous_theme_value ) && ! empty( $previous_theme_value['colors'] ) && ! empty( $previous_theme_value['typography'] );
 
@@ -416,7 +379,7 @@ $font_options = array(
 			<h2 class="nav-tab-wrapper dsf-settings-tabs" style="margin-bottom: 0;">
 				<a href="#general" class="nav-tab nav-tab-active" data-dsf-tab-link="general">General</a>
 				<a href="#theme" class="nav-tab" data-dsf-tab-link="theme">Theme</a>
-				<a href="#seo" class="nav-tab" data-dsf-tab-link="seo">SEO</a>
+				<a href="#tracking" class="nav-tab" data-dsf-tab-link="tracking">Tracking &amp; Custom Code</a>
 				<a href="#notification" class="nav-tab" data-dsf-tab-link="notification">Notification Bar</a>
 				<a href="#recaptcha" class="nav-tab" data-dsf-tab-link="recaptcha">reCAPTCHA</a>
 			</h2>
@@ -461,29 +424,53 @@ $font_options = array(
 					<tr>
 						<th scope="row"><label for="dsf-primary-color">Primary Color</label></th>
 						<td>
+							<input type="color" class="dsf-default-color-picker" value="<?php echo esc_attr( $dsf_color_picker_value( $default_colors['primary'], '#2C5F5D' ) ); ?>" data-dsf-color-target="dsf-primary-color" aria-label="Choose primary color">
 							<input type="text" id="dsf-primary-color" class="regular-text code" name="dsf_primary_color" value="<?php echo esc_attr( $default_colors['primary'] ); ?>" pattern="#[0-9A-Fa-f]{6}" maxlength="7" placeholder="#286632" spellcheck="false" autocomplete="off">
 						</td>
 					</tr>
 					<tr>
 						<th scope="row"><label for="dsf-secondary-color">Secondary Color</label></th>
 						<td>
+							<input type="color" class="dsf-default-color-picker" value="<?php echo esc_attr( $dsf_color_picker_value( $default_colors['secondary'], '#1E40AF' ) ); ?>" data-dsf-color-target="dsf-secondary-color" aria-label="Choose secondary color">
 							<input type="text" id="dsf-secondary-color" class="regular-text code" name="dsf_secondary_color" value="<?php echo esc_attr( $default_colors['secondary'] ); ?>" pattern="#[0-9A-Fa-f]{6}" maxlength="7" placeholder="#286632" spellcheck="false" autocomplete="off">
 						</td>
 					</tr>
 					<tr>
 						<th scope="row"><label for="dsf-text-color">Text Color</label></th>
 						<td>
+							<input type="color" class="dsf-default-color-picker" value="<?php echo esc_attr( $dsf_color_picker_value( $default_colors['text'], '#1F2937' ) ); ?>" data-dsf-color-target="dsf-text-color" aria-label="Choose text color">
 							<input type="text" id="dsf-text-color" class="regular-text code" name="dsf_text_color" value="<?php echo esc_attr( $default_colors['text'] ); ?>" pattern="#[0-9A-Fa-f]{6}" maxlength="7" placeholder="#286632" spellcheck="false" autocomplete="off">
 						</td>
 					</tr>
 					<tr>
 						<th scope="row"><label for="dsf-background-color">Background Color</label></th>
 						<td>
+							<input type="color" class="dsf-default-color-picker" value="<?php echo esc_attr( $dsf_color_picker_value( $default_colors['background'], '#FFFFFF' ) ); ?>" data-dsf-color-target="dsf-background-color" aria-label="Choose background color">
 							<input type="text" id="dsf-background-color" class="regular-text code" name="dsf_background_color" value="<?php echo esc_attr( $default_colors['background'] ); ?>" pattern="#[0-9A-Fa-f]{6}" maxlength="7" placeholder="#286632" spellcheck="false" autocomplete="off">
-							<p class="description">Enter a six-digit hex color, including the #.</p>
+							<p class="description">Choose a color or enter a custom six-digit hex value, including the #.</p>
 						</td>
 					</tr>
 				</table>
+				<script>
+				(function () {
+					var pickerInputs = document.querySelectorAll('.dsf-default-color-picker[data-dsf-color-target]');
+					pickerInputs.forEach(function (picker) {
+						var textInput = document.getElementById(picker.dataset.dsfColorTarget);
+						if (!textInput) return;
+
+						picker.addEventListener('input', function () {
+							textInput.value = picker.value.toUpperCase();
+							textInput.dispatchEvent(new Event('input', { bubbles: true }));
+						});
+
+						textInput.addEventListener('input', function () {
+							if (/^#[0-9a-f]{6}$/i.test(textInput.value)) {
+								picker.value = textInput.value;
+							}
+						});
+					});
+				})();
+				</script>
 			</div>
 
 			<!-- Default Header & Footer -->
@@ -750,74 +737,17 @@ $font_options = array(
 				</script>
 			</div>
 
-			<!-- SEO Defaults -->
-			<div class="dsf-card" data-dsf-tab="seo" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
-				<h2 style="margin-top: 0;">SEO Defaults</h2>
-				<p class="description">Site-wide fallbacks used when a page has no SEO settings of its own, plus the business identity that powers search &amp; social rich results (JSON-LD). If a dedicated SEO plugin (Yoast, Rank Math, AIOSEO, SEOPress) is active, DesignStudio Flow defers to it and outputs nothing.</p>
-
-				<table class="form-table">
-					<tr>
-						<th scope="row"><label for="dsf_seo_default_image">Default social image</label></th>
-						<td>
-							<input type="url" id="dsf_seo_default_image" name="dsf_seo_default_image" class="regular-text" value="<?php echo esc_attr( $seo_defaults['defaultSocialImage'] ); ?>" placeholder="https://…">
-							<p class="description">Fallback <code>og:image</code> for shares when a page has no social image and no hero image. Use at least 1200×630px.</p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="dsf_seo_title_separator">Title separator</label></th>
-						<td>
-							<select id="dsf_seo_title_separator" name="dsf_seo_title_separator">
-								<?php foreach ( array( '–', '—', '-', '|', '·', '•', ':', '/' ) as $dsf_sep_option ) : ?>
-									<option value="<?php echo esc_attr( $dsf_sep_option ); ?>" <?php selected( $seo_defaults['titleSeparator'], $dsf_sep_option ); ?>><?php echo esc_html( $dsf_sep_option ); ?></option>
-								<?php endforeach; ?>
-							</select>
-							<p class="description">Used for the <code>{sep}</code> variable in SEO titles, e.g. <em>Page Title <?php echo esc_html( $seo_defaults['titleSeparator'] ); ?> Site Name</em>.</p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="dsf_seo_org_name">Organization / brand name</label></th>
-						<td>
-							<input type="text" id="dsf_seo_org_name" name="dsf_seo_org_name" class="regular-text" value="<?php echo esc_attr( $seo_defaults['orgName'] ); ?>" placeholder="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
-							<p class="description">Publisher name in structured data. Defaults to the site name when blank.</p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="dsf_seo_org_logo">Organization logo</label></th>
-						<td>
-							<input type="url" id="dsf_seo_org_logo" name="dsf_seo_org_logo" class="regular-text" value="<?php echo esc_attr( $seo_defaults['orgLogo'] ); ?>" placeholder="https://…">
-							<p class="description">Square logo used in the Organization schema. Defaults to the Site Icon when blank.</p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="dsf_seo_twitter_site">X (Twitter) handle</label></th>
-						<td>
-							<input type="text" id="dsf_seo_twitter_site" name="dsf_seo_twitter_site" class="regular-text" value="<?php echo esc_attr( $seo_defaults['twitterSite'] ); ?>" placeholder="@yourbrand">
-							<p class="description">Output as <code>twitter:site</code> on shared cards.</p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">Social profiles</th>
-						<td>
-							<p class="description" style="margin-top: 0;">Official profile URLs. Added to structured data as <code>sameAs</code> so search engines can connect your brand's accounts.</p>
-							<?php
-							$dsf_social_labels = array(
-								'facebook'  => 'Facebook',
-								'twitter'   => 'X (Twitter)',
-								'instagram' => 'Instagram',
-								'linkedin'  => 'LinkedIn',
-								'youtube'   => 'YouTube',
-								'tiktok'    => 'TikTok',
-							);
-							foreach ( $dsf_social_labels as $dsf_net_key => $dsf_net_label ) :
-								?>
-								<p style="margin: 6px 0;">
-									<label style="display:inline-block; width:110px;"><?php echo esc_html( $dsf_net_label ); ?></label>
-									<input type="url" name="dsf_seo_social_<?php echo esc_attr( $dsf_net_key ); ?>" class="regular-text" value="<?php echo esc_attr( $seo_social_by_network[ $dsf_net_key ] ?? '' ); ?>" placeholder="https://…">
-								</p>
-							<?php endforeach; ?>
-						</td>
-					</tr>
-				</table>
+			<div class="dsf-card" data-dsf-tab="tracking" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
+				<h2 style="margin-top: 0;">Tracking &amp; Custom Code</h2>
+				<p class="description">Add a Google Tag Manager, analytics, or pixel snippet once and it will run on every public page, including non-Flow pages and 404s.</p>
+				<?php if ( ! $can_manage_tracking ) : ?>
+					<p class="notice notice-warning inline"><span><?php esc_html_e( 'Only users allowed to publish unfiltered HTML can edit tracking code.', 'designstudio-flow' ); ?></span></p>
+				<?php else : ?>
+					<table class="form-table">
+						<tr><th scope="row"><label for="dsf_tracking_head">Head code</label></th><td><textarea id="dsf_tracking_head" name="dsf_tracking_head" class="large-text code" rows="8" spellcheck="false"><?php echo esc_textarea( $tracking_code['head'] ); ?></textarea><p class="description">Printed inside <code>&lt;head&gt;</code>. Paste the first Google Tag Manager or analytics snippet here.</p></td></tr>
+						<tr><th scope="row"><label for="dsf_tracking_body">Body-opening code</label></th><td><textarea id="dsf_tracking_body" name="dsf_tracking_body" class="large-text code" rows="8" spellcheck="false"><?php echo esc_textarea( $tracking_code['body'] ); ?></textarea><p class="description">Printed immediately after the opening <code>&lt;body&gt;</code> tag. Paste the GTM <code>&lt;noscript&gt;</code> snippet here.</p></td></tr>
+					</table>
+				<?php endif; ?>
 			</div>
 
 			<div class="dsf-card" data-dsf-tab="notification" style="background: white; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin: 20px 0;">
@@ -941,7 +871,7 @@ $font_options = array(
 			
 			<script>
 			(function () {
-				var VALID = ['general', 'theme', 'notification', 'recaptcha'];
+				var VALID = ['general', 'theme', 'tracking', 'notification', 'recaptcha'];
 				var links  = document.querySelectorAll('.dsf-settings-tabs [data-dsf-tab-link]');
 				var cards  = document.querySelectorAll('.dsf-card[data-dsf-tab]');
 				if (!links.length || !cards.length) return;

@@ -4,7 +4,10 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [vue()],
-  
+  // The plugin is installed below a WordPress site root. Relative URLs ensure
+  // Vite's lazy-loaded CSS and chunks resolve from assets/js rather than /.
+  base: './',
+
   root: './',
   
   build: {

@@ -41,7 +41,17 @@ $custom_footer = $show_footer ? $frontend->render_assigned_layout_template( $dsf
 	<main class="dsf-flow-root dsf-flow-root--global">
 		<div class="dsf-global-content">
 			<?php
-			if ( have_posts() ) {
+			if ( is_404() ) {
+				?>
+				<article class="dsf-global-article dsf-global-article--404">
+					<h1 class="dsf-global-title"><?php esc_html_e( 'Page not found', 'designstudio-flow' ); ?></h1>
+					<div class="dsf-global-entry entry-content">
+						<p><?php esc_html_e( 'The page you requested could not be found. A search may help.', 'designstudio-flow' ); ?></p>
+						<?php get_search_form(); ?>
+					</div>
+				</article>
+				<?php
+			} elseif ( have_posts() ) {
 				while ( have_posts() ) {
 					the_post();
 					?>
