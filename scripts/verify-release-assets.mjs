@@ -26,14 +26,18 @@ const runtime = Object.values(manifest)
 if (!runtime || !existsSync(asset(runtime))) fail('The lazy block runtime chunk is missing.')
 
 const runtimeSource = readFileSync(asset(runtime), 'utf8')
-const publicAssetBase = '/wp-content/plugins/designstudio-flow/assets/'
-if (!runtimeSource.includes(publicAssetBase)) {
-  fail(`Lazy block assets are not scoped to ${publicAssetBase}`)
+if (!runtimeSource.includes('new URL(e,t).href')) {
+  fail('Lazy frontend assets are not resolved relative to their runtime module.')
 }
 
 const representativeCss = asset('css/LandingBlockReadyPreview.css')
 if (!existsSync(representativeCss) || !readFileSync(representativeCss, 'utf8').includes('.dsf-ready')) {
   fail('A representative lazy block stylesheet is missing or invalid.')
+}
+
+const editorCss = asset('css/editor.css')
+if (!existsSync(editorCss) || !readFileSync(editorCss, 'utf8').includes('.dsf-ready')) {
+  fail('The editor bundle is missing scoped block styles.')
 }
 
 console.log('✓ Release asset verification passed.')

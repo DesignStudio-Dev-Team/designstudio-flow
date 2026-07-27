@@ -131,10 +131,14 @@ const catalogCategory = (block) => {
 }
 
 const catalogItems = computed(() => {
-  const catalog = typeof window !== 'undefined' ? window.dsfFrontendData?.blockCatalog : null
+  const frontendCatalog = typeof window !== 'undefined' ? window.dsfFrontendData?.blockCatalog : null
+  const editorBlocks = typeof window !== 'undefined' ? window.dsfEditorData?.blocks : null
+  const catalog = Array.isArray(frontendCatalog)
+    ? frontendCatalog
+    : (Array.isArray(editorBlocks) ? editorBlocks : Object.values(editorBlocks || {}))
   if (!Array.isArray(catalog)) return []
   return catalog
-    .filter((block) => block && block.id && block.name && block.template_scope === 'page')
+    .filter((block) => block && block.id && block.name && (block.template_scope || 'page') === 'page' && !block.preset_only)
     .map((block) => ({
       title: block.name,
       category: catalogCategory(block),

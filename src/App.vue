@@ -1108,7 +1108,7 @@ function insertPreset(preset) {
 const mergedPresets = computed(() => {
   const featured = availableSavedBlocks.value
     .filter((b) => b.featured)
-    .map((b) => ({ key: 'saved-' + b.id, id: b.id, name: b.name, type: b.type, settings: b.settings, icon: 'bookmark', isUser: true }))
+    .map((b) => ({ key: 'saved-' + b.id, id: b.id, name: b.name, type: b.type, category: b.category || '', settings: b.settings, icon: 'bookmark', isUser: true }))
   return [...blockPresets, ...featured]
 })
 

@@ -130,6 +130,23 @@ describe('DSFlow landing page blocks', () => {
     vi.unstubAllGlobals()
   })
 
+  it('uses the editor block registry for the block-library carousel preset', () => {
+    vi.stubGlobal('dsfEditorData', {
+      blocks: {
+        hero: { id: 'hero', name: 'Hero', category: 'content', description: 'A real hero.' },
+        productOnly: { id: 'product-only', name: 'Product Only', category: 'content', description: 'Hidden.', template_scope: 'product' },
+        presetOnly: { id: 'preset-only', name: 'Preset Only', category: 'content', description: 'Hidden.', preset_only: true },
+      },
+    })
+    const explorer = mount(LandingBlockExplorerPreview, { props: { isEditor: true, settings: { source: 'block-library' } } })
+    expect(explorer.findAll('.dsf-explorer-card')).toHaveLength(1)
+    expect(explorer.text()).toContain('Hero')
+    expect(explorer.text()).not.toContain('Product Only')
+    expect(explorer.text()).not.toContain('Preset Only')
+    explorer.unmount()
+    vi.unstubAllGlobals()
+  })
+
   it('keeps a fresh content carousel generic until a preset or custom items are chosen', () => {
     const explorer = mount(LandingBlockExplorerPreview, { props: { isEditor: true, settings: {} } })
     expect(explorer.findAll('.dsf-explorer-card')).toHaveLength(3)
