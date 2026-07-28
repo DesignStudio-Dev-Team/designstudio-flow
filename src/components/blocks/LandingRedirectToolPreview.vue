@@ -2,7 +2,7 @@
   <section id="redirects" ref="root" class="dsf-redir" :class="{ 'is-reversed': settings.reverseLayout }" :style="blockStyle" data-dsf-parallax-scope>
     <div class="dsf-redir__inner">
       <div class="dsf-redir__copy">
-        <span class="dsf-redir__kicker" data-dsf-reveal><i></i><InlineText tagName="span" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" /></span>
+        <span v-if="settings.showEyebrow !== false" class="dsf-redir__kicker" data-dsf-reveal><i></i><InlineText tagName="span" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" /></span>
         <InlineText tagName="h2" v-model="settings.title" :is-editor="isEditor" data-dsf-split placeholder="Title" />
         <InlineText tagName="p" v-model="settings.description" :is-editor="isEditor" :multiline="true" data-dsf-reveal placeholder="Description" />
         <ul data-dsf-reveal>
@@ -74,7 +74,7 @@ useLandingMotion(root, props.isEditor)
 .dsf-redir.is-reversed .dsf-redir__copy { order: 2; }
 .dsf-redir.is-reversed .dsf-redir__visual { order: 1; }
 .dsf-redir__copy { max-width: 520px; }
-.dsf-redir__kicker { display: inline-flex; align-items: center; gap: 9px; color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 14px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
+.dsf-redir__kicker { display: inline-flex; align-items: center; gap: 9px; color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 12px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
 .dsf-redir__kicker i { width: 22px; height: 2px; background: var(--dsf-eyebrow-line-color, var(--coral)); }
 .dsf-redir h2 { margin: 14px 0 22px; font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); font-size: clamp(37px, 3.8vw, 54px); line-height: 1.05; letter-spacing: -0.045em; text-wrap: balance; }
 .dsf-redir__copy > p { margin: 0; color: #596775; font-size: 20px; line-height: 1.57; }

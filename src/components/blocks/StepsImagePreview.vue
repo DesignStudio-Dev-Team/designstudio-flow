@@ -2,7 +2,7 @@
   <section class="dsf-steps-image" :class="`dsf-steps-image--${layout}`" :style="blockStyle">
     <div class="dsf-steps-image__inner">
       <div class="dsf-steps-image__copy">
-        <span class="dsf-steps-image__eyebrow"><i></i><InlineText tagName="span" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" /></span>
+        <span v-if="settings.showEyebrow !== false" class="dsf-steps-image__eyebrow"><i></i><InlineText tagName="span" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" /></span>
         <InlineText tagName="h2" v-model="settings.title" :is-editor="isEditor" placeholder="Title" />
         <InlineText tagName="p" class="dsf-steps-image__description" v-model="settings.description" :is-editor="isEditor" :multiline="true" placeholder="Description" />
 
@@ -53,7 +53,7 @@ const steps = [
 .dsf-steps-image { --steps-accent: var(--dsf-theme-primary, #0091ff); --steps-text: var(--dsf-theme-text, #111827); position: relative; overflow: hidden; padding: clamp(64px, 8vw, 112px) 24px; color: var(--steps-text); background: var(--dsf-theme-background, #f7f4ed); font-family: var(--dsf-theme-body-font, 'Source Sans 3', sans-serif); }
 .dsf-steps-image__inner { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); align-items: center; width: min(1180px, 100%); margin: 0 auto; gap: clamp(36px, 6vw, 76px); }
 .dsf-steps-image__copy { max-width: 560px; }
-.dsf-steps-image__eyebrow { display: inline-flex; align-items: center; gap: 9px; color: var(--dsf-eyebrow-color, var(--steps-accent)); font-size: var(--dsf-eyebrow-size, 13px); font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; }
+.dsf-steps-image__eyebrow { display: inline-flex; align-items: center; gap: 9px; color: var(--dsf-eyebrow-color, var(--steps-accent)); font-size: var(--dsf-eyebrow-size, 12px); font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; }
 .dsf-steps-image__eyebrow i { width: 22px; height: 2px; background: var(--dsf-eyebrow-line-color, var(--steps-accent)); }
 .dsf-steps-image h2 { margin: 14px 0 18px; font-family: var(--dsf-theme-heading-font, inherit); font-size: clamp(2.2rem, 4.2vw, 4rem); line-height: 1.04; letter-spacing: -0.045em; text-wrap: balance; }
 .dsf-steps-image__description { max-width: 540px; margin: 0; color: color-mix(in srgb, var(--steps-text) 65%, transparent); font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.55; }

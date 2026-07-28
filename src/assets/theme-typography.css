@@ -31,10 +31,8 @@
   font-size: var(--dsf-theme-h1, 42px) !important;
 }
 
-.dsf-frontend-blocks .dsf-block-preview h2,
-.dsf-frontend-blocks .dsf-block--landing h2,
-#dsf-editor-app .dsf-canvas .dsf-block-preview h2,
-#dsf-editor-app .dsf-canvas .dsf-block--landing h2,
+.dsf-frontend-blocks .dsf-block:not(.dsf-block--hero):not(.dsf-block--chrome) h2,
+#dsf-editor-app .dsf-canvas .dsf-block:not(.dsf-block--hero):not(.dsf-block--chrome) h2,
 .dsf-modal__content h2,
 .dsf-page-popup__body h2 {
   font-size: var(--dsf-theme-h2, 37px) !important;

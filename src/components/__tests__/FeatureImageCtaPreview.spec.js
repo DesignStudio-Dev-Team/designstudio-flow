@@ -15,6 +15,24 @@ describe('FeatureImageCtaPreview', () => {
     expect(wrapper.classes()).toContain('dsf-feature-image-cta--image-left')
   })
 
+  it('applies safe icon foreground and background colors', () => {
+    const wrapper = mount(FeatureImageCtaPreview, {
+      props: { settings: { iconColor: '#123456', iconBackground: '#abcdef', features: [{ icon: 'zap', title: 'Efficient' }] } },
+    })
+
+    const style = wrapper.find('.dsf-feature-image-cta__icon').attributes('style')
+    expect(style).toContain('color: rgb(18, 52, 86)')
+    expect(style).toContain('background-color: rgb(171, 205, 239)')
+  })
+
+  it('uses a safe custom image icon and falls back from unsafe URLs', () => {
+    const safe = mount(FeatureImageCtaPreview, { props: { settings: { features: [{ icon: 'zap', title: 'Efficient', iconImage: 'https://example.com/icon.svg' }] } } })
+    expect(safe.find('.dsf-feature-image-cta__icon-image').attributes('src')).toBe('https://example.com/icon.svg')
+
+    const unsafe = mount(FeatureImageCtaPreview, { props: { settings: { features: [{ icon: 'zap', title: 'Efficient', iconImage: 'javascript:alert(1)' }] } } })
+    expect(unsafe.find('.dsf-feature-image-cta__icon-image').exists()).toBe(false)
+  })
+
   it('prevents editor CTA navigation and rejects executable URLs', async () => {
     const wrapper = mount(FeatureImageCtaPreview, { props: { isEditor: true, settings: { showButton: true, buttonUrl: 'javascript:alert(1)' } } })
     const button = wrapper.find('.dsf-feature-image-cta__button')

@@ -7,7 +7,7 @@
     </div>
     <div class="dsf-product-hero__inner">
       <div class="dsf-product-hero__copy">
-        <span class="dsf-kicker" data-dsf-reveal><i class="dsf-kicker__dot"></i><InlineText tagName="span" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" /></span>
+        <span v-if="settings.showEyebrow !== false" class="dsf-kicker" data-dsf-reveal><i class="dsf-kicker__dot"></i><InlineText tagName="span" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" /></span>
         <InlineText tagName="h1" v-model="settings.title" :is-editor="isEditor" data-dsf-split placeholder="Headline" />
         <InlineText tagName="p" v-model="settings.description" :is-editor="isEditor" :multiline="true" :style="descriptionStyle" data-dsf-reveal placeholder="Supporting description" />
         <div v-if="isEditor || settings.primaryText || settings.secondaryText" class="dsf-product-hero__actions" data-dsf-reveal>
@@ -148,7 +148,7 @@ useLandingMotion(root, props.isEditor)
 .dsf-product-hero.is-center .dsf-product-hero__actions,
 .dsf-product-hero.is-center .dsf-product-hero__note { justify-content: center; }
 .dsf-product-hero__copy { max-width: 610px; }
-.dsf-kicker { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 22px; padding: 7px 14px 7px 11px; border: 1px solid rgba(12, 95, 168, 0.16); border-radius: 999px; background: rgba(255, 255, 255, 0.55); color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 14px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
+.dsf-kicker { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 22px; padding: 7px 14px 7px 11px; border: 1px solid rgba(12, 95, 168, 0.16); border-radius: 999px; background: rgba(255, 255, 255, 0.55); color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 12px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
 .dsf-kicker__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dsf-eyebrow-line-color, var(--coral)); box-shadow: 0 0 0 4px rgba(232, 106, 69, 0.18); }
 .dsf-product-hero h1 { max-width: 720px; margin: 0; font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); font-size: clamp(46px, 4.6vw, 66px); line-height: 0.99; letter-spacing: -0.055em; }
 .dsf-product-hero__copy > p { max-width: 590px; margin: 28px 0 0; color: #526171; font-size: clamp(19px, 1.7vw, 23px); line-height: 1.55; }

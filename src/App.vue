@@ -149,6 +149,9 @@
         :context="helpContext"
         :avoid-panel="Boolean(selectedBlock)"
         :mobile-actions-open="mobileDockMenuOpen"
+        :block-library-open="showBlockLibrary"
+        :history-open="showHistory"
+        :structure-open="showStructure"
         @close="closeHelp"
         @next="advanceOnboarding"
         @finish="finishOnboarding"
@@ -858,8 +861,9 @@ function advanceOnboarding() {
   const nextStep = {
     'page-settings-detail': 'theme',
     'theme-detail': 'preview',
-    preview: 'organize',
-    organize: 'add',
+    preview: 'history',
+    history: 'structure',
+    structure: 'add',
     settings: 'background',
   }[onboardingStep.value]
   if (!nextStep) return

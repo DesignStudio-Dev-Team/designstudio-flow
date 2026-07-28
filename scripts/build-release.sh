@@ -48,11 +48,22 @@ mkdir -p build/designstudio-flow
 echo "📁 Copying production files..."
 rsync -a --include='/README.md' --exclude='*.md' --exclude-from=".distignore" ./ build/designstudio-flow/
 
+MAIN_PLUGIN_FILE="build/designstudio-flow/designstudio-flow.php"
+if [ ! -f "$MAIN_PLUGIN_FILE" ]; then
+  echo "❌ Release package is missing designstudio-flow/designstudio-flow.php"
+  exit 1
+fi
+
 # Create ZIP
 echo "🗜️  Creating ZIP archive..."
 cd build
 rm -f "../designstudio-flow-$VERSION.zip"
 zip -rq "../designstudio-flow-$VERSION.zip" designstudio-flow
+
+if ! unzip -Z1 "../designstudio-flow-$VERSION.zip" | grep -qx 'designstudio-flow/designstudio-flow.php'; then
+  echo "❌ Release ZIP is missing the top-level plugin file: designstudio-flow/designstudio-flow.php"
+  exit 1
+fi
 cd ..
 
 # Cleanup

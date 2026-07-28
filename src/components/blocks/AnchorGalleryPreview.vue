@@ -1,8 +1,10 @@
 <template>
   <section class="dsf-anchor-gallery" :class="[`dsf-anchor-gallery--${layout}`, `dsf-anchor-gallery--align-${textAlign}`, `dsf-anchor-gallery--titles-${titlePosition}`, `dsf-anchor-gallery--count-${displayItems.length}`]" :style="sectionStyle">
     <header v-if="(showEyebrow && (isEditor || settings.eyebrow)) || settings.title || settings.description" class="dsf-anchor-gallery__header">
-      <InlineText v-if="showEyebrow && (isEditor || settings.eyebrow)" tagName="p" class="dsf-anchor-gallery__eyebrow" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" />
-      <InlineText v-if="isEditor || settings.title" tagName="h2" class="dsf-anchor-gallery__title" v-model="settings.title" :is-editor="isEditor" placeholder="Explore our featured collections" />
+      <div class="dsf-anchor-gallery__header-copy">
+        <InlineText v-if="showEyebrow && (isEditor || settings.eyebrow)" tagName="p" class="dsf-anchor-gallery__eyebrow" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" />
+        <InlineText v-if="isEditor || settings.title" tagName="h2" class="dsf-anchor-gallery__title" v-model="settings.title" :is-editor="isEditor" placeholder="Explore our featured collections" />
+      </div>
       <InlineText v-if="isEditor || settings.description" tagName="p" class="dsf-anchor-gallery__description" v-model="settings.description" :is-editor="isEditor" :multiline="true" placeholder="Discover products and experiences selected for your space." />
     </header>
 
@@ -74,10 +76,10 @@ function handleTileClick(event, item) {
 
 <style scoped>
 .dsf-anchor-gallery { width: 100%; box-sizing: border-box; container-type: inline-size; }
-.dsf-anchor-gallery__header { max-width: 820px; margin: 0 auto 42px; text-align: center; }
+.dsf-anchor-gallery__header { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem 3rem; align-items: end; max-width: 1050px; margin: 0 auto 4rem; }
 .dsf-anchor-gallery__eyebrow { margin: 0 0 10px; color: var(--dsf-anchor-gallery-description-color); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
 .dsf-anchor-gallery__title { margin: 0; color: var(--dsf-anchor-gallery-title-color); font-family: var(--dsf-theme-heading-font, inherit); font-size: clamp(2rem, 3.2vw, 3rem); font-weight: 600; line-height: 1.1; }
-.dsf-anchor-gallery__description { max-width: 680px; margin: 14px auto 0; color: var(--dsf-anchor-gallery-description-color); font-family: var(--dsf-theme-body-font, inherit); font-size: clamp(1rem, 1.6vw, 1.35rem); line-height: 1.45; }
+.dsf-anchor-gallery__description { margin: 0; color: var(--dsf-anchor-gallery-description-color); font-family: var(--dsf-theme-body-font, inherit); font-size: clamp(1rem, 1.8vw, 1.45rem); line-height: 1.35; }
 .dsf-anchor-gallery__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--dsf-anchor-gallery-gap); max-width: 1400px; margin: 0 auto; }
 .dsf-anchor-gallery--grid .dsf-anchor-gallery__grid { grid-template-columns: repeat(var(--dsf-anchor-gallery-columns), minmax(0, 1fr)); }
 .dsf-anchor-gallery--grid.dsf-anchor-gallery--count-5 .dsf-anchor-gallery__grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
@@ -108,7 +110,7 @@ function handleTileClick(event, item) {
 .dsf-anchor-gallery__tile:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
 
 @container (max-width: 760px) {
-  .dsf-anchor-gallery__header { margin-bottom: 28px; }
+  .dsf-anchor-gallery__header { grid-template-columns: 1fr; margin-bottom: 42px; }
   .dsf-anchor-gallery--grid .dsf-anchor-gallery__grid { grid-template-columns: repeat(min(2, var(--dsf-anchor-gallery-columns)), minmax(0, 1fr)); }
   .dsf-anchor-gallery--grid.dsf-anchor-gallery--count-5 .dsf-anchor-gallery__grid, .dsf-anchor-gallery--grid.dsf-anchor-gallery--count-6 .dsf-anchor-gallery__grid, .dsf-anchor-gallery--grid.dsf-anchor-gallery--count-7 .dsf-anchor-gallery__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dsf-anchor-gallery--grid.dsf-anchor-gallery--count-5 .dsf-anchor-gallery__tile, .dsf-anchor-gallery--grid.dsf-anchor-gallery--count-6 .dsf-anchor-gallery__tile, .dsf-anchor-gallery--grid.dsf-anchor-gallery--count-7 .dsf-anchor-gallery__tile { grid-column: span 1; }

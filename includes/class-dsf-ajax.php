@@ -1958,6 +1958,8 @@ class DSF_Ajax {
 	private function sanitize_supporting_copy_width( $settings, $default_width ) {
 		$settings                        = is_array( $settings ) ? $settings : array();
 		$settings['descriptionMaxWidth'] = max( 240, min( 1200, abs( (int) ( $settings['descriptionMaxWidth'] ?? $default_width ) ) ) );
+		$text_align                      = $settings['textAlign'] ?? 'auto';
+		$settings['textAlign']           = in_array( $text_align, array( 'auto', 'left', 'center', 'right' ), true ) ? $text_align : 'auto';
 		return $settings;
 	}
 
@@ -2154,6 +2156,7 @@ class DSF_Ajax {
 		}
 		return array(
 			'layout'           => 'modern' === ( $settings['layout'] ?? '' ) ? 'modern' : 'classic',
+			'showEyebrow'      => ! isset( $settings['showEyebrow'] ) || ! empty( $settings['showEyebrow'] ),
 			'eyebrow'         => $text( $settings['eyebrow'] ?? 'Pricing', 100 ),
 			'title'           => $text( $settings['title'] ?? 'Pricing that grows with you', 160 ),
 			'description'     => mb_substr( sanitize_textarea_field( $settings['description'] ?? '' ), 0, 400 ),
@@ -2209,6 +2212,7 @@ class DSF_Ajax {
 		$accent = sanitize_hex_color( $settings['accentColor'] ?? '' );
 		$background = sanitize_hex_color( $settings['backgroundColor'] ?? '' );
 		return array(
+			'showEyebrow' => ! isset( $settings['showEyebrow'] ) || ! empty( $settings['showEyebrow'] ),
 			'eyebrow' => mb_substr( sanitize_text_field( $settings['eyebrow'] ?? 'Plans for every stage' ), 0, 100 ),
 			'title' => mb_substr( sanitize_text_field( $settings['title'] ?? 'Straightforward pricing' ), 0, 160 ),
 			'description' => mb_substr( sanitize_textarea_field( $settings['description'] ?? '' ), 0, 400 ),
@@ -2404,13 +2408,13 @@ class DSF_Ajax {
 					'image'    => esc_url_raw( $image['image'] ?? '', array( 'http', 'https' ) ),
 					'title'    => $text( $image['title'] ?? '', 120 ),
 					'subtitle' => $text( $image['subtitle'] ?? '', 180 ),
+					'secondarySubtitle' => $text( $image['secondarySubtitle'] ?? '', 180 ),
 					'url'      => $this->sanitize_showcase_url( $image['url'] ?? '' ),
 				);
 			}
 			$tabs[] = array(
 			'label'      => $text( $tab['label'] ?? '', 80 ),
 				'source'     => 'images' === ( $tab['source'] ?? '' ) ? 'images' : 'products',
-				'supportingText' => $text( $tab['supportingText'] ?? '', 180 ),
 				'productIds' => array_slice( $this->normalize_numeric_id_list( $tab['productIds'] ?? array() ), 0, 20 ),
 				'images'     => $images,
 			);
@@ -2426,11 +2430,19 @@ class DSF_Ajax {
 			'showButtons'    => ! isset( $settings['showButtons'] ) || ! empty( $settings['showButtons'] ),
 			'primaryText'    => $text( $settings['primaryText'] ?? 'Explore All', 80 ),
 			'primaryUrl'     => $this->sanitize_showcase_url( $settings['primaryUrl'] ?? '' ),
+			'primaryButtonColor'     => $color( $settings['primaryButtonColor'] ?? '', '#2C5F5D' ),
+			'primaryButtonTextColor' => $color( $settings['primaryButtonTextColor'] ?? '', '#FFFFFF' ),
 			'secondaryText'  => $text( $settings['secondaryText'] ?? 'Learn More', 80 ),
 			'secondaryUrl'   => $this->sanitize_showcase_url( $settings['secondaryUrl'] ?? '' ),
+			'secondaryButtonColor'     => $color( $settings['secondaryButtonColor'] ?? '', '#2C5F5D' ),
+			'secondaryButtonTextColor' => $color( $settings['secondaryButtonTextColor'] ?? '', '#FFFFFF' ),
 			'backgroundColor'=> $color( $settings['backgroundColor'] ?? '', '#FFFFFF' ),
 			'titleColor'     => $color( $settings['titleColor'] ?? '', '#111111' ),
 			'accentColor'    => $color( $settings['accentColor'] ?? '', '#2C7FA3' ),
+			'tabTextColor'   => $color( $settings['tabTextColor'] ?? '', '#64748B' ),
+			'activeTabTextColor' => $color( $settings['activeTabTextColor'] ?? '', '#111111' ),
+			'modernTabsBackgroundColor' => $color( $settings['modernTabsBackgroundColor'] ?? '', '#F3F4F6' ),
+			'modernActiveTabBackgroundColor' => $color( $settings['modernActiveTabBackgroundColor'] ?? '', '#FFFFFF' ),
 			'padding'        => max( 0, min( 160, absint( $settings['padding'] ?? 56 ) ) ),
 			'paddingX'       => max( 0, min( 120, absint( $settings['paddingX'] ?? 24 ) ) ),
 			'marginY'        => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
@@ -2581,6 +2593,7 @@ class DSF_Ajax {
 		$clean = array(
 			'imageSide'            => 'right' === ( $settings['imageSide'] ?? '' ) ? 'right' : 'left',
 			'eyebrowText'          => sanitize_text_field( $settings['eyebrowText'] ?? '' ),
+			'showEyebrow'          => ! isset( $settings['showEyebrow'] ) || ! empty( $settings['showEyebrow'] ),
 			'showRating'           => ! isset( $settings['showRating'] ) || ! empty( $settings['showRating'] ),
 			'showPrice'            => ! isset( $settings['showPrice'] ) || ! empty( $settings['showPrice'] ),
 			'showShortDescription' => ! isset( $settings['showShortDescription'] ) || ! empty( $settings['showShortDescription'] ),
@@ -2626,7 +2639,7 @@ class DSF_Ajax {
 			'responsive' => $this->sanitize_product_responsive_spacing( $settings ),
 		);
 
-		foreach ( array( 'accentColor', 'backgroundColor' ) as $key ) {
+		foreach ( array( 'accentColor', 'iconBackground', 'backgroundColor' ) as $key ) {
 			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
 			$clean[ $key ] = $color ? $color : '';
 		}
@@ -2678,6 +2691,7 @@ class DSF_Ajax {
 			'imageSide'            => 'right' === ( $settings['imageSide'] ?? '' ) ? 'right' : 'left',
 			'backdrop'             => 'none' === ( $settings['backdrop'] ?? '' ) ? 'none' : 'soft',
 			'eyebrowText'          => sanitize_text_field( $settings['eyebrowText'] ?? '' ),
+			'showEyebrow'          => ! isset( $settings['showEyebrow'] ) || ! empty( $settings['showEyebrow'] ),
 			'showRating'           => ! isset( $settings['showRating'] ) || ! empty( $settings['showRating'] ),
 			'showShortDescription' => ! isset( $settings['showShortDescription'] ) || ! empty( $settings['showShortDescription'] ),
 			'showStock'            => ! isset( $settings['showStock'] ) || ! empty( $settings['showStock'] ),
@@ -3486,6 +3500,7 @@ class DSF_Ajax {
 	private function sanitize_landing_block_settings( $type, $settings ) {
 		$settings = is_array( $settings ) ? $settings : array();
 		$clean    = array(
+			'showEyebrow' => ! isset( $settings['showEyebrow'] ) || ! empty( $settings['showEyebrow'] ),
 			'paddingX' => max( 0, min( 80, absint( $settings['paddingX'] ?? 0 ) ) ),
 			'marginY'  => max( 0, min( 80, absint( $settings['marginY'] ?? 0 ) ) ),
 		);
@@ -3811,6 +3826,7 @@ class DSF_Ajax {
 			}
 			$clean[] = array(
 				'icon'        => $this->sanitize_landing_icon( $item['icon'] ?? '' ),
+				'iconImage'   => esc_url_raw( $item['iconImage'] ?? '', array( 'http', 'https' ) ),
 				'title'       => sanitize_text_field( $item['title'] ?? '' ),
 				'description' => sanitize_textarea_field( $item['description'] ?? '' ),
 				'note'        => sanitize_text_field( $item['note'] ?? '' ),
@@ -3937,7 +3953,7 @@ class DSF_Ajax {
 			'paddingY'      => max( 0, min( 160, intval( $settings['paddingY'] ?? 48 ) ) ),
 		);
 
-		foreach ( array( 'backgroundColor', 'buttonColor', 'buttonTextColor' ) as $key ) {
+		foreach ( array( 'backgroundColor', 'iconColor', 'iconBackground', 'buttonColor', 'buttonTextColor' ) as $key ) {
 			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
 			$clean[ $key ] = $color ? $color : '';
 		}
@@ -3954,6 +3970,7 @@ class DSF_Ajax {
 	private function sanitize_countdown_settings( $settings ) {
 		$settings = is_array( $settings ) ? $settings : array();
 		$clean    = array(
+			'showEyebrow'           => ! isset( $settings['showEyebrow'] ) || ! empty( $settings['showEyebrow'] ),
 			'eyebrow'               => sanitize_text_field( $settings['eyebrow'] ?? '' ),
 			'title'                 => sanitize_text_field( $settings['title'] ?? '' ),
 			'description'           => sanitize_textarea_field( $settings['description'] ?? '' ),

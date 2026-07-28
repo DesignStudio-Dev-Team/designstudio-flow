@@ -25,6 +25,38 @@ describe('TabbedProductShowcasePreview', () => {
     expect(wrapper.find('.dsf-tabbed-showcase__image').attributes('src')).toBe('https://cdn.example.test/tahiti.jpg')
   })
 
+  it('renders the full image showcase card details and a safe whole-card URL', () => {
+    const wrapper = mount(TabbedProductShowcasePreview, {
+      props: {
+        settings: {
+          ...settings,
+          style: 'image',
+          tabs: [{ label: 'Featured', source: 'images', images: [{ image: 'https://cdn.example.test/tahiti.jpg', title: 'Tahiti', subtitle: '6 Seats', secondarySubtitle: '48 Jets', url: '/tahiti' }] }],
+        },
+      },
+    })
+
+    expect(wrapper.find('.dsf-tabbed-showcase__card-title').text()).toBe('Tahiti')
+    expect(wrapper.find('.dsf-tabbed-showcase__card-subtitle').text()).toBe('6 Seats')
+    expect(wrapper.find('.dsf-tabbed-showcase__card-secondary-subtitle').text()).toBe('48 Jets')
+    expect(wrapper.find('.dsf-tabbed-showcase__card-link').attributes('href')).toBe('/tahiti')
+    expect(wrapper.classes()).toContain('dsf-tabbed-showcase--image')
+  })
+
+  it('does not render the removed legacy product supporting text', () => {
+    const wrapper = mount(TabbedProductShowcasePreview, {
+      props: {
+        settings: {
+          ...settings,
+          tabs: [{ label: 'Featured', source: 'products', supportingText: 'This should not render', productIds: [] }],
+        },
+      },
+    })
+
+    expect(wrapper.text()).not.toContain('This should not render')
+    expect(wrapper.find('.dsf-tabbed-showcase__card-supporting').exists()).toBe(false)
+  })
+
   it('shows three generic placeholders when a tab has no content', () => {
     const wrapper = mount(TabbedProductShowcasePreview, { props: { settings: { title: '', tabs: [{ label: 'Featured', source: 'images', images: [] }] } } })
     expect(wrapper.findAll('.dsf-tabbed-showcase__card')).toHaveLength(3)
@@ -38,6 +70,12 @@ describe('TabbedProductShowcasePreview', () => {
     expect(visible.find('.dsf-tabbed-showcase__description').text()).toBe('Explore our collection.')
     expect(visible.find('.dsf-tabbed-showcase__description').attributes('contenteditable')).toBe('true')
     expect(hidden.find('.dsf-tabbed-showcase__description').exists()).toBe(false)
+  })
+
+  it('groups the title and description in the shared split section heading', () => {
+    const wrapper = mount(TabbedProductShowcasePreview, { props: { settings: { ...settings, description: 'Explore our collection.' } } })
+    expect(wrapper.find('.dsf-tabbed-showcase__header .dsf-tabbed-showcase__title').exists()).toBe(true)
+    expect(wrapper.find('.dsf-tabbed-showcase__header .dsf-tabbed-showcase__description').exists()).toBe(true)
   })
 
   it('shows carousel controls when a tab has more than three items', async () => {
@@ -64,6 +102,34 @@ describe('TabbedProductShowcasePreview', () => {
 
     const chevronWrapper = mount(TabbedProductShowcasePreview, { props: { settings: { ...settings, tabStyle: 'chevron' } } })
     expect(chevronWrapper.find('.dsf-tabbed-showcase__chevron').exists()).toBe(true)
+  })
+
+  it('applies independent CTA and modern tab colors', () => {
+    const wrapper = mount(TabbedProductShowcasePreview, {
+      props: {
+        settings: {
+          ...settings,
+          tabStyle: 'modern',
+          primaryButtonColor: '#123456',
+          primaryButtonTextColor: '#FFFFFF',
+          secondaryButtonColor: '#654321',
+          secondaryButtonTextColor: '#ABCDEF',
+          tabTextColor: '#112233',
+          activeTabTextColor: '#445566',
+          modernTabsBackgroundColor: '#AABBCC',
+          modernActiveTabBackgroundColor: '#DDEEFF',
+        },
+      },
+    })
+
+    expect(wrapper.element.style.getPropertyValue('--dsf-tabbed-showcase-primary-button-background')).toBe('#123456')
+    expect(wrapper.element.style.getPropertyValue('--dsf-tabbed-showcase-secondary-button-background')).toBe('#654321')
+    expect(wrapper.element.style.getPropertyValue('--dsf-tabbed-showcase-tab-text-color')).toBe('#112233')
+    expect(wrapper.element.style.getPropertyValue('--dsf-tabbed-showcase-active-tab-text-color')).toBe('#445566')
+    expect(wrapper.element.style.getPropertyValue('--dsf-tabbed-showcase-modern-tabs-background')).toBe('#AABBCC')
+    expect(wrapper.element.style.getPropertyValue('--dsf-tabbed-showcase-modern-active-tab-background')).toBe('#DDEEFF')
+    expect(wrapper.find('.dsf-tabbed-showcase__button--primary').exists()).toBe(true)
+    expect(wrapper.find('.dsf-tabbed-showcase__button--secondary').exists()).toBe(true)
   })
 
   it('switches tabs with click and keeps editor links from navigating', async () => {

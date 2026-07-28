@@ -36,7 +36,7 @@
 
       <!-- Details column -->
       <div class="dsf-product-hero__details">
-        <p v-if="settings.eyebrowText" class="dsf-product-hero__eyebrow" :style="{ color: accent }">
+        <p v-if="settings.showEyebrow !== false && settings.eyebrowText" class="dsf-product-hero__eyebrow" :style="{ color: accent }">
           {{ settings.eyebrowText }}
         </p>
 
@@ -245,7 +245,7 @@ const innerStyle = computed(() => {
 
 .dsf-product-hero__eyebrow {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;

@@ -19,7 +19,7 @@
 
       <ul v-if="features.length || isEditor" class="dsf-feature-image-cta__features" aria-label="Highlights">
         <li v-for="(feature, index) in features" :key="`${feature.title}-${index}`">
-          <span class="dsf-feature-image-cta__icon" aria-hidden="true"><component :is="iconFor(feature.icon)" :size="31" stroke-width="1.8" /></span>
+          <span class="dsf-feature-image-cta__icon" :style="iconStyle" aria-hidden="true"><img v-if="featureIconImage(feature)" class="dsf-feature-image-cta__icon-image" :src="featureIconImage(feature)" alt=""><component v-else :is="iconFor(feature.icon)" :size="31" stroke-width="1.8" /></span>
           <InlineText
             v-model="feature.title"
             tagName="span"
@@ -80,6 +80,14 @@ const buttonStyle = computed(() => ({
   backgroundColor: safeHex(props.settings?.buttonColor, '#2473a6'),
   color: safeHex(props.settings?.buttonTextColor, '#ffffff'),
 }))
+const iconStyle = computed(() => ({
+  color: safeHex(props.settings?.iconColor, '#0c1720'),
+  backgroundColor: safeHex(props.settings?.iconBackground, '#c6f0ff'),
+}))
+const featureIconImage = (feature) => {
+  const image = typeof feature?.iconImage === 'string' ? feature.iconImage.trim() : ''
+  return image ? safePublicUrl(image, '') : ''
+}
 
 function handleButtonClick(event) {
   if (props.isEditor) event.preventDefault()
@@ -95,7 +103,8 @@ function handleButtonClick(event) {
 .dsf-feature-image-cta__description { display: block; max-width: 620px; margin: 18px 0 0; color: var(--dsf-theme-text, #1f2937); font-size: clamp(16px, 1.4vw, 19px); line-height: 1.45; overflow-wrap: anywhere; }
 .dsf-feature-image-cta__features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 31px 0 0; padding: 0; list-style: none; }
 .dsf-feature-image-cta__features li { display: grid; justify-items: center; gap: 9px; min-width: 0; text-align: center; }
-.dsf-feature-image-cta__icon { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; color: #0c1720; background: rgba(198, 240, 255, 0.65); box-shadow: 0 0 24px rgba(112, 211, 245, 0.46); }
+.dsf-feature-image-cta__icon { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; color: #0c1720; background: rgba(198, 240, 255, 0.65); }
+.dsf-feature-image-cta__icon-image { display: block; width: 31px; height: 31px; object-fit: contain; }
 .dsf-feature-image-cta__feature-label { display: block; font-size: 15px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 .dsf-feature-image-cta__button { display: inline-flex; align-items: center; justify-content: center; min-height: 54px; margin-top: 30px; padding: 0 34px; border-radius: 10px; font-size: 16px; font-weight: 800; line-height: 1; text-align: center; text-decoration: none; transition: filter 160ms ease, transform 160ms ease; }
 .dsf-feature-image-cta__button:hover { filter: brightness(0.92); transform: translateY(-1px); }

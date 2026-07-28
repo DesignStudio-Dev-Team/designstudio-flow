@@ -168,6 +168,9 @@ const previewStyle = computed(() => {
 const contentStyle = computed(() => {
   const position = props.settings?.contentPosition || 'center-center'
   const [_, horizontal] = position.split('-')
+  const textAlign = ['left', 'center', 'right'].includes(props.settings?.textAlign)
+    ? props.settings.textAlign
+    : horizontal
   
   const textAlignMap = {
     left: 'left',
@@ -186,7 +189,7 @@ const contentStyle = computed(() => {
     const showBtn = props.settings?.showButton !== false
 
     return {
-      textAlign: textAlignMap[horizontal] || 'center',
+      textAlign: textAlignMap[textAlign] || 'center',
       backgroundColor: props.settings?.contentBackgroundColor || 'transparent',
       padding: hasBg ? '1.5rem' : '0',
       borderRadius: hasBg ? 'var(--dsf-radius-lg)' : '0',
@@ -206,7 +209,7 @@ const contentStyle = computed(() => {
   }
 
   return {
-    textAlign: textAlignMap[horizontal] || 'center',
+    textAlign: textAlignMap[textAlign] || 'center',
     backgroundColor: props.settings?.contentBackgroundColor || 'transparent',
     padding: hasBg ? '2rem' : '0',
     borderRadius: hasBg ? 'var(--dsf-radius-lg)' : '0',

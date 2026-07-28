@@ -95,6 +95,14 @@ describe('ProductHighlightsPreview', () => {
     expect(w.find('.dsf-product-highlights__list').attributes('style')).toContain('repeat(4')
   })
 
+  it('applies icon foreground and background colors', () => {
+    const w = mountBlock(ProductHighlightsPreview, { accentColor: '#123456', iconBackground: '#abcdef' })
+    const style = w.find('.dsf-product-highlights__icon').attributes('style')
+
+    expect(style).toContain('color: rgb(18, 52, 86)')
+    expect(style).toContain('background: rgb(171, 205, 239)')
+  })
+
   it('ignores malformed items without crashing', () => {
     const w = mountBlock(ProductHighlightsPreview, { items: ['bad', null, { icon: 'zap' }] })
     expect(w.find('.dsf-product-highlights').exists()).toBe(true)

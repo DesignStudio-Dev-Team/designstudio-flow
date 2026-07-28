@@ -6,7 +6,7 @@
     </div>
     <div v-if="variant !== 'columns'" class="dsf-marketing-footer__cta">
       <div>
-        <InlineText tagName="span" class="dsf-marketing-footer__eyebrow" v-model="settings.eyebrow" :is-editor="isEditor" data-dsf-reveal placeholder="Eyebrow" />
+        <InlineText v-if="settings.showEyebrow !== false" tagName="span" class="dsf-marketing-footer__eyebrow" v-model="settings.eyebrow" :is-editor="isEditor" data-dsf-reveal placeholder="Eyebrow" />
         <InlineText tagName="h2" v-model="settings.title" :is-editor="isEditor" data-dsf-split placeholder="Final call to action" />
         <InlineText tagName="p" v-model="settings.description" :is-editor="isEditor" :multiline="true" data-dsf-reveal placeholder="Description" />
       </div>
@@ -156,7 +156,7 @@ useLandingMotion(root, props.isEditor)
 .dsf-marketing-footer__glow { position: absolute; top: -120px; right: 8%; width: 520px; height: 520px; border-radius: 50%; background: radial-gradient(circle, rgba(0,145,255,0.28), transparent 66%); }
 .dsf-marketing-footer__cta { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(300px, 1fr) auto; align-items: end; width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding: clamp(70px, 8vw, 112px) 0; border-bottom: 1px solid rgba(255,255,255,0.13); gap: 50px; }
 .dsf-marketing-footer__cta > div:first-child { max-width: 860px; }
-.dsf-marketing-footer__cta span { color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 14px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
+.dsf-marketing-footer__cta span { color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 12px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
 .dsf-marketing-footer h2 { margin: 13px 0 18px; color: #fff; font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); font-size: clamp(40px, 4.7vw, 62px); line-height: 1.02; letter-spacing: -0.05em; }
 .dsf-marketing-footer__cta p { max-width: 670px; margin: 0; color: #aebbc6; font-size: 20px; line-height: 1.55; }
 .dsf-marketing-footer__actions { display: grid; gap: 10px; }

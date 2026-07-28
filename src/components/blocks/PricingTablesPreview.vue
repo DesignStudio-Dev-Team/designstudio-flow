@@ -1,7 +1,7 @@
 <template>
   <section class="dsf-pricing-tables" :style="sectionStyle">
     <div class="dsf-pricing-tables__inner" :style="innerStyle">
-      <header><p>{{ settings.eyebrow || 'Plans for every stage' }}</p><h2>{{ settings.title || 'Straightforward pricing' }}</h2><div>{{ settings.description || '' }}</div></header>
+      <header><p v-if="settings.showEyebrow !== false">{{ settings.eyebrow || 'Plans for every stage' }}</p><h2>{{ settings.title || 'Straightforward pricing' }}</h2><div>{{ settings.description || '' }}</div></header>
       <div class="dsf-pricing-tables__grid">
         <article v-for="(plan, index) in plans" :key="index" :class="{ 'is-featured': plan.popular }">
           <span v-if="plan.popular" class="dsf-pricing-tables__badge">{{ plan.badgeText || 'Most popular' }}</span>

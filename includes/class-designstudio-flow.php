@@ -67,6 +67,7 @@ final class DesignStudio_Flow {
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-gf-migration.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-redirects.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-mail-smtp.php';
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-llms-txt.php';
 		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-update-checker.php';
 	}
 
@@ -126,6 +127,7 @@ final class DesignStudio_Flow {
 			DSF_Import_Export::get_instance();
 			DSF_Package::get_instance();
 			DSF_GF_Migration::get_instance();
+			DSF_LLMS_Txt::get_instance();
 		}
 
 		// Initialize blocks.

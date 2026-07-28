@@ -430,6 +430,18 @@ class DSF_Blocks {
 						'label'   => 'Text Background',
 						'default' => 'rgba(0,0,0,0)',
 					),
+					'textAlign'              => array(
+						'type'    => 'select',
+						'label'   => 'Text Alignment',
+						'section' => 'style',
+						'default' => 'auto',
+						'options' => array(
+							'Follow Content Position' => 'auto',
+							'Left'                    => 'left',
+							'Center'                  => 'center',
+							'Right'                   => 'right',
+						),
+					),
 					'buttonColor'            => array(
 						'type'    => 'color',
 						'label'   => 'Button Background',
@@ -545,6 +557,7 @@ class DSF_Blocks {
 				'icon'        => 'clock',
 				'description' => 'Split countdown campaign block with CTA and media',
 				'settings'    => array(
+					'showEyebrow'     => array( 'type' => 'toggle', 'label' => 'Show eyebrow', 'default' => true ),
 					'eyebrow'         => array(
 						'type'    => 'text',
 						'label'   => 'Eyebrow',
@@ -755,6 +768,7 @@ class DSF_Blocks {
 						'default' => 'classic',
 						'options' => array( 'Classic Pricing' => 'classic', 'Modern Pricing' => 'modern' ),
 					),
+					'showEyebrow'    => array( 'type' => 'toggle', 'label' => 'Show eyebrow', 'default' => true ),
 					'eyebrow'         => array(
 						'type'    => 'text',
 						'label'   => 'Eyebrow',
@@ -919,6 +933,7 @@ class DSF_Blocks {
 				'icon'        => 'panels-top-left',
 				'description' => 'A bold three-plan pricing section with soft rounded cards and a featured plan.',
 				'settings'    => array(
+					'showEyebrow' => array( 'type' => 'toggle', 'label' => 'Show eyebrow', 'default' => true ),
 					'eyebrow'     => array( 'type' => 'text', 'label' => 'Eyebrow', 'default' => 'Plans for every stage' ),
 					'title'       => array( 'type' => 'text', 'label' => 'Title', 'default' => 'Straightforward pricing' ),
 					'description' => array( 'type' => 'textarea', 'label' => 'Description', 'default' => 'Choose the plan that gives your team the room to grow.' ),
@@ -1510,7 +1525,7 @@ class DSF_Blocks {
 					'cardIconColor'        => array(
 						'type'    => 'color',
 						'label'   => 'Card Icon Color',
-						'default' => '#111827',
+						'default' => '#000000',
 					),
 					'buttonColor'          => array(
 						'type'    => 'color',
@@ -3112,6 +3127,8 @@ class DSF_Blocks {
 					'imagePosition'   => array( 'type' => 'select', 'label' => 'Image Position', 'default' => 'right', 'options' => array( 'Left' => 'left', 'Right' => 'right' ) ),
 					'imageInset'      => array( 'type' => 'slider', 'label' => 'Image Inset', 'default' => 0, 'min' => 0, 'max' => 200, 'unit' => 'px' ),
 					'backgroundColor' => array( 'type' => 'color', 'label' => 'Background Color', 'default' => '#f3f4f6' ),
+					'iconColor'       => array( 'type' => 'color', 'label' => 'Icon Color', 'default' => '#0c1720' ),
+					'iconBackground'  => array( 'type' => 'color', 'label' => 'Icon Background Color', 'default' => '#c6f0ff' ),
 					'buttonColor'     => array( 'type' => 'color', 'label' => 'CTA Color', 'default' => '#2473a6', 'showWhen' => array( 'showButton' => true ) ),
 					'buttonTextColor' => array( 'type' => 'color', 'label' => 'CTA Text Color', 'default' => '#ffffff', 'showWhen' => array( 'showButton' => true ) ),
 					'borderRadius'    => array( 'type' => 'slider', 'label' => 'Corner Radius', 'default' => 20, 'min' => 0, 'max' => 48, 'unit' => 'px' ),
@@ -4367,6 +4384,7 @@ class DSF_Blocks {
 						'label'   => 'Eyebrow Text',
 						'default' => '',
 					),
+					'showEyebrow'          => array( 'type' => 'toggle', 'label' => 'Show eyebrow', 'default' => true ),
 					'showRating'           => array(
 						'type'    => 'toggle',
 						'label'   => 'Show Rating',
@@ -4527,6 +4545,11 @@ class DSF_Blocks {
 						'label'   => 'Icon Color',
 						'default' => '',
 					),
+					'iconBackground' => array(
+						'type'    => 'color',
+						'label'   => 'Icon Background Color',
+						'default' => '',
+					),
 					'backgroundColor' => array(
 						'type'    => 'color',
 						'label'   => 'Background Color',
@@ -4681,6 +4704,7 @@ class DSF_Blocks {
 						'label'   => 'Eyebrow Text',
 						'default' => '',
 					),
+					'showEyebrow'          => array( 'type' => 'toggle', 'label' => 'Show eyebrow', 'default' => true ),
 					'showRating'           => array(
 						'type'    => 'toggle',
 						'label'   => 'Show Rating',
@@ -6199,19 +6223,27 @@ class DSF_Blocks {
 						'type'    => 'tabbed_showcase_tabs',
 						'label'   => 'Showcase Tabs',
 						'default' => array(
-							array( 'label' => 'Featured', 'source' => 'images', 'supportingText' => '', 'productIds' => array(), 'images' => array() ),
-							array( 'label' => 'Popular', 'source' => 'images', 'supportingText' => '', 'productIds' => array(), 'images' => array() ),
-							array( 'label' => 'New Arrivals', 'source' => 'images', 'supportingText' => '', 'productIds' => array(), 'images' => array() ),
+							array( 'label' => 'Featured', 'source' => 'images', 'productIds' => array(), 'images' => array() ),
+							array( 'label' => 'Popular', 'source' => 'images', 'productIds' => array(), 'images' => array() ),
+							array( 'label' => 'New Arrivals', 'source' => 'images', 'productIds' => array(), 'images' => array() ),
 						),
 					),
 					'showButtons'      => array( 'type' => 'toggle', 'label' => 'Show Call-to-Action Buttons', 'default' => true ),
 					'primaryText'      => array( 'type' => 'text', 'label' => 'Primary Button Text', 'default' => 'Explore All', 'maxLength' => 80 ),
 					'primaryUrl'       => array( 'type' => 'url', 'label' => 'Primary Button URL', 'default' => '#' ),
+					'primaryButtonColor'     => array( 'type' => 'color', 'label' => 'Primary Button Background', 'default' => '#2C5F5D', 'showWhen' => array( 'showButtons' => true ) ),
+					'primaryButtonTextColor' => array( 'type' => 'color', 'label' => 'Primary Button Text Color', 'default' => '#FFFFFF', 'showWhen' => array( 'showButtons' => true ) ),
 					'secondaryText'    => array( 'type' => 'text', 'label' => 'Secondary Button Text', 'default' => 'Learn More', 'maxLength' => 80 ),
 					'secondaryUrl'     => array( 'type' => 'url', 'label' => 'Secondary Button URL', 'default' => '#' ),
+					'secondaryButtonColor'     => array( 'type' => 'color', 'label' => 'Secondary Button Background', 'default' => '#2C5F5D', 'showWhen' => array( 'showButtons' => true ) ),
+					'secondaryButtonTextColor' => array( 'type' => 'color', 'label' => 'Secondary Button Text Color', 'default' => '#FFFFFF', 'showWhen' => array( 'showButtons' => true ) ),
 					'backgroundColor'  => array( 'type' => 'color', 'label' => 'Background Color', 'default' => '#FFFFFF' ),
 					'titleColor'       => array( 'type' => 'color', 'label' => 'Title Color', 'default' => '#111111' ),
-					'accentColor'      => array( 'type' => 'color', 'label' => 'Active Tab Color', 'default' => '#2C7FA3' ),
+					'accentColor'      => array( 'type' => 'color', 'label' => 'Tab Accent Color', 'default' => '#2C7FA3' ),
+					'tabTextColor'     => array( 'type' => 'color', 'label' => 'Inactive Tab Text Color', 'default' => '#64748B' ),
+					'activeTabTextColor' => array( 'type' => 'color', 'label' => 'Active Tab Text Color', 'default' => '#111111' ),
+					'modernTabsBackgroundColor' => array( 'type' => 'color', 'label' => 'Modern Tab Pill Background', 'default' => '#F3F4F6', 'showWhen' => array( 'tabStyle' => 'modern' ) ),
+					'modernActiveTabBackgroundColor' => array( 'type' => 'color', 'label' => 'Modern Active Tab Background', 'default' => '#FFFFFF', 'showWhen' => array( 'tabStyle' => 'modern' ) ),
 					'padding'          => array( 'type' => 'slider', 'label' => 'Vertical Padding', 'default' => 56, 'min' => 0, 'max' => 160 ),
 					'paddingX'         => array( 'type' => 'slider', 'label' => 'Horizontal Padding', 'default' => 24, 'min' => 0, 'max' => 120 ),
 					'marginY'          => array( 'type' => 'slider', 'label' => 'Vertical Margin', 'default' => 25, 'min' => 0, 'max' => 100 ),
@@ -8760,6 +8792,7 @@ class DSF_Blocks {
 	 */
 	private function landing_style_settings( $defaults = array() ) {
 		return array(
+			'showEyebrow'     => array( 'type' => 'toggle', 'label' => 'Show eyebrow', 'section' => 'content', 'default' => true ),
 			'backgroundColor' => array( 'type' => 'color', 'label' => 'Background color', 'section' => 'style', 'default' => $defaults['background'] ?? '' ),
 			'textColor'       => array( 'type' => 'color', 'label' => 'Text color', 'section' => 'style', 'default' => $defaults['text'] ?? '' ),
 			'accentColor'     => array( 'type' => 'color', 'label' => 'Accent color', 'section' => 'style', 'default' => $defaults['accent'] ?? '' ),

@@ -50,7 +50,7 @@
           <span
             v-if="cardIconType(card) === 'preset'"
             class="dsf-card-columns__card-icon"
-            :style="{ color: isOverlay ? overlayTextColor : (settings.cardIconColor || '#111827') }"
+            :style="{ color: isOverlay ? overlayTextColor : (settings.cardIconColor || '#000000') }"
             aria-hidden="true"
           >
             <component :is="iconFor(card.icon)" :size="28" />
@@ -308,35 +308,35 @@ function handleCardClick(event, card) {
 }
 
 .dsf-card-columns__header {
-  max-width: 1200px;
-  margin: 0 auto 2.5rem;
-  text-align: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.5rem 3rem;
+  align-items: end;
+  max-width: 1050px;
+  margin: 0 auto 4rem;
 }
 
 .dsf-card-columns__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: var(--dsf-theme-h2, 2rem);
-  font-weight: 600;
-  margin: 0 0 0.75rem;
-  line-height: 1.2;
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.08;
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
 
 .dsf-card-columns__description {
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: var(--dsf-theme-text-base, 1rem);
-  margin: 0 auto;
-  max-width: 640px;
-  line-height: 1.6;
+  font-size: clamp(1rem, 1.8vw, 1.45rem);
+  margin: 0;
+  max-width: none;
+  line-height: 1.35;
 }
 
 .dsf-card-columns__header--split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  align-items: start;
-  text-align: left;
+  /* Retained for existing pages; all Card Columns headers now use the shared
+     Brand Showcase / Image + Logo Grid heading system. */
 }
 
 .dsf-card-columns__header--split .dsf-card-columns__title {
@@ -515,13 +515,17 @@ function handleCardClick(event, card) {
 }
 
 @container (max-width: 700px) {
+  .dsf-card-columns__header {
+    grid-template-columns: 1fr;
+    margin-bottom: 2.5rem;
+  }
+
   .dsf-card-columns__grid {
     grid-template-columns: 1fr;
   }
 
   .dsf-card-columns__header--split {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
+    gap: 1.5rem;
   }
 }
 </style>

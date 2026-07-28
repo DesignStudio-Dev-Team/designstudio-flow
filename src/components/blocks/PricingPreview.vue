@@ -3,7 +3,7 @@
     <div class="dsf-pricing-preview__inner" :style="innerStyle">
       <header class="dsf-pricing-preview__header">
         <InlineText
-          v-if="settings.eyebrow"
+          v-if="settings.showEyebrow !== false && settings.eyebrow"
           tagName="p"
           class="dsf-pricing-preview__eyebrow"
           :style="{ color: eyebrowColor }"
@@ -229,7 +229,7 @@ function safeUrl(url) {
 
 .dsf-pricing-preview__eyebrow {
   margin: 0 0 12px;
-  font-size: var(--dsf-eyebrow-size, 14px);
+  font-size: var(--dsf-eyebrow-size, 12px);
   font-weight: 850;
   line-height: 1.4;
   letter-spacing: 0.13em;

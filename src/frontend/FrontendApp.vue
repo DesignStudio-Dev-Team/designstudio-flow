@@ -7,6 +7,8 @@
       class="dsf-block"
       :class="{
         'dsf-block--landing': block.type?.startsWith('landing-'),
+        'dsf-block--hero': isHeroBlock(block.type),
+        'dsf-block--chrome': isChromeBlock(block.type),
         'dsf-block--has-height': hasResponsiveKey(block.settings, 'height'),
       }"
       :style="getBlockStyle(block)"
@@ -58,6 +60,10 @@ const props = defineProps({
     default: 0,
   },
 })
+
+const heroBlockTypes = new Set(['hero', 'bento-hero', 'spotlight-hero', 'expander-hero', 'duo-hero', 'product-hero', 'landing-hero', 'landing-showcase-hero', 'shop-category-hero'])
+const isHeroBlock = (type) => heroBlockTypes.has(type)
+const isChromeBlock = (type) => type?.startsWith('header-') || ['shop-header', 'blog-header', 'landing-progress-header', 'landing-dock-header'].includes(type)
 
 function getPreviewComponent(blockType) {
   // Built-in components win; then runtime-registered add-on blocks (reactive, so

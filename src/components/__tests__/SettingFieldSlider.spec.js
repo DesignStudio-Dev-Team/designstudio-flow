@@ -13,6 +13,22 @@ function mountSlider(props = {}) {
 }
 
 describe('SettingField slider (editable number + knob)', () => {
+  it('renders URL fields as native URL inputs and emits their value', async () => {
+    const w = mount(SettingField, {
+      props: {
+        config: { type: 'url', label: 'Primary button URL' },
+        fieldKey: 'primaryUrl',
+        value: '',
+      },
+    })
+
+    const input = w.find('input[type="url"]')
+    expect(input.exists()).toBe(true)
+
+    await input.setValue('/learn-more')
+    expect(w.emitted('update').at(-1)).toEqual(['/learn-more'])
+  })
+
   it('renders both a range knob and a number input', () => {
     const w = mountSlider()
     expect(w.find('input[type="range"].dsf-slider').exists()).toBe(true)

@@ -33,6 +33,14 @@ describe('CountdownPreview', () => {
     expect(wrapper.text()).toContain('Default title here')
   })
 
+  it('uses the shared compact eyebrow size and can hide the eyebrow', () => {
+    const shown = mount(CountdownPreview, { props: { settings: { eyebrow: 'Launching soon' } } })
+    const hidden = mount(CountdownPreview, { props: { settings: { eyebrow: 'Launching soon', showEyebrow: false } } })
+
+    expect(shown.find('.dsf-countdown-preview__eyebrow').exists()).toBe(true)
+    expect(hidden.find('.dsf-countdown-preview__eyebrow').exists()).toBe(false)
+  })
+
   it('shows the expired message after the countdown ends', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-01-03T00:00:00Z'))

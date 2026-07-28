@@ -7,6 +7,7 @@
     >
       <div class="dsf-countdown-preview__content" :style="{ color: settings.textColor || '#111827' }">
         <InlineText
+          v-if="settings.showEyebrow !== false"
           tagName="p"
           class="dsf-countdown-preview__eyebrow"
           :style="{ color: settings.eyebrowColor || settings.accentColor || '#B42318' }"
@@ -305,7 +306,7 @@ function getModalContent() {
 .dsf-countdown-preview__eyebrow {
   margin: 0 0 1.15rem;
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: var(--dsf-eyebrow-size, 14px);
+  font-size: var(--dsf-eyebrow-size, 12px);
   font-weight: 850;
   line-height: 1.25;
   letter-spacing: 0.13em;

@@ -24,6 +24,17 @@
 
           <div v-show="openItems.includes(index)" class="dsf-icon-items-field__body">
             <div class="dsf-form-group">
+              <label class="dsf-label">Icon source</label>
+              <select class="dsf-input" :value="element.iconType" @change="setIconSource(index, $event.target.value)">
+                <option value="library">Icon library</option>
+                <option value="image">Custom image</option>
+              </select>
+            </div>
+            <div v-if="element.iconType === 'image'" class="dsf-form-group">
+              <label class="dsf-label">Custom icon image</label>
+              <MediaPicker :modelValue="element.iconImage" @update:modelValue="updateField(index, 'iconImage', $event)" />
+            </div>
+            <div v-else class="dsf-form-group">
               <label class="dsf-label">Icon</label>
               <select class="dsf-input" :value="element.icon || 'sparkles'" @change="updateField(index, 'icon', $event.target.value)">
                 <option v-for="name in iconNames" :key="name" :value="name">{{ name }}</option>
@@ -58,6 +69,7 @@ import { ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import { ChevronDown, GripVertical, Plus, Trash2 } from 'lucide-vue-next'
 import { LANDING_ICON_NAMES } from '../../utils/landingIcons'
+import MediaPicker from './MediaPicker.vue'
 
 const MAX = 8
 const iconNames = LANDING_ICON_NAMES
@@ -78,7 +90,9 @@ watch(() => props.modelValue, (newValue) => {
     title: `Item ${index + 1}`,
     description: '',
     note: '',
+    iconImage: '',
     ...item,
+    iconType: item.iconType === 'image' || item.iconImage ? 'image' : 'library',
     id: item.id || previousIds[index] || `icon-item-${index}-${Date.now()}`,
   }))
 }, { immediate: true, deep: true })
@@ -98,9 +112,15 @@ function updateField(index, key, value) {
   emitUpdate()
 }
 
+function setIconSource(index, source) {
+  localItems.value[index].iconType = source === 'image' ? 'image' : 'library'
+  if (source !== 'image') localItems.value[index].iconImage = ''
+  emitUpdate()
+}
+
 function addItem() {
   if (localItems.value.length >= MAX) return
-  localItems.value.push({ id: `icon-item-${Date.now()}`, icon: 'sparkles', title: `Item ${localItems.value.length + 1}`, description: '', note: '' })
+  localItems.value.push({ id: `icon-item-${Date.now()}`, icon: 'sparkles', title: `Item ${localItems.value.length + 1}`, description: '', note: '', iconImage: '', iconType: 'library' })
   openItems.value.push(localItems.value.length - 1)
   emitUpdate()
 }

@@ -250,10 +250,7 @@ const displayFeatures = computed(() => {
 </script>
 
 <style scoped>
-.dsf-features-grid-preview__header {
-  text-align: center;
-  margin-bottom: 2.5rem;
-}
+.dsf-features-grid-preview__header { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem 3rem; align-items: end; max-width: 1050px; margin: 0 auto 4rem; text-align: left; }
 
 .dsf-features-grid-preview {
   container-type: inline-size;
@@ -271,8 +268,9 @@ const displayFeatures = computed(() => {
 
 .dsf-features-grid-preview__subtitle {
   font-family: var(--dsf-theme-body-font, inherit);
-  font-size: var(--dsf-theme-text-base, 1rem);
-  line-height: 1.5;
+  margin: 0;
+  font-size: clamp(1rem, 1.8vw, 1.45rem);
+  line-height: 1.35;
 }
 
 .dsf-features-grid-preview__items {
@@ -282,6 +280,8 @@ const displayFeatures = computed(() => {
   max-width: 1000px;
   margin: 0 auto;
 }
+
+@container (max-width: 720px) { .dsf-features-grid-preview__header { grid-template-columns: 1fr; margin-bottom: 2.5rem; } }
 
 .dsf-feature-card-preview {
   padding: 1.5rem;

@@ -31,6 +31,12 @@ describe('AnchorGalleryPreview', () => {
     expect(wrapper.findAll('.dsf-anchor-gallery__tile--overlay')).toHaveLength(8)
   })
 
+  it('uses the shared split heading layout for the title and description', () => {
+    const wrapper = mount(AnchorGalleryPreview, { props: { settings: { title: 'Collections', description: 'Browse our favorites.', items } } })
+    expect(wrapper.find('.dsf-anchor-gallery__header-copy .dsf-anchor-gallery__title').exists()).toBe(true)
+    expect(wrapper.find('.dsf-anchor-gallery__header > .dsf-anchor-gallery__description').exists()).toBe(true)
+  })
+
   it('uses responsive grid patterns with balanced final rows', () => {
     for (const [count, columns] of [[1, 1], [2, 2], [3, 3], [4, 4], [5, 4], [6, 4], [8, 4]]) {
       const wrapper = mount(AnchorGalleryPreview, {

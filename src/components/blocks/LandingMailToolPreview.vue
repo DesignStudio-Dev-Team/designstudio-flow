@@ -2,7 +2,7 @@
   <section id="mail" ref="root" class="dsf-mail" :class="{ 'is-reversed': settings.reverseLayout }" :style="blockStyle" data-dsf-parallax-scope>
     <div class="dsf-mail__inner">
       <div class="dsf-mail__copy">
-        <span class="dsf-mail__kicker" data-dsf-reveal><i></i><InlineText tagName="span" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" /></span>
+        <span v-if="settings.showEyebrow !== false" class="dsf-mail__kicker" data-dsf-reveal><i></i><InlineText tagName="span" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" /></span>
         <InlineText tagName="h2" v-model="settings.title" :is-editor="isEditor" data-dsf-split placeholder="Title" />
         <InlineText tagName="p" v-model="settings.description" :is-editor="isEditor" :multiline="true" data-dsf-reveal placeholder="Description" />
         <ul data-dsf-reveal>
@@ -83,7 +83,7 @@ useLandingMotion(root, props.isEditor)
 .dsf-mail.is-reversed .dsf-mail__copy { order: 2; }
 .dsf-mail.is-reversed .dsf-mail__visual { order: 1; }
 .dsf-mail__copy { max-width: 520px; }
-.dsf-mail__kicker { display: inline-flex; align-items: center; gap: 9px; color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 14px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
+.dsf-mail__kicker { display: inline-flex; align-items: center; gap: 9px; color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 12px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
 .dsf-mail__kicker i { width: 22px; height: 2px; background: var(--dsf-eyebrow-line-color, var(--coral)); }
 .dsf-mail h2 { margin: 14px 0 22px; font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); font-size: clamp(37px, 3.8vw, 54px); line-height: 1.05; letter-spacing: -0.045em; text-wrap: balance; }
 .dsf-mail__copy > p { margin: 0; color: #596775; font-size: 20px; line-height: 1.57; }

@@ -4,8 +4,8 @@
     
     <!-- Text Input -->
     <input 
-      v-if="config.type === 'text'"
-      type="text"
+      v-if="config.type === 'text' || config.type === 'url'"
+      :type="config.type === 'url' ? 'url' : 'text'"
       class="dsf-input"
       :value="value"
       :maxlength="config.maxLength || undefined"

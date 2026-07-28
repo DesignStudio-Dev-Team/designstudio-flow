@@ -8,7 +8,8 @@
       <ul class="dsf-product-highlights__list" :style="listStyle">
         <li v-for="(item, i) in items" :key="i" class="dsf-product-highlights__item">
           <span class="dsf-product-highlights__icon" :style="iconStyle" aria-hidden="true">
-            <component :is="iconFor(item.icon)" :size="20" />
+            <img v-if="itemIconImage(item)" class="dsf-product-highlights__icon-image" :src="itemIconImage(item)" alt="">
+            <component v-else :is="iconFor(item.icon)" :size="20" />
           </span>
           <span class="dsf-product-highlights__text">
             <strong v-if="item.title">{{ item.title }}</strong>
@@ -24,6 +25,7 @@
 import { computed } from 'vue'
 import { getResponsiveValue } from '../../utils/responsiveSettings'
 import { iconFor } from '../../utils/landingIcons'
+import { safePublicUrl } from '../../utils/safeUrl'
 
 const props = defineProps({
   settings: { type: Object, default: () => ({}) },
@@ -45,7 +47,8 @@ const items = computed(() => {
 })
 
 const layout = computed(() => (props.settings?.layout === 'grid' ? 'grid' : 'row'))
-const accent = computed(() => props.settings?.accentColor || 'var(--dsf-theme-primary, #2c5f5d)')
+const safeHex = (value, fallback = '') => /^#[0-9a-f]{6}$/i.test(value || '') ? value : fallback
+const accent = computed(() => safeHex(props.settings?.accentColor, '#2c5f5d'))
 
 const blockStyle = computed(() => {
   const paddingY = getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 24
@@ -69,8 +72,12 @@ const listStyle = computed(() => {
 
 const iconStyle = computed(() => ({
   color: accent.value,
-  background: props.settings?.iconBackground || 'color-mix(in srgb, currentColor 10%, transparent)',
+  background: safeHex(props.settings?.iconBackground) || 'color-mix(in srgb, currentColor 10%, transparent)',
 }))
+const itemIconImage = (item) => {
+  const image = typeof item?.iconImage === 'string' ? item.iconImage.trim() : ''
+  return image ? safePublicUrl(image, '') : ''
+}
 </script>
 
 <style scoped>
@@ -126,6 +133,7 @@ const iconStyle = computed(() => ({
   height: 44px;
   border-radius: 12px;
 }
+.dsf-product-highlights__icon-image { display: block; width: 20px; height: 20px; object-fit: contain; }
 
 .dsf-product-highlights__text {
   display: flex;

@@ -51,7 +51,7 @@
 
       <!-- Buy side -->
       <div class="dsf-product-spotlight__details">
-        <p v-if="settings.eyebrowText" class="dsf-product-spotlight__eyebrow">
+        <p v-if="settings.showEyebrow !== false && settings.eyebrowText" class="dsf-product-spotlight__eyebrow">
           <span class="dsf-product-spotlight__eyebrow-line" aria-hidden="true"></span>
           {{ settings.eyebrowText }}
         </p>
@@ -347,7 +347,7 @@ const stageStyle = computed(() => {
   gap: 0.6rem;
   margin: 0;
   color: var(--dsf-spot-accent);
-  font-size: 0.78rem;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;

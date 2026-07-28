@@ -117,6 +117,7 @@
           aria-label="Choose preview size"
           aria-haspopup="menu"
           :aria-expanded="previewMenuOpen"
+          data-dsf-help="dock-preview"
           @click="previewMenuOpen = !previewMenuOpen"
         >
           <component :is="previewIcon" :size="19" />

@@ -10,6 +10,12 @@ function mountBlock(settings = {}, isEditor = false, previewMode = 'desktop') {
 }
 
 describe('CardColumnsPreview', () => {
+  it('uses black as the default preset icon color', () => {
+    const wrapper = mountBlock({ cards: [{ icon: 'star', title: 'Black icon' }] })
+
+    expect(wrapper.find('.dsf-card-columns__card-icon').attributes('style')).toContain('color: rgb(0, 0, 0)')
+  })
+
   it('renders fallback cards when no cards setting exists', () => {
     const wrapper = mountBlock({})
     expect(wrapper.findAll('.dsf-card-columns__card')).toHaveLength(3)
@@ -85,6 +91,15 @@ describe('CardColumnsPreview', () => {
   it('defaults to centered header for unknown layout values', () => {
     const wrapper = mountBlock({ headerLayout: 'bogus' })
     expect(wrapper.find('.dsf-card-columns__header--split').exists()).toBe(false)
+  })
+
+  it('uses the shared two-column heading structure', () => {
+    const wrapper = mountBlock({ title: 'A shared heading', description: 'Matching the grid blocks.' })
+    const header = wrapper.find('.dsf-card-columns__header')
+
+    expect(header.element.children).toHaveLength(2)
+    expect(header.find('.dsf-card-columns__title').element.tagName).toBe('H2')
+    expect(header.find('.dsf-card-columns__description').element.tagName).toBe('P')
   })
 
   it('renders the bottom image with the configured height and fit', () => {

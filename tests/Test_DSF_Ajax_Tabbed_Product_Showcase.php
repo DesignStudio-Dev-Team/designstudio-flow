@@ -45,12 +45,13 @@ final class Test_DSF_Ajax_Tabbed_Product_Showcase extends TestCase {
 				array(
 					'label' => '<b>Luxury</b>',
 					'source' => 'images',
-					'supportingText' => '<script>Optional line</script>',
+					'supportingText' => '<script>Optional line</script>', // Legacy field must be discarded.
 					'images' => array(
 						array(
 							'image' => 'javascript:alert(1)',
 							'title' => '<img onerror="x">Tahiti',
 							'subtitle' => '6 Seats',
+							'secondarySubtitle' => '<b>48 Jets</b>',
 							'url' => 'javascript:alert(1)',
 						),
 					),
@@ -62,6 +63,14 @@ final class Test_DSF_Ajax_Tabbed_Product_Showcase extends TestCase {
 			'description' => '<p>Explore the collection</p>',
 			'showDescription' => false,
 			'backgroundColor' => 'not-a-color',
+			'primaryButtonColor' => '#123456',
+			'primaryButtonTextColor' => 'not-a-color',
+			'secondaryButtonColor' => '#654321',
+			'secondaryButtonTextColor' => '#ABCDEF',
+			'tabTextColor' => '#112233',
+			'activeTabTextColor' => 'not-a-color',
+			'modernTabsBackgroundColor' => '#AABBCC',
+			'modernActiveTabBackgroundColor' => '#DDEEFF',
 			'padding' => 999,
 		) );
 
@@ -70,12 +79,21 @@ final class Test_DSF_Ajax_Tabbed_Product_Showcase extends TestCase {
 		$this->assertFalse( $clean['showDescription'] );
 		$this->assertSame( 'Explore the collection', $clean['description'] );
 		$this->assertSame( 'Luxury', $clean['tabs'][0]['label'] );
-		$this->assertSame( 'Optional line', $clean['tabs'][0]['supportingText'] );
+		$this->assertArrayNotHasKey( 'supportingText', $clean['tabs'][0] );
 		$this->assertSame( '', $clean['tabs'][0]['images'][0]['image'] );
 		$this->assertSame( '', $clean['tabs'][0]['images'][0]['url'] );
+		$this->assertSame( '48 Jets', $clean['tabs'][0]['images'][0]['secondarySubtitle'] );
 		$this->assertSame( array( 12 ), $clean['tabs'][1]['productIds'] );
 		$this->assertSame( '', $clean['primaryUrl'] );
 		$this->assertSame( '#FFFFFF', $clean['backgroundColor'] );
+		$this->assertSame( '#123456', $clean['primaryButtonColor'] );
+		$this->assertSame( '#FFFFFF', $clean['primaryButtonTextColor'] );
+		$this->assertSame( '#654321', $clean['secondaryButtonColor'] );
+		$this->assertSame( '#ABCDEF', $clean['secondaryButtonTextColor'] );
+		$this->assertSame( '#112233', $clean['tabTextColor'] );
+		$this->assertSame( '#111111', $clean['activeTabTextColor'] );
+		$this->assertSame( '#AABBCC', $clean['modernTabsBackgroundColor'] );
+		$this->assertSame( '#DDEEFF', $clean['modernActiveTabBackgroundColor'] );
 		$this->assertSame( 160, $clean['padding'] );
 	}
 }

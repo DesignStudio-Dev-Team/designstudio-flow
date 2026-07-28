@@ -5,6 +5,8 @@
     :class="{
       'dsf-block--selected': isSelected,
       'dsf-block--landing': isLandingBlock,
+      'dsf-block--hero': isHeroBlock,
+      'dsf-block--chrome': isChromeBlock,
       'dsf-block--template-selected': isSelectedForTemplate,
       'dsf-block--has-height': hasHeight,
     }"
@@ -261,6 +263,9 @@ function getPreviewComponent(blockType) {
 
 const templateBlockTypes = new Set(['header-mega-menu', 'header-showcase-mega', 'header-cutout-mega', 'header-modern-mega', 'footer-dealers', 'footer-commerce', 'landing-progress-header', 'landing-dock-header', 'landing-hero', 'landing-showcase-hero', 'landing-block-explorer', 'landing-block-ready', 'steps-image', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-redirect-tool', 'landing-mail-tool', 'landing-marketing-footer'])
 const isLandingBlock = computed(() => props.block?.type?.startsWith('landing-') === true)
+const heroBlockTypes = new Set(['hero', 'bento-hero', 'spotlight-hero', 'expander-hero', 'duo-hero', 'product-hero', 'landing-hero', 'landing-showcase-hero', 'shop-category-hero'])
+const isHeroBlock = computed(() => heroBlockTypes.has(props.block?.type))
+const isChromeBlock = computed(() => props.block?.type?.startsWith('header-') || ['shop-header', 'blog-header', 'landing-progress-header', 'landing-dock-header'].includes(props.block?.type))
 
 const defaultMargin = computed(() => (
   templateBlockTypes.has(props.block?.type) ? 0 : 25

@@ -21,6 +21,7 @@ class Test_DSF_Ajax_Supporting_Copy_Width extends TestCase {
 
 		$this->assertSame( 'Hero', $clean['title'] );
 		$this->assertSame( 1200, $clean['descriptionMaxWidth'] );
+		$this->assertSame( 'auto', $clean['textAlign'] );
 		$this->assertSame( 240, $this->sanitize( array( 'descriptionMaxWidth' => 1 ), 800 )['descriptionMaxWidth'] );
 	}
 

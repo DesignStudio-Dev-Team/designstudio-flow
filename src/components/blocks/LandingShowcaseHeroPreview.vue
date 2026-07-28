@@ -9,7 +9,7 @@
     <div class="dsf-showcase-hero__inner">
       <!-- Copy: a few words + one rotating word that shows the breadth. -->
       <div class="dsf-showcase-hero__copy">
-        <span class="dsf-kicker" data-dsf-reveal>
+        <span v-if="settings.showEyebrow !== false" class="dsf-kicker" data-dsf-reveal>
           <i class="dsf-kicker__dot"></i>
           <InlineText tagName="span" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" />
         </span>
@@ -495,7 +495,7 @@ const taglineStyle = computed(() => ({
   align-items: center;
   gap: 0.5rem;
   color: var(--dsf-eyebrow-color, #0091ff);
-  font-size: 0.74rem;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;

@@ -13,6 +13,12 @@ describe('FeaturesGridPreview', () => {
     openModal.mockReset()
   })
 
+  it('uses the shared split heading layout for its title and subtitle', () => {
+    const wrapper = mount(FeaturesGridPreview, { props: { settings: { title: 'Features', subtitle: 'A short introduction.', features: [] } } })
+    expect(wrapper.find('.dsf-features-grid-preview__header .dsf-features-grid-preview__title').exists()).toBe(true)
+    expect(wrapper.find('.dsf-features-grid-preview__header .dsf-features-grid-preview__subtitle').exists()).toBe(true)
+  })
+
   it('opens modal for feature button action modal', async () => {
     const settings = {
       features: [

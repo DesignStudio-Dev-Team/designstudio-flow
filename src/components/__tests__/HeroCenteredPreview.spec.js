@@ -149,6 +149,17 @@ describe('HeroCenteredPreview', () => {
     expect(contentStyle).toContain('text-align: right;')
   })
 
+  it('lets the Style text alignment override the content position', () => {
+    const wrapper = mount(HeroCenteredPreview, {
+      props: {
+        settings: { contentPosition: 'center-left', textAlign: 'right' },
+        isEditor: false,
+      },
+    })
+
+    expect(wrapper.get('.dsf-hero-centered-preview__content').attributes('style')).toContain('text-align: right;')
+  })
+
   it('defaults to a 500px min-height with vertically centered content', () => {
     const wrapper = mount(HeroCenteredPreview, {
       props: { settings: { title: 'Hi' }, isEditor: false },

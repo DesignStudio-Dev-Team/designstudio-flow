@@ -1,7 +1,7 @@
 <template>
   <section :id="panel.id" ref="root" class="dsf-trust" :class="`is-${panel.id}`" :style="blockStyle">
     <div class="dsf-trust__heading" data-dsf-reveal>
-      <InlineText tagName="span" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" />
+      <InlineText v-if="settings.showEyebrow !== false" tagName="span" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" />
       <InlineText tagName="h2" v-model="settings.title" :is-editor="isEditor" placeholder="Title" />
       <InlineText tagName="p" v-model="settings.description" :is-editor="isEditor" :multiline="true" placeholder="Description" />
     </div>
@@ -133,7 +133,7 @@ useLandingMotion(root, props.isEditor)
 .dsf-trust.is-audience { background: #f3f0e9; }
 .dsf-trust.is-workflow { background: var(--dsf-theme-background, #f7f4ed); }
 .dsf-trust__heading { width: min(820px, 100%); margin: 0 auto clamp(42px, 5vw, 70px); text-align: center; }
-.dsf-trust__heading > span { color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 14px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
+.dsf-trust__heading > span { color: var(--dsf-eyebrow-color, var(--blue)); font-size: var(--dsf-eyebrow-size, 12px); font-weight: 850; letter-spacing: 0.13em; text-transform: uppercase; }
 /* Security sits on a blue field, so its eyebrow stays white for contrast. */
 .dsf-trust.is-security .dsf-trust__heading > span { color: var(--dsf-eyebrow-color, #fff); }
 .dsf-trust__heading h2 { margin: 13px 0 18px; font-family: var(--dsf-theme-heading-font, 'Manrope', sans-serif); font-size: clamp(38px, 4.7vw, 63px); line-height: 1.04; letter-spacing: -0.045em; text-wrap: balance; }
