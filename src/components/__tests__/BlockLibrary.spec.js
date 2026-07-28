@@ -62,6 +62,50 @@ describe('BlockLibrary', () => {
     expect(wrapper.text()).toContain('No blocks found')
   })
 
+  it('groups curated presets without duplicating the normal block catalog', async () => {
+    const wrapper = mount(BlockLibrary, {
+      props: {
+        categories: mockCategories,
+        presets: [
+          { key: 'hero-dark', name: 'Hero — Bold Dark', type: 'hero-1', category: 'content', icon: 'layout', settings: { theme: 'dark' } },
+        ],
+      },
+    })
+
+    await wrapper.findAll('.dsf-library-tab')[1].trigger('click')
+
+    expect(wrapper.findAll('.dsf-library-tab')[1].find('.dsf-library-tab__count').text()).toBe('1')
+    const category = wrapper.find('.dsf-library-category')
+    expect(category.text()).toContain('Heroes')
+    expect(category.find('.dsf-library-category__count').text()).toBe('1')
+    expect(category.find('.dsf-library-block').isVisible()).toBe(false)
+
+    await category.find('.dsf-library-category__header').trigger('click')
+    expect(category.text()).toContain('Hero — Bold Dark')
+    expect(category.text()).not.toContain('Centered Hero')
+
+    await category.find('.dsf-library-block').trigger('click')
+    expect(wrapper.emitted('insert-preset')[0][0]).toMatchObject({
+      key: 'hero-dark',
+      type: 'hero-1',
+    })
+  })
+
+  it('searches preset names, descriptions, and categories', async () => {
+    const wrapper = mount(BlockLibrary, {
+      props: {
+        categories: mockCategories,
+        presets: [{ key: 'hero-dark', name: 'Hero — Bold Dark', type: 'hero-1', category: 'content', icon: 'layout', settings: {}, description: 'A dark hero preset' }],
+      },
+    })
+
+    await wrapper.findAll('.dsf-library-tab')[1].trigger('click')
+    await wrapper.find('input[type="text"]').setValue('heroes')
+
+    expect(wrapper.text()).toContain('Hero — Bold Dark')
+    expect(wrapper.find('.dsf-library-category__chevron--open').exists()).toBe(true)
+  })
+
   it('renders an export link for saved blocks that provide an export URL', () => {
     const wrapper = mount(BlockLibrary, {
       props: {

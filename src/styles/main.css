@@ -2,9 +2,6 @@
  * DesignStudio Flow - Main Stylesheet
  */
 
-/* Google Fonts - must be first */
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap');
-
 /* Import design tokens */
 @import './variables.css';
 @import './components.css';
@@ -32,12 +29,10 @@
   box-sizing: border-box;
 }
 
-/* Landing pages keep their sanitized SEO snapshot in the DOM while a short,
-   fail-safe cover prevents the pre-hydration markup from flashing onscreen. */
-.dsf-page-content--loading #dsf-frontend-app > * {
-  visibility: hidden;
-  animation: dsf-snapshot-failsafe 0s 2.5s forwards;
-}
+/* Flow pages keep their sanitized SEO snapshot rendered and readable in the
+   DOM. An opaque, fail-safe cover prevents visitors from seeing it restyle
+   while CSS and Vue finish loading; crawlers and no-JS output still receive the
+   semantic snapshot instead of hidden or empty markup. */
 
 .dsf-landing-loader {
   position: fixed;
@@ -98,10 +93,6 @@
 
 @keyframes dsf-loader-failsafe {
   to { visibility: hidden; opacity: 0; }
-}
-
-@keyframes dsf-snapshot-failsafe {
-  to { visibility: visible; }
 }
 
 /* Anchor navigation: when a block carries a user "HTML anchor" id and a link

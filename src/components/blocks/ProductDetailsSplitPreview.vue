@@ -13,7 +13,7 @@
       </div>
       <article class="dsf-product-details-split__card">
         <p v-if="settings.showRating !== false && product.ratingCount" class="dsf-product-details-split__rating">★ {{ Number(product.averageRating || 0).toFixed(1) }} <span>({{ product.reviewCount || 0 }} reviews)</span></p>
-        <h1>{{ product.name }}</h1>
+        <h2>{{ product.name }}</h2>
         <div v-if="product.priceHtml" class="dsf-product-details-split__price" v-html="product.priceHtml"></div>
         <div v-if="settings.showShortDescription !== false && product.shortDescriptionHtml" class="dsf-product-details-split__description" v-html="product.shortDescriptionHtml"></div>
         <p class="dsf-product-details-split__stock" :class="product.isInStock ? 'in-stock' : 'out-stock'">{{ product.isInStock ? 'In stock and ready to ship' : 'Currently unavailable' }}</p>
@@ -63,7 +63,7 @@ const innerStyle = computed(() => ({ maxWidth: `${Number(props.settings?.maxWidt
 .dsf-product-details-split__thumbs img { width: 100%; height: 100%; object-fit: cover; }
 .dsf-product-details-split__card { padding: clamp(1.5rem, 4vw, 3rem); border-radius: 28px; background: #fff; box-shadow: 0 22px 55px rgb(15 23 42 / 12%); }
 .dsf-product-details-split__rating { margin: 0 0 .8rem; color: var(--dsf-pds-accent); font-weight: 800; }.dsf-product-details-split__rating span { color: #64748b; font-weight: 500; }
-.dsf-product-details-split__card h1 { margin: 0; color: var(--dsf-theme-text, #172033); font-family: var(--dsf-theme-heading-font, inherit); font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1; }
+.dsf-product-details-split__card h2 { margin: 0; color: var(--dsf-theme-text, #172033); font-family: var(--dsf-theme-heading-font, inherit); font-size: var(--dsf-theme-h2-size, clamp(2rem, 4vw, 3.4rem)); line-height: 1; }
 .dsf-product-details-split__price { margin: 1.2rem 0; color: var(--dsf-pds-accent); font-size: 1.6rem; font-weight: 800; }.dsf-product-details-split__description { color: #475569; line-height: 1.65; }
 .dsf-product-details-split__stock { margin: 1.25rem 0; font-weight: 700; }.dsf-product-details-split__stock.in-stock { color: #15803d; }.dsf-product-details-split__stock.out-stock { color: #b91c1c; }
 .dsf-product-details-split__cart :deep(.single_add_to_cart_button) { border-radius: 12px; background: var(--dsf-cart-btn-bg, var(--dsf-pds-accent)); color: var(--dsf-cart-btn-color, #fff); }

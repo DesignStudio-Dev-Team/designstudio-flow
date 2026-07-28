@@ -3,6 +3,13 @@ import { mount } from '@vue/test-utils'
 import FormWithContentPreview from '../blocks/FormWithContentPreview.vue'
 
 describe('FormWithContentPreview', () => {
+  it('uses white content and form column backgrounds by default', () => {
+    const wrapper = mount(FormWithContentPreview)
+
+    expect(wrapper.find('.dsf-form-with-content__col--content').attributes('style')).toContain('background-color: rgb(255, 255, 255)')
+    expect(wrapper.find('.dsf-form-with-content__col--form').attributes('style')).toContain('background-color: rgb(255, 255, 255)')
+  })
+
   it('renders the logo over image media', () => {
     const wrapper = mount(FormWithContentPreview, {
       props: {

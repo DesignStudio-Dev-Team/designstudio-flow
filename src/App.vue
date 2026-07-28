@@ -71,6 +71,7 @@
         v-if="selectedBlock"
         :block="selectedBlock"
         :block-definition="getBlockDefinition(selectedBlock.type)"
+        :tutorial-step="onboardingStep"
         @close="selectedBlock = null; selectedBlockId = null"
         @update:settings="updateBlockSettings"
         @update:anchor="updateBlockAnchor"
@@ -131,13 +132,29 @@
       @view="openView"
       @save="handleSave"
       @set-preview-mode="setPreviewMode"
-      @open-theme="showThemePanel = true"
-      @open-settings="showPageSettings = true"
+      @open-theme="openTheme"
+      @open-settings="openPageSettings"
       @save-as-template="openSaveTemplate"
       @add-block="openBlockLibrary"
       @open-structure="showStructure = true"
       @open-history="openHistory"
+      @open-help="openHelp"
+      @mobile-actions-open="mobileDockMenuOpen = $event"
     />
+
+    <Teleport to="body">
+      <EditorHelp
+        :visible="showHelp"
+        :step="onboardingStep"
+        :context="helpContext"
+        :avoid-panel="Boolean(selectedBlock)"
+        :mobile-actions-open="mobileDockMenuOpen"
+        @close="closeHelp"
+        @next="advanceOnboarding"
+        @finish="finishOnboarding"
+        @start-tour="startOnboarding"
+      />
+    </Teleport>
 
     <HistoryPanel
       :visible="showHistory"
@@ -290,7 +307,9 @@ import PageSettingsModal from './components/PageSettingsModal.vue'
 import ConfirmDialog from './components/common/ConfirmDialog.vue'
 import SaveBlockModal from './components/SaveBlockModal.vue'
 import HistoryPanel from './components/HistoryPanel.vue'
+import EditorHelp from './components/EditorHelp.vue'
 import FrontendApp from './frontend/FrontendApp.vue'
+import { preloadPreviewComponents } from './frontend/lazyBlockRegistry.js'
 import { applyThemeToBlocks, resolveThemeKey } from './utils/themeSync'
 import { canAddTemplateBlock, isSingleBlockTemplate, normalizeTemplateBlocks } from './utils/templateBlockRules'
 
@@ -384,7 +403,7 @@ const DEFAULT_THEME = SITE_DEFAULT_THEME
 
 const DEFAULT_LAYOUT = {
   containerWidth: 1800,
-  contentPadding: 10,
+  contentPadding: 0,
   showHeader: true,
   showFooter: true,
   headerTemplateId: 0,
@@ -409,7 +428,7 @@ const themeLinkedSettings = (() => {
   return linked
 })()
 
-function syncThemeToBlocks(oldTheme, newTheme, forceChangedThemeKeys = false) {
+function syncThemeToBlocks(oldTheme, newTheme, options = {}) {
   if (!oldTheme || !newTheme) return
   if (!blocks.value.length) return
 
@@ -418,7 +437,7 @@ function syncThemeToBlocks(oldTheme, newTheme, forceChangedThemeKeys = false) {
     oldTheme,
     newTheme,
     themeLinkedSettings,
-    { forceChangedThemeKeys }
+    options
   )
 }
 
@@ -561,6 +580,10 @@ const historyCurrentHash = ref('')
 const historyLoading = ref(false)
 const historyRestoring = ref(false)
 const historyError = ref('')
+const showHelp = ref(false)
+const onboardingStep = ref('')
+const mobileDockMenuOpen = ref(false)
+const ONBOARDING_STORAGE_KEY = 'dsf-editor-onboarding-v1'
 
 // Site-wide default header/footer: after saving a header/footer we offer to make
 // it the default used by pages that haven't chosen their own.
@@ -577,6 +600,15 @@ let lastThemeHistoryKey = ''
 let lastThemeHistoryAt = 0
 const singleBlockTemplate = isSingleBlockTemplate(postType, layoutType)
 const canAddBlock = computed(() => !isSavedBlockEditor && canAddTemplateBlock(blocks.value, postType, layoutType))
+const helpContext = computed(() => {
+  if (showBlockLibrary.value) return { title: 'Choose a block', tip: 'Browse categories or search, then select a block to add it to this page.' }
+  if (showStructure.value) return { title: 'Organize your page', tip: 'Use Structure to jump to, rename, and reorder blocks.' }
+  if (showHistory.value) return { title: 'Restore a version', tip: 'History lets you review and restore earlier saved versions of this page.' }
+  if (showThemePanel.value) return { title: 'Set the page theme', tip: 'Theme controls page-wide colors, typography, and layout defaults.' }
+  if (selectedBlock.value) return { title: 'Customize this block', tip: 'Use Content for copy and Style for colors, spacing, and background settings.' }
+  if (!blocks.value.length) return { title: 'Start your page', tip: 'Choose Add block from the dock to add your first section.' }
+  return { title: 'Build with blocks', tip: 'Select a block to customize it, or use Add block to add another section.' }
+})
 
 // Computed
 const blockCategories = computed(() => {
@@ -614,10 +646,10 @@ const blockCategories = computed(() => {
 
   // Define exact order for each category
   const heroOrder = ['hero', 'landing-hero', 'landing-showcase-hero', 'bento-hero', 'spotlight-hero', 'expander-hero', 'duo-hero', 'featured-promo-banner']
-  const headerOrder = ['landing-progress-header']
-  const contentOrder = ['content', 'faq', 'breadcrumbs', 'text-image', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-engagement-suite', 'landing-trust-workflow', 'features-grid', 'card-columns', 'testimonials', 'form-embed', 'form-with-content']
-  const marketingOrder = ['pricing', 'pricing-tables', 'countdown', 'promo-banner', 'cta-banner', 'brand-carousel']
-  const ecommerceOrder = ['ecommerce-showcase', 'featured-product-banner', 'product-grid']
+  const headerOrder = ['landing-progress-header', 'landing-dock-header']
+  const contentOrder = ['content', 'faq', 'breadcrumbs', 'text-image', 'feature-image-cta', 'anchor-gallery', 'landing-block-explorer', 'steps-image', 'landing-block-ready', 'landing-product-story', 'landing-engagement-suite', 'landing-trust-workflow', 'features-grid', 'card-columns', 'testimonials', 'form-embed', 'form-with-content']
+  const marketingOrder = ['countdown', 'promo-banner', 'cta-banner', 'brand-showcase-grid', 'image-logo-grid', 'brand-carousel']
+  const ecommerceOrder = ['pricing', 'ecommerce-showcase', 'tabbed-product-showcase', 'featured-product-banner', 'product-grid']
   const productOrder = ['product-spotlight', 'product-hero', 'product-details-split', 'product-gallery', 'product-summary', 'product-meta', 'product-add-to-cart', 'product-highlights', 'product-description', 'product-specs', 'product-tabs', 'product-reviews', 'product-related', 'product-upsells']
   const storeOrder = ['store-cart', 'store-checkout', 'store-steps', 'store-thankyou', 'store-mini-cart', 'store-login', 'store-account']
   const siteOrder = ['site-login', 'site-search', 'user-dashboard']
@@ -704,6 +736,9 @@ const canvasStyle = computed(() => {
 
   const theme = pageSettings.value?.theme || DEFAULT_THEME
   const layout = pageSettings.value?.layout || DEFAULT_LAYOUT
+  const contentPadding = layout.template === 'fullwidth'
+    ? 0
+    : (layout.contentPadding ?? DEFAULT_LAYOUT.contentPadding)
 
   const style = {
     maxWidth: widths[previewMode.value],
@@ -712,8 +747,10 @@ const canvasStyle = computed(() => {
     '--dsf-theme-secondary': theme.secondaryColor,
     '--dsf-theme-text': theme.textColor,
     '--dsf-theme-background': theme.backgroundColor,
-    '--dsf-theme-container-width': `${layout.containerWidth || DEFAULT_LAYOUT.containerWidth}px`,
-    '--dsf-theme-content-padding': `${layout.contentPadding || DEFAULT_LAYOUT.contentPadding}px`,
+    '--dsf-theme-container-width': `${layout.containerWidth ?? DEFAULT_LAYOUT.containerWidth}px`,
+    '--dsf-theme-content-padding': `${contentPadding}px`,
+    paddingLeft: `${contentPadding}px`,
+    paddingRight: `${contentPadding}px`,
   }
   
   // Font family: per-page wins; otherwise fall back to admin Typography override.
@@ -785,6 +822,60 @@ function openBlockSettings(block) {
   selectedBlock.value = block
   selectedBlockId.value = block.id
   showThemePanel.value = false
+}
+
+function openPageSettings() {
+  showPageSettings.value = true
+  mobileDockMenuOpen.value = false
+  if (onboardingStep.value === 'dock') onboardingStep.value = 'page-settings-detail'
+}
+
+function openTheme() {
+  showThemePanel.value = true
+  mobileDockMenuOpen.value = false
+  if (onboardingStep.value === 'theme') onboardingStep.value = 'theme-detail'
+}
+
+function openHelp() {
+  onboardingStep.value = ''
+  showHelp.value = true
+}
+
+function closeHelp() {
+  showHelp.value = false
+  if (onboardingStep.value) finishOnboarding()
+}
+
+function startOnboarding() {
+  showBlockLibrary.value = false
+  showStructure.value = false
+  showHistory.value = false
+  onboardingStep.value = 'dock'
+  showHelp.value = true
+}
+
+function advanceOnboarding() {
+  const nextStep = {
+    'page-settings-detail': 'theme',
+    'theme-detail': 'preview',
+    preview: 'organize',
+    organize: 'add',
+    settings: 'background',
+  }[onboardingStep.value]
+  if (!nextStep) return
+  if (onboardingStep.value === 'page-settings-detail') showPageSettings.value = false
+  if (onboardingStep.value === 'theme-detail') showThemePanel.value = false
+  onboardingStep.value = nextStep
+}
+
+function finishOnboarding() {
+  onboardingStep.value = ''
+  showHelp.value = false
+  try {
+    window.localStorage.setItem(ONBOARDING_STORAGE_KEY, 'complete')
+  } catch (error) {
+    // Storage can be unavailable in private or locked-down browser contexts.
+  }
 }
 
 // Human-readable block name for the structure panel; falls back to a prettified
@@ -865,6 +956,11 @@ function addBlock(blockDefinition) {
 
   blocks.value.push(newBlock)
   showBlockLibrary.value = false
+
+  if (onboardingStep.value === 'add') {
+    onboardingStep.value = 'settings'
+    showHelp.value = true
+  }
   
   // Auto-select new block and scroll into view
   setTimeout(() => {
@@ -1012,7 +1108,7 @@ function insertPreset(preset) {
 const mergedPresets = computed(() => {
   const featured = availableSavedBlocks.value
     .filter((b) => b.featured)
-    .map((b) => ({ key: 'saved-' + b.id, id: b.id, name: b.name, type: b.type, settings: b.settings, icon: 'bookmark', isUser: true }))
+    .map((b) => ({ key: 'saved-' + b.id, id: b.id, name: b.name, type: b.type, category: b.category || '', settings: b.settings, icon: 'bookmark', isUser: true }))
   return [...blockPresets, ...featured]
 })
 
@@ -1525,7 +1621,7 @@ function updatePageSettings(newSettings) {
   pageSettings.value = nextSettings
 
   if (settingsPatch?.theme) {
-    syncThemeToBlocks(oldTheme, nextSettings.theme || DEFAULT_THEME, true)
+    syncThemeToBlocks(oldTheme, nextSettings.theme || DEFAULT_THEME, { allowAliases: false })
   }
 }
 
@@ -1537,7 +1633,7 @@ function undoThemeChange() {
   themeHistory.value = themeHistory.value.slice(0, -1)
   lastThemeHistoryKey = ''
   pageSettings.value = { ...pageSettings.value, theme: { ...previousTheme } }
-  syncThemeToBlocks(currentTheme, previousTheme, true)
+  syncThemeToBlocks(currentTheme, previousTheme, { allowAliases: false })
 }
 
 function restoreSiteThemeDefaults() {
@@ -1796,6 +1892,7 @@ async function generateHtmlSnapshot() {
   let app = null
   try {
     const snapshotBlocks = JSON.parse(JSON.stringify(blocks.value || []))
+    await preloadPreviewComponents(snapshotBlocks)
     app = createApp(FrontendApp, { blocks: snapshotBlocks })
     // Blocks read this via inject('dsfRenderMode') to skip side effects
     // (Gravity Forms init scripts, document.body appends) that would otherwise
@@ -1918,6 +2015,18 @@ onMounted(() => {
   // The saved-block editor is about one block — open its settings straight away.
   if (isSavedBlockEditor && blocks.value.length) {
     nextTick(() => selectBlock(blocks.value[0]))
+  }
+
+  // The guide is per browser profile. It does not write page content or affect
+  // the frontend, and Help always lets an editor restart it deliberately.
+  if (!isSavedBlockEditor) {
+    try {
+      if (window.localStorage.getItem(ONBOARDING_STORAGE_KEY) !== 'complete') {
+        startOnboarding()
+      }
+    } catch (error) {
+      startOnboarding()
+    }
   }
 
   if (!prefersReducedMotion()) {

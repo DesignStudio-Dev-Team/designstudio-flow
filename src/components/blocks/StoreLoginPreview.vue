@@ -4,7 +4,7 @@
       <div class="dsf-store-login__card">
         <header class="dsf-store-login__header">
           <p class="dsf-store-login__eyebrow">Customer account</p>
-          <h1 class="dsf-store-login__heading">{{ settings.heading || 'Welcome back' }}</h1>
+          <h2 class="dsf-store-login__heading">{{ settings.heading || 'Welcome back' }}</h2>
           <p v-if="settings.subheading" class="dsf-store-login__subheading">{{ settings.subheading }}</p>
         </header>
 

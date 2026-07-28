@@ -322,7 +322,7 @@ function handleLinkClick(event, href) {
 
 .dsf-spotlight-hero__main-title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: var(--dsf-theme-h1, 42px);
+  font-size: var(--dsf-theme-h2, 37px);
   font-weight: 700;
   line-height: 1.15;
   margin: 0;

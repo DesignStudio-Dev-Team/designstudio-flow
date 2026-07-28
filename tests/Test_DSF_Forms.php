@@ -294,6 +294,23 @@ class Test_DSF_Forms extends TestCase {
 		$this->assertStringContainsString( 'data-dsf-param="utm_source"', $html );
 	}
 
+	public function test_hidden_field_renders_only_as_a_hidden_input() {
+		$field = $this->invoke(
+			'sanitize_form_field',
+			array(
+				'type'         => 'hidden',
+				'label'        => 'Campaign',
+				'name'         => 'campaign',
+				'defaultValue' => 'summer',
+			)
+		);
+
+		$html = $this->invoke( 'render_field_markup', $field, 1, 0, 0, array() );
+		$this->assertSame( '<input type="hidden" name="campaign" value="summer">', $html );
+		$this->assertStringNotContainsString( 'dsf-form-field', $html );
+		$this->assertStringNotContainsString( '<label', $html );
+	}
+
 	private function invoke( $method_name, ...$arguments ) {
 		$reflection = new ReflectionClass( 'DSF_Forms' );
 		$instance   = $reflection->newInstanceWithoutConstructor();

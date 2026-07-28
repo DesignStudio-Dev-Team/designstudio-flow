@@ -9,7 +9,7 @@
       <div class="dsf-product-hero__copy">
         <span class="dsf-kicker" data-dsf-reveal><i class="dsf-kicker__dot"></i><InlineText tagName="span" v-model="settings.eyebrow" :is-editor="isEditor" placeholder="Eyebrow" /></span>
         <InlineText tagName="h1" v-model="settings.title" :is-editor="isEditor" data-dsf-split placeholder="Headline" />
-        <InlineText tagName="p" v-model="settings.description" :is-editor="isEditor" :multiline="true" data-dsf-reveal placeholder="Supporting description" />
+        <InlineText tagName="p" v-model="settings.description" :is-editor="isEditor" :multiline="true" :style="descriptionStyle" data-dsf-reveal placeholder="Supporting description" />
         <div v-if="isEditor || settings.primaryText || settings.secondaryText" class="dsf-product-hero__actions" data-dsf-reveal>
           <a v-if="isEditor || settings.primaryText" class="dsf-hero-button dsf-hero-button--primary" :href="safePublicUrl(settings.primaryUrl)" @click="guardEditor">
             <InlineText tagName="span" v-model="settings.primaryText" :is-editor="isEditor" placeholder="Primary" /> <ArrowUpRight :size="18" />
@@ -104,6 +104,9 @@ const props = defineProps({
 
 const root = ref(null)
 const blockStyle = computed(() => landingBlockStyle(props.settings))
+const descriptionStyle = computed(() => ({
+  maxWidth: `${Math.min(1200, Math.max(240, Number(props.settings?.descriptionMaxWidth) || 590))}px`,
+}))
 const logoUrl = computed(() => {
   const baseUrl = window.dsfEditorData?.pluginUrl || window.dsfFrontendData?.pluginUrl || ''
   return `${baseUrl}assets/images/dsflow-logo.png`

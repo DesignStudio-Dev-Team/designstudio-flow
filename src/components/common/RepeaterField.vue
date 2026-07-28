@@ -42,6 +42,17 @@
                 @update:modelValue="updateField(index, 'image', $event)"
               />
             </div>
+            <div class="dsf-form-group">
+              <label class="dsf-label">Media Type</label>
+              <select class="dsf-input" :value="element.mediaType || 'image'" @change="updateField(index, 'mediaType', $event.target.value)">
+                <option value="image">Image</option>
+                <option value="video">Video</option>
+              </select>
+            </div>
+            <div v-if="element.mediaType === 'video'" class="dsf-form-group">
+              <label class="dsf-label">Video (MP4)</label>
+              <VideoPicker :modelValue="element.video" @update:modelValue="updateField(index, 'video', $event)" />
+            </div>
             <!-- Image Position -->
             <div class="dsf-form-group">
               <label class="dsf-label">Image Position</label>
@@ -170,6 +181,7 @@ import draggable from 'vuedraggable'
 import { Plus, Trash2, GripVertical, ChevronDown } from 'lucide-vue-next'
 import WysiwygField from './WysiwygField.vue'
 import MediaPicker from './MediaPicker.vue'
+import VideoPicker from './VideoPicker.vue'
 
 const props = defineProps({
   modelValue: {
@@ -220,6 +232,8 @@ function addItem() {
     title: 'New Feature',
     description: 'Description here',
     image: '',
+    mediaType: 'image',
+    video: '',
     imagePosition: 'above',
     buttonText: 'Learn More',
     buttonUrl: '#',

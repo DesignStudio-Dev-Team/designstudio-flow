@@ -233,7 +233,7 @@ const gridCols = computed(() => {
 
 const contentColStyle = computed(() => {
   const bg = props.settings?.contentBg;
-  return bg ? { backgroundColor: bg } : {};
+  return { backgroundColor: bg || "#FFFFFF" };
 });
 
 const contentTextStyle = computed(() => ({
@@ -242,7 +242,7 @@ const contentTextStyle = computed(() => ({
 
 const formColStyle = computed(() => {
   const bg = props.settings?.formBg;
-  return bg ? { backgroundColor: bg } : {};
+  return { backgroundColor: bg || "#FFFFFF" };
 });
 
 // Whether the block is in image mode (default 'video' for backwards compat)

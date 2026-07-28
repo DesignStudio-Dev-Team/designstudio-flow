@@ -140,6 +140,7 @@ class Test_DSF_Ajax_Landing_Blocks extends TestCase {
 				'accentColor'     => '#ff6600',
 				'paddingX'        => 999,
 				'marginY'         => 32,
+				'descriptionMaxWidth' => 9999,
 				'mediaType'       => 'image',
 				'mediaImage'      => 'https://example.com/hero.jpg',
 				'mediaVideo'      => 'javascript:alert(1)',
@@ -151,6 +152,7 @@ class Test_DSF_Ajax_Landing_Blocks extends TestCase {
 		$this->assertSame( '#ff6600', $clean['accentColor'] );
 		$this->assertSame( 80, $clean['paddingX'] );
 		$this->assertSame( 32, $clean['marginY'] );
+		$this->assertSame( 1200, $clean['descriptionMaxWidth'] );
 		$this->assertSame( 'image', $clean['mediaType'] );
 		$this->assertSame( 'https://example.com/hero.jpg', $clean['mediaImage'] );
 		$this->assertSame( '', $clean['mediaVideo'] );
@@ -172,6 +174,7 @@ class Test_DSF_Ajax_Landing_Blocks extends TestCase {
 		);
 		$gallery = $this->sanitize_settings( 'landing-block-explorer', array( 'items' => $gallery_items ) );
 
+		$this->assertSame( 'manual', $gallery['source'] );
 		$this->assertCount( 24, $gallery['items'] );
 		$this->assertSame( 'generic', $gallery['items'][0]['kind'] );
 		$this->assertSame( '', $gallery['items'][0]['url'] );
@@ -246,6 +249,28 @@ class Test_DSF_Ajax_Landing_Blocks extends TestCase {
 		$this->assertSame( 'Reserve your spot', $ready['demoButton'] );
 		$this->assertSame( "Pick a block\nfrom the library", $ready['step1Text'] );
 		$this->assertArrayNotHasKey( 'malicious', $ready );
+	}
+
+	public function test_steps_image_settings_are_generic_and_sanitized() {
+		$clean = $this->sanitize_settings(
+			'steps-image',
+			array(
+				'layout'      => 'not-real',
+				'title'       => 'Title',
+				'description' => "A useful description\nwith a second line",
+				'showSteps'   => false,
+				'image'       => 'javascript:alert(1)',
+				'step1Title'  => 'Start',
+				'unknown'     => 'discard',
+			)
+		);
+
+		$this->assertSame( 'image-right', $clean['layout'] );
+		$this->assertSame( 'Title', $clean['title'] );
+		$this->assertSame( "A useful description\nwith a second line", $clean['description'] );
+		$this->assertFalse( $clean['showSteps'] );
+		$this->assertSame( '', $clean['image'] );
+		$this->assertArrayNotHasKey( 'unknown', $clean );
 	}
 
 	public function test_cta_footer_has_its_own_library_group() {

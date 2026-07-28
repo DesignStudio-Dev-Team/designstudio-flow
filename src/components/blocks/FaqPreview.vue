@@ -116,7 +116,7 @@ function toggleItem(index) {
 .dsf-faq-preview__title {
   margin: 0 0 3rem;
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: var(--dsf-theme-h1, 3rem);
+  font-size: var(--dsf-theme-h2, 2.3125rem);
   font-weight: 700;
   line-height: 1.12;
   letter-spacing: -0.04em;

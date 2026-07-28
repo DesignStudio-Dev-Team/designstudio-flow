@@ -1,0 +1,1 @@
+import{r as e}from"./_plugin-vue_export-helper-BTdm89ns.js";var t=e(`ArrowUpRightIcon`,[[`path`,{d:`M7 7h10v10`,key:`1tivn9`}],[`path`,{d:`M7 17 17 7`,key:`1vkiza`}]]);export{t};

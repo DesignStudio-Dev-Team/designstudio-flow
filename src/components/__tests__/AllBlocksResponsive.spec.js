@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import FrontendApp from '../../frontend/FrontendApp.vue'
+import { preloadPreviewComponents } from '../../frontend/lazyBlockRegistry.js'
 
 // Several tests here mount every registered block type in a loop; that's heavy
 // enough to exceed the 5s default under full-suite parallel load, so raise the
@@ -40,10 +42,15 @@ function settingsFor(extra = {}) {
   }
 }
 
-function mountBlock(type, extra) {
-  return mount(FrontendApp, {
+async function mountBlock(type, extra) {
+  await preloadPreviewComponents([{ type }])
+  const wrapper = mount(FrontendApp, {
     props: { blocks: [{ id: 'b', type, settings: settingsFor(extra) }], popupSettings: {}, postId: 0 },
   })
+  await nextTick()
+  await nextTick()
+  await flushPromises()
+  return wrapper
 }
 
 const PADX = /padding(-left|-right)?:\s*[^;]*41px/
@@ -51,13 +58,13 @@ const PADX = /padding(-left|-right)?:\s*[^;]*41px/
 describe('every block applies horizontal padding exactly once (no double, no dead slider)', () => {
   // Mounts every registered block once; heavy enough to exceed the 5s default
   // under full-suite parallel load, so it gets an explicit generous timeout.
-  it('wrapper XOR block — never both, never neither', () => {
+  it('wrapper XOR block — never both, never neither', async () => {
     const offenders = []
     for (const type of BLOCK_TYPES) {
       let wrapperHas = false
       let innerHas = false
       try {
-        const w = mountBlock(type)
+        const w = await mountBlock(type)
         const wrapperStyle = w.find('.dsf-block').attributes('style') || ''
         const inner = w.find('.dsf-block > *')
         const innerStyle = inner.exists() ? (inner.attributes('style') || '') : ''
@@ -76,7 +83,8 @@ describe('every block applies horizontal padding exactly once (no double, no dea
 })
 
 describe('responsive override reaches the frontend per breakpoint', () => {
-  it('wrapper-owned block reflects the mobile paddingX override', () => {
+  it('wrapper-owned block reflects the mobile paddingX override', async () => {
+    await preloadPreviewComponents([{ type: 'content' }])
     window.innerWidth = 375 // mobile breakpoint
     const w = mount(FrontendApp, {
       props: {
@@ -84,6 +92,7 @@ describe('responsive override reaches the frontend per breakpoint', () => {
         popupSettings: {}, postId: 0,
       },
     })
+    await nextTick()
     window.dispatchEvent(new Event('resize'))
     const style = w.find('.dsf-block').attributes('style') || ''
     expect(style).toMatch(/padding-left:\s*18px/)
@@ -104,11 +113,11 @@ describe('responsive override reaches the frontend per breakpoint', () => {
     w.unmount()
   })
 
-  it('every block type stretches to an explicit height (wrapper min-height + fill class)', () => {
+  it('every block type stretches to an explicit height (wrapper min-height + fill class)', async () => {
     const offenders = []
     for (const type of BLOCK_TYPES) {
       try {
-        const w = mountBlock(type, { height: 640, responsive: { desktop: { height: 640 } } })
+        const w = await mountBlock(type, { height: 640, responsive: { desktop: { height: 640 } } })
         const block = w.find('.dsf-block')
         const style = block.attributes('style') || ''
         if (!/min-height:\s*640px/.test(style)) offenders.push(`${type}: wrapper missing min-height`)
@@ -124,17 +133,20 @@ describe('responsive override reaches the frontend per breakpoint', () => {
     expect(offenders, offenders.join('\n')).toEqual([])
   })
 
-  it('no height set → no min-height and no fill class', () => {
+  it('no height set → no min-height and no fill class', async () => {
+    await preloadPreviewComponents([{ type: 'cta-banner' }])
     const w = mount(FrontendApp, {
       props: { blocks: [{ id: 'b', type: 'cta-banner', settings: {} }], popupSettings: {}, postId: 0 },
     })
+    await nextTick()
     const block = w.find('.dsf-block')
     expect(block.classes()).not.toContain('dsf-block--has-height')
     expect(block.attributes('style') || '').not.toMatch(/min-height/)
     w.unmount()
   })
 
-  it('self-padded block reflects the mobile paddingX override on its own root', () => {
+  it('self-padded block reflects the mobile paddingX override on its own root', async () => {
+    await preloadPreviewComponents([{ type: 'features-grid' }])
     window.innerWidth = 375
     const w = mount(FrontendApp, {
       props: {
@@ -142,6 +154,7 @@ describe('responsive override reaches the frontend per breakpoint', () => {
         popupSettings: {}, postId: 0,
       },
     })
+    await nextTick()
     window.dispatchEvent(new Event('resize'))
     const wrapperStyle = w.find('.dsf-block').attributes('style') || ''
     const innerStyle = w.find('.dsf-block > *').attributes('style') || ''

@@ -56,12 +56,12 @@
           {{ settings.eyebrowText }}
         </p>
 
-        <h1
+        <h2
           class="dsf-product-spotlight__title"
           :style="{ color: settings.titleColor || 'var(--dsf-theme-text, inherit)' }"
         >
           {{ product.name }}
-        </h1>
+        </h2>
 
         <div class="dsf-product-spotlight__chips">
           <span

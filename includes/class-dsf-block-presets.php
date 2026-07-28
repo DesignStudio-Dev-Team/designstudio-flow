@@ -160,15 +160,48 @@ class DSF_Block_Presets {
 				),
 			),
 			array(
+				'key'       => 'content-carousel-block-library',
+				'name'      => 'Content Carousel — Block Library',
+				'type'      => 'landing-block-explorer',
+				'overrides' => array(
+					'source'      => 'block-library',
+					'eyebrow'     => 'A LIBRARY WITH A POINT OF VIEW',
+					'title'       => 'Start with structure. Finish with something original.',
+					'description' => 'Each block solves a real page-building problem, then gives your team the right amount of creative control.',
+					'footnote'    => 'New blocks inherit the same editing, theme, responsive, and frontend rendering workflow.',
+					'items'       => array(),
+				),
+			),
+			array(
+				'key'       => 'split-content-visual-editor',
+				'name'      => 'Split Content — Visual Editor',
+				'type'      => 'landing-product-story',
+				'overrides' => array(
+					'variant'       => 'editor',
+					'reverseLayout' => false,
+				),
+			),
+			array(
+				'key'       => 'split-content-theme-system',
+				'name'      => 'Split Content — Theme System',
+				'type'      => 'landing-product-story',
+				'overrides' => array(
+					'variant'       => 'theme',
+					'reverseLayout' => true,
+					'eyebrow'       => 'DESIGN SYSTEM',
+					'title'         => 'One visual language across every block.',
+					'description'   => 'Set the shared palette and typography once, then refine each section without losing the character of the site.',
+				),
+			),
+			array(
 				'key'       => 'footer-marketing',
 				'name'      => 'Footer — Marketing',
 				'type'      => 'landing-marketing-footer',
 				'overrides' => array(),
 			),
-			// The Redirect Tool and Mail/SMTP sections are the Split Content block
-			// prefilled with different content, so they live here as presets while
-			// Split Content (landing-product-story) stays in the Blocks tab. Their
-			// types are preset_only: still registered for rendering and settings.
+			// Specialized Split Content variants live in Presets. Their types stay
+			// registered so existing pages keep rendering, but duplicate/niche
+			// designs do not crowd the reusable Blocks tab.
 			array(
 				'key'       => 'split-content-redirects',
 				'name'      => 'Split Content — Redirect Manager',
@@ -179,6 +212,12 @@ class DSF_Block_Presets {
 				'key'       => 'split-content-mail',
 				'name'      => 'Split Content — Mail & SMTP',
 				'type'      => 'landing-mail-tool',
+				'overrides' => array(),
+			),
+			array(
+				'key'       => 'design-ready',
+				'name'      => 'Design-Ready Block',
+				'type'      => 'landing-block-ready',
 				'overrides' => array(),
 			),
 		);

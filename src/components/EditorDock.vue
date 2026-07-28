@@ -19,8 +19,29 @@
       <span class="dsf-dock__tip">DesignStudio Flow — Back to WP Admin</span>
     </component>
 
+    <button
+      v-if="mobileDock"
+      type="button"
+      class="dsf-dock__btn dsf-dock__more"
+      aria-label="Open editor actions"
+      :aria-expanded="mobileMenuOpen"
+      aria-haspopup="menu"
+      @click="toggleMobileMenu()"
+    >
+      <MoreHorizontal :size="21" />
+      <span class="dsf-dock__tip">Editor actions</span>
+    </button>
+
     <!-- Everything that retracts into the brand mark on scroll. -->
-    <div ref="dockBody" class="dsf-dock__body">
+    <Transition name="dsf-mobile-actions">
+      <div
+        v-show="!mobileDock || mobileMenuOpen"
+        ref="dockBody"
+        class="dsf-dock__body"
+        :class="{ 'dsf-dock__body--mobile-menu': mobileDock }"
+        role="menu"
+        aria-label="Editor actions"
+      >
       <span class="dsf-dock__divider" aria-hidden="true"></span>
 
       <div class="dsf-dock__group">
@@ -30,6 +51,7 @@
           class="dsf-dock__btn"
           :disabled="isLayout"
           :aria-label="isLayout ? 'Settings unavailable' : 'Page settings'"
+          data-dsf-help="dock-page-settings"
           @click="emit('open-settings')"
         >
           <Settings :size="19" />
@@ -41,21 +63,11 @@
           type="button"
           class="dsf-dock__btn"
           aria-label="Theme"
+          data-dsf-help="dock-theme"
           @click="emit('open-theme')"
         >
           <Palette :size="19" />
           <span class="dsf-dock__tip">Theme</span>
-        </button>
-
-        <button
-          v-if="!isLayout && !libraryMode"
-          type="button"
-          class="dsf-dock__btn"
-          aria-label="Save as template"
-          @click="emit('save-as-template')"
-        >
-          <LayoutTemplate :size="19" />
-          <span class="dsf-dock__tip">Save as template</span>
         </button>
 
         <button
@@ -71,6 +83,17 @@
         </button>
 
         <button
+          v-if="!isLayout && !libraryMode"
+          type="button"
+          class="dsf-dock__btn"
+          aria-label="Save as template"
+          @click="emit('save-as-template')"
+        >
+          <LayoutTemplate :size="19" />
+          <span class="dsf-dock__tip">Save as template</span>
+        </button>
+
+        <button
           type="button"
           class="dsf-dock__btn dsf-dock__btn--primary"
           :class="{ 'is-busy': isSaving }"
@@ -82,50 +105,42 @@
           <span class="dsf-dock__tip">{{ isSaving ? 'Saving…' : saveLabel }}</span>
         </button>
 
-        <button
-          type="button"
-          class="dsf-dock__btn"
-          aria-label="History"
-          @click="emit('open-history')"
-        >
-          <History :size="19" />
-          <span class="dsf-dock__tip">History</span>
-        </button>
       </div>
 
       <span class="dsf-dock__divider" aria-hidden="true"></span>
 
-      <div class="dsf-dock__group">
+      <div ref="previewPicker" class="dsf-dock__group dsf-dock__preview-picker">
         <button
           type="button"
           class="dsf-dock__btn"
-          :class="{ 'dsf-dock__btn--active': previewMode === 'desktop' }"
-          aria-label="Desktop"
-          @click="emit('set-preview-mode', 'desktop')"
+          :class="{ 'dsf-dock__btn--active': previewMenuOpen }"
+          aria-label="Choose preview size"
+          aria-haspopup="menu"
+          :aria-expanded="previewMenuOpen"
+          @click="previewMenuOpen = !previewMenuOpen"
         >
-          <Monitor :size="19" />
-          <span class="dsf-dock__tip">Desktop</span>
+          <component :is="previewIcon" :size="19" />
+          <span class="dsf-dock__tip">Preview: {{ previewLabel }}</span>
         </button>
-        <button
-          type="button"
-          class="dsf-dock__btn"
-          :class="{ 'dsf-dock__btn--active': previewMode === 'tablet' }"
-          aria-label="Tablet"
-          @click="emit('set-preview-mode', 'tablet')"
-        >
-          <Tablet :size="19" />
-          <span class="dsf-dock__tip">Tablet</span>
-        </button>
-        <button
-          type="button"
-          class="dsf-dock__btn"
-          :class="{ 'dsf-dock__btn--active': previewMode === 'mobile' }"
-          aria-label="Mobile"
-          @click="emit('set-preview-mode', 'mobile')"
-        >
-          <Smartphone :size="19" />
-          <span class="dsf-dock__tip">Mobile</span>
-        </button>
+
+        <Transition name="dsf-preview-menu">
+          <div v-if="previewMenuOpen" class="dsf-dock__preview-menu" role="menu" aria-label="Preview size">
+            <button
+              v-for="option in previewOptions"
+              :key="option.value"
+              type="button"
+              class="dsf-dock__preview-option"
+              :class="{ 'is-active': previewMode === option.value }"
+              role="menuitemradio"
+              :aria-checked="previewMode === option.value"
+              @click="selectPreviewMode(option.value)"
+            >
+              <component :is="option.icon" :size="17" />
+              <span>{{ option.label }}</span>
+              <small>{{ option.width }}</small>
+            </button>
+          </div>
+        </Transition>
       </div>
 
       <template v-if="!libraryMode">
@@ -135,7 +150,30 @@
           <button
             type="button"
             class="dsf-dock__btn"
+            aria-label="Help"
+            data-dsf-help="dock-help"
+            @click="emit('open-help')"
+          >
+            <HelpCircle :size="19" />
+            <span class="dsf-dock__tip">Help</span>
+          </button>
+
+          <button
+            type="button"
+            class="dsf-dock__btn"
+            aria-label="History"
+            data-dsf-help="dock-history"
+            @click="emit('open-history')"
+          >
+            <History :size="19" />
+            <span class="dsf-dock__tip">History</span>
+          </button>
+
+          <button
+            type="button"
+            class="dsf-dock__btn"
             aria-label="Structure"
+            data-dsf-help="dock-structure"
             @click="emit('open-structure')"
           >
             <ListTree :size="19" />
@@ -147,6 +185,7 @@
             class="dsf-dock__btn dsf-dock__btn--accent"
             :disabled="!canAddBlock"
             aria-label="Add block"
+            data-dsf-help="dock-add-block"
             @click="emit('add-block')"
           >
             <Plus :size="20" />
@@ -154,7 +193,8 @@
           </button>
         </div>
       </template>
-    </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -163,7 +203,7 @@ import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { gsap } from 'gsap'
 import {
   Monitor, Tablet, Smartphone, Palette, Settings,
-  ExternalLink, Save, LayoutTemplate, Plus, ListTree, History,
+  ExternalLink, Save, LayoutTemplate, Plus, ListTree, History, HelpCircle, MoreHorizontal,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -178,12 +218,22 @@ const props = defineProps({
 
 const emit = defineEmits([
   'view', 'save', 'set-preview-mode', 'open-theme',
-  'open-settings', 'save-as-template', 'add-block', 'open-structure', 'open-history',
+  'open-settings', 'save-as-template', 'add-block', 'open-structure', 'open-history', 'open-help', 'mobile-actions-open',
 ])
 
 const logoUrl = computed(() => `${window.dsfEditorData?.pluginUrl || ''}assets/images/dsflow-logo.png`)
 const adminUrl = computed(() => window.dsfEditorData?.adminUrl || '')
 const isLayout = computed(() => props.postType === 'dsf_layout')
+const previewMenuOpen = ref(false)
+const previewPicker = ref(null)
+const previewOptions = [
+  { value: 'desktop', label: 'Desktop', width: '1800 px', icon: Monitor },
+  { value: 'tablet', label: 'Tablet', width: '768 px', icon: Tablet },
+  { value: 'mobile', label: 'Mobile', width: '375 px', icon: Smartphone },
+]
+const selectedPreview = computed(() => previewOptions.find((option) => option.value === props.previewMode) || previewOptions[0])
+const previewIcon = computed(() => selectedPreview.value.icon)
+const previewLabel = computed(() => selectedPreview.value.label)
 
 const saveLabel = computed(() => {
   if (props.libraryMode) return 'Save block'
@@ -202,6 +252,8 @@ const saveLabel = computed(() => {
 const dockRoot = ref(null)
 const dockBody = ref(null)
 const collapsed = ref(false)
+const mobileDock = ref(false)
+const mobileMenuOpen = ref(false)
 
 const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 const IDLE_MS = 280
@@ -209,9 +261,24 @@ const IDLE_MS = 280
 let scrollEl = null
 let idleTimer = null
 let naturalWidth = 0
+let mobileMediaQuery = null
+
+function syncMobileDock(event) {
+  mobileDock.value = Boolean(event?.matches ?? mobileMediaQuery?.matches)
+  if (!mobileDock.value) setMobileMenu(false)
+}
+
+function setMobileMenu(open) {
+  mobileMenuOpen.value = open
+  emit('mobile-actions-open', open)
+}
+
+function toggleMobileMenu() {
+  setMobileMenu(!mobileMenuOpen.value)
+}
 
 function collapseDock() {
-  if (collapsed.value || reducedMotion) return
+  if (mobileDock.value || collapsed.value || reducedMotion) return
   const body = dockBody.value
   if (!body) return
   collapsed.value = true
@@ -230,6 +297,7 @@ function collapseDock() {
 }
 
 function expandDock() {
+  if (mobileDock.value) return
   if (!collapsed.value) return
   const body = dockBody.value
   if (!body) return
@@ -252,19 +320,49 @@ function expandDock() {
 }
 
 function onScroll() {
+  if (mobileDock.value) return
   collapseDock()
   if (idleTimer) clearTimeout(idleTimer)
   idleTimer = setTimeout(expandDock, IDLE_MS)
 }
 
+function selectPreviewMode(mode) {
+  emit('set-preview-mode', mode)
+  previewMenuOpen.value = false
+}
+
+function onDocumentPointerDown(event) {
+  if (previewPicker.value && !previewPicker.value.contains(event.target)) {
+    previewMenuOpen.value = false
+  }
+  if (dockRoot.value && !dockRoot.value.contains(event.target)) {
+    setMobileMenu(false)
+  }
+}
+
+function onDocumentKeydown(event) {
+  if (event.key === 'Escape') {
+    previewMenuOpen.value = false
+    setMobileMenu(false)
+  }
+}
+
 onMounted(() => {
   scrollEl = document.querySelector('.dsf-canvas')
   if (scrollEl) scrollEl.addEventListener('scroll', onScroll, { passive: true })
+  document.addEventListener('pointerdown', onDocumentPointerDown)
+  document.addEventListener('keydown', onDocumentKeydown)
+  mobileMediaQuery = window.matchMedia?.('(max-width: 760px)')
+  syncMobileDock(mobileMediaQuery)
+  mobileMediaQuery?.addEventListener?.('change', syncMobileDock)
 })
 
 onBeforeUnmount(() => {
   if (scrollEl) scrollEl.removeEventListener('scroll', onScroll)
   if (idleTimer) clearTimeout(idleTimer)
   if (dockBody.value) gsap.killTweensOf(dockBody.value)
+  document.removeEventListener('pointerdown', onDocumentPointerDown)
+  document.removeEventListener('keydown', onDocumentKeydown)
+  mobileMediaQuery?.removeEventListener?.('change', syncMobileDock)
 })
 </script>

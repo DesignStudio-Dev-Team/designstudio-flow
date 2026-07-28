@@ -193,25 +193,45 @@
 
         <!-- ===== PRESETS TAB ===== -->
         <template v-else-if="activeTab === 'presets'">
-          <div v-if="filteredPresets.length" class="dsf-library-blocks dsf-library-blocks--flush">
-            <button
-              v-for="preset in filteredPresets"
-              :key="preset.key"
-              class="dsf-library-block"
-              @click="$emit('insert-preset', preset)"
+          <template v-if="presetCategories.length">
+            <div
+              v-for="category in presetCategories"
+              :key="category.key"
+              class="dsf-library-category"
             >
-              <div class="dsf-library-block__preview">
-                <BlockSchematic :type="preset.type" :icon="preset.icon" />
-              </div>
-              <div class="dsf-library-block__info">
-                <component :is="getBlockIcon(preset.icon)" :size="16" />
-                <div class="dsf-library-block__text">
-                  <h4>{{ preset.name }}</h4>
-                  <span>Click to add</span>
+              <button class="dsf-library-category__header" @click="togglePresetCategory(category.key)">
+                <div class="dsf-library-category__left">
+                  <component :is="getCategoryIcon(category.key)" :size="16" />
+                  <span>{{ category.label }}</span>
+                  <span class="dsf-library-category__count">{{ category.presets.length }}</span>
                 </div>
+                <ChevronDown
+                  :size="16"
+                  class="dsf-library-category__chevron"
+                  :class="{ 'dsf-library-category__chevron--open': openPresetCategories.includes(category.key) || isSearching }"
+                />
+              </button>
+              <div class="dsf-library-blocks" v-show="openPresetCategories.includes(category.key) || isSearching">
+                <button
+                  v-for="preset in category.presets"
+                  :key="preset.key"
+                  class="dsf-library-block"
+                  @click="$emit('insert-preset', preset)"
+                >
+                  <div class="dsf-library-block__preview">
+                    <BlockSchematic :type="preset.type" :icon="preset.icon" />
+                  </div>
+                  <div class="dsf-library-block__info">
+                    <component :is="getBlockIcon(preset.icon)" :size="16" />
+                    <div class="dsf-library-block__text">
+                      <h4>{{ preset.name }}</h4>
+                      <span>Ready-made preset</span>
+                    </div>
+                  </div>
+                </button>
               </div>
-            </button>
-          </div>
+            </div>
+          </template>
           <div v-else class="dsf-library-empty">
             <Sparkles :size="32" />
             <p>{{ isSearching ? `No presets found for "${searchQuery}"` : 'No presets yet' }}</p>
@@ -396,6 +416,7 @@ function onTemplateImportFileChange(event) {
 const activeTab = ref('blocks')
 const searchQuery = ref('')
 const openCategories = ref([])
+const openPresetCategories = ref([])
 const savedOpen = ref(false)
 const activeTags = ref([])
 
@@ -403,7 +424,7 @@ const isSearching = computed(() => !!searchQuery.value.trim())
 
 const tabs = computed(() => [
   { key: 'blocks', label: 'Blocks', icon: LayoutGrid },
-  { key: 'presets', label: 'Presets', icon: Sparkles, count: (props.presets || []).length },
+  { key: 'presets', label: 'Presets', icon: Sparkles, count: presetCategories.value.reduce((total, category) => total + category.presets.length, 0) },
   { key: 'templates', label: 'Templates', icon: LayoutTemplate, count: (props.templates || []).length },
 ])
 
@@ -517,11 +538,42 @@ function toggleTagFilter(tag) {
     : [...activeTags.value, tag]
 }
 
-const filteredPresets = computed(() => {
-  const list = Array.isArray(props.presets) ? props.presets : []
+// Keep Presets focused on deliberately configured designs. The normal block
+// catalog belongs in the Blocks tab; the Content Carousel preset itself is the
+// one place that presents that complete catalog on a page.
+const presetCategories = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
-  if (!query) return list
-  return list.filter((preset) => (preset.name || '').toLowerCase().includes(query))
+  const groups = []
+  const groupByKey = {}
+  const categoryByType = {}
+
+  for (const [key, category] of Object.entries(props.categories || {})) {
+    for (const block of category.blocks || []) {
+      if (!block?.id) continue
+      categoryByType[block.id] = key
+    }
+  }
+
+  for (const preset of Array.isArray(props.presets) ? props.presets : []) {
+    if (!preset?.type) continue
+    const key = categoryByType[preset.type] || preset.category || 'content'
+    if (!groupByKey[key]) {
+      groupByKey[key] = { key, label: categoryLabel(key), presets: [] }
+      groups.push(groupByKey[key])
+    }
+    groupByKey[key].presets.unshift(preset)
+  }
+
+  return groups
+    .map((group) => ({
+      ...group,
+      presets: group.presets.filter((preset) => {
+        if (!query) return true
+        return [preset.name, preset.description, group.label]
+          .some((value) => String(value || '').toLowerCase().includes(query))
+      }),
+    }))
+    .filter((group) => group.presets.length)
 })
 
 // Group saved blocks by folder; named folders first (A→Z), ungrouped last.
@@ -574,13 +626,43 @@ function toggleCategory(key) {
   }
 }
 
+function togglePresetCategory(key) {
+  const idx = openPresetCategories.value.indexOf(key)
+  if (idx >= 0) {
+    openPresetCategories.value.splice(idx, 1)
+  } else {
+    openPresetCategories.value.push(key)
+  }
+}
+
+function categoryLabel(key) {
+  const labels = {
+    heroes: 'Heroes',
+    headers: 'Headers',
+    content: 'Content',
+    marketing: 'Marketing',
+    ecommerce: 'Ecommerce',
+    store: 'Store',
+    site: 'Site',
+    product: 'Product Page',
+    shop: 'Shop & Archive',
+    blog: 'Blog & Posts',
+    footers: 'Footers',
+  }
+  return labels[key] || key.charAt(0).toUpperCase() + key.slice(1)
+}
+
 function getCategoryIcon(key) {
   const categoryIcons = {
     heroes: Layout,
     headers: PanelTop,
     content: FileText,
     ecommerce: ShoppingCart,
+    store: CreditCard,
+    site: LogIn,
     product: ShoppingBag,
+    shop: LayoutGrid,
+    blog: Newspaper,
     marketing: Target,
     footers: LayoutTemplate,
   }

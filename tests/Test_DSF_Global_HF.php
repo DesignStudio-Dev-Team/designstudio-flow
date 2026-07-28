@@ -10,11 +10,21 @@ require_once dirname( __DIR__ ) . '/includes/class-dsf-frontend.php';
  * and skips DSF pages, products, and non-page/post content.
  */
 class Test_DSF_Global_HF extends TestCase {
+	private $is_404_request = false;
+
 	public function setUp(): void {
 		parent::setUp();
 		WP_Mock::setUp();
 		WP_Mock::userFunction( 'is_admin', array( 'return' => false ) );
 		WP_Mock::userFunction( 'is_singular', array( 'return' => true ) );
+		WP_Mock::userFunction(
+			'is_404',
+			array(
+				'return' => function () {
+					return $this->is_404_request;
+				},
+			)
+		);
 		WP_Mock::userFunction( 'absint', array( 'return' => static function ( $v ) { return abs( (int) $v ); } ) );
 		WP_Mock::userFunction( 'apply_filters', array( 'return' => static function ( $tag, $value = null ) { return $value; } ) );
 	}
@@ -82,6 +92,14 @@ class Test_DSF_Global_HF extends TestCase {
 		WP_Mock::userFunction( 'get_post_type', array( 'args' => array( 12 ), 'return' => 'post' ) );
 
 		$this->assertTrue( $this->frontend()->should_apply_global_hf( 12 ) );
+	}
+
+	public function test_applies_to_404_without_a_queried_post() {
+		$this->mock_options( true, 5, 0 );
+		$this->mock_valid_header( 5 );
+		$this->is_404_request = true;
+
+		$this->assertTrue( $this->frontend()->should_apply_global_hf( 0 ) );
 	}
 
 	public function test_skips_dsf_enabled_page() {

@@ -102,24 +102,9 @@ const railId = computed(() => {
 })
 
 const defaultItems = [
-  { title: 'Hero', category: 'Heroes', kind: 'hero', description: 'Editorial headline, supporting copy, and CTAs with responsive media.' },
-  { title: 'Bento Hero', category: 'Heroes', kind: 'bento', description: 'A modular first impression built from expressive, asymmetric tiles.' },
-  { title: 'Spotlight Hero', category: 'Heroes', kind: 'spotlight', description: 'One cinematic image with overlaid copy and a single decisive action.' },
-  { title: 'Duo Hero', category: 'Heroes', kind: 'duo', description: 'A balanced split of message and media for product launches.' },
-  { title: 'Expander Hero', category: 'Heroes', kind: 'expander', description: 'Interactive panels that open to reveal layered storytelling.' },
-  { title: 'Content', category: 'Content', kind: 'content', description: 'Long-form editorial with pull quotes and considered rhythm.' },
-  { title: 'FAQ', category: 'Content', kind: 'faq', description: 'Accessible answers in a calm, expandable editorial layout.' },
-  { title: 'Text + Image', category: 'Content', kind: 'text-image', description: 'Balanced storytelling for features, services, and brand moments.' },
-  { title: 'Features Grid', category: 'Content', kind: 'features', description: 'Scannable capability cards with icons and short, clear copy.' },
-  { title: 'Testimonials', category: 'Content', kind: 'testimonials', description: 'Customer voices in a quiet, credible slider with attribution.' },
-  { title: 'Countdown', category: 'Marketing', kind: 'countdown', description: 'Time-aware launches with CTAs and expiration messaging.' },
-  { title: 'Pricing', category: 'Marketing', kind: 'pricing', description: 'Plan comparisons with a billing toggle and a highlighted tier.' },
-  { title: 'Featured Promo', category: 'Marketing', kind: 'featured-promo', description: 'A bold split banner with a curved divider and a focused offer.' },
-  { title: 'CTA Banner', category: 'Marketing', kind: 'cta-banner', description: 'A centered conversion band that still feels native to the page.' },
-  { title: 'Product Grid', category: 'Ecommerce', kind: 'product-grid', description: 'Searchable, filterable WooCommerce discovery with add-to-cart.' },
-  { title: 'Form', category: 'Forms', kind: 'form', description: 'Native or Gravity Forms fields styled to match the page system.' },
-  { title: 'Mega Menu Header', category: 'Headers', kind: 'mega-menu', description: 'Multi-column navigation with featured panels and mobile drawer.' },
-  { title: 'Footer', category: 'Footers', kind: 'footer', description: 'A structured close with brand statement and link columns.' },
+  { title: 'Featured item one', category: 'Category One', kind: 'generic', description: 'Add a short description for this item.' },
+  { title: 'Featured item two', category: 'Category One', kind: 'generic', description: 'Add a short description for this item.' },
+  { title: 'Featured item three', category: 'Category Two', kind: 'generic', description: 'Add a short description for this item.' },
 ]
 
 const heroIds = new Set([
@@ -146,10 +131,14 @@ const catalogCategory = (block) => {
 }
 
 const catalogItems = computed(() => {
-  const catalog = typeof window !== 'undefined' ? window.dsfFrontendData?.blockCatalog : null
+  const frontendCatalog = typeof window !== 'undefined' ? window.dsfFrontendData?.blockCatalog : null
+  const editorBlocks = typeof window !== 'undefined' ? window.dsfEditorData?.blocks : null
+  const catalog = Array.isArray(frontendCatalog)
+    ? frontendCatalog
+    : (Array.isArray(editorBlocks) ? editorBlocks : Object.values(editorBlocks || {}))
   if (!Array.isArray(catalog)) return []
   return catalog
-    .filter((block) => block && block.id && block.name && block.template_scope === 'page')
+    .filter((block) => block && block.id && block.name && (block.template_scope || 'page') === 'page' && !block.preset_only)
     .map((block) => ({
       title: block.name,
       category: catalogCategory(block),
@@ -162,7 +151,10 @@ const items = computed(() => {
   const fromSettings = Array.isArray(props.settings.items)
     ? props.settings.items.filter((item) => item && item.title)
     : []
-  return fromSettings.length ? fromSettings : (catalogItems.value.length ? catalogItems.value : defaultItems)
+  if (props.settings.source === 'block-library') {
+    return catalogItems.value.length ? catalogItems.value : defaultItems
+  }
+  return fromSettings.length ? fromSettings : defaultItems
 })
 
 const filters = computed(() => {

@@ -280,9 +280,10 @@ class DSF_GF_Migration {
 			$id_map[ $gf_field_id ] = $this->primary_dsf_id( $field );
 		}
 
-		$rows    = array();
-		$skipped = array();
-		$used    = array();
+		$rows             = array();
+		$skipped          = array();
+		$used             = array();
+		$pending_half_row = null;
 
 		foreach ( $fields as $field ) {
 			if ( ! is_array( $field ) ) {
@@ -290,12 +291,11 @@ class DSF_GF_Migration {
 			}
 			$mapped_rows = $this->map_gf_field( $field, $id_map, $used );
 			if ( null === $mapped_rows ) {
-				$skipped[] = (string) ( $field['type'] ?? 'unknown' );
+				$skipped[]        = (string) ( $field['type'] ?? 'unknown' );
+				$pending_half_row = null;
 				continue;
 			}
-			foreach ( $mapped_rows as $row ) {
-				$rows[] = $row;
-			}
+			$this->append_mapped_rows( $rows, $mapped_rows, $field, $pending_half_row );
 		}
 
 		return array(
@@ -307,6 +307,98 @@ class DSF_GF_Migration {
 	}
 
 	/**
+	 * Append mapped rows while preserving a Gravity Forms two-column row.
+	 *
+	 * Modern Gravity Forms exports a shared layoutGroupId plus a six-column
+	 * span for each half-width field. Older forms use adjacent gf_left_half /
+	 * gf_right_half CSS-ready classes. DSF supports two columns, so only these
+	 * equal-width pairs are joined; thirds and quarters intentionally remain
+	 * full-width to avoid a misleading layout conversion.
+	 *
+	 * @param array      $rows             DSF rows, by reference.
+	 * @param array      $mapped_rows      Rows produced for the current GF field.
+	 * @param array      $gf_field         Source GF field.
+	 * @param array|null $pending_half_row Previous eligible half-width row.
+	 * @return void
+	 */
+	private function append_mapped_rows( &$rows, $mapped_rows, $gf_field, &$pending_half_row ) {
+		$layout                   = $this->gf_half_width_layout( $gf_field );
+		$is_single_mappable_field = 1 === count( $mapped_rows )
+			&& isset( $mapped_rows[0]['fields'] )
+			&& is_array( $mapped_rows[0]['fields'] )
+			&& 1 === count( $mapped_rows[0]['fields'] )
+			&& ! in_array( $mapped_rows[0]['fields'][0]['type'] ?? '', array( 'hidden', 'html', 'page_break' ), true );
+
+		if ( ! $layout || ! $is_single_mappable_field ) {
+			foreach ( $mapped_rows as $row ) {
+				$rows[] = $row;
+			}
+			$pending_half_row = null;
+			return;
+		}
+
+		$field = $mapped_rows[0]['fields'][0];
+		if ( $pending_half_row && $this->gf_half_layouts_pair( $pending_half_row['layout'], $layout ) ) {
+			$first_field                                      = $rows[ $pending_half_row['row_index'] ]['fields'][0];
+			$first_field['width']                             = 'half';
+			$field['width']                                   = 'half';
+			$rows[ $pending_half_row['row_index'] ]['fields'] = array( $first_field, $field );
+			$pending_half_row                                 = null;
+			return;
+		}
+
+		$field['width']   = 'half';
+		$rows[]           = array( 'fields' => array( $field ) );
+		$pending_half_row = array(
+			'layout'    => $layout,
+			'row_index' => count( $rows ) - 1,
+		);
+	}
+
+	/**
+	 * Identify a GF half-width layout marker without trusting it as output.
+	 *
+	 * @param array $field GF field.
+	 * @return array|null
+	 */
+	private function gf_half_width_layout( $field ) {
+		$group_id = trim( (string) ( $field['layoutGroupId'] ?? '' ) );
+		$span     = isset( $field['layoutGridColumnSpan'] ) ? (int) $field['layoutGridColumnSpan'] : 0;
+		if ( '' !== $group_id && 6 === $span ) {
+			return array(
+				'type'  => 'modern',
+				'group' => $group_id,
+			);
+		}
+
+		$classes = preg_split( '/\s+/', trim( (string) ( $field['cssClass'] ?? '' ) ) );
+		$classes = is_array( $classes ) ? $classes : array();
+		if ( in_array( 'gf_left_half', $classes, true ) ) {
+			return array( 'type' => 'legacy-left' );
+		}
+		if ( in_array( 'gf_right_half', $classes, true ) ) {
+			return array( 'type' => 'legacy-right' );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Whether two parsed GF layout markers form one DSF 50/50 row.
+	 *
+	 * @param array $first  First field layout marker.
+	 * @param array $second Second field layout marker.
+	 * @return bool
+	 */
+	private function gf_half_layouts_pair( $first, $second ) {
+		if ( 'modern' === $first['type'] && 'modern' === $second['type'] ) {
+			return $first['group'] === $second['group'];
+		}
+
+		return 'legacy-left' === $first['type'] && 'legacy-right' === $second['type'];
+	}
+
+	/**
 	 * The DSF field id a GF field's conditional-logic rules should target.
 	 * Composite fields (name, address) resolve to their first sub-field.
 	 *
@@ -315,14 +407,81 @@ class DSF_GF_Migration {
 	 */
 	private function primary_dsf_id( $field ) {
 		$gf_id = (int) ( $field['id'] ?? 0 );
-		$type  = (string) ( $field['type'] ?? '' );
+		$type  = $this->effective_gf_type( $field );
 		if ( 'name' === $type ) {
-			return 'gf-' . $gf_id . '-first';
+			return $this->primary_composite_dsf_id(
+				$field,
+				$gf_id,
+				array(
+					'.2' => 'prefix',
+					'.3' => 'first',
+					'.4' => 'middle',
+					'.6' => 'last',
+					'.8' => 'suffix',
+				),
+				'first'
+			);
 		}
 		if ( 'address' === $type ) {
-			return 'gf-' . $gf_id . '-street';
+			return $this->primary_composite_dsf_id(
+				$field,
+				$gf_id,
+				array(
+					'.1' => 'street',
+					'.2' => 'street_2',
+					'.3' => 'city',
+					'.4' => 'state',
+					'.5' => 'zip',
+					'.6' => 'country',
+				),
+				'street'
+			);
 		}
 		return 'gf-' . $gf_id;
+	}
+
+	/**
+	 * Resolve Gravity Forms' effective field type.
+	 *
+	 * Gravity Forms can hide an otherwise ordinary field with its Visibility
+	 * setting. Those fields must become real DSF hidden inputs instead of
+	 * retaining their visible text/select type. Administrative fields likewise
+	 * stay out of the public UI while preserving a configured default value.
+	 *
+	 * @param array $field GF field.
+	 * @return string
+	 */
+	private function effective_gf_type( $field ) {
+		$visibility = strtolower( (string) ( $field['visibility'] ?? '' ) );
+		if ( in_array( $visibility, array( 'hidden', 'administrative', 'admin' ), true ) || ! empty( $field['adminOnly'] ) ) {
+			return 'hidden';
+		}
+
+		return strtolower( (string) ( $field['type'] ?? '' ) );
+	}
+
+	/**
+	 * Find the first visible composite input for conditional-logic references.
+	 *
+	 * @param array  $field      GF field.
+	 * @param int    $gf_id      GF field id.
+	 * @param array  $suffix_map Input suffix => DSF id suffix.
+	 * @param string $fallback   Fallback DSF id suffix.
+	 * @return string
+	 */
+	private function primary_composite_dsf_id( $field, $gf_id, $suffix_map, $fallback ) {
+		$inputs = is_array( $field['inputs'] ?? null ) ? $field['inputs'] : array();
+		foreach ( $inputs as $input ) {
+			if ( ! is_array( $input ) || ! empty( $input['isHidden'] ) ) {
+				continue;
+			}
+			$suffix = $this->gf_input_suffix( $input['id'] ?? '' );
+			if ( isset( $suffix_map[ $suffix ] ) ) {
+				return 'gf-' . $gf_id . '-' . $suffix_map[ $suffix ];
+			}
+		}
+
+		return 'gf-' . $gf_id . '-' . $fallback;
 	}
 
 	/**
@@ -336,23 +495,30 @@ class DSF_GF_Migration {
 	 */
 	private function map_gf_field( $field, $id_map, &$used ) {
 		$gf_id = (int) ( $field['id'] ?? 0 );
-		$type  = (string) ( $field['type'] ?? '' );
+		$type  = $this->effective_gf_type( $field );
 		$logic = $this->map_conditional_logic( $field['conditionalLogic'] ?? null, $id_map );
 
 		$simple_types = array(
-			'text'        => 'single_line_text',
-			'textarea'    => 'paragraph_text',
-			'select'      => 'drop_down',
-			'multiselect' => 'checkboxes',
-			'checkbox'    => 'checkboxes',
-			'radio'       => 'radio_buttons',
-			'number'      => 'number',
-			'phone'       => 'phone',
-			'date'        => 'date',
-			'email'       => 'email',
-			'website'     => 'website',
-			'fileupload'  => 'file_upload',
-			'hidden'      => 'hidden',
+			'text'         => 'single_line_text',
+			'textarea'     => 'paragraph_text',
+			'select'       => 'drop_down',
+			'multiselect'  => 'checkboxes',
+			'checkbox'     => 'checkboxes',
+			'radio'        => 'radio_buttons',
+			'number'       => 'number',
+			'phone'        => 'phone',
+			'date'         => 'date',
+			'email'        => 'email',
+			'website'      => 'website',
+			'fileupload'   => 'file_upload',
+			'hidden'       => 'hidden',
+			'time'         => 'single_line_text',
+			'list'         => 'paragraph_text',
+			'post_title'   => 'single_line_text',
+			'post_content' => 'paragraph_text',
+			'post_excerpt' => 'paragraph_text',
+			'post_tags'    => 'single_line_text',
+			'quantity'     => 'number',
 		);
 
 		if ( isset( $simple_types[ $type ] ) ) {
@@ -360,6 +526,14 @@ class DSF_GF_Migration {
 
 			$dsf['options']          = $this->map_choices( $field['choices'] ?? null );
 			$dsf['conditionalLogic'] = $logic;
+			if ( 'hidden' === $dsf['type'] && '' === $dsf['defaultValue'] ) {
+				foreach ( $dsf['options'] as $option ) {
+					if ( ! empty( $option['selected'] ) ) {
+						$dsf['defaultValue'] = '' !== $option['value'] ? $option['value'] : $option['label'];
+						break;
+					}
+				}
+			}
 
 			return array( array( 'fields' => array( $dsf ) ) );
 		}
@@ -408,41 +582,68 @@ class DSF_GF_Migration {
 		}
 
 		if ( 'name' === $type ) {
-			$first = $this->base_field( 'gf-' . $gf_id . '-first', 'single_line_text', $field, $used, 'First Name' );
-			$last  = $this->base_field( 'gf-' . $gf_id . '-last', 'single_line_text', $field, $used, 'Last Name' );
-
-			$first['label']            = $this->sub_input_label( $field, '.3', 'First Name' );
-			$last['label']             = $this->sub_input_label( $field, '.6', 'Last Name' );
-			$first['width']            = 'half';
-			$last['width']             = 'half';
-			$first['conditionalLogic'] = $logic;
-
-			return array( array( 'fields' => array( $first, $last ) ) );
+			return $this->map_composite_field(
+				$field,
+				$used,
+				$logic,
+				array(
+					'.2' => array(
+						'slug'  => 'prefix',
+						'label' => 'Prefix',
+					),
+					'.3' => array(
+						'slug'  => 'first',
+						'label' => 'First Name',
+					),
+					'.4' => array(
+						'slug'  => 'middle',
+						'label' => 'Middle Name',
+					),
+					'.6' => array(
+						'slug'  => 'last',
+						'label' => 'Last Name',
+					),
+					'.8' => array(
+						'slug'  => 'suffix',
+						'label' => 'Suffix',
+					),
+				),
+				array( '.3', '.6' )
+			);
 		}
 
 		if ( 'address' === $type ) {
-			$street  = $this->base_field( 'gf-' . $gf_id . '-street', 'single_line_text', $field, $used, 'Street Address' );
-			$city    = $this->base_field( 'gf-' . $gf_id . '-city', 'single_line_text', $field, $used, 'City' );
-			$state   = $this->base_field( 'gf-' . $gf_id . '-state', 'single_line_text', $field, $used, 'State / Province' );
-			$zip     = $this->base_field( 'gf-' . $gf_id . '-zip', 'single_line_text', $field, $used, 'ZIP / Postal Code' );
-			$country = $this->base_field( 'gf-' . $gf_id . '-country', 'single_line_text', $field, $used, 'Country' );
-
-			$street['label']  = $this->sub_input_label( $field, '.1', 'Street Address' );
-			$city['label']    = $this->sub_input_label( $field, '.3', 'City' );
-			$state['label']   = $this->sub_input_label( $field, '.4', 'State / Province' );
-			$zip['label']     = $this->sub_input_label( $field, '.5', 'ZIP / Postal Code' );
-			$country['label'] = $this->sub_input_label( $field, '.6', 'Country' );
-
-			$city['width']              = 'half';
-			$state['width']             = 'half';
-			$zip['width']               = 'half';
-			$country['width']           = 'half';
-			$street['conditionalLogic'] = $logic;
-
-			return array(
-				array( 'fields' => array( $street ) ),
-				array( 'fields' => array( $city, $state ) ),
-				array( 'fields' => array( $zip, $country ) ),
+			return $this->map_composite_field(
+				$field,
+				$used,
+				$logic,
+				array(
+					'.1' => array(
+						'slug'  => 'street',
+						'label' => 'Street Address',
+					),
+					'.2' => array(
+						'slug'  => 'street_2',
+						'label' => 'Address Line 2',
+					),
+					'.3' => array(
+						'slug'  => 'city',
+						'label' => 'City',
+					),
+					'.4' => array(
+						'slug'  => 'state',
+						'label' => 'State / Province',
+					),
+					'.5' => array(
+						'slug'  => 'zip',
+						'label' => 'ZIP / Postal Code',
+					),
+					'.6' => array(
+						'slug'  => 'country',
+						'label' => 'Country',
+					),
+				),
+				array( '.1', '.2', '.3', '.4', '.5', '.6' )
 			);
 		}
 
@@ -476,6 +677,7 @@ class DSF_GF_Migration {
 			'required'         => ! empty( $field['isRequired'] ),
 			'placeholder'      => (string) ( $field['placeholder'] ?? '' ),
 			'defaultValue'     => is_scalar( $field['defaultValue'] ?? '' ) ? (string) ( $field['defaultValue'] ?? '' ) : '',
+			'paramName'        => ! empty( $field['allowsPrepopulate'] ) && is_scalar( $field['inputName'] ?? '' ) ? (string) $field['inputName'] : '',
 			'helpText'         => (string) ( $field['description'] ?? '' ),
 			'options'          => array(),
 			'html'             => '',
@@ -484,6 +686,82 @@ class DSF_GF_Migration {
 				'rules'   => array(),
 			),
 		);
+	}
+
+	/**
+	 * Convert each visible input of a GF Name or Address field into a DSF field.
+	 * Rows are capped at two fields to match the DSF form schema.
+	 *
+	 * @param array $field            GF composite field.
+	 * @param array $used             By-ref set of used machine names.
+	 * @param array $logic            Mapped conditional logic.
+	 * @param array $definitions      GF suffix definitions.
+	 * @param array $default_suffixes Suffixes used by older/minimal exports.
+	 * @return array[]|null
+	 */
+	private function map_composite_field( $field, &$used, $logic, $definitions, $default_suffixes ) {
+		$gf_id        = (int) ( $field['id'] ?? 0 );
+		$inputs       = is_array( $field['inputs'] ?? null ) ? $field['inputs'] : array();
+		$input_by_key = array();
+
+		foreach ( $inputs as $input ) {
+			if ( ! is_array( $input ) || ! empty( $input['isHidden'] ) ) {
+				continue;
+			}
+			$suffix = $this->gf_input_suffix( $input['id'] ?? '' );
+			if ( isset( $definitions[ $suffix ] ) ) {
+				$input_by_key[ $suffix ] = $input;
+			}
+		}
+
+		$suffixes = $inputs ? array_keys( $input_by_key ) : $default_suffixes;
+		$mapped   = array();
+		foreach ( $suffixes as $suffix ) {
+			if ( ! isset( $definitions[ $suffix ] ) ) {
+				continue;
+			}
+			$definition = $definitions[ $suffix ];
+			$input      = $input_by_key[ $suffix ] ?? array();
+			$input_type = ( 'radio' === ( $input['inputType'] ?? '' ) ) ? 'radio_buttons' : 'single_line_text';
+			$sub_field  = $this->base_field( 'gf-' . $gf_id . '-' . $definition['slug'], $input_type, $field, $used, $definition['label'] );
+
+			$custom_label              = trim( (string) ( $input['customLabel'] ?? '' ) );
+			$input_label               = trim( (string) ( $input['label'] ?? '' ) );
+			$sub_field['label']        = '' !== $custom_label ? $custom_label : ( '' !== $input_label ? $input_label : $definition['label'] );
+			$sub_field['placeholder']  = (string) ( $input['placeholder'] ?? '' );
+			$sub_field['defaultValue'] = is_scalar( $input['defaultValue'] ?? '' ) ? (string) ( $input['defaultValue'] ?? '' ) : '';
+			$sub_field['paramName']    = is_scalar( $input['name'] ?? '' ) ? (string) ( $input['name'] ?? '' ) : '';
+			$sub_field['options']      = $this->map_choices( $input['choices'] ?? null );
+			$mapped[]                  = $sub_field;
+		}
+
+		if ( ! $mapped ) {
+			return null;
+		}
+
+		$mapped[0]['conditionalLogic'] = $logic;
+		$rows                          = array();
+		foreach ( array_chunk( $mapped, 2 ) as $chunk ) {
+			if ( 2 === count( $chunk ) ) {
+				$chunk[0]['width'] = 'half';
+				$chunk[1]['width'] = 'half';
+			}
+			$rows[] = array( 'fields' => $chunk );
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * Return the decimal suffix from a GF composite input id (for example .3).
+	 *
+	 * @param mixed $input_id GF input id.
+	 * @return string
+	 */
+	private function gf_input_suffix( $input_id ) {
+		$input_id = (string) $input_id;
+		$dot      = strpos( $input_id, '.' );
+		return false === $dot ? '' : substr( $input_id, $dot );
 	}
 
 	/**
@@ -511,30 +789,6 @@ class DSF_GF_Migration {
 		$used[ $candidate ] = true;
 
 		return $candidate;
-	}
-
-	/**
-	 * GF sub-input label (e.g. First Name of a name field).
-	 *
-	 * @param array  $field    GF field.
-	 * @param string $id_suffix Input id suffix such as ".3".
-	 * @param string $fallback Fallback label.
-	 * @return string
-	 */
-	private function sub_input_label( $field, $id_suffix, $fallback ) {
-		$inputs = is_array( $field['inputs'] ?? null ) ? $field['inputs'] : array();
-		foreach ( $inputs as $input ) {
-			if ( ! is_array( $input ) || ! isset( $input['id'] ) ) {
-				continue;
-			}
-			if ( substr( (string) $input['id'], -strlen( $id_suffix ) ) === $id_suffix ) {
-				$label = trim( (string) ( $input['label'] ?? '' ) );
-				if ( '' !== $label && empty( $input['isHidden'] ) ) {
-					return $label;
-				}
-			}
-		}
-		return $fallback;
 	}
 
 	/**

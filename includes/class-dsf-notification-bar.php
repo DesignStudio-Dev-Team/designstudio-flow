@@ -57,7 +57,7 @@ class DSF_Notification_Bar {
 			'enabled'         => false,
 			'message'         => 'Add your site-wide announcement here.',
 			'linkText'        => '',
-			'linkUrl'         => '#',
+			'linkUrl'         => '',
 			'openNewTab'      => false,
 			'dismissible'     => true,
 			'cookieHours'     => 24,
@@ -78,7 +78,9 @@ class DSF_Notification_Bar {
 	 */
 	public static function get_settings() {
 		$saved = get_option( 'dsf_notification_bar', array() );
-		return array_merge( self::get_defaults(), is_array( $saved ) ? $saved : array() );
+		return self::sanitize_settings(
+			array_merge( self::get_defaults(), is_array( $saved ) ? $saved : array() )
+		);
 	}
 
 	/**
@@ -132,9 +134,6 @@ class DSF_Notification_Bar {
 	 */
 	private static function sanitize_public_url( $value ) {
 		$value = is_string( $value ) ? trim( $value ) : '';
-		if ( '#' === $value ) {
-			return '#';
-		}
 		return esc_url_raw( $value, array( 'http', 'https', 'mailto', 'tel' ) );
 	}
 

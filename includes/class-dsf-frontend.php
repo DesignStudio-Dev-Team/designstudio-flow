@@ -213,13 +213,16 @@ class DSF_Frontend {
 		// that resolves to an active DSF blog template.
 		$blog_template_id = DSF_Blog_Templates::get_instance()->resolve_template_for_current_archive();
 		$is_blog_flow     = ( ! $is_shop_flow && 0 !== $blog_template_id );
+		// A 404 has no queried post, but whole-site header/footer mode still needs
+		// its frontend bundle so the configured default layouts can mount.
+		$is_global_hf_candidate = $this->should_apply_global_hf( $post_id );
 
-		if ( ! $post_id && ! $is_shop_flow && ! $is_blog_flow ) {
+		if ( ! $post_id && ! $is_shop_flow && ! $is_blog_flow && ! $is_global_hf_candidate ) {
 			return;
 		}
 
 		$current_post = $post_id ? get_post( $post_id ) : null;
-		if ( ! $current_post && ! $is_shop_flow && ! $is_blog_flow ) {
+		if ( ! $current_post && ! $is_shop_flow && ! $is_blog_flow && ! $is_global_hf_candidate ) {
 			return;
 		}
 
@@ -231,7 +234,7 @@ class DSF_Frontend {
 		$is_product_flow     = ( 0 !== $product_template_id );
 		// Whole-site header/footer: a non-DSF page/post that should still get the
 		// site header/footer (no DSF page blocks — just the header/footer apps).
-		$is_global_hf = ( ! $is_page_flow && ! $is_product_flow && ! $is_shop_flow && ! $is_blog_flow && $this->should_apply_global_hf( $post_id ) );
+		$is_global_hf = ( ! $is_page_flow && ! $is_product_flow && ! $is_shop_flow && ! $is_blog_flow && $is_global_hf_candidate );
 
 		if ( ! $is_page_flow && ! $is_product_flow && ! $is_global_hf && ! $is_shop_flow && ! $is_blog_flow ) {
 			return;
@@ -404,7 +407,7 @@ class DSF_Frontend {
 			'postId'             => $post_id,
 			'pluginUrl'          => DSF_PLUGIN_URL,
 			'blocks'             => $blocks,
-			'blockCatalog'       => $this->get_frontend_block_catalog(),
+			'blockCatalog'       => $this->get_frontend_block_catalog( $blocks ),
 			'popup'              => DSF_Popup::resolve_page_popup( $page_settings ),
 			'layoutTemplates'    => $layout_templates,
 			'ajaxUrl'            => admin_url( 'admin-ajax.php' ),
@@ -449,9 +452,25 @@ class DSF_Frontend {
 	 * The editor and the landing library must share one source of truth, but
 	 * the frontend should never receive full block schemas or settings.
 	 *
+	 * @param array $page_blocks Current page blocks.
 	 * @return array
 	 */
-	private function get_frontend_block_catalog() {
+	private function get_frontend_block_catalog( $page_blocks = array() ) {
+		$needs_catalog = false;
+		foreach ( (array) $page_blocks as $page_block ) {
+			if ( ! is_array( $page_block ) || 'landing-block-explorer' !== ( $page_block['type'] ?? '' ) ) {
+				continue;
+			}
+			$settings = isset( $page_block['settings'] ) && is_array( $page_block['settings'] ) ? $page_block['settings'] : array();
+			if ( 'block-library' === ( $settings['source'] ?? '' ) ) {
+				$needs_catalog = true;
+				break;
+			}
+		}
+		if ( ! $needs_catalog ) {
+			return array();
+		}
+
 		$catalog = array();
 		$blocks  = DSF_Blocks::get_instance()->get_registered_blocks();
 
@@ -587,16 +606,18 @@ class DSF_Frontend {
 	/**
 	 * Whether whole-site header/footer mode should wrap the current request.
 	 *
-	 * Opt-in (Settings → Theme). Applies to singular Pages and Posts the theme
-	 * would normally render — NOT DSF pages (handled elsewhere), products,
-	 * WooCommerce utility pages, or non-singular views (archives/search/404).
+	 * Opt-in (Settings → Theme). Applies to normal singular Pages and Posts, plus
+	 * WordPress 404 requests. DSF pages are handled elsewhere; products,
+	 * WooCommerce utility pages, and archive/search views retain their native
+	 * templates.
 	 *
 	 * @param int $post_id Queried post ID.
 	 * @return bool
 	 */
 	public function should_apply_global_hf( $post_id ) {
 		$post_id = intval( $post_id );
-		if ( ! $post_id || is_admin() || ! is_singular() ) {
+		$is_404 = is_404();
+		if ( is_admin() || ( ! $is_404 && ( ! $post_id || ! is_singular() ) ) ) {
 			return false;
 		}
 		if ( ! (bool) get_option( 'dsf_global_header_footer', false ) ) {
@@ -605,6 +626,9 @@ class DSF_Frontend {
 		// Need at least one default header/footer configured.
 		if ( ! self::get_default_layout_id( 'header' ) && ! self::get_default_layout_id( 'footer' ) ) {
 			return false;
+		}
+		if ( $is_404 ) {
+			return (bool) apply_filters( 'dsf_apply_global_header_footer', true, 0 );
 		}
 
 		$post_type = get_post_type( $post_id );
@@ -1268,8 +1292,10 @@ class DSF_Frontend {
 			return;
 		}
 
-		echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
-		echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
+		if ( function_exists( 'wp_style_is' ) && wp_style_is( 'dsf-google-fonts', 'enqueued' ) ) {
+			echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
+			echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
+		}
 
 		// Preload the likely LCP image so it is ready the moment it paints.
 		if ( '' !== $this->hero_image_url ) {
@@ -1279,13 +1305,16 @@ class DSF_Frontend {
 			);
 		}
 
-		foreach ( $this->get_frontend_module_preload_urls() as $url ) {
-			printf( '<link rel="modulepreload" href="%s">' . "\n", esc_url( $url ) );
+		// Snapshot-first pages can paint without eagerly competing with the LCP
+		// image for the large Vue chunk. Landing pages keep the preload because
+		// their hydration cover waits for Vue to mount.
+		if ( $this->current_is_landing ) {
+			foreach ( $this->get_frontend_module_preload_urls() as $url ) {
+				printf( '<link rel="modulepreload" href="%s">' . "\n", esc_url( $url ) );
+			}
 		}
 
-		if ( $this->current_is_landing ) {
-			echo '<style id="dsf-loader-critical">' . $this->get_loader_critical_css() . '</style>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static CSS string.
-		}
+		echo '<style id="dsf-loader-critical">' . $this->get_loader_critical_css() . '</style>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static CSS string.
 
 		// Responsive typography: override the inline desktop tokens at laptop/mobile.
 		$responsive_typography = self::build_responsive_typography_css();
@@ -1333,15 +1362,15 @@ class DSF_Frontend {
 	 */
 	private function get_loader_critical_css() {
 		return '.dsf-page-content--loading{position:relative;min-height:60vh}'
-			. '.dsf-page-content--loading #dsf-frontend-app>*{visibility:hidden}'
-			. '.dsf-landing-loader{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;background:#f7f4ed;color:#17212b;font-family:var(--dsf-theme-heading-font,"Manrope",sans-serif)}'
+			. '.dsf-landing-loader{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;background:#f7f4ed;color:#17212b;font-family:var(--dsf-theme-heading-font,"Manrope",sans-serif);animation:dsf-loader-failsafe 0s 2.5s forwards}'
 			. '.dsf-page-content--ready .dsf-landing-loader{opacity:0;visibility:hidden;transition:opacity .26s,visibility .26s}'
 			. '.dsf-landing-loader__content{display:grid;justify-items:center;gap:15px;font-size:13px;font-weight:800;letter-spacing:.08em}'
 			. '.dsf-landing-loader__mark{display:grid;grid-template-columns:repeat(2,13px);gap:4px}'
 			. '.dsf-landing-loader__mark i{width:13px;height:13px;border-radius:3px;background:var(--dsf-theme-primary,#0091ff);animation:dsf-loader-pulse .9s ease-in-out infinite alternate}'
 			. '.dsf-landing-loader__mark i:nth-child(2),.dsf-landing-loader__mark i:nth-child(3){background:var(--dsf-theme-secondary,#ff7100);animation-delay:.16s}'
 			. '.dsf-landing-loader__mark i:nth-child(4){animation-delay:.32s}'
-			. '@keyframes dsf-loader-pulse{from{opacity:.35;transform:scale(.85)}to{opacity:1;transform:scale(1)}}';
+			. '@keyframes dsf-loader-pulse{from{opacity:.35;transform:scale(.85)}to{opacity:1;transform:scale(1)}}'
+			. '@keyframes dsf-loader-failsafe{to{visibility:hidden;opacity:0}}';
 	}
 
 	/**
@@ -1503,6 +1532,12 @@ class DSF_Frontend {
 			}
 		}
 
+		if ( is_404() && $this->should_apply_global_hf( 0 ) ) {
+			$this->is_global_hf_page = true;
+			$universal               = DSF_PLUGIN_DIR . 'templates/flow-universal.php';
+			return file_exists( $universal ) ? $universal : $template;
+		}
+
 		if ( ! is_singular() ) {
 			return $template;
 		}
@@ -1622,19 +1657,12 @@ class DSF_Frontend {
 		if ( ! $blocks_json ) {
 			return '';
 		}
-		$blocks          = is_array( $blocks_json ) ? $blocks_json : json_decode( $blocks_json, true );
-		$blocks          = is_array( $blocks ) ? $blocks : array();
-		$is_landing_page = false;
-		foreach ( $blocks as $block ) {
-			$type = is_array( $block ) && isset( $block['type'] ) ? sanitize_key( $block['type'] ) : '';
-			if ( 0 === strpos( $type, 'landing-' ) ) {
-				$is_landing_page = true;
-				break;
-			}
-		}
-
-		$page_settings = $this->get_page_settings( $post_id );
-		$theme_style   = $this->build_theme_style( $page_settings );
+		$blocks            = is_array( $blocks_json ) ? $blocks_json : json_decode( $blocks_json, true );
+		$blocks            = is_array( $blocks ) ? $blocks : array();
+		$page_settings     = $this->get_page_settings( $post_id );
+		$theme_style       = $this->build_theme_style( $page_settings );
+		$snapshot          = get_post_meta( $post_id, '_dsf_html_snapshot', true );
+		$use_loading_cover = ! empty( $snapshot );
 
 		$outer_class     = 'dsf-page-content';
 		$inner_class     = 'dsf-page-content__inner';
@@ -1644,15 +1672,13 @@ class DSF_Frontend {
 			$outer_class .= ' dsf-page-content--fullwidth';
 			$inner_class .= ' dsf-page-content__inner--fullwidth';
 		}
-		if ( $is_landing_page ) {
+		if ( $use_loading_cover ) {
 			$outer_class .= ' dsf-page-content--loading';
 		}
 
-		$snapshot = get_post_meta( $post_id, '_dsf_html_snapshot', true );
-
 		$output  = '<div class="' . esc_attr( $outer_class ) . '" style="' . esc_attr( $theme_style ) . '">';
 		$output .= '<div class="' . esc_attr( $inner_class ) . '">';
-		if ( $is_landing_page ) {
+		if ( $use_loading_cover ) {
 			$output .= '<div class="dsf-landing-loader" role="status" aria-live="polite"><div class="dsf-landing-loader__content"><span class="dsf-landing-loader__mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>' . esc_html__( 'Loading DesignStudio Flow', 'designstudio-flow' ) . '</span></div></div>';
 		}
 		$output .= '<div id="dsf-frontend-app" class="dsf-wrapper" data-post-id="' . intval( $post_id ) . '">';
@@ -2433,7 +2459,9 @@ class DSF_Frontend {
 		$output  = '<div class="dsf-layout-template dsf-layout-template--' . esc_attr( $type ) . '" style="' . esc_attr( $theme_style ) . '">';
 		$output .= '<div id="' . esc_attr( $app_id ) . '" class="dsf-wrapper" data-dsf-layout-id="' . intval( $template_id ) . '" data-dsf-layout-type="' . esc_attr( $type ) . '">';
 		if ( ! empty( $snapshot ) ) {
-			$output .= $snapshot;
+			// Give layout snapshot images the same responsive dimensions and
+			// loading/decoding hints as page snapshots.
+			$output .= function_exists( 'wp_filter_content_tags' ) ? wp_filter_content_tags( $snapshot, 'dsf-flow-layout' ) : $snapshot;
 		}
 		$output .= '</div>';
 		$output .= '</div>';
@@ -2458,7 +2486,7 @@ class DSF_Frontend {
 	private function get_assigned_layout_template_data( $post_id, $type ) {
 		$post_id = intval( $post_id );
 		$type    = sanitize_key( $type );
-		if ( ! $post_id || ! in_array( $type, array( 'header', 'footer' ), true ) ) {
+		if ( ! in_array( $type, array( 'header', 'footer' ), true ) ) {
 			return array();
 		}
 
@@ -2623,7 +2651,7 @@ class DSF_Frontend {
 			'theme'  => self::get_default_theme_settings(),
 			'layout' => array(
 				'containerWidth'   => self::get_typography_option()['container_width'],
-				'contentPadding'   => 10,
+				'contentPadding'   => 0,
 				'showHeader'       => true,
 				'showFooter'       => true,
 				'headerTemplateId' => 0,

@@ -8,9 +8,11 @@
       
       <!-- Layer 1: Image Background (Right Side mainly, but full cover behind SVG) -->
       <div class="dsf-featured-promo__image-layer">
-        <img 
-          v-if="settings.image" 
-          :src="settings.image" 
+        <MediaVisual
+          v-if="settings.image || settings.video"
+          :mode="settings.mediaType || 'image'"
+          :image="settings.image"
+          :video="settings.video"
           alt="Banner Image"
           class="dsf-featured-promo__img"
         />
@@ -82,6 +84,7 @@
           tagName="p" 
           class="dsf-featured-promo__description"
           :class="{ 'dsf-featured-promo__description--normal': descriptionSize === 'normal' }"
+          :style="descriptionStyle"
           v-model="settings.descriptionText"
           :is-editor="isEditor"
           placeholder="Default text here"
@@ -149,6 +152,7 @@
 import { computed } from 'vue'
 import { ArrowRight } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import MediaVisual from '../common/MediaVisual.vue'
 import { useFlowModal } from '../common/useFlowModal'
 import { getResponsiveValue } from '../../utils/responsiveSettings'
 
@@ -174,6 +178,9 @@ const dividerStyle = computed(() => (
   dividerStyles.includes(props.settings?.dividerStyle) ? props.settings.dividerStyle : 'circle'
 ))
 const descriptionSize = computed(() => props.settings?.descriptionSize || 'large')
+const descriptionStyle = computed(() => ({
+  maxWidth: `${Math.min(1200, Math.max(240, Number(props.settings?.descriptionMaxWidth) || 600))}px`,
+}))
 
 const dividerShapePath = computed(() => ({
   arrow: 'M0 0H500L600 225L500 450H0Z',
@@ -337,7 +344,7 @@ function handleButtonClick(event) {
 
 .dsf-featured-promo__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: var(--dsf-theme-h1, 42px);
+  font-size: var(--dsf-theme-h2, 37px);
   font-weight: 700;
   margin-bottom: var(--dsf-featured-promo-spacing, 24px);
   line-height: 1.15;

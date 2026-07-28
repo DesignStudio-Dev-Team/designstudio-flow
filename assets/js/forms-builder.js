@@ -453,12 +453,10 @@
   }
 
   function bindEntriesEvents() {
-    if (!refs.viewEntriesButton) return
+    if (!refs.viewEntriesButton || !wpData.entriesUrl) return
 
     refs.viewEntriesButton.addEventListener('click', () => {
-      if (wpData.adminListUrl) {
-        window.location.href = String(wpData.adminListUrl)
-      }
+      window.location.href = String(wpData.entriesUrl)
     })
   }
 

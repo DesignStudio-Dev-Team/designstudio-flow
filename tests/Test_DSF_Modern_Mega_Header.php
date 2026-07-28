@@ -148,4 +148,84 @@ class Test_DSF_Modern_Mega_Header extends TestCase {
 		$this->assertSame( 'Shop', $banner['buttonLabel'] );
 		$this->assertTrue( $clean['menuItems'][0]['hasMega'] );
 	}
+
+	public function test_menu_types_spacing_and_section_headings_are_sanitized() {
+		$clean = $this->sanitize(
+			array(
+				'menuItemSpacing' => 999,
+				'menuItems'       => array(
+					array(
+						'label'    => 'Services',
+						'menuType' => 'dropdown',
+						'columns'  => array(
+							array(
+								'layout' => 'links',
+								'links'  => array(
+									array( 'kind' => 'heading', 'label' => 'Service Kits', 'url' => 'javascript:alert(1)' ),
+								),
+							),
+							array( 'heading' => 'Removed for a dropdown', 'links' => array() ),
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 32, $clean['menuItemSpacing'] );
+		$this->assertSame( 'dropdown', $clean['menuItems'][0]['menuType'] );
+		$this->assertTrue( $clean['menuItems'][0]['hasMega'] );
+		$this->assertCount( 1, $clean['menuItems'][0]['columns'] );
+		$this->assertSame( 'heading', $clean['menuItems'][0]['columns'][0]['links'][0]['kind'] );
+		$this->assertSame( '', $clean['menuItems'][0]['columns'][0]['links'][0]['url'] );
+	}
+
+	public function test_unknown_menu_type_and_link_kind_fall_back_safely() {
+		$clean = $this->sanitize(
+			array(
+				'menuItems' => array(
+					array(
+						'menuType' => 'script',
+						'hasMega'  => false,
+						'columns'  => array(
+							array( 'links' => array( array( 'kind' => 'html', 'label' => 'Safe text' ) ) ),
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 'link', $clean['menuItems'][0]['menuType'] );
+		$this->assertFalse( $clean['menuItems'][0]['hasMega'] );
+		$this->assertSame( 'link', $clean['menuItems'][0]['columns'][0]['links'][0]['kind'] );
+		$this->assertSame( 'Safe text', $clean['menuItems'][0]['columns'][0]['links'][0]['label'] );
+	}
+
+	public function test_menu_copy_is_length_capped() {
+		$long  = str_repeat( 'a', 500 );
+		$clean = $this->sanitize(
+			array(
+				'logoText'  => $long,
+				'menuItems' => array(
+					array(
+						'label'   => $long,
+						'columns' => array(
+							array(
+								'heading' => $long,
+								'links'   => array( array( 'label' => $long ) ),
+							),
+						),
+						'banner'  => array( 'title' => $long, 'text' => $long, 'buttonLabel' => $long ),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 160, strlen( $clean['logoText'] ) );
+		$this->assertSame( 160, strlen( $clean['menuItems'][0]['label'] ) );
+		$this->assertSame( 160, strlen( $clean['menuItems'][0]['columns'][0]['heading'] ) );
+		$this->assertSame( 160, strlen( $clean['menuItems'][0]['columns'][0]['links'][0]['label'] ) );
+		$this->assertSame( 160, strlen( $clean['menuItems'][0]['banner']['title'] ) );
+		$this->assertSame( 300, strlen( $clean['menuItems'][0]['banner']['text'] ) );
+		$this->assertSame( 80, strlen( $clean['menuItems'][0]['banner']['buttonLabel'] ) );
+	}
 }

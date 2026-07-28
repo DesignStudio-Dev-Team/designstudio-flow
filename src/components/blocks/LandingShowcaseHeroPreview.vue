@@ -34,7 +34,7 @@
           </span>
         </div>
 
-        <InlineText tagName="p" class="dsf-showcase-hero__tagline" v-model="settings.tagline" :is-editor="isEditor" data-dsf-reveal placeholder="One-line tagline" />
+        <InlineText tagName="p" class="dsf-showcase-hero__tagline" v-model="settings.tagline" :is-editor="isEditor" :style="taglineStyle" data-dsf-reveal placeholder="One-line tagline" />
 
         <div class="dsf-showcase-hero__actions" data-dsf-reveal>
           <a v-if="isEditor || settings.primaryText" class="dsf-hero-button dsf-hero-button--primary" :href="safePublicUrl(settings.primaryUrl)" @click="guardEditor">
@@ -341,6 +341,9 @@ function guardEditor(event) {
 }
 
 const blockStyle = computed(() => landingBlockStyle(props.settings))
+const taglineStyle = computed(() => ({
+  maxWidth: `${Math.min(1200, Math.max(240, Number(props.settings?.descriptionMaxWidth) || 736))}px`,
+}))
 </script>
 
 <style scoped>

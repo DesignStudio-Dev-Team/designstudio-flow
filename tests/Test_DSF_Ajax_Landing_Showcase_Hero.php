@@ -63,6 +63,11 @@ class Test_DSF_Ajax_Landing_Showcase_Hero extends TestCase {
 		$this->assertStringContainsString( 'online store, visual pages, secure site', $clean['rotatingWords'] );
 	}
 
+	public function test_tagline_width_is_bounded() {
+		$this->assertSame( 240, $this->sanitize( array( 'descriptionMaxWidth' => 1 ) )['descriptionMaxWidth'] );
+		$this->assertSame( 1200, $this->sanitize( array( 'descriptionMaxWidth' => 9999 ) )['descriptionMaxWidth'] );
+	}
+
 	public function test_rotating_words_are_individually_cleaned_unique_and_capped_at_six() {
 		$long  = 'word ' . str_repeat( 'g', 90 );
 		$clean = $this->sanitize(

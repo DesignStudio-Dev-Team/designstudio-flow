@@ -60,6 +60,55 @@ class Test_DSF_Block_Defaults extends TestCase {
 		);
 	}
 
+	public function test_every_image_setting_and_nested_image_value_has_a_placeholder() {
+		$blocks = DSF_Blocks::get_instance()->get_registered_blocks();
+
+		foreach ( $blocks as $block ) {
+			foreach ( $block['settings'] as $key => $setting ) {
+				if ( 'image' === ( $setting['type'] ?? '' ) && empty( $setting['skip_placeholder'] ) ) {
+					$this->assertStringContainsString(
+						'assets/images/dsf-placeholder.svg',
+						(string) $setting['default'],
+						sprintf( '%s:%s should start with the packaged image placeholder.', $block['id'], $key )
+					);
+				}
+
+				$this->assertNestedImagesHavePlaceholders( $block['id'], $key, $setting['default'] ?? null );
+			}
+		}
+	}
+
+	private function assertNestedImagesHavePlaceholders( $block_id, $setting_key, $value ) {
+		if ( ! is_array( $value ) ) {
+			return;
+		}
+
+		foreach ( $value as $key => $item ) {
+			if ( is_array( $item ) ) {
+				$this->assertNestedImagesHavePlaceholders( $block_id, $setting_key, $item );
+				continue;
+			}
+
+			$key_string = (string) $key;
+			if ( preg_match( '/(?:image|logo)$/i', $key_string ) && ! preg_match( '/iconimage$/i', $key_string ) ) {
+				$this->assertStringContainsString(
+					'assets/images/dsf-placeholder.svg',
+					(string) $item,
+					sprintf( '%s:%s[%s] should start with the packaged image placeholder.', $block_id, $setting_key, $key )
+				);
+				continue;
+			}
+
+			if ( preg_match( '/(?:title|heading|description|content|text|label|name|eyebrow|subtitle|caption|quote|author|feature\w*)$/i', $key_string ) ) {
+				$this->assertNotSame(
+					'',
+					(string) $item,
+					sprintf( '%s:%s[%s] should start with editable placeholder copy.', $block_id, $setting_key, $key )
+				);
+			}
+		}
+	}
+
 	public function test_showcase_hero_defaults_define_six_synchronized_destinations() {
 		$blocks = DSF_Blocks::get_instance()->get_registered_blocks();
 		$hero   = $blocks['landing-showcase-hero']['settings'];
@@ -73,5 +122,17 @@ class Test_DSF_Block_Defaults extends TestCase {
 		$this->assertCount( 6, $hero['tiles']['default'] );
 		$this->assertSame( 6, $hero['tiles']['maxItems'] );
 		$this->assertSame( 390, $hero['rotatingWords']['maxLength'] );
+	}
+
+	public function test_ecommerce_showcase_exposes_product_purchase_and_count_controls() {
+		$blocks   = DSF_Blocks::get_instance()->get_registered_blocks();
+		$settings = $blocks['ecommerce-showcase']['settings'];
+
+		foreach ( array( 'imageFit', 'priceColor', 'salePriceColor', 'showAddToCart', 'buttonText', 'buttonColor', 'buttonTextColor', 'showProductCount', 'countText', 'countColor' ) as $key ) {
+			$this->assertArrayHasKey( $key, $settings );
+			$this->assertSame( 'products', $settings[ $key ]['showWhen']['displayMode'] );
+		}
+		$this->assertSame( '{count} products total', $settings['countText']['default'] );
+		$this->assertSame( 'contain', $settings['imageFit']['default'] );
 	}
 }

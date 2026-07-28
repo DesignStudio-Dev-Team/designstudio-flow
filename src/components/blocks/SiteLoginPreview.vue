@@ -4,13 +4,13 @@
       <!-- Already signed in: a friendly state instead of a useless form. -->
       <template v-if="!isEditor && loggedInUser">
         <img v-if="loggedInUser.avatarUrl" class="dsf-site-login__avatar" :src="loggedInUser.avatarUrl" alt="" />
-        <h1 class="dsf-site-login__heading">You're signed in</h1>
+        <h2 class="dsf-site-login__heading">You're signed in</h2>
         <p class="dsf-site-login__subheading">Logged in as {{ loggedInUser.displayName }}</p>
         <a class="dsf-site-login__submit" :href="logoutUrl || '#'">Log out</a>
       </template>
 
       <template v-else>
-        <h1 class="dsf-site-login__heading">{{ settings.headingText || 'Welcome back' }}</h1>
+        <h2 class="dsf-site-login__heading">{{ settings.headingText || 'Welcome back' }}</h2>
         <p v-if="settings.subheadingText" class="dsf-site-login__subheading">{{ settings.subheadingText }}</p>
 
         <!-- Posts to core wp-login.php — authentication never leaves WordPress. -->

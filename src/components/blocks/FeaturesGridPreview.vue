@@ -33,22 +33,26 @@
         :style="cardStyle"
       >
         <!-- Image above title -->
-        <img
-          v-if="feature.image && (feature.imagePosition || 'above') === 'above'"
-          :src="feature.image"
+        <MediaVisual
+          v-if="(feature.image || feature.video) && (feature.imagePosition || 'above') === 'above'"
+          :image="feature.image"
+          :video="feature.video"
+          :mode="feature.mediaType || 'image'"
           class="dsf-feature-card-preview__image"
           alt=""
         />
-        <h4
+        <h3
           class="dsf-feature-card-preview__title"
           :style="{ color: settings.cardTitleColor || '#60A5FA' }"
         >
           {{ feature.title }}
-        </h4>
+        </h3>
         <!-- Image below title -->
-        <img
-          v-if="feature.image && (feature.imagePosition || 'above') === 'below'"
-          :src="feature.image"
+        <MediaVisual
+          v-if="(feature.image || feature.video) && (feature.imagePosition || 'above') === 'below'"
+          :image="feature.image"
+          :video="feature.video"
+          :mode="feature.mediaType || 'image'"
           class="dsf-feature-card-preview__image"
           alt=""
         />
@@ -95,6 +99,7 @@
 <script setup>
 import { computed } from 'vue'
 import InlineText from '../common/InlineText.vue'
+import MediaVisual from '../common/MediaVisual.vue'
 import { useFlowModal } from '../common/useFlowModal'
 import { getResponsiveValue } from '../../utils/responsiveSettings'
 
@@ -298,7 +303,7 @@ const displayFeatures = computed(() => {
 
 .dsf-feature-card-preview__title {
   font-family: var(--dsf-theme-heading-font, inherit);
-  font-size: var(--dsf-theme-h4, 1.25rem);
+  font-size: var(--dsf-theme-h3-size, 1.25rem);
   font-weight: 600;
   margin-bottom: 0.25rem;
   line-height: 1.2;

@@ -16,20 +16,25 @@
   --dsf-theme-h1-size: 42px;
   --dsf-theme-h2: 37px;
   --dsf-theme-h2-size: 37px;
+  --dsf-theme-h3-size: 28px;
   --dsf-theme-p-size: 20px;
   --dsf-theme-text-base: 20px;
 }
 
 /* Semantic content sizes shared by editor previews and published DSFlow pages. */
 .dsf-frontend-blocks .dsf-block-preview h1,
+.dsf-frontend-blocks .dsf-block--landing h1,
 #dsf-editor-app .dsf-canvas .dsf-block-preview h1,
+#dsf-editor-app .dsf-canvas .dsf-block--landing h1,
 .dsf-modal__content h1,
 .dsf-page-popup__body h1 {
   font-size: var(--dsf-theme-h1, 42px) !important;
 }
 
 .dsf-frontend-blocks .dsf-block-preview h2,
+.dsf-frontend-blocks .dsf-block--landing h2,
 #dsf-editor-app .dsf-canvas .dsf-block-preview h2,
+#dsf-editor-app .dsf-canvas .dsf-block--landing h2,
 .dsf-modal__content h2,
 .dsf-page-popup__body h2 {
   font-size: var(--dsf-theme-h2, 37px) !important;

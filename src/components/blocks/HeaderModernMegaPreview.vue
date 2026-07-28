@@ -38,8 +38,8 @@
             :href="url(item.url || '#')"
             class="dsf-mmega__nav-item"
             :class="{ 'is-active': activeIndex === index }"
-            :aria-haspopup="item.hasMega ? 'true' : null"
-            :aria-expanded="item.hasMega ? (activeIndex === index ? 'true' : 'false') : null"
+            :aria-haspopup="isExpandable(item) ? 'true' : null"
+            :aria-expanded="isExpandable(item) ? (activeIndex === index ? 'true' : 'false') : null"
             @mouseenter="setActive(index)"
             @focus="setActive(index)"
             @click="onItemClick($event, item, index)"
@@ -51,7 +51,7 @@
               placeholder="Menu Item"
               @click.stop
             />
-            <ChevronDown v-if="item.hasMega" :size="14" class="dsf-mmega__chevron" />
+            <ChevronDown v-if="isExpandable(item)" :size="14" class="dsf-mmega__chevron" />
           </a>
         </div>
       </nav>
@@ -121,15 +121,16 @@
     <!-- Desktop mega panel -->
     <transition name="dsf-mmega-fade">
       <div
-        v-if="activeItem && activeItem.hasMega"
+        v-if="activeItem && isExpandable(activeItem)"
         class="dsf-mmega__panel-wrap"
+        :class="{ 'is-dropdown': itemMenuType(activeItem) === 'dropdown' }"
         @mouseenter="panelHover = true"
         @mouseleave="panelHover = false"
       >
-        <div class="dsf-mmega__panel">
-          <div class="dsf-mmega__panel-grid">
+        <div class="dsf-mmega__panel" :class="{ 'dsf-mmega__panel--dropdown': itemMenuType(activeItem) === 'dropdown' }">
+          <div class="dsf-mmega__panel-grid" :class="{ 'dsf-mmega__panel-grid--single': itemMenuType(activeItem) === 'dropdown' }">
             <div
-              v-for="(column, columnIndex) in activeItem.columns"
+              v-for="(column, columnIndex) in activeColumns"
               :key="`col-${columnIndex}`"
               class="dsf-mmega__col"
             >
@@ -145,7 +146,7 @@
 
               <div v-if="columnLayout(column) === 'cards'" class="dsf-mmega__cards" :style="{ '--cols': imageColumns(column) }">
                 <a
-                  v-for="(link, linkIndex) in column.links"
+                  v-for="(link, linkIndex) in renderableLinks(column)"
                   :key="`card-${linkIndex}`"
                   class="dsf-mmega__card"
                   :href="url(link.url || '#')"
@@ -158,7 +159,7 @@
 
               <div v-else-if="columnLayout(column) === 'icons'" class="dsf-mmega__icons">
                 <a
-                  v-for="(link, linkIndex) in column.links"
+                  v-for="(link, linkIndex) in renderableLinks(column)"
                   :key="`icon-${linkIndex}`"
                   class="dsf-mmega__icon-link"
                   :href="url(link.url || '#')"
@@ -170,18 +171,23 @@
               </div>
 
               <div v-else class="dsf-mmega__links">
-                <a
+                <template
                   v-for="(link, linkIndex) in column.links"
                   :key="`link-${linkIndex}`"
-                  class="dsf-mmega__link"
-                  :href="url(link.url || '#')"
-                  @click="guard"
-                >{{ link.label }}</a>
+                >
+                  <div v-if="link.kind === 'heading'" class="dsf-mmega__section-heading">{{ link.label }}</div>
+                  <a
+                    v-else
+                    class="dsf-mmega__link"
+                    :href="url(link.url || '#')"
+                    @click="guard"
+                  >{{ link.label }}</a>
+                </template>
               </div>
             </div>
 
             <a
-              v-if="hasFeatured(activeItem.banner)"
+              v-if="itemMenuType(activeItem) === 'mega' && hasFeatured(activeItem.banner)"
               class="dsf-mmega__featured"
               :href="url(activeItem.banner.url || '#')"
               @click="guard"
@@ -233,16 +239,21 @@
           <div v-if="hasChildren(item) && isExpanded(index)" class="dsf-mmega__drawer-sub">
             <div v-for="(column, columnIndex) in item.columns" :key="`ms-${index}-${columnIndex}`" class="dsf-mmega__drawer-group">
               <div v-if="column.heading" class="dsf-mmega__drawer-group-title">{{ column.heading }}</div>
-              <a
+              <template
                 v-for="(link, linkIndex) in column.links"
                 :key="`ml-${index}-${columnIndex}-${linkIndex}`"
-                class="dsf-mmega__drawer-sublink"
-                :href="url(link.url || '#')"
-                @click="guard"
               >
-                <component v-if="columnLayout(column) === 'icons'" :is="iconFor(link.icon)" :size="16" />
-                <span>{{ link.label }}</span>
-              </a>
+                <div v-if="link.kind === 'heading'" class="dsf-mmega__drawer-section-heading">{{ link.label }}</div>
+                <a
+                  v-else
+                  class="dsf-mmega__drawer-sublink"
+                  :href="url(link.url || '#')"
+                  @click="guard"
+                >
+                  <component v-if="columnLayout(column) === 'icons'" :is="iconFor(link.icon)" :size="16" />
+                  <span>{{ link.label }}</span>
+                </a>
+              </template>
             </div>
           </div>
         </div>
@@ -292,6 +303,10 @@ const menuItems = computed(() => {
 })
 
 const activeItem = computed(() => (activeIndex.value === null ? null : menuItems.value[activeIndex.value] || null))
+const activeColumns = computed(() => {
+  const columns = Array.isArray(activeItem.value?.columns) ? activeItem.value.columns : []
+  return itemMenuType(activeItem.value) === 'dropdown' ? columns.slice(0, 1) : columns
+})
 
 const numericCartCount = computed(() => {
   const value = parseInt(props.settings?.cartCount ?? 0, 10)
@@ -321,9 +336,16 @@ const cssVars = computed(() => ({
   '--mmega-panel-bg': props.settings?.panelBackground || '#ffffff',
   '--mmega-panel-heading': props.settings?.panelHeadingColor || '#111827',
   '--mmega-panel-link': props.settings?.panelLinkColor || '#4b5563',
+  '--mmega-item-gap': `${menuItemSpacing.value}px`,
   '--mmega-mobile-bg': props.settings?.mobileBackground || '#0f172a',
   '--mmega-mobile-text': props.settings?.mobileTextColor || '#ffffff',
 }))
+
+const menuItemSpacing = computed(() => {
+  const parsed = parseInt(props.settings?.menuItemSpacing ?? 10, 10)
+  if (Number.isNaN(parsed)) return 10
+  return Math.min(32, Math.max(0, parsed))
+})
 
 function url(value) {
   return safePublicUrl(value || '#')
@@ -344,16 +366,30 @@ function imageColumns(column) {
   return Math.min(4, Math.max(1, parsed))
 }
 
+function renderableLinks(column) {
+  const links = Array.isArray(column?.links) ? column.links : []
+  return links.filter((link) => link?.kind !== 'heading')
+}
+
 function hasFeatured(banner) {
   if (!banner || typeof banner !== 'object') return false
   return !!(banner.image || String(banner.title || '').trim() || String(banner.text || '').trim() || String(banner.buttonLabel || '').trim())
+}
+
+function itemMenuType(item) {
+  if (['link', 'dropdown', 'mega'].includes(item?.menuType)) return item.menuType
+  return item?.hasMega ? 'mega' : 'link'
+}
+
+function isExpandable(item) {
+  return itemMenuType(item) !== 'link'
 }
 
 // ---- Desktop mega panel ----------------------------------------------------
 function setActive(index) {
   const item = menuItems.value[index]
   if (!item) return
-  if (item.hasMega) {
+  if (isExpandable(item)) {
     activeIndex.value = index
   } else if (!props.isEditor) {
     activeIndex.value = null
@@ -362,7 +398,7 @@ function setActive(index) {
 
 function onItemClick(event, item, index) {
   if (!item) return
-  if (item.hasMega) {
+  if (isExpandable(item)) {
     event.preventDefault()
     activeIndex.value = activeIndex.value === index ? null : index
     return
@@ -411,7 +447,7 @@ function closeMobile() {
 }
 
 function hasChildren(item) {
-  return !!(item && item.hasMega && Array.isArray(item.columns) && item.columns.length)
+  return !!(item && isExpandable(item) && Array.isArray(item.columns) && item.columns.length)
 }
 
 function toggleMobileItem(index) {
@@ -439,7 +475,7 @@ function updateCondensed() {
 watch(
   () => menuItems.value,
   (items) => {
-    if (activeIndex.value !== null && !items[activeIndex.value]?.hasMega) {
+    if (activeIndex.value !== null && !isExpandable(items[activeIndex.value])) {
       activeIndex.value = null
     }
   }
@@ -700,11 +736,19 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+.dsf-mmega__panel--dropdown {
+  width: min(360px, calc(100% - 2rem));
+}
+
 .dsf-mmega__panel-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1.5rem;
   padding: 1.5rem 1.75rem;
+}
+
+.dsf-mmega__panel-grid--single {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .dsf-mmega__col-heading {
@@ -719,7 +763,18 @@ onUnmounted(() => {
 .dsf-mmega__links {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--mmega-item-gap);
+}
+
+.dsf-mmega__section-heading {
+  margin-top: calc(var(--mmega-item-gap) + 0.35rem);
+  color: var(--mmega-panel-heading);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.dsf-mmega__section-heading:first-child {
+  margin-top: 0;
 }
 
 .dsf-mmega__link {
@@ -957,6 +1012,13 @@ onUnmounted(() => {
   opacity: 0.7;
 }
 
+.dsf-mmega__drawer-section-heading {
+  margin-top: 0.7rem;
+  padding: 0.2rem 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
 .dsf-mmega__drawer-sublink {
   display: flex;
   align-items: center;
@@ -980,6 +1042,10 @@ onUnmounted(() => {
 
 /* Responsive + editor preview: collapse to the mobile toggle */
 @media (max-width: 980px) {
+  .dsf-mmega__panel-wrap {
+    display: none;
+  }
+
   .dsf-mmega__nav,
   .dsf-mmega__search,
   .dsf-mmega__cart,

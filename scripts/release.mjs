@@ -113,6 +113,12 @@ if (current === next) fail(`Computed version equals current (${current}).`);
 
 ensureRemoteTagFree(tag);
 
+// Audit the complete tree, including build and test tooling. A release must not
+// create a public version while high- or critical-severity known issues are in
+// the committed lockfile.
+info("Checking dependency security (npm audit --audit-level=high)…");
+shInherit("npm audit --audit-level=high");
+
 console.log(`\n📦 Releasing ${current} → ${next}\n`);
 
 // Bump versions
@@ -128,6 +134,13 @@ updatePhpVersions(next);
 // Build production assets (these need to be committed for the GH Action).
 info("Building production assets (npm run build)…");
 shInherit("npm run build");
+
+// Ensure the frontend and builder still render, then verify that Vite emitted
+// lazy block styles with the plugin-scoped URL required by WordPress admin.
+info("Running render smoke tests (npm run test:run)…");
+shInherit("npm run test:run");
+info("Verifying release assets (npm run verify:release-assets)…");
+shInherit("npm run verify:release-assets");
 
 // Stage everything (bundles any pre-existing dirty tree into the release commit).
 info("Staging changes…");

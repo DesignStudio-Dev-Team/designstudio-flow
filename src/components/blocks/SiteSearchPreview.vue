@@ -1,7 +1,7 @@
 <template>
   <section class="dsf-site-search" :style="blockStyle">
     <div class="dsf-site-search__inner" :style="innerStyle">
-      <h1 v-if="settings.headingText" class="dsf-site-search__heading">{{ settings.headingText }}</h1>
+      <h2 v-if="settings.headingText" class="dsf-site-search__heading">{{ settings.headingText }}</h2>
 
       <form
         class="dsf-site-search__form"

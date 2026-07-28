@@ -62,6 +62,13 @@ describe('FeaturedPromoBannerPreview', () => {
     expect(wrapper.find('.dsf-featured-promo__description--normal').exists()).toBe(true)
   })
 
+  it('applies the configured paragraph width', () => {
+    const wrapper = mount(FeaturedPromoBannerPreview, {
+      props: { settings: { descriptionText: 'Promo copy', descriptionMaxWidth: 480 }, isEditor: false },
+    })
+    expect(wrapper.find('.dsf-featured-promo__description').attributes('style')).toContain('max-width: 480px')
+  })
+
   it('exposes compact height and spacing controls as CSS variables', () => {
     const wrapper = mount(FeaturedPromoBannerPreview, {
       props: {

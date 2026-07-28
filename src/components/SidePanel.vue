@@ -1,5 +1,5 @@
 <template>
-  <div class="dsf-panel dsf-panel--float" :style="floatStyle">
+  <div class="dsf-panel dsf-panel--float" data-dsf-help="customize-block" :style="floatStyle">
     <!-- Header / Drag Handle -->
     <div class="dsf-panel__header dsf-panel__drag-handle" @mousedown="startDrag">
       <div>
@@ -34,6 +34,7 @@
         <button 
           class="dsf-segmented-btn"
           :class="{ 'dsf-segmented-btn--active': activeTab === 'style' }"
+          data-dsf-help="style-tab"
           @click="activeTab = 'style'"
         >
           <Palette :size="14" />
@@ -131,6 +132,7 @@
           :key="section.key"
           class="dsf-settings-expander"
           :data-style-section="section.key"
+          :data-dsf-help="section.fields.includes('backgroundColor') ? 'background-color' : undefined"
         >
           <button
             class="dsf-settings-expander__trigger"
@@ -260,6 +262,7 @@ import { normalizeAnchorId } from '../utils/anchor'
 const props = defineProps({
   block: Object,
   blockDefinition: Object,
+  tutorialStep: { type: String, default: '' },
 })
 
 const emit = defineEmits(['close', 'update:settings', 'update:anchor'])
@@ -554,6 +557,19 @@ watch(blockId, () => {
   measuredBlockHeight.value = 0
   measureBlockHeight()
 })
+
+watch(() => props.tutorialStep, async (step) => {
+  if (step !== 'background') return
+  activeTab.value = 'style'
+  await nextTick()
+  const backgroundSection = styleSettingSections.value.find((section) => section.fields.includes('backgroundColor'))
+  if (backgroundSection) {
+    expandedStyleSections.value = {
+      ...expandedStyleSections.value,
+      [backgroundSection.key]: true,
+    }
+  }
+}, { immediate: true })
 
 function normalizeIdList(value) {
   if (Array.isArray(value)) {

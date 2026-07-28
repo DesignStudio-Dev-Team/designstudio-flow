@@ -13,6 +13,13 @@ describe('HeroCenteredPreview', () => {
     openModal.mockReset()
   })
 
+  it('applies the configured subtitle width', () => {
+    const wrapper = mount(HeroCenteredPreview, {
+      props: { settings: { subtitle: 'Supporting copy', descriptionMaxWidth: 460 }, isEditor: false },
+    })
+    expect(wrapper.find('.dsf-hero-centered-preview__subtitle').attributes('style')).toContain('max-width: 460px')
+  })
+
   it('opens modal when button action is modal', async () => {
     const settings = {
       showButton: true,

@@ -545,7 +545,11 @@ class DSF_History {
 				if ( $count++ >= 500 ) {
 					break;
 				}
-				$out[ is_int( $key ) ? $key : sanitize_key( $key ) ] = $this->normalize_value( $item, $depth + 1 );
+				$key = is_int( $key ) ? $key : $this->normalize_payload_key( $key );
+				if ( '' === $key ) {
+					continue;
+				}
+				$out[ $key ] = $this->normalize_value( $item, $depth + 1 );
 			}
 			return $out;
 		}
@@ -553,6 +557,27 @@ class DSF_History {
 			return $value;
 		}
 		return mb_substr( (string) $value, 0, 100000 );
+	}
+
+	/**
+	 * Preserve the case-sensitive keys used by Flow block and form schemas.
+	 *
+	 * History payloads are always re-sanitized through the current, type-specific
+	 * restore adapter before storage, so this is not an output allowlist. It is a
+	 * bounded transport key normalizer: using sanitize_key() here changes keys
+	 * such as backgroundColor and defaultValue, which makes valid saved settings
+	 * appear unknown and causes the restore adapter to apply defaults.
+	 *
+	 * @param mixed $key Candidate array key.
+	 * @return string
+	 */
+	private function normalize_payload_key( $key ) {
+		if ( ! is_scalar( $key ) ) {
+			return '';
+		}
+
+		$key = preg_replace( '/[^A-Za-z0-9_-]/', '', (string) $key );
+		return mb_substr( (string) $key, 0, 120 );
 	}
 
 	private function canonical_json( $value ) {

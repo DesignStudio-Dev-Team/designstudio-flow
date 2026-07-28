@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { normalizeAnchorId, blockAnchorId } from '../../utils/anchor.js'
 import FrontendApp from '../../frontend/FrontendApp.vue'
+import { preloadPreviewComponents } from '../../frontend/lazyBlockRegistry.js'
 
 describe('normalizeAnchorId', () => {
   it('slugifies spaces, case, and stray characters', () => {
@@ -27,7 +29,8 @@ describe('normalizeAnchorId', () => {
 })
 
 describe('FrontendApp anchor rendering', () => {
-  it('renders the sanitized anchor as the block wrapper id, and none when unset', () => {
+  it('renders the sanitized anchor as the block wrapper id, and none when unset', async () => {
+    await preloadPreviewComponents([{ type: 'content' }])
     const wrapper = mount(FrontendApp, {
       props: {
         blocks: [
@@ -36,6 +39,7 @@ describe('FrontendApp anchor rendering', () => {
         ],
       },
     })
+    await nextTick()
     const blocks = wrapper.findAll('.dsf-block')
     expect(blocks[0].attributes('id')).toBe('our-pricing')
     expect(blocks[1].attributes('id')).toBeUndefined()

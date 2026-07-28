@@ -6,7 +6,7 @@
       <a v-if="settings.showParentLink !== false && category?.parentUrl" :href="category.parentUrl" @click="isEditor && $event.preventDefault()">← {{ category.parentName }}</a>
       <p v-else class="dsf-shop-category-hero__eyebrow">Product category</p>
       <h1>{{ archive.title || 'Shop' }}</h1>
-      <div v-if="settings.showDescription !== false && archive.descriptionHtml" class="dsf-shop-category-hero__description" v-html="archive.descriptionHtml"></div>
+      <div v-if="settings.showDescription !== false && archive.descriptionHtml" class="dsf-shop-category-hero__description" :style="descriptionStyle" v-html="archive.descriptionHtml"></div>
     </div>
   </section>
 </template>
@@ -21,6 +21,7 @@ const { archive } = useShopContext()
 const category = computed(() => archive.value?.currentCategory || null)
 const blockStyle = computed(() => ({ '--dsf-category-overlay': props.settings?.overlayColor || 'rgba(15, 23, 42, .5)', color: props.settings?.textColor || '#fff', paddingTop: `${getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 56}px`, paddingBottom: `${getResponsiveValue(props.settings || {}, props.previewMode, 'padding') ?? 56}px` }))
 const innerStyle = computed(() => ({ maxWidth: `${Number(props.settings?.maxWidth) || 1280}px` }))
+const descriptionStyle = computed(() => ({ maxWidth: `${Math.min(1200, Math.max(240, Number(props.settings?.descriptionMaxWidth) || 900))}px` }))
 </script>
 
 <style scoped>

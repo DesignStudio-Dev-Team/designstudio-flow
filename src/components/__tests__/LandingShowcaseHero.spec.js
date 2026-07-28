@@ -97,6 +97,11 @@ afterEach(() => {
 })
 
 describe('LandingShowcaseHeroPreview', () => {
+  it('applies the configured tagline width', () => {
+    const wrapper = mountHero({ descriptionMaxWidth: 520 })
+    expect(wrapper.find('.dsf-showcase-hero__tagline').attributes('style')).toContain('max-width: 520px')
+  })
+
   it('states the product clearly before the user scrolls', () => {
     const wrapper = mountHero()
     expect(wrapper.text()).toContain('THE VISUAL WORDPRESS SYSTEM')

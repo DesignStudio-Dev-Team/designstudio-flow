@@ -205,6 +205,9 @@ class DSF_Ajax {
 		if ( ! $layout || 'dsf_layout' !== $layout->post_type ) {
 			wp_send_json_error( array( 'message' => 'Not a layout' ) );
 		}
+		if ( 'publish' !== $layout->post_status ) {
+			wp_send_json_error( array( 'message' => 'Publish the layout before making it a site default.' ), 409 );
+		}
 
 		$layout_type = get_post_meta( $layout_id, '_dsf_layout_type', true );
 		$layout_type = 'footer' === $layout_type ? 'footer' : 'header';
@@ -1706,8 +1709,22 @@ class DSF_Ajax {
 					$block['anchorId'] = $anchor;
 				}
 			}
-			if ( in_array( $block['type'] ?? '', array( 'landing-progress-header', 'landing-dock-header', 'landing-hero', 'landing-showcase-hero', 'landing-block-explorer', 'landing-block-ready', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-marketing-footer' ), true ) ) {
+			if ( in_array( $block['type'] ?? '', array( 'landing-progress-header', 'landing-dock-header', 'landing-hero', 'landing-showcase-hero', 'landing-block-explorer', 'landing-block-ready', 'steps-image', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-marketing-footer' ), true ) ) {
 				$block['settings'] = $this->sanitize_landing_block_settings( $block['type'], $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'hero' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_supporting_copy_width( $block['settings'] ?? array(), 800 );
+				$block['settings'] = $this->sanitize_media_settings( $block['settings'], 'backgroundMediaType', 'backgroundImage', 'backgroundVideo', array( 'image', 'video' ) );
+				continue;
+			}
+			if ( 'featured-promo-banner' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_supporting_copy_width( $block['settings'] ?? array(), 600 );
+				$block['settings'] = $this->sanitize_media_settings( $block['settings'], 'mediaType', 'image', 'video' );
+				continue;
+			}
+			if ( in_array( $block['type'] ?? '', array( 'duo-hero', 'promo-banner', 'cta-banner' ), true ) ) {
+				$block['settings'] = $this->sanitize_marketing_media_block_settings( $block['type'], $block['settings'] ?? array() );
 				continue;
 			}
 			if ( 'faq' === ( $block['type'] ?? '' ) ) {
@@ -1716,6 +1733,10 @@ class DSF_Ajax {
 			}
 			if ( 'pricing-tables' === ( $block['type'] ?? '' ) ) {
 				$block['settings'] = $this->sanitize_pricing_tables_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'pricing' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_pricing_settings( $block['settings'] ?? array() );
 				continue;
 			}
 			if ( 'breadcrumbs' === ( $block['type'] ?? '' ) ) {
@@ -1730,6 +1751,10 @@ class DSF_Ajax {
 				$block['settings'] = $this->sanitize_text_image_settings( $block['settings'] ?? array() );
 				continue;
 			}
+			if ( 'feature-image-cta' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_feature_image_cta_settings( $block['settings'] ?? array() );
+				continue;
+			}
 			if ( 'countdown' === ( $block['type'] ?? '' ) ) {
 				$block['settings'] = $this->sanitize_countdown_settings( $block['settings'] ?? array() );
 				continue;
@@ -1740,6 +1765,30 @@ class DSF_Ajax {
 			}
 			if ( 'card-columns' === ( $block['type'] ?? '' ) ) {
 				$block['settings'] = $this->sanitize_card_columns_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'features-grid' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_features_grid_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'anchor-gallery' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_anchor_gallery_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'ecommerce-showcase' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_ecommerce_showcase_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'tabbed-product-showcase' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_tabbed_product_showcase_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'image-logo-grid' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_image_logo_grid_settings( $block['settings'] ?? array() );
+				continue;
+			}
+			if ( 'brand-showcase-grid' === ( $block['type'] ?? '' ) ) {
+				$block['settings'] = $this->sanitize_brand_showcase_grid_settings( $block['settings'] ?? array() );
 				continue;
 			}
 			if ( 'product-summary' === ( $block['type'] ?? '' ) ) {
@@ -1955,6 +2004,69 @@ class DSF_Ajax {
 	}
 
 	/**
+	 * Clamp the shared supporting paragraph width without changing legacy fields.
+	 *
+	 * @param array $settings Saved block settings.
+	 * @param int   $default_width Default width in pixels.
+	 * @return array
+	 */
+	private function sanitize_supporting_copy_width( $settings, $default_width ) {
+		$settings                        = is_array( $settings ) ? $settings : array();
+		$settings['descriptionMaxWidth'] = max( 240, min( 1200, abs( (int) ( $settings['descriptionMaxWidth'] ?? $default_width ) ) ) );
+		return $settings;
+	}
+
+	/**
+	 * Sanitize a selectable image/video setting pair. Video values are limited
+	 * to direct hosted media files; embeds are intentionally not accepted.
+	 *
+	 * @param array       $settings Settings.
+	 * @param string      $type_key Media type key.
+	 * @param string      $image_key Image key.
+	 * @param string      $video_key Video key.
+	 * @param array       $allowed_types Allowed media types.
+	 * @return array
+	 */
+	private function sanitize_media_settings( $settings, $type_key, $image_key, $video_key, $allowed_types = array( 'image', 'video' ) ) {
+		$settings              = is_array( $settings ) ? $settings : array();
+		$settings[ $type_key ] = in_array( $settings[ $type_key ] ?? '', $allowed_types, true ) ? $settings[ $type_key ] : $allowed_types[0];
+		$settings[ $image_key ] = esc_url_raw( $settings[ $image_key ] ?? '', array( 'http', 'https' ) );
+		$settings[ $video_key ] = $this->sanitize_video_url( $settings[ $video_key ] ?? '' );
+		return $settings;
+	}
+
+	/**
+	 * Sanitize media fields used by marketing blocks.
+	 *
+	 * @param string $type Block type.
+	 * @param array  $settings Settings.
+	 * @return array
+	 */
+	private function sanitize_marketing_media_block_settings( $type, $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		if ( 'duo-hero' === $type ) {
+			$settings = $this->sanitize_media_settings( $settings, 'leftMediaType', 'leftImage', 'leftVideo' );
+			$settings = $this->sanitize_media_settings( $settings, 'rightMediaType', 'rightImage', 'rightVideo' );
+		} elseif ( 'cta-banner' === $type ) {
+			$settings = $this->sanitize_media_settings( $settings, 'backgroundMediaType', 'backgroundImage', 'backgroundVideo', array( 'color', 'image', 'video' ) );
+		} else {
+			$settings = $this->sanitize_media_settings( $settings, 'mediaType', 'image', 'video' );
+		}
+		return $settings;
+	}
+
+	/**
+	 * Accept only direct HTTP(S) video files.
+	 *
+	 * @param mixed $value Raw URL.
+	 * @return string
+	 */
+	private function sanitize_video_url( $value ) {
+		$url = esc_url_raw( is_scalar( $value ) ? (string) $value : '', array( 'http', 'https' ) );
+		return preg_match( '/\.(mp4|webm|ogg|ogv)(?:\?.*)?$/i', $url ) ? $url : '';
+	}
+
+	/**
 	 * Sanitize Breadcrumbs block settings. Presentation-only — the trail itself
 	 * is built server-side from the real page hierarchy at render time.
 	 *
@@ -2054,6 +2166,70 @@ class DSF_Ajax {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * Sanitize the unified classic/modern Pricing block.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_pricing_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$text     = static function ( $value, $limit ) {
+			return mb_substr( sanitize_text_field( is_scalar( $value ) ? (string) $value : '' ), 0, $limit );
+		};
+		$color = static function ( $value, $fallback ) {
+			$clean = sanitize_hex_color( is_string( $value ) ? $value : '' );
+			return $clean ? $clean : $fallback;
+		};
+		$plans = array();
+		foreach ( array_slice( is_array( $settings['plans'] ?? null ) ? $settings['plans'] : array(), 0, 4 ) as $plan ) {
+			if ( ! is_array( $plan ) ) {
+				continue;
+			}
+			$features = is_array( $plan['features'] ?? null ) ? $plan['features'] : preg_split( '/\r?\n/', (string) ( $plan['features'] ?? '' ) );
+			$features = array_values( array_filter( array_map( static function ( $feature ) use ( $text ) { return $text( $feature, 160 ); }, array_slice( is_array( $features ) ? $features : array(), 0, 12 ) ) ) );
+			$plans[] = array(
+				'name'         => $text( $plan['name'] ?? '', 80 ),
+				'description'  => mb_substr( sanitize_textarea_field( $plan['description'] ?? '' ), 0, 240 ),
+				'monthlyPrice' => $text( $plan['monthlyPrice'] ?? '', 32 ),
+				'annualPrice'  => $text( $plan['annualPrice'] ?? '', 32 ),
+				'pricePrefix'  => $text( $plan['pricePrefix'] ?? '', 8 ),
+				'priceSuffix'  => $text( $plan['priceSuffix'] ?? '', 32 ),
+				'buttonText'   => $text( $plan['buttonText'] ?? '', 80 ),
+				'buttonUrl'    => esc_url_raw( $plan['buttonUrl'] ?? '' ),
+				'popular'      => ! empty( $plan['popular'] ),
+				'badgeText'    => $text( $plan['badgeText'] ?? '', 80 ),
+				'features'     => $features,
+			);
+		}
+		while ( count( $plans ) < 3 ) {
+			$plans[] = array( 'name' => 'Plan ' . ( count( $plans ) + 1 ), 'description' => '', 'monthlyPrice' => '', 'annualPrice' => '', 'pricePrefix' => '$', 'priceSuffix' => '/month', 'buttonText' => '', 'buttonUrl' => '', 'popular' => false, 'badgeText' => '', 'features' => array() );
+		}
+		return array(
+			'layout'           => 'modern' === ( $settings['layout'] ?? '' ) ? 'modern' : 'classic',
+			'eyebrow'         => $text( $settings['eyebrow'] ?? 'Pricing', 100 ),
+			'title'           => $text( $settings['title'] ?? 'Pricing that grows with you', 160 ),
+			'description'     => mb_substr( sanitize_textarea_field( $settings['description'] ?? '' ), 0, 400 ),
+			'showBillingToggle' => ! isset( $settings['showBillingToggle'] ) || ! empty( $settings['showBillingToggle'] ),
+			'monthlyLabel'    => $text( $settings['monthlyLabel'] ?? 'Monthly', 50 ),
+			'annualLabel'     => $text( $settings['annualLabel'] ?? 'Annually', 50 ),
+			'plans'           => $plans,
+			'backgroundColor' => $color( $settings['backgroundColor'] ?? '', '#FFFFFF' ),
+			'textColor'       => $color( $settings['textColor'] ?? '', '#111827' ),
+			'mutedColor'      => $color( $settings['mutedColor'] ?? '', '#4B5563' ),
+			'accentColor'     => $color( $settings['accentColor'] ?? '', '#4F36F5' ),
+			'eyebrowColor'    => $color( $settings['eyebrowColor'] ?? '', '' ),
+			'cardColor'       => $color( $settings['cardColor'] ?? '', '#FFFFFF' ),
+			'buttonColor'     => $color( $settings['buttonColor'] ?? '', '' ),
+			'buttonTextColor' => $color( $settings['buttonTextColor'] ?? '', '#FFFFFF' ),
+			'columns'         => in_array( (string) ( $settings['columns'] ?? '' ), array( '2', '3', '4' ), true ) ? (string) $settings['columns'] : '3',
+			'maxWidth'        => max( 760, min( 1600, absint( $settings['maxWidth'] ?? 1200 ) ) ),
+			'padding'         => max( 20, min( 160, absint( $settings['padding'] ?? 80 ) ) ),
+			'paddingX'        => max( 0, min( 120, absint( $settings['paddingX'] ?? 24 ) ) ),
+			'marginY'         => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+		);
 	}
 
 	/** Sanitize the bounded three-card Modern Pricing Tables block. */
@@ -2164,6 +2340,209 @@ class DSF_Ajax {
 				}
 				return sanitize_text_field( is_scalar( $value ) ? (string) $value : '' );
 		}
+	}
+
+	/**
+	 * Sanitize the image + logo grid settings and its capped card list.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_image_logo_grid_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$text     = static function ( $value, $limit ) {
+			return mb_substr( sanitize_text_field( is_scalar( $value ) ? (string) $value : '' ), 0, $limit );
+		};
+		$color    = static function ( $value, $fallback ) {
+			$clean = sanitize_hex_color( is_string( $value ) ? $value : '' );
+			return $clean ? $clean : $fallback;
+		};
+		$items = array();
+		foreach ( array_slice( is_array( $settings['items'] ?? null ) ? $settings['items'] : array(), 0, 8 ) as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			$items[] = array(
+				'image' => esc_url_raw( $item['image'] ?? '', array( 'http', 'https' ) ),
+				'logo'  => esc_url_raw( $item['logo'] ?? '', array( 'http', 'https' ) ),
+				'url'   => $this->sanitize_showcase_url( $item['url'] ?? '' ),
+			);
+		}
+
+		return array(
+			'title'           => $text( $settings['title'] ?? 'Explore our featured collections', 160 ),
+			'description'     => mb_substr( sanitize_textarea_field( $settings['description'] ?? '' ), 0, 300 ),
+			'items'           => $items,
+			'backgroundColor' => $color( $settings['backgroundColor'] ?? '', '#FFFFFF' ),
+			'titleColor'      => $color( $settings['titleColor'] ?? '', '#111111' ),
+			'bodyColor'       => $color( $settings['bodyColor'] ?? '', '#111111' ),
+			'padding'         => max( 0, min( 160, absint( $settings['padding'] ?? 48 ) ) ),
+			'paddingX'        => max( 0, min( 120, absint( $settings['paddingX'] ?? 24 ) ) ),
+			'marginY'         => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+		);
+	}
+
+	/**
+	 * Sanitize the bounded brand showcase grid and its image cards.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_brand_showcase_grid_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$text     = static function ( $value, $limit ) {
+			return mb_substr( sanitize_text_field( is_scalar( $value ) ? (string) $value : '' ), 0, $limit );
+		};
+		$color = static function ( $value, $fallback ) {
+			$clean = sanitize_hex_color( is_string( $value ) ? $value : '' );
+			return $clean ? $clean : $fallback;
+		};
+		$cards = array();
+		foreach ( array_slice( is_array( $settings['cards'] ?? null ) ? $settings['cards'] : array(), 0, 8 ) as $card ) {
+			if ( ! is_array( $card ) ) {
+				continue;
+			}
+			$cards[] = array(
+				'title'           => $text( $card['title'] ?? '', 100 ),
+				'subtitle'        => $text( $card['subtitle'] ?? '', 160 ),
+				'image'           => esc_url_raw( $card['image'] ?? '', array( 'http', 'https' ) ),
+				'backgroundColor' => $color( $card['backgroundColor'] ?? '', '#F3F4F6' ),
+				'textColor'       => $color( $card['textColor'] ?? '', '#111111' ),
+				'url'             => $this->sanitize_showcase_url( $card['url'] ?? '' ),
+			);
+		}
+
+		return array(
+			'title'           => $text( $settings['title'] ?? 'Build the Backyard of Your Dreams!', 160 ),
+			'description'     => mb_substr( sanitize_textarea_field( $settings['description'] ?? '' ), 0, 300 ),
+			'cards'           => $cards,
+			'backgroundColor' => $color( $settings['backgroundColor'] ?? '', '#FFFFFF' ),
+			'paddingY'        => max( 0, min( 160, intval( $settings['paddingY'] ?? 48 ) ) ),
+			'paddingX'        => max( 0, min( 120, intval( $settings['paddingX'] ?? 20 ) ) ),
+			'cardRadius'      => max( 0, min( 48, intval( $settings['cardRadius'] ?? 20 ) ) ),
+			'cardGap'         => max( 0, min( 48, intval( $settings['cardGap'] ?? 16 ) ) ),
+		);
+	}
+
+	/**
+	 * Sanitize the tabbed product showcase settings and nested image tabs.
+	 *
+	 * Product IDs are stored only as bounded integers; product records are loaded
+	 * from WooCommerce at render time. Image URLs and links are scheme-limited.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_tabbed_product_showcase_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$text     = static function ( $value, $limit ) {
+			return mb_substr( sanitize_text_field( is_scalar( $value ) ? (string) $value : '' ), 0, $limit );
+		};
+		$textarea = static function ( $value, $limit ) {
+			return mb_substr( sanitize_textarea_field( is_scalar( $value ) ? (string) $value : '' ), 0, $limit );
+		};
+		$color    = function ( $value, $fallback ) {
+			$clean = sanitize_hex_color( is_string( $value ) ? $value : '' );
+			return $clean ? $clean : $fallback;
+		};
+		$tabs = array();
+		foreach ( array_slice( is_array( $settings['tabs'] ?? null ) ? $settings['tabs'] : array(), 0, 6 ) as $tab ) {
+			if ( ! is_array( $tab ) ) {
+				continue;
+			}
+			$images = array();
+			foreach ( array_slice( is_array( $tab['images'] ?? null ) ? $tab['images'] : array(), 0, 6 ) as $image ) {
+				if ( ! is_array( $image ) ) {
+					continue;
+				}
+				$images[] = array(
+					'image'    => esc_url_raw( $image['image'] ?? '', array( 'http', 'https' ) ),
+					'title'    => $text( $image['title'] ?? '', 120 ),
+					'subtitle' => $text( $image['subtitle'] ?? '', 180 ),
+					'url'      => $this->sanitize_showcase_url( $image['url'] ?? '' ),
+				);
+			}
+			$tabs[] = array(
+			'label'      => $text( $tab['label'] ?? '', 80 ),
+				'source'     => 'images' === ( $tab['source'] ?? '' ) ? 'images' : 'products',
+				'supportingText' => $text( $tab['supportingText'] ?? '', 180 ),
+				'productIds' => array_slice( $this->normalize_numeric_id_list( $tab['productIds'] ?? array() ), 0, 20 ),
+				'images'     => $images,
+			);
+		}
+
+		return array(
+			'title'          => $text( $settings['title'] ?? 'Featured Collections', 160 ),
+			'showDescription' => ! isset( $settings['showDescription'] ) || ! empty( $settings['showDescription'] ),
+			'description'    => $textarea( $settings['description'] ?? 'Explore featured products and collections for your space.', 300 ),
+			'style'          => in_array( $settings['style'] ?? '', array( 'image', 'products', 'tabs' ), true ) ? $settings['style'] : 'image',
+			'tabStyle'       => in_array( $settings['tabStyle'] ?? '', array( 'modern', 'underline', 'chevron' ), true ) ? $settings['tabStyle'] : 'modern',
+			'tabs'           => $tabs,
+			'showButtons'    => ! isset( $settings['showButtons'] ) || ! empty( $settings['showButtons'] ),
+			'primaryText'    => $text( $settings['primaryText'] ?? 'Explore All', 80 ),
+			'primaryUrl'     => $this->sanitize_showcase_url( $settings['primaryUrl'] ?? '' ),
+			'secondaryText'  => $text( $settings['secondaryText'] ?? 'Learn More', 80 ),
+			'secondaryUrl'   => $this->sanitize_showcase_url( $settings['secondaryUrl'] ?? '' ),
+			'backgroundColor'=> $color( $settings['backgroundColor'] ?? '', '#FFFFFF' ),
+			'titleColor'     => $color( $settings['titleColor'] ?? '', '#111111' ),
+			'accentColor'    => $color( $settings['accentColor'] ?? '', '#2C7FA3' ),
+			'padding'        => max( 0, min( 160, absint( $settings['padding'] ?? 56 ) ) ),
+			'paddingX'       => max( 0, min( 120, absint( $settings['paddingX'] ?? 24 ) ) ),
+			'marginY'        => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+		);
+	}
+
+	/**
+	 * Sanitize the Ecommerce Showcase block's presentation and query settings.
+	 *
+	 * Product records and cart URLs are always loaded from WooCommerce; none are
+	 * accepted from saved block settings.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_ecommerce_showcase_settings( $settings ) {
+		$settings     = is_array( $settings ) ? $settings : array();
+		$display_mode = in_array( $settings['displayMode'] ?? '', array( 'categories', 'products' ), true )
+			? $settings['displayMode']
+			: 'categories';
+		$image_fit    = in_array( $settings['imageFit'] ?? '', array( 'contain', 'cover', 'scale-down' ), true )
+			? $settings['imageFit']
+			: 'contain';
+		$text         = static function ( $value, $limit ) {
+			return mb_substr( sanitize_text_field( is_scalar( $value ) ? (string) $value : '' ), 0, $limit );
+		};
+		$color        = static function ( $value, $fallback ) {
+			$clean = sanitize_hex_color( is_string( $value ) ? $value : '' );
+			return $clean ? $clean : $fallback;
+		};
+
+		return array(
+			'displayMode'      => $display_mode,
+			'title'            => $text( $settings['title'] ?? 'Ecommerce Showcase', 160 ),
+			'shopAllText'      => $text( $settings['shopAllText'] ?? 'SHOP ALL', 80 ),
+			'showShopAll'      => ! isset( $settings['showShopAll'] ) || ! empty( $settings['showShopAll'] ),
+			'showProductCount' => ! isset( $settings['showProductCount'] ) || ! empty( $settings['showProductCount'] ),
+			'countText'        => $text( $settings['countText'] ?? '{count} products total', 120 ),
+			'categoryIds'      => array_slice( $this->normalize_numeric_id_list( $settings['categoryIds'] ?? array() ), 0, 50 ),
+			'categoryId'       => absint( $settings['categoryId'] ?? 0 ),
+			'pinnedProductIds' => array_slice( $this->normalize_numeric_id_list( $settings['pinnedProductIds'] ?? array() ), 0, 20 ),
+			'limit'            => max( 1, min( 20, absint( $settings['limit'] ?? 5 ) ) ),
+			'imageFit'         => $image_fit,
+			'backgroundColor'  => $color( $settings['backgroundColor'] ?? '', '#FFFFFF' ),
+			'titleColor'       => $color( $settings['titleColor'] ?? '', '#1F2937' ),
+			'priceColor'       => $color( $settings['priceColor'] ?? '', '#6B7280' ),
+			'salePriceColor'   => $color( $settings['salePriceColor'] ?? '', '#DC2626' ),
+			'countColor'       => $color( $settings['countColor'] ?? '', '#6B7280' ),
+			'showAddToCart'    => ! isset( $settings['showAddToCart'] ) || ! empty( $settings['showAddToCart'] ),
+			'buttonText'       => $text( $settings['buttonText'] ?? 'Add to Cart', 80 ),
+			'buttonColor'      => $color( $settings['buttonColor'] ?? '', '#2C5F5D' ),
+			'buttonTextColor'  => $color( $settings['buttonTextColor'] ?? '', '#FFFFFF' ),
+			'padding'          => max( 20, min( 120, absint( $settings['padding'] ?? 60 ) ) ),
+			'paddingX'         => min( 100, absint( $settings['paddingX'] ?? 0 ) ),
+			'marginY'          => min( 100, absint( $settings['marginY'] ?? 25 ) ),
+			'responsive'       => $this->sanitize_product_responsive_spacing( $settings ),
+		);
 	}
 
 	/**
@@ -2778,6 +3157,7 @@ class DSF_Ajax {
 			'overlayColor' => $overlay ? $overlay : '',
 			'textColor' => $text ? $text : '',
 			'maxWidth' => max( 480, min( 1600, absint( $settings['maxWidth'] ?? 1280 ) ) ),
+			'descriptionMaxWidth' => max( 240, min( 1200, absint( $settings['descriptionMaxWidth'] ?? 900 ) ) ),
 			'padding' => max( 0, min( 200, absint( $settings['padding'] ?? 56 ) ) ),
 			'responsive' => $this->sanitize_product_responsive_spacing( $settings ),
 		);
@@ -3103,7 +3483,7 @@ class DSF_Ajax {
 
 		foreach ( array( 'dividerColor', 'backgroundColor', 'contentBg', 'formBg', 'textColor', 'titleColor' ) as $key ) {
 			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
-			$clean[ $key ] = $color ? $color : '';
+			$clean[ $key ] = $color ? $color : ( in_array( $key, array( 'contentBg', 'formBg' ), true ) ? '#FFFFFF' : '' );
 		}
 
 		return $clean;
@@ -3201,6 +3581,8 @@ class DSF_Ajax {
 			$clean['align']         = in_array( $settings['align'] ?? '', array( 'left', 'center' ), true ) ? $settings['align'] : 'left';
 			$clean['mediaPosition'] = in_array( $settings['mediaPosition'] ?? '', array( 'right', 'left' ), true ) ? $settings['mediaPosition'] : 'right';
 
+			$clean['descriptionMaxWidth'] = max( 240, min( 1200, absint( $settings['descriptionMaxWidth'] ?? 590 ) ) );
+
 			$clean = array_merge( $clean, $this->sanitize_landing_media( $settings, 'media' ) );
 			return $clean;
 		}
@@ -3223,6 +3605,8 @@ class DSF_Ajax {
 			$clean['primaryUrl']    = $this->sanitize_showcase_url( $settings['primaryUrl'] ?? '' );
 			$clean['secondaryUrl']  = $this->sanitize_showcase_url( $settings['secondaryUrl'] ?? '' );
 			$clean['tiles']         = $this->sanitize_dock_nav_links( $settings['tiles'] ?? array(), 6 );
+
+			$clean['descriptionMaxWidth'] = max( 240, min( 1200, absint( $settings['descriptionMaxWidth'] ?? 736 ) ) );
 			foreach ( array( 'eyebrowLineColor', 'buttonColor', 'buttonTextColor' ) as $key ) {
 				$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
 				$clean[ $key ] = $color ? $color : '';
@@ -3231,6 +3615,7 @@ class DSF_Ajax {
 		}
 
 		if ( 'landing-block-explorer' === $type ) {
+			$clean['source'] = in_array( $settings['source'] ?? '', array( 'manual', 'block-library' ), true ) ? $settings['source'] : 'manual';
 			foreach ( array( 'eyebrow', 'title', 'footnote' ) as $key ) {
 				$clean[ $key ] = sanitize_text_field( $settings[ $key ] ?? '' );
 			}
@@ -3269,6 +3654,20 @@ class DSF_Ajax {
 			foreach ( array( 'description', 'step1Text', 'step2Text', 'step3Text', 'demoText' ) as $key ) {
 				$clean[ $key ] = sanitize_textarea_field( $settings[ $key ] ?? '' );
 			}
+			return $clean;
+		}
+
+		if ( 'steps-image' === $type ) {
+			$clean['layout'] = in_array( $settings['layout'] ?? '', array( 'image-right', 'image-left', 'stacked' ), true ) ? $settings['layout'] : 'image-right';
+			foreach ( array( 'eyebrow', 'title', 'step1Title', 'step2Title', 'step3Title', 'note' ) as $key ) {
+				$clean[ $key ] = sanitize_text_field( $settings[ $key ] ?? '' );
+			}
+			foreach ( array( 'description', 'step1Text', 'step2Text', 'step3Text' ) as $key ) {
+				$clean[ $key ] = sanitize_textarea_field( $settings[ $key ] ?? '' );
+			}
+			$clean['showSteps'] = ! isset( $settings['showSteps'] ) || ! empty( $settings['showSteps'] );
+			$clean['showNote']  = ! isset( $settings['showNote'] ) || ! empty( $settings['showNote'] );
+			$clean['image']     = esc_url_raw( $settings['image'] ?? '', array( 'http', 'https' ) );
 			return $clean;
 		}
 
@@ -3543,6 +3942,8 @@ class DSF_Ajax {
 			'buttonModalHtml'        => wp_kses_post( $settings['buttonModalHtml'] ?? '' ),
 			'buttonModalShortcode'   => sanitize_text_field( $settings['buttonModalShortcode'] ?? '' ),
 			'image'                  => esc_url_raw( $settings['image'] ?? '', array( 'http', 'https' ) ),
+			'mediaType'              => 'video' === ( $settings['mediaType'] ?? '' ) ? 'video' : 'image',
+			'video'                  => $this->sanitize_video_url( $settings['video'] ?? '' ),
 			'imagePosition'          => 'left' === ( $settings['imagePosition'] ?? '' ) ? 'left' : 'right',
 			'height'                 => max( 100, min( 800, absint( $settings['height'] ?? 400 ) ) ),
 			'padding'                => max( 0, min( 120, absint( $settings['padding'] ?? 60 ) ) ),
@@ -3564,6 +3965,36 @@ class DSF_Ajax {
 				'paddingX' => max( 0, min( 100, absint( $values['paddingX'] ?? $clean['paddingX'] ) ) ),
 				'marginY'  => max( 0, min( 100, absint( $values['marginY'] ?? $clean['marginY'] ) ) ),
 			);
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Sanitize feature image CTA settings.
+	 *
+	 * @param array $settings Submitted block settings.
+	 * @return array
+	 */
+	private function sanitize_feature_image_cta_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$clean    = array(
+			'title'         => sanitize_text_field( $settings['title'] ?? '' ),
+			'description'   => sanitize_textarea_field( $settings['description'] ?? '' ),
+			'features'      => $this->sanitize_landing_icon_items( $settings['features'] ?? array() ),
+			'showButton'    => ! empty( $settings['showButton'] ),
+			'buttonText'    => sanitize_text_field( $settings['buttonText'] ?? '' ),
+			'buttonUrl'     => $this->sanitize_showcase_url( $settings['buttonUrl'] ?? '' ),
+			'image'         => esc_url_raw( $settings['image'] ?? '', array( 'http', 'https' ) ),
+			'imagePosition' => 'left' === ( $settings['imagePosition'] ?? '' ) ? 'left' : 'right',
+			'imageInset'    => max( 0, min( 200, intval( $settings['imageInset'] ?? 0 ) ) ),
+			'borderRadius'  => max( 0, min( 48, intval( $settings['borderRadius'] ?? 20 ) ) ),
+			'paddingY'      => max( 0, min( 160, intval( $settings['paddingY'] ?? 48 ) ) ),
+		);
+
+		foreach ( array( 'backgroundColor', 'buttonColor', 'buttonTextColor' ) as $key ) {
+			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
+			$clean[ $key ] = $color ? $color : '';
 		}
 
 		return $clean;
@@ -3651,6 +4082,8 @@ class DSF_Ajax {
 			$clean['cards'][] = array(
 				'title' => sanitize_text_field( $card['title'] ?? '' ),
 				'image' => esc_url_raw( $card['image'] ?? '', array( 'http', 'https' ) ),
+				'mediaType' => 'video' === ( $card['mediaType'] ?? '' ) ? 'video' : 'image',
+				'video' => $this->sanitize_video_url( $card['video'] ?? '' ),
 				'url'   => $this->sanitize_showcase_url( $card['url'] ?? '' ),
 			);
 		}
@@ -3686,6 +4119,81 @@ class DSF_Ajax {
 	}
 
 	/**
+	 * Sanitize feature cards, including their optional image/video media.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_features_grid_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$cards   = array();
+		foreach ( array_slice( is_array( $settings['features'] ?? null ) ? $settings['features'] : array(), 0, 12 ) as $feature ) {
+			if ( ! is_array( $feature ) ) {
+				continue;
+			}
+			$cards[] = array(
+				'title'                  => sanitize_text_field( $feature['title'] ?? '' ),
+				'description'            => wp_kses_post( $feature['description'] ?? '' ),
+				'image'                  => esc_url_raw( $feature['image'] ?? '', array( 'http', 'https' ) ),
+				'mediaType'              => 'video' === ( $feature['mediaType'] ?? '' ) ? 'video' : 'image',
+				'video'                  => $this->sanitize_video_url( $feature['video'] ?? '' ),
+				'imagePosition'          => 'below' === ( $feature['imagePosition'] ?? '' ) ? 'below' : 'above',
+				'buttonText'             => sanitize_text_field( $feature['buttonText'] ?? '' ),
+				'buttonUrl'              => $this->sanitize_showcase_url( $feature['buttonUrl'] ?? '' ),
+				'buttonAction'           => 'modal' === ( $feature['buttonAction'] ?? '' ) ? 'modal' : 'link',
+				'buttonModalLayout'      => 'drawer' === ( $feature['buttonModalLayout'] ?? '' ) ? 'drawer' : 'center',
+				'buttonModalContentType' => in_array( $feature['buttonModalContentType'] ?? '', array( 'wysiwyg', 'html', 'shortcode' ), true ) ? $feature['buttonModalContentType'] : 'wysiwyg',
+				'buttonModalContent'     => wp_kses_post( $feature['buttonModalContent'] ?? '' ),
+				'buttonModalHtml'        => wp_kses_post( $feature['buttonModalHtml'] ?? '' ),
+				'buttonModalShortcode'   => sanitize_text_field( $feature['buttonModalShortcode'] ?? '' ),
+			);
+		}
+		$settings['features'] = $cards;
+		return $settings;
+	}
+
+	/**
+	 * Sanitize the Anchor Gallery block and its bounded tile collection.
+	 *
+	 * @param array $settings Submitted settings.
+	 * @return array
+	 */
+	private function sanitize_anchor_gallery_settings( $settings ) {
+		$settings = is_array( $settings ) ? $settings : array();
+		$items   = array();
+		$max_items = 'grid' === ( $settings['layout'] ?? '' ) ? 8 : 5;
+		foreach ( array_slice( is_array( $settings['items'] ?? null ) ? $settings['items'] : array(), 0, $max_items ) as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			$items[] = array(
+				'title'     => mb_substr( sanitize_text_field( $item['title'] ?? '' ), 0, 120 ),
+				'image'     => esc_url_raw( $item['image'] ?? '', array( 'http', 'https' ) ),
+				'mediaType' => 'video' === ( $item['mediaType'] ?? '' ) ? 'video' : 'image',
+				'video'     => $this->sanitize_video_url( $item['video'] ?? '' ),
+				'url'       => $this->sanitize_showcase_url( $item['url'] ?? '' ),
+			);
+		}
+		return array(
+			'showEyebrow'      => ! isset( $settings['showEyebrow'] ) || ! empty( $settings['showEyebrow'] ),
+			'eyebrow'          => mb_substr( sanitize_text_field( $settings['eyebrow'] ?? '' ), 0, 96 ),
+			'title'            => mb_substr( sanitize_text_field( $settings['title'] ?? 'Explore our featured collections' ), 0, 160 ),
+			'description'      => mb_substr( sanitize_textarea_field( $settings['description'] ?? 'Discover products and experiences selected for your space.' ), 0, 300 ),
+			'layout'           => 'grid' === ( $settings['layout'] ?? '' ) ? 'grid' : 'anchor',
+			'titlePosition'    => 'overlay' === ( $settings['titlePosition'] ?? '' ) ? 'overlay' : 'below',
+			'textAlign'        => in_array( $settings['textAlign'] ?? '', array( 'left', 'center', 'right' ), true ) ? $settings['textAlign'] : 'center',
+			'items'            => $items,
+			'gap'              => max( 0, min( 40, absint( $settings['gap'] ?? 16 ) ) ),
+			'padding'          => max( 0, min( 160, absint( $settings['padding'] ?? 40 ) ) ),
+			'paddingX'         => max( 0, min( 120, absint( $settings['paddingX'] ?? 24 ) ) ),
+			'marginY'          => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
+			'backgroundColor'  => $this->sanitize_card_columns_color( $settings['backgroundColor'] ?? '' ),
+			'titleColor'       => $this->sanitize_card_columns_color( $settings['titleColor'] ?? '' ),
+			'descriptionColor' => $this->sanitize_card_columns_color( $settings['descriptionColor'] ?? '' ),
+		);
+	}
+
+	/**
 	 * Sanitize Card Columns header, cards, colors, and bounded dimensions.
 	 *
 	 * @param array $settings Submitted block settings.
@@ -3717,6 +4225,7 @@ class DSF_Ajax {
 			'gap'               => max( 0, min( 64, absint( $settings['gap'] ?? 24 ) ) ),
 			'marginY'           => max( 0, min( 100, absint( $settings['marginY'] ?? 25 ) ) ),
 		);
+		$clean['descriptionMaxWidth'] = max( 240, min( 1200, absint( $settings['descriptionMaxWidth'] ?? 640 ) ) );
 
 		foreach ( array( 'backgroundColor', 'gradientStart', 'gradientEnd', 'titleColor', 'descriptionColor', 'cardTitleColor', 'cardDescriptionColor', 'cardIconColor', 'buttonColor', 'buttonTextColor', 'overlayTextColor' ) as $key ) {
 			$clean[ $key ] = $this->sanitize_card_columns_color( $settings[ $key ] ?? '' );
@@ -3731,6 +4240,7 @@ class DSF_Ajax {
 			}
 			$icon      = in_array( $card['icon'] ?? '', $icons, true ) ? $card['icon'] : '';
 			$icon_type = in_array( $card['iconType'] ?? '', array( 'none', 'preset', 'custom' ), true ) ? $card['iconType'] : ( '' !== $icon ? 'preset' : 'none' );
+			$link_mode = in_array( $card['linkMode'] ?? '', array( 'none', 'button', 'card' ), true ) ? $card['linkMode'] : ( ! empty( $card['showButton'] ) ? 'button' : 'none' );
 
 			$clean['cards'][] = array(
 				'icon'              => $icon,
@@ -3739,12 +4249,15 @@ class DSF_Ajax {
 				'title'             => sanitize_text_field( $card['title'] ?? '' ),
 				'description'       => sanitize_textarea_field( $card['description'] ?? '' ),
 				'image'             => esc_url_raw( $card['image'] ?? '', array( 'http', 'https' ) ),
+				'mediaType'         => 'video' === ( $card['mediaType'] ?? '' ) ? 'video' : 'image',
+				'video'             => $this->sanitize_video_url( $card['video'] ?? '' ),
 				'backgroundType'    => in_array( $card['backgroundType'] ?? '', array( 'transparent', 'solid', 'gradient' ), true ) ? $card['backgroundType'] : 'solid',
 				'backgroundColor'   => $this->sanitize_card_columns_color( $card['backgroundColor'] ?? '' ),
 				'gradientStart'     => $this->sanitize_card_columns_color( $card['gradientStart'] ?? '' ),
 				'gradientEnd'       => $this->sanitize_card_columns_color( $card['gradientEnd'] ?? '' ),
 				'gradientDirection' => in_array( $card['gradientDirection'] ?? '', $directions, true ) ? $card['gradientDirection'] : 'top-bottom',
-				'showButton'        => ! empty( $card['showButton'] ),
+				'linkMode'          => $link_mode,
+				'showButton'        => 'button' === $link_mode,
 				'buttonText'        => sanitize_text_field( $card['buttonText'] ?? '' ),
 				'buttonUrl'         => $this->sanitize_showcase_url( $card['buttonUrl'] ?? '' ),
 			);
@@ -3908,6 +4421,9 @@ class DSF_Ajax {
 		if ( 0 === strpos( $value, '//' ) ) {
 			return '';
 		}
+		if ( preg_match( '/^[a-z][a-z0-9+.-]*:/i', $value ) && ! preg_match( '/^(?:https?|mailto|tel):/i', $value ) ) {
+			return '';
+		}
 		return esc_url_raw( $value, array( 'http', 'https', 'mailto', 'tel' ) );
 	}
 
@@ -3921,9 +4437,9 @@ class DSF_Ajax {
 		$settings = is_array( $settings ) ? $settings : array();
 		$clean    = array();
 
-		$clean['logoText']      = sanitize_text_field( $settings['logoText'] ?? '' );
-		$clean['logoAlt']       = sanitize_text_field( $settings['logoAlt'] ?? '' );
-		$clean['logoImage']     = esc_url_raw( $settings['logoImage'] ?? '', array( 'http', 'https' ) );
+		$clean['logoText']      = mb_substr( sanitize_text_field( $settings['logoText'] ?? '' ), 0, 160 );
+		$clean['logoAlt']       = mb_substr( sanitize_text_field( $settings['logoAlt'] ?? '' ), 0, 200 );
+		$clean['logoImage']     = esc_url_raw( mb_substr( is_string( $settings['logoImage'] ?? null ) ? $settings['logoImage'] : '', 0, 2048 ), array( 'http', 'https' ) );
 		$clean['logoImageSize'] = max( 30, min( 100, absint( $settings['logoImageSize'] ?? 100 ) ) );
 
 		foreach ( array( 'homeUrl', 'searchUrl', 'accountUrl', 'cartUrl' ) as $key ) {
@@ -3933,7 +4449,8 @@ class DSF_Ajax {
 		foreach ( array( 'sticky', 'shrinkOnScroll', 'showSearch', 'showAccount', 'showCart' ) as $key ) {
 			$clean[ $key ] = ! empty( $settings[ $key ] );
 		}
-		$clean['cartCount'] = max( 0, min( 99, absint( $settings['cartCount'] ?? 0 ) ) );
+		$clean['cartCount']       = max( 0, min( 99, absint( $settings['cartCount'] ?? 0 ) ) );
+		$clean['menuItemSpacing'] = max( 0, min( 32, absint( $settings['menuItemSpacing'] ?? 10 ) ) );
 
 		foreach ( array( 'navBackground', 'navTextColor', 'accentColor', 'panelBackground', 'panelHeadingColor', 'panelLinkColor', 'mobileBackground', 'mobileTextColor' ) as $key ) {
 			$color         = sanitize_hex_color( $settings[ $key ] ?? '' );
@@ -3954,9 +4471,10 @@ class DSF_Ajax {
 	 * @return array
 	 */
 	private function sanitize_modern_mega_menu_items( $items ) {
-		$items   = is_array( $items ) ? $items : array();
-		$layouts = array( 'links', 'cards', 'icons' );
-		$icons   = array( 'sparkles', 'shield-check', 'lock', 'fingerprint', 'code', 'file-code', 'file-search', 'paintbrush', 'palette', 'layers', 'layout', 'columns', 'grid', 'briefcase', 'store', 'users', 'mail', 'form-input', 'bell', 'megaphone', 'clock', 'calendar', 'search', 'filter', 'zap', 'rocket', 'check', 'star', 'heart', 'globe', 'monitor', 'smartphone', 'file-text', 'settings', 'mouse-pointer', 'panel-top', 'wand', 'gauge', 'boxes' );
+		$items      = is_array( $items ) ? $items : array();
+		$layouts    = array( 'links', 'cards', 'icons' );
+		$menu_types = array( 'link', 'dropdown', 'mega' );
+		$icons      = array( 'sparkles', 'shield-check', 'lock', 'fingerprint', 'code', 'file-code', 'file-search', 'paintbrush', 'palette', 'layers', 'layout', 'columns', 'grid', 'briefcase', 'store', 'users', 'mail', 'form-input', 'bell', 'megaphone', 'clock', 'calendar', 'search', 'filter', 'zap', 'rocket', 'check', 'star', 'heart', 'globe', 'monitor', 'smartphone', 'file-text', 'settings', 'mouse-pointer', 'panel-top', 'wand', 'gauge', 'boxes' );
 
 		$clean = array();
 		foreach ( array_slice( $items, 0, 12 ) as $item ) {
@@ -3964,8 +4482,12 @@ class DSF_Ajax {
 				continue;
 			}
 
-			$columns = array();
-			foreach ( array_slice( is_array( $item['columns'] ?? null ) ? $item['columns'] : array(), 0, 6 ) as $column ) {
+			$menu_type    = in_array( $item['menuType'] ?? '', $menu_types, true )
+				? $item['menuType']
+				: ( ! empty( $item['hasMega'] ) ? 'mega' : 'link' );
+			$column_limit = 'dropdown' === $menu_type ? 1 : 6;
+			$columns      = array();
+			foreach ( array_slice( is_array( $item['columns'] ?? null ) ? $item['columns'] : array(), 0, $column_limit ) as $column ) {
 				if ( ! is_array( $column ) ) {
 					continue;
 				}
@@ -3975,15 +4497,17 @@ class DSF_Ajax {
 					if ( ! is_array( $link ) ) {
 						continue;
 					}
-					$links[] = array(
-						'label' => sanitize_text_field( $link['label'] ?? '' ),
-						'url'   => $this->sanitize_showcase_url( $link['url'] ?? '' ),
-						'image' => esc_url_raw( $link['image'] ?? '', array( 'http', 'https' ) ),
-						'icon'  => in_array( $link['icon'] ?? '', $icons, true ) ? $link['icon'] : 'sparkles',
+					$link_kind = 'heading' === ( $link['kind'] ?? '' ) ? 'heading' : 'link';
+					$links[]   = array(
+						'kind'  => $link_kind,
+						'label' => mb_substr( sanitize_text_field( $link['label'] ?? '' ), 0, 160 ),
+						'url'   => 'heading' === $link_kind ? '' : $this->sanitize_showcase_url( $link['url'] ?? '' ),
+						'image' => 'heading' === $link_kind ? '' : esc_url_raw( mb_substr( is_string( $link['image'] ?? null ) ? $link['image'] : '', 0, 2048 ), array( 'http', 'https' ) ),
+						'icon'  => 'heading' === $link_kind ? 'sparkles' : ( in_array( $link['icon'] ?? '', $icons, true ) ? $link['icon'] : 'sparkles' ),
 					);
 				}
 				$columns[] = array(
-					'heading'      => sanitize_text_field( $column['heading'] ?? '' ),
+					'heading'      => mb_substr( sanitize_text_field( $column['heading'] ?? '' ), 0, 160 ),
 					'layout'       => $layout,
 					'imageLinks'   => 'cards' === $layout,
 					'imageColumns' => max( 1, min( 4, absint( $column['imageColumns'] ?? 2 ) ) ),
@@ -3993,19 +4517,20 @@ class DSF_Ajax {
 
 			$banner_raw = is_array( $item['banner'] ?? null ) ? $item['banner'] : array();
 			$banner     = array(
-				'title'       => sanitize_text_field( $banner_raw['title'] ?? '' ),
-				'text'        => sanitize_text_field( $banner_raw['text'] ?? '' ),
-				'buttonLabel' => sanitize_text_field( $banner_raw['buttonLabel'] ?? '' ),
-				'image'       => esc_url_raw( $banner_raw['image'] ?? '', array( 'http', 'https' ) ),
+				'title'       => mb_substr( sanitize_text_field( $banner_raw['title'] ?? '' ), 0, 160 ),
+				'text'        => mb_substr( sanitize_text_field( $banner_raw['text'] ?? '' ), 0, 300 ),
+				'buttonLabel' => mb_substr( sanitize_text_field( $banner_raw['buttonLabel'] ?? '' ), 0, 80 ),
+				'image'       => esc_url_raw( mb_substr( is_string( $banner_raw['image'] ?? null ) ? $banner_raw['image'] : '', 0, 2048 ), array( 'http', 'https' ) ),
 				'url'         => $this->sanitize_showcase_url( $banner_raw['url'] ?? '' ),
 			);
 
 			$clean[] = array(
-				'label'   => sanitize_text_field( $item['label'] ?? '' ),
-				'url'     => $this->sanitize_showcase_url( $item['url'] ?? '' ),
-				'hasMega' => ! empty( $item['hasMega'] ),
-				'columns' => $columns,
-				'banner'  => $banner,
+				'label'    => mb_substr( sanitize_text_field( $item['label'] ?? '' ), 0, 160 ),
+				'url'      => $this->sanitize_showcase_url( $item['url'] ?? '' ),
+				'menuType' => $menu_type,
+				'hasMega'  => 'link' !== $menu_type,
+				'columns'  => $columns,
+				'banner'   => $banner,
 			);
 		}
 
@@ -4122,7 +4647,7 @@ class DSF_Ajax {
 
 		return array(
 			'containerWidth'   => min( 1800, max( 1000, absint( $layout['containerWidth'] ?? 1800 ) ) ),
-			'contentPadding'   => min( 64, absint( $layout['contentPadding'] ?? 10 ) ),
+			'contentPadding'   => min( 64, absint( $layout['contentPadding'] ?? 0 ) ),
 			'showHeader'       => ! isset( $layout['showHeader'] ) || (bool) $layout['showHeader'],
 			'showFooter'       => ! isset( $layout['showFooter'] ) || (bool) $layout['showFooter'],
 			'headerTemplateId' => absint( $layout['headerTemplateId'] ?? 0 ),

@@ -104,7 +104,7 @@
     </template>
 
     <!-- Text + Image -->
-    <template v-else-if="type === 'text-image'">
+    <template v-else-if="type === 'text-image' || type === 'feature-image-cta'">
       <div class="dsf-schematic__text-image">
         <div class="dsf-schematic__text-block">
           <div class="dsf-schematic__line dsf-schematic__line--md"></div>
@@ -112,6 +112,17 @@
           <div class="dsf-schematic__line dsf-schematic__line--sm"></div>
         </div>
         <div class="dsf-schematic__img-block"></div>
+      </div>
+    </template>
+
+    <!-- Anchor Gallery -->
+    <template v-else-if="type === 'anchor-gallery'">
+      <div class="dsf-schematic__anchor-gallery">
+        <div class="dsf-schematic__line dsf-schematic__line--center dsf-schematic__line--sm"></div>
+        <div class="dsf-schematic__anchor-gallery-grid">
+          <span class="dsf-schematic__anchor-gallery-feature"></span>
+          <span v-for="i in 4" :key="i"></span>
+        </div>
       </div>
     </template>
     
@@ -174,6 +185,12 @@
         <div class="dsf-schematic__brand-track">
           <div class="dsf-schematic__brand" v-for="i in 5" :key="i"></div>
         </div>
+      </div>
+    </template>
+    <template v-else-if="type === 'image-logo-grid' || type === 'brand-showcase-grid'">
+      <div class="dsf-schematic__image-logo-grid">
+        <div class="dsf-schematic__image-logo-grid-intro"><span></span><span></span></div>
+        <div class="dsf-schematic__image-logo-grid-cards"><span v-for="i in 4" :key="i"></span></div>
       </div>
     </template>
     
@@ -531,6 +548,13 @@
         <div class="dsf-schematic__product-tabs-bar"><span class="is-active"></span><span></span><span></span></div>
         <div class="dsf-schematic__line dsf-schematic__line--lg"></div>
         <div class="dsf-schematic__line dsf-schematic__line--md"></div>
+      </div>
+    </template>
+    <template v-else-if="type === 'tabbed-product-showcase'">
+      <div class="dsf-schematic__tabbed-showcase">
+        <div class="dsf-schematic__tabbed-showcase-title"></div>
+        <div class="dsf-schematic__tabbed-showcase-tabs"><span class="is-active"></span><span></span><span></span></div>
+        <div class="dsf-schematic__tabbed-showcase-cards"><span></span><span></span><span></span></div>
       </div>
     </template>
 
@@ -1305,6 +1329,13 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
   border-radius: 3px;
 }
 
+/* Image + Logo Grid */
+.dsf-schematic__image-logo-grid { display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 8px; }
+.dsf-schematic__image-logo-grid-intro { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dsf-schematic__image-logo-grid-intro span { height: 12px; border-radius: 3px; background: #cbd5e1; }
+.dsf-schematic__image-logo-grid-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.dsf-schematic__image-logo-grid-cards span { height: 44px; border-radius: 3px; background: #e2e8f0; box-shadow: 0 8px 0 -3px #fff, 0 9px 0 -2px #cbd5e1; }
+
 /* CTA Banner */
 .dsf-schematic__cta-banner {
   width: 100%;
@@ -1804,6 +1835,15 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
 .dsf-schematic__product-tabs-bar span { width: 26px; height: 8px; border-radius: 2px; background: #e2e8f0; }
 .dsf-schematic__product-tabs-bar span.is-active { background: #2c5f5d; }
 
+/* Tabbed Product Showcase */
+.dsf-schematic__tabbed-showcase { display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 6px 8px; }
+.dsf-schematic__tabbed-showcase-title { width: 45%; height: 12px; margin: 0 auto; border-radius: 3px; background: #cbd5e1; }
+.dsf-schematic__tabbed-showcase-tabs { display: flex; justify-content: center; gap: 6px; }
+.dsf-schematic__tabbed-showcase-tabs span { width: 24px; height: 7px; border-radius: 2px; background: #e2e8f0; }
+.dsf-schematic__tabbed-showcase-tabs span.is-active { background: #2c7fa3; }
+.dsf-schematic__tabbed-showcase-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.dsf-schematic__tabbed-showcase-cards span { height: 40px; border-radius: 3px; background: #e2e8f0; }
+
 /* Product Add to Cart */
 .dsf-schematic__product-cart { display: flex; width: 100%; padding: 10px 8px; }
 .dsf-schematic__product-cart-row { display: flex; gap: 6px; align-items: center; width: 100%; }
@@ -1953,4 +1993,9 @@ const fallbackIcon = computed(() => iconMap[props.icon] || LayoutTemplate)
 .dsf-schematic__store-steps span.is-done { background: #2c5f5d; border-color: #2c5f5d; }
 .dsf-schematic__store-steps span.is-current { border-color: #2c5f5d; }
 .dsf-schematic__store-steps i { flex: 1; height: 2px; border-radius: 2px; background: #e2e8f0; }
+/* Anchor Gallery */
+.dsf-schematic__anchor-gallery { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 6px 8px; }
+.dsf-schematic__anchor-gallery-grid { display: grid; grid-template-columns: 1.5fr repeat(2, 0.75fr); grid-template-rows: repeat(2, 18px); gap: 4px; }
+.dsf-schematic__anchor-gallery-grid span { border-radius: 4px; background: #cbd5e1; }
+.dsf-schematic__anchor-gallery-grid .dsf-schematic__anchor-gallery-feature { grid-row: span 2; background: #2c5f5d; }
 </style>

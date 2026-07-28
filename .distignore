@@ -36,6 +36,21 @@ vitest.config.js
 .idea/
 *.sublime-*
 
+# AI assistant instructions and workspace state
+.claude/
+.cursor/
+.copilot/
+.continue/
+.aider/
+.roo/
+.windsurf/
+.ai/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.cursorrules
+.clinerules
+
 # OS files
 .DS_Store
 Thumbs.db

@@ -2,7 +2,7 @@
   <Teleport to="body">
     <Transition name="dsf-page-settings">
       <div v-if="visible" class="dsf-page-settings-overlay" @click.self="close">
-        <form class="dsf-page-settings-modal" @submit.prevent="save">
+        <form class="dsf-page-settings-modal" data-dsf-help="page-settings-panel" @submit.prevent="save">
           <div class="dsf-page-settings-modal__header">
             <div>
               <h2 class="dsf-page-settings-modal__title">Page Settings</h2>

@@ -130,8 +130,25 @@ class DSF_Forms {
 				'shortcode'    => $form_id ? "[dsform id='" . $form_id . "']" : '',
 				'status'       => ( $form && 'dsf_form' === $form->post_type ) ? $form->post_status : 'draft',
 				'adminListUrl' => admin_url( 'edit.php?post_type=dsf_form' ),
+				'entriesUrl'   => $this->get_form_entries_url( $form_id ),
 			)
 		);
+	}
+
+	/**
+	 * Get the entries admin URL, optionally filtered to the current form.
+	 *
+	 * @param int $form_id Form post ID.
+	 * @return string
+	 */
+	private function get_form_entries_url( $form_id ) {
+		$args = array( 'page' => 'dsf-entries' );
+
+		if ( $form_id > 0 ) {
+			$args['form_id'] = intval( $form_id );
+		}
+
+		return add_query_arg( $args, admin_url( 'admin.php' ) );
 	}
 
 	/**
