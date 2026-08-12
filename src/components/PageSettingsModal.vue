@@ -1,9 +1,15 @@
 <template>
-  <Teleport to="body">
-    <Transition name="dsf-page-settings">
-      <div v-if="visible" class="dsf-page-settings-overlay" @click.self="close">
-        <form class="dsf-page-settings-modal" data-dsf-help="page-settings-panel" @submit.prevent="save">
-          <div class="dsf-page-settings-modal__header">
+  <!-- Embedded, Teleport is disabled so the same markup renders in place inside
+       the settings panel instead of as a dialog over the page. -->
+  <Teleport to="body" :disabled="embedded">
+    <Transition :name="embedded ? '' : 'dsf-page-settings'">
+      <div v-if="visible" :class="embedded ? 'dsf-page-settings-embedded' : 'dsf-page-settings-overlay'" @click.self="close">
+        <form
+          :class="embedded ? 'dsf-page-settings-form' : 'dsf-page-settings-modal'"
+          data-dsf-help="page-settings-panel"
+          @submit.prevent="save"
+        >
+          <div v-if="!embedded" class="dsf-page-settings-modal__header">
             <div>
               <h2 class="dsf-page-settings-modal__title">Page Settings</h2>
               <p class="dsf-page-settings-modal__subtitle">Manage WordPress details and page-level features.</p>
@@ -313,7 +319,7 @@
           </div>
 
           <div class="dsf-page-settings-modal__footer">
-            <button type="button" class="dsf-btn dsf-btn--secondary" @click="close">Cancel</button>
+            <button v-if="!embedded" type="button" class="dsf-btn dsf-btn--secondary" @click="close">Cancel</button>
             <button type="submit" class="dsf-btn dsf-btn--primary">Apply Settings</button>
           </div>
         </form>
@@ -328,6 +334,11 @@ import { X } from 'lucide-vue-next'
 
 const props = defineProps({
   visible: {
+    type: Boolean,
+    default: false,
+  },
+  // Hosted inside the settings panel: no overlay, header, or Cancel button.
+  embedded: {
     type: Boolean,
     default: false,
   },
@@ -715,6 +726,28 @@ function close() {
 </script>
 
 <style scoped>
+.dsf-page-settings-embedded,
+.dsf-page-settings-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.dsf-page-settings-embedded .dsf-page-settings-modal__tabs {
+  margin: 0 0 1rem;
+}
+
+.dsf-page-settings-embedded .dsf-page-settings-modal__body {
+  padding: 0;
+  overflow: visible;
+}
+
+.dsf-page-settings-embedded .dsf-page-settings-modal__footer {
+  padding: 1rem 0 0;
+  justify-content: flex-end;
+  border-top: 1px solid var(--dsf-gray-200);
+}
+
 .dsf-page-settings-overlay {
   position: fixed;
   inset: 0;

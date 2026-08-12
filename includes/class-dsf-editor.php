@@ -178,6 +178,15 @@ class DSF_Editor {
 				$editor_css_version
 			);
 
+			// Same checkbox/radio controls the frontend draws, so embedded form
+			// previews in the editor match what visitors see.
+			wp_enqueue_style(
+				'dsf-form-controls',
+				DSF_PLUGIN_URL . 'assets/css/form-controls.css',
+				array( 'dsf-editor' ),
+				$this->get_asset_version( 'assets/css/form-controls.css' )
+			);
+
 			wp_enqueue_script(
 				'dsf-editor',
 				DSF_PLUGIN_URL . 'assets/js/editor.js',
@@ -255,6 +264,11 @@ class DSF_Editor {
 					'header' => admin_url( 'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=header' ),
 					'footer' => admin_url( 'admin.php?page=dsf-editor&post_type=dsf_layout&dsf_layout_type=footer' ),
 				),
+				// Both payloads are needed: `language` describes the site's
+				// languages (headers preview their switcher from it) and
+				// `translation` describes this object's siblings.
+				'language'                => $this->get_language_payload( $post_id ),
+				'translation'             => $this->get_translation_payload( $post_id ),
 				'blocks'                  => DSF_Blocks::get_instance()->get_registered_blocks(),
 				'blockPresets'            => DSF_Block_Presets::get_instance()->get_presets(),
 				'forms'                   => $this->get_available_forms(),
@@ -496,8 +510,8 @@ class DSF_Editor {
 		$context = DSF_Product_Templates::build_product_context(
 			$product_id,
 			array(
-				'related' => true,
-				'upsells' => true,
+				'related'       => true,
+				'upsells'       => true,
 				'custom_fields' => $this->get_requested_product_custom_field_keys( $post_id ),
 			)
 		);
@@ -633,6 +647,173 @@ class DSF_Editor {
 	/**
 	 * Get page data (blocks and settings)
 	 */
+	/**
+	 * Describe the site's languages for editor previews.
+	 *
+	 * Header blocks render the shared switcher from this payload, so the editor
+	 * shows the same control the frontend will. `current` is the edited object's
+	 * language rather than the request language, which in wp-admin would always
+	 * be the main one.
+	 *
+	 * @param int $post_id Post being edited.
+	 * @return array<string,mixed>
+	 */
+	private function get_language_payload( $post_id ) {
+		if ( ! class_exists( 'DSF_Language_Context' ) ) {
+			return array();
+		}
+
+		$payload = DSF_Language_Context::get_instance()->get_localized_payload();
+		if ( empty( $payload['active'] ) || ! class_exists( 'DSF_Multilingual' ) ) {
+			return $payload;
+		}
+
+		$post = absint( $post_id ) ? get_post( absint( $post_id ) ) : null;
+		if ( ! is_object( $post ) ) {
+			return $payload;
+		}
+
+		$member = DSF_Multilingual::get_instance()->get_relationships()->find_by_object( 'post', sanitize_key( $post->post_type ), absint( $post_id ) );
+		if ( is_array( $member ) ) {
+			$payload['current'] = (string) $member['language'];
+			$record             = DSF_Language_Context::describe( $member['language'] );
+			if ( ! empty( $record['direction'] ) ) {
+				$payload['dir'] = (string) $record['direction'];
+			}
+		}
+
+		return $payload;
+	}
+
+	/**
+	 * Describe the language state of the object being edited.
+	 *
+	 * The dock uses this to show which languages exist, which are missing, and
+	 * what the editor is actually allowed to do. Every action it offers is
+	 * re-checked on the server, so this payload is presentation only.
+	 *
+	 * @param int   $post_id       Post being edited.
+	 * @param mixed $relationships Optional relationship service override for tests.
+	 * @return array<string,mixed>
+	 */
+	private function get_translation_payload( $post_id, $relationships = null ) {
+		$settings = DSF_Multilingual_Settings::get_settings();
+		$payload  = array(
+			'active'    => false,
+			'ready'     => false,
+			'current'   => '',
+			'main'      => (string) $settings['main_language'],
+			'isMain'    => true,
+			'canClone'  => false,
+			'notice'    => '',
+			'nonce'     => '',
+			'languages' => array(),
+		);
+
+		// Configured is enough to show the control. Whether its actions are
+		// available is a separate question, answered below — a site mid-setup
+		// should see why translating is paused, not an control that vanished.
+		$configured = ! empty( $settings['enabled'] ) && count( $settings['languages'] ) > 1;
+		if ( ! $configured || ! class_exists( 'DSF_Multilingual' ) || ! class_exists( 'DSF_Language_Context' ) ) {
+			return $payload;
+		}
+
+		$post_id = absint( $post_id );
+		$post    = $post_id ? get_post( $post_id ) : null;
+		if ( ! is_object( $post ) ) {
+			return $payload;
+		}
+
+		$post_type = sanitize_key( $post->post_type );
+		if ( ! in_array( $post_type, DSF_Multilingual_Adapters::relationship_post_types(), true ) ) {
+			// This object is not translated as a separate per-language object.
+			return $payload;
+		}
+
+		$payload['active'] = true;
+		$payload['ready']  = DSF_Language_Context::get_instance()->is_active();
+		$payload['notice'] = $payload['ready'] ? '' : $this->translation_paused_notice( $settings );
+
+		// Resolving the coordinator boots every multilingual hook, so it is only
+		// touched when a caller did not supply the service itself.
+		$relationships = is_object( $relationships ) ? $relationships : DSF_Multilingual::get_instance()->get_relationships();
+		$member        = $relationships->find_by_object( 'post', $post_type, $post_id );
+
+		// A page that has never been saved has no group row yet. The languages
+		// are still known, so the control lists them rather than disappearing.
+		$language = is_array( $member ) ? (string) $member['language'] : (string) $settings['main_language'];
+
+		$payload['current'] = $language;
+		$payload['isMain']  = $language === $settings['main_language'];
+		$payload['nonce']   = wp_create_nonce( 'dsf_translation_actions' );
+
+		if ( '' === $payload['notice'] ) {
+			if ( ! is_array( $member ) ) {
+				$payload['notice'] = __( 'Save this page once to start translating it.', 'designstudio-flow' );
+			} elseif ( ! $payload['isMain'] ) {
+				$payload['notice'] = __( 'Translations are created from the main language.', 'designstudio-flow' );
+			}
+		}
+
+		$payload['canClone'] = $payload['ready']
+			&& $payload['isMain']
+			&& is_array( $member )
+			&& current_user_can( 'edit_post', $post_id );
+
+		foreach ( DSF_Multilingual_Settings::get_enabled_language_codes( $settings ) as $code ) {
+			$record = DSF_Language_Context::describe( $code );
+			if ( empty( $record ) ) {
+				continue;
+			}
+
+			$entry = array(
+				'code'      => $code,
+				'label'     => $record['native_label'],
+				'isMain'    => $code === $settings['main_language'],
+				'isCurrent' => $code === $language,
+				'postId'    => 0,
+				'state'     => 'missing',
+				'editUrl'   => '',
+			);
+
+			$sibling = is_array( $member ) ? $relationships->find_member( $member['group_uuid'], $code ) : null;
+			if ( is_array( $sibling ) ) {
+				$sibling_id       = absint( $sibling['object_id'] );
+				$entry['postId']  = $sibling_id;
+				$entry['state']   = 'publish' === get_post_status( $sibling_id ) ? 'published' : 'draft';
+				$entry['editUrl'] = (string) get_edit_post_link( $sibling_id, 'raw' );
+			} elseif ( ! is_array( $member ) && $entry['isCurrent'] ) {
+				// Unsaved, but this is the language it will belong to.
+				$entry['postId'] = $post_id;
+				$entry['state']  = 'publish' === get_post_status( $post_id ) ? 'published' : 'draft';
+			}
+
+			$payload['languages'][] = $entry;
+		}
+
+		return $payload;
+	}
+
+	/**
+	 * Explain why translating is unavailable on a configured site.
+	 *
+	 * @param array $settings Multilingual settings.
+	 * @return string
+	 */
+	private function translation_paused_notice( $settings ) {
+		// feature_state only reaches "enabled" once the content migration is
+		// complete, so anything else is a setup problem. A configured, migrated
+		// site that is still inactive can only be blocked by a conflicting plugin.
+		if ( 'enabled' !== ( $settings['feature_state'] ?? '' ) ) {
+			if ( 'failed' === ( $settings['migration_state'] ?? '' ) ) {
+				return __( 'Language setup stopped before it finished. Open Settings → Languages and save to resume it.', 'designstudio-flow' );
+			}
+			return __( 'Language setup is still assigning existing content. Translating becomes available once it finishes.', 'designstudio-flow' );
+		}
+
+		return __( 'Another multilingual plugin is active, so translating is paused until it is disabled.', 'designstudio-flow' );
+	}
+
 	private function get_page_data( $post_id ) {
 		if ( ! $post_id ) {
 			return array(
@@ -740,29 +921,29 @@ class DSF_Editor {
 				'template'         => 'default',
 			),
 			'popup'  => array(
-				'enabled'        => false,
-				'type'           => 'content',
-				'headline'       => 'Limited time offer',
-				'body'           => '<p>Add your popup message here.</p>',
-				'image'          => '',
-				'imageAlt'       => '',
-				'imagePosition'  => 'top',
-				'buttonText'     => 'Learn more',
-				'buttonUrl'      => '#',
-				'openNewTab'     => false,
-				'width'          => 'medium',
-				'position'       => 'center',
-				'delaySeconds'   => 3,
-				'startDate'      => '',
-				'endDate'        => '',
-				'cookieDuration' => 24,
-				'cookieUnit'     => 'hours',
-				'showOverlay'    => true,
-				'closeOnOverlay' => true,
-				'showClose'      => true,
+				'enabled'         => false,
+				'type'            => 'content',
+				'headline'        => 'Limited time offer',
+				'body'            => '<p>Add your popup message here.</p>',
+				'image'           => '',
+				'imageAlt'        => '',
+				'imagePosition'   => 'top',
+				'buttonText'      => 'Learn more',
+				'buttonUrl'       => '#',
+				'openNewTab'      => false,
+				'width'           => 'medium',
+				'position'        => 'center',
+				'delaySeconds'    => 3,
+				'startDate'       => '',
+				'endDate'         => '',
+				'cookieDuration'  => 24,
+				'cookieUnit'      => 'hours',
+				'showOverlay'     => true,
+				'closeOnOverlay'  => true,
+				'showClose'       => true,
 				'backgroundColor' => '#FFFFFF',
-				'textColor'      => '#1F2937',
-				'accentColor'    => '#2C5F5D',
+				'textColor'       => '#1F2937',
+				'accentColor'     => '#2C5F5D',
 			),
 		);
 	}
@@ -1097,7 +1278,7 @@ class DSF_Editor {
 		// Fallback: try to get fonts from theme customizer settings
 		if ( empty( $fonts ) ) {
 			$theme_mods = get_theme_mods();
-			
+
 			$font_settings = array(
 				'heading_font_family',
 				'body_font_family',

@@ -29,7 +29,11 @@ class DSF_History {
 	}
 
 	private function __construct() {
-		add_action( 'init', array( $this, 'maybe_install' ), 2 );
+		// Deferred to admin/cron: the version check is a non-autoloaded option read,
+		// and history is only ever written from editor/save requests anyway.
+		if ( DSF_Runtime::is_maintenance_request() ) {
+			add_action( 'init', array( $this, 'maybe_install' ), 2 );
+		}
 	}
 
 	public static function table_name() {
@@ -264,6 +268,23 @@ class DSF_History {
 		if ( is_wp_error( $target ) ) {
 			return $target;
 		}
+		if ( $this->payload_requests_public_state( $target ) ) {
+			if ( ! current_user_can( 'edit_post', $post_id ) || ! current_user_can( 'publish_post', $post_id ) ) {
+				return new WP_Error( 'dsf_history_publish_forbidden', 'You are not allowed to restore a public version of this object.' );
+			}
+			if ( class_exists( 'DSF_Multilingual' ) ) {
+				$incoming = array(
+					'post_title'   => $target['post_title'],
+					'post_name'    => $target['post_name'],
+					'post_excerpt' => isset( $post->post_excerpt ) ? $post->post_excerpt : '',
+					'post_content' => isset( $post->post_content ) ? $post->post_content : '',
+				);
+				$eligible = DSF_Multilingual::get_instance()->get_publish_gate()->evaluate_post( $post_id, true, false, $incoming );
+				if ( is_wp_error( $eligible ) ) {
+					return $eligible;
+				}
+			}
+		}
 		$target_hash = hash( 'sha256', $this->canonical_json( $target ) );
 		if ( $current_hash === $target_hash ) {
 			return array(
@@ -310,11 +331,28 @@ class DSF_History {
 			return new WP_Error( 'dsf_history_restore_failed', 'The previous version could not be restored.' );
 		}
 		delete_post_meta( $post_id, '_dsf_html_snapshot' );
+		if ( get_post_status( $post_id ) !== $target['post_status'] ) {
+			return new WP_Error( 'dsf_history_restore_blocked', 'The requested public state did not pass publication checks.' );
+		}
 		$this->prune( 'post', $post_id, '', $post->post_type );
 		return array(
 			'message' => 'Version restored.',
 			'hash'    => $target_hash,
 		);
+	}
+
+	/** Whether a sanitized restore payload publishes or activates an object. */
+	private function payload_requests_public_state( $payload ) {
+		if ( in_array( $payload['post_status'] ?? '', array( 'publish', 'future' ), true ) ) {
+			return true;
+		}
+		$meta = isset( $payload['meta'] ) && is_array( $payload['meta'] ) ? $payload['meta'] : array();
+		foreach ( array( '_dsf_pt_active', '_dsf_st_active', '_dsf_bt_active' ) as $key ) {
+			if ( ! empty( $meta[ $key ] ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public function prune( $source_kind, $source_id = 0, $source_key = '', $source_type = '' ) {
@@ -427,7 +465,16 @@ class DSF_History {
 			'dsf_form'             => array( '_dsf_form_rows', '_dsf_form_settings' ),
 			'dsf_popup'            => array( '_dsf_popup_settings' ),
 		);
-		return $map[ sanitize_key( $post_type ) ] ?? array();
+
+		$keys = $map[ sanitize_key( $post_type ) ] ?? array();
+		if ( empty( $keys ) ) {
+			return $keys;
+		}
+
+		// Translation confirmation flags are part of an object's restorable
+		// state. Capturing the blocks but not these would restore content an
+		// editor then has to re-confirm before it can publish again.
+		return array_merge( $keys, array( '_dsf_translation_title_confirmed', '_dsf_translation_slug_confirmed' ) );
 	}
 
 	private function normalize_settings_payload( $source_key, $value ) {

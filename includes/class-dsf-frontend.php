@@ -86,8 +86,11 @@ class DSF_Frontend {
 	}
 
 	/**
-	 * Add Flow-specific theme markers so targeted CSS fixes can be scoped to a
-	 * known active theme instead of becoming global form behavior.
+	 * Add Flow-specific theme markers for site-specific CSS.
+	 *
+	 * These are hooks for per-site tweaks only. The Gravity Forms repairs
+	 * themselves are no longer gated on them — a form inside a Flow block has to
+	 * render correctly on any theme, so those styles apply unconditionally.
 	 *
 	 * @param string[] $classes Existing body classes.
 	 * @return string[]
@@ -104,7 +107,7 @@ class DSF_Frontend {
 	}
 
 	/**
-	 * Whether the current site needs targeted Gravity Forms theme-repair CSS.
+	 * Whether the current theme gets the extra site-specific body markers.
 	 *
 	 * @return bool
 	 */
@@ -378,6 +381,15 @@ class DSF_Frontend {
 			$frontend_theme_version
 		);
 
+		// Checkbox/radio controls for forms embedded in Flow blocks. Enqueued after
+		// the block CSS so it wins over themes that restyle choice inputs site-wide.
+		wp_enqueue_style(
+			'dsf-form-controls',
+			DSF_PLUGIN_URL . 'assets/css/form-controls.css',
+			array( 'dsf-frontend' ),
+			$this->get_asset_version( 'assets/css/form-controls.css' )
+		);
+
 		if ( $is_dev ) {
 			wp_enqueue_script(
 				'dsf-frontend-vite',
@@ -426,6 +438,12 @@ class DSF_Frontend {
 			'storeContext'       => $this->build_store_context_for_js(),
 			'siteContext'        => $this->site_context,
 			'breadcrumbs'        => class_exists( 'DSF_SEO' ) ? DSF_SEO::get_instance()->get_current_breadcrumb_trail() : array(),
+			// The browser must never infer the language from the URL path; the
+			// server resolves it once and hands the result to the client.
+			'language'           => class_exists( 'DSF_Language_Context' ) ? DSF_Language_Context::get_instance()->get_localized_payload() : array(),
+			// Resolved on the server from reviewed, published siblings only. The
+			// browser never builds a language URL for itself.
+			'languageSwitcher'   => class_exists( 'DSF_Language_Switcher' ) ? DSF_Language_Switcher::get_instance()->get_items() : array(),
 		);
 
 		wp_localize_script( 'dsf-frontend-app', 'dsfFrontendData', $frontend_data );
@@ -2613,7 +2631,10 @@ class DSF_Frontend {
 
 		$changes = array();
 		foreach ( array_merge( (array) $page_ids, (array) $template_ids ) as $post_id ) {
-			$post_id  = absint( $post_id );
+			$post_id = absint( $post_id );
+			if ( ! apply_filters( 'dsf_default_layout_cascade_allows_post', true, $post_id, $layout_id, $type ) ) {
+				continue;
+			}
 			$settings = get_post_meta( $post_id, '_dsf_settings', true );
 			if ( ! is_array( $settings ) ) {
 				$decoded  = $settings ? json_decode( $settings, true ) : array();

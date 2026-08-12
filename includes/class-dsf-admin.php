@@ -158,6 +158,18 @@ class DSF_Admin {
 	 * Add settings submenu after feature-specific menus.
 	 */
 	public function add_settings_submenu() {
+		$multilingual = DSF_Multilingual_Settings::get_settings();
+		if ( ! empty( $multilingual['enabled'] ) ) {
+			add_submenu_page(
+				'designstudio-flow',
+				__( 'Translations', 'designstudio-flow' ),
+				__( 'Translations', 'designstudio-flow' ),
+				'edit_posts',
+				'dsf-translations',
+				array( $this, 'render_translations_page' )
+			);
+		}
+
 		add_submenu_page(
 			'designstudio-flow',
 			__( 'Settings', 'designstudio-flow' ),
@@ -166,6 +178,16 @@ class DSF_Admin {
 			'dsf-settings',
 			array( $this, 'render_settings_page' )
 		);
+	}
+
+	/**
+	 * Render the central translation review dashboard.
+	 */
+	public function render_translations_page() {
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_die( esc_html__( 'You do not have permission to review translations.', 'designstudio-flow' ) );
+		}
+		require DSF_PLUGIN_DIR . 'templates/admin-translations.php';
 	}
 
 	/**

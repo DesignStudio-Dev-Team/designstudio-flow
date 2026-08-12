@@ -40,34 +40,18 @@ final class DesignStudio_Flow {
 	 * Load required files
 	 */
 	private function load_dependencies() {
-		// Core classes.
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-crypto.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-history.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-post-type.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-admin.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-editor.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-ajax.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-frontend.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-tracking-code.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-popup.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-notification-bar.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-blocks.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-product-templates.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-store-pages.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-shop-templates.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-site-pages.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-blog-templates.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-seo.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-block-presets.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-forms.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-connections.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-entries.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-import-export.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-package.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-gf-migration.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-redirects.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-mail-smtp.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-update-checker.php';
+		// Classes load on demand through the autoloader (see DSF_Runtime). Only the
+		// two files with load-time side effects are required up front:
+		//
+		//  - DSF_Runtime itself, which registers the autoloader.
+		//  - The update checker, which self-registers at the bottom of its file and
+		//    is referenced by nothing, so nothing would ever autoload it.
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-runtime.php';
+		DSF_Runtime::register_autoloader();
+
+		if ( DSF_Runtime::is_maintenance_request() ) {
+			require_once DSF_PLUGIN_DIR . 'includes/class-dsf-update-checker.php';
+		}
 	}
 
 	/**
@@ -83,13 +67,19 @@ final class DesignStudio_Flow {
 
 		// Load text domain.
 		add_action( 'init', array( $this, 'load_textdomain' ) );
-		add_action( 'init', array( $this, 'handle_pending_rewrite_flush' ), 99 );
+		// Both of these read non-autoloaded options that are only ever set by an
+		// admin action or activation, so they are pointless on frontend page views.
+		if ( DSF_Runtime::is_maintenance_request() ) {
+			add_action( 'init', array( $this, 'handle_pending_rewrite_flush' ), 99 );
+		}
 	}
 
 	/**
 	 * Initialize plugin components
 	 */
 	public function init_components() {
+		// Multilingual foundation services must intercept every later save path.
+		DSF_Multilingual::get_instance();
 		// Quick Restore history storage is available to every save path.
 		DSF_History::get_instance();
 		// Initialize post type.
@@ -101,14 +91,25 @@ final class DesignStudio_Flow {
 		// SEO meta output for DSF-rendered URLs (defers to Yoast/Rank Math/etc).
 		DSF_SEO::get_instance();
 		DSF_Tracking_Code::get_instance();
-		$this->migrate_legacy_flow_pages();
+		// One-time content migration; its "already done" flag is a non-autoloaded
+		// option, so only look for it where the migration could actually run.
+		if ( DSF_Runtime::is_maintenance_request() ) {
+			$this->migrate_legacy_flow_pages();
+		}
 
 		// Initialize admin.
 		if ( is_admin() ) {
 			DSF_Admin::get_instance();
 			DSF_Editor::get_instance();
-			DSF_Ajax::get_instance();
+			// DSF_Ajax registers nothing but wp_ajax_* handlers, which can only fire
+			// on admin-ajax.php. Constructing it on ordinary admin screens parsed the
+			// plugin's largest file for hooks that could never run. Other classes
+			// reach its sanitizers through get_instance(), which autoloads on demand.
+			if ( wp_doing_ajax() ) {
+				DSF_Ajax::get_instance();
+			}
 			DSF_Popup::get_instance();
+			DSF_Translation_Overlay_Admin::get_instance()->register_hooks();
 		}
 
 		// Initialize frontend (always needed for rendering).
@@ -128,14 +129,25 @@ final class DesignStudio_Flow {
 			DSF_GF_Migration::get_instance();
 		}
 
-		// Initialize blocks.
-		DSF_Blocks::get_instance();
+		// Blocks are deliberately NOT instantiated here. Building the registry means
+		// materializing ~80 block schemas as nested arrays, which only the editor,
+		// the AJAX save/sanitize paths, and pages that actually render Flow blocks
+		// ever read. Every consumer goes through DSF_Blocks::get_instance(), so the
+		// registry builds on first use and costs nothing on requests that never
+		// touch a block. Add-ons hooking `dsf_register_blocks` are unaffected: the
+		// action now fires later, giving them strictly more time to register.
 	}
 
 	/**
 	 * Plugin activation
 	 */
-	public function activate() {
+	public function activate( $network_wide = false ) {
+		$network_wide = (bool) $network_wide;
+		if ( $network_wide && is_multisite() ) {
+			$epoch = absint( get_site_option( DSF_Multilingual::NETWORK_ACTIVATION_EPOCH_OPTION, 0 ) );
+			update_site_option( DSF_Multilingual::NETWORK_ACTIVATION_EPOCH_OPTION, $epoch + 1 );
+		}
+
 		// Create custom tables if needed.
 		$this->create_tables();
 
@@ -146,6 +158,16 @@ final class DesignStudio_Flow {
 
 		// Set default options.
 		$this->set_default_options();
+
+		// A previously enabled site may have received content while this plugin was
+		// inactive. Reconcile it without changing existing group identities.
+		$multilingual = DSF_Multilingual_Settings::get_settings();
+		if ( ! empty( $multilingual['enabled'] ) ) {
+			DSF_Multilingual::get_instance()->get_migration()->start( true );
+		}
+		if ( $network_wide && is_multisite() ) {
+			DSF_Multilingual::get_instance()->mark_current_site_activation_epoch();
+		}
 	}
 
 	/**
@@ -155,6 +177,9 @@ final class DesignStudio_Flow {
 		// Stop the email-log pruning cron.
 		if ( class_exists( 'DSF_Mail_SMTP' ) ) {
 			wp_clear_scheduled_hook( DSF_Mail_SMTP::CLEANUP_HOOK );
+		}
+		if ( class_exists( 'DSF_Multilingual_Migration' ) ) {
+			wp_clear_scheduled_hook( DSF_Multilingual_Migration::CRON_HOOK );
 		}
 
 		flush_rewrite_rules();
@@ -185,6 +210,7 @@ final class DesignStudio_Flow {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
 		DSF_History::install();
+		DSF_Multilingual::install();
 	}
 
 	/**
@@ -192,19 +218,20 @@ final class DesignStudio_Flow {
 	 */
 	private function set_default_options() {
 		$defaults = array(
-			'dsf_version'              => DSF_VERSION,
-			'dsf_default_colors'       => array(
+			'dsf_version'               => DSF_VERSION,
+			'dsf_default_colors'        => array(
 				'primary'    => '#3B82F6',
 				'secondary'  => '#1E40AF',
 				'text'       => '#1F2937',
 				'background' => '#FFFFFF',
 			),
-			'dsf_enabled_post_types'   => array( 'page' ),
-			'dsf_recaptcha_enabled'    => false,
-			'dsf_recaptcha_site_key'   => '',
-			'dsf_recaptcha_secret_key' => '',
-			'dsf_recaptcha_threshold'  => 0.5,
-			'dsf_notification_bar'     => DSF_Notification_Bar::get_defaults(),
+			'dsf_enabled_post_types'    => array( 'page' ),
+			'dsf_recaptcha_enabled'     => false,
+			'dsf_recaptcha_site_key'    => '',
+			'dsf_recaptcha_secret_key'  => '',
+			'dsf_recaptcha_threshold'   => 0.5,
+			'dsf_notification_bar'      => DSF_Notification_Bar::get_defaults(),
+			'dsf_multilingual_settings' => DSF_Multilingual_Settings::get_defaults( function_exists( 'get_locale' ) ? get_locale() : '' ),
 		);
 
 		foreach ( $defaults as $key => $value ) {

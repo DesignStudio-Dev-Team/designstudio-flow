@@ -36,6 +36,35 @@ describe('ProductAddToCartPreview', () => {
     expect(w.find('.dsf-product-cart__placeholder').exists()).toBe(true)
   })
 
+  /*
+   * A product that is not sold online (no price, or flagged by the Syndified
+   * plugin) reaches the frontend with an empty cart form. Visitors must never see
+   * the editor's "appears here on the live product page" hint in its place.
+   */
+  it('hides the editor placeholder from visitors on the frontend', () => {
+    const w = mountCart({}, { addToCartHtml: '' }, { isEditor: false })
+    expect(w.find('.dsf-product-cart__placeholder').exists()).toBe(false)
+  })
+
+  it('renders the Syndified CTAs instead of the cart form when not sold online', () => {
+    const w = mountCart(
+      {},
+      {
+        addToCartHtml: '',
+        priceHtml: '',
+        permalink: '/products/syndicated-hot-tub',
+        isSoldOnline: false,
+        ctaButtons: [{ label: 'Find a Dealer' }, { label: 'Request a Quote' }],
+      }
+    )
+
+    const ctas = w.findAll('.dsf-product-cart__cta')
+    expect(ctas.map((c) => c.text())).toEqual(['Find a Dealer', 'Request a Quote'])
+    expect(ctas[0].attributes('href')).toBe('/products/syndicated-hot-tub')
+    expect(w.find('.dsf-product-cart__price').exists()).toBe(false)
+    expect(w.find('.dsf-product-cart__placeholder').exists()).toBe(false)
+  })
+
   it('applies center alignment and button color', () => {
     const w = mountCart({ alignment: 'center', buttonColor: '#ff0000' }, { addToCartHtml: CART_HTML }, { isEditor: true })
     expect(w.find('.dsf-product-cart').attributes('style')).toContain('text-align: center')

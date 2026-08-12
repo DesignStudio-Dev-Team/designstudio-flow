@@ -1,0 +1,1 @@
+import{_ as e,k as t}from"./_plugin-vue_export-helper-DPkvz0M9.js";t();function n(){return{site:e(()=>{if(typeof window>`u`)return null;let e=window.dsfFrontendData?.siteContext;return e&&typeof e==`object`?e:null})}}export{n as t};

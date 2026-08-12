@@ -1175,7 +1175,29 @@ body > .dsf-confirm-overlay .dsf-confirm-btn--danger:hover {
   flex: 0 0 auto;
 }
 
+/* The centre group is the dock's midpoint; the dividers either side of it keep
+   the two halves visually balanced. */
+#dsf-editor-app .dsf-dock__group--centre { margin: 0 2px; }
+
 #dsf-editor-app .dsf-dock__preview-picker { position: relative; }
+
+/* Save opens the same style of upward popup the preview picker uses. */
+#dsf-editor-app .dsf-dock__save-picker { position: relative; }
+
+#dsf-editor-app .dsf-dock__save-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 14px);
+  z-index: 6;
+  display: grid;
+  min-width: 196px;
+  padding: 6px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 13px;
+  background: rgb(25 29 35 / 98%);
+  box-shadow: 0 18px 42px rgb(0 0 0 / 42%), inset 0 1px 0 rgb(255 255 255 / 8%);
+  transform-origin: bottom right;
+}
 
 /* A compact upward-opening picker keeps responsive choices close to the dock
    without permanently consuming three icon slots. */

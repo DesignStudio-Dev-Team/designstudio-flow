@@ -2,11 +2,12 @@
   <aside class="dsf-panel" data-dsf-help="theme-panel">
     <div class="dsf-panel__header">
       <div>
-        <h2 class="dsf-panel__title">Theme Settings</h2>
-        <p class="dsf-panel__subtitle">Customize colors and typography</p>
+        <h2 class="dsf-panel__title">Settings</h2>
+        <p class="dsf-panel__subtitle">{{ activeTab === 'page' ? pageSubtitle : 'Customize colors and typography' }}</p>
       </div>
       <div class="dsf-theme-panel__actions">
         <button
+          v-if="activeTab === 'theme'"
           class="dsf-theme-panel__undo"
           type="button"
           :disabled="!canUndo"
@@ -21,8 +22,32 @@
         </button>
       </div>
     </div>
-    
-    <div class="dsf-panel__body">
+
+    <div class="dsf-settings-panel__tabs" role="tablist" aria-label="Settings sections">
+      <button
+        v-if="showPageTab"
+        type="button"
+        role="tab"
+        :aria-selected="activeTab === 'page'"
+        :class="{ 'is-active': activeTab === 'page' }"
+        data-dsf-help="settings-tab-page"
+        @click="selectTab('page')"
+      >Page</button>
+      <button
+        type="button"
+        role="tab"
+        :aria-selected="activeTab === 'theme'"
+        :class="{ 'is-active': activeTab === 'theme' }"
+        data-dsf-help="settings-tab-theme"
+        @click="selectTab('theme')"
+      >Theme</button>
+    </div>
+
+    <div v-if="showPageTab" v-show="activeTab === 'page'" class="dsf-panel__body">
+      <slot name="page"></slot>
+    </div>
+
+    <div v-show="activeTab === 'theme'" class="dsf-panel__body">
       <div class="dsf-theme-panel__site-defaults">
         <div>
           <strong>Site theme defaults</strong>
@@ -264,13 +289,27 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { X, Type, Undo2 } from 'lucide-vue-next'
 import ColorPicker from './common/ColorPicker.vue'
 import FontPicker from './common/FontPicker.vue'
 
 const props = defineProps({
   settings: Object,
+  // The page tab is hidden for objects that have no WordPress page settings,
+  // such as layouts and the saved-block editor.
+  showPageTab: {
+    type: Boolean,
+    default: false,
+  },
+  initialTab: {
+    type: String,
+    default: 'page',
+  },
+  pageSubtitle: {
+    type: String,
+    default: 'Manage WordPress details and page-level features.',
+  },
   defaultTheme: {
     type: Object,
     default: () => ({
@@ -297,7 +336,23 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['close', 'update:settings', 'undo-theme', 'restore-defaults'])
+const emit = defineEmits(['close', 'update:settings', 'undo-theme', 'restore-defaults', 'tab-change'])
+
+const activeTab = ref( props.showPageTab && props.initialTab !== 'theme' ? 'page' : 'theme' )
+
+// Watch the two scalars separately: a getter returning a fresh array compares by
+// reference, so it would fire on every render and snap the tab back on click.
+const syncTab = () => {
+  activeTab.value = props.showPageTab && props.initialTab !== 'theme' ? 'page' : 'theme'
+}
+
+watch(() => props.initialTab, syncTab)
+watch(() => props.showPageTab, syncTab)
+
+function selectTab(tab) {
+  activeTab.value = tab
+  emit('tab-change', tab)
+}
 
 const headerTemplates = computed(() => props.layoutTemplates?.headers || [])
 const footerTemplates = computed(() => props.layoutTemplates?.footers || [])
@@ -369,6 +424,40 @@ function formatTemplateOption(template) {
 </script>
 
 <style scoped>
+.dsf-settings-panel__tabs {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--dsf-gray-200);
+}
+
+.dsf-settings-panel__tabs button {
+  padding: 0.6rem 0.85rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--dsf-gray-600, #4b5563);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dsf-settings-panel__tabs button:hover {
+  color: var(--dsf-gray-900, #111827);
+}
+
+.dsf-settings-panel__tabs button.is-active {
+  color: var(--dsf-primary, #2c5f5d);
+  border-bottom-color: currentColor;
+}
+
+.dsf-settings-panel__tabs button:focus-visible {
+  outline: 2px solid var(--dsf-primary, #2c5f5d);
+  outline-offset: -2px;
+}
+
 .dsf-theme-panel__actions,
 .dsf-theme-panel__undo {
   display: flex;

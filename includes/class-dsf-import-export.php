@@ -314,6 +314,13 @@ class DSF_Import_Export {
 			$item['layout_type'] = in_array( $layout_type, array( 'header', 'footer' ), true ) ? $layout_type : 'header';
 		}
 
+		$translation = self::export_translation_identity( $post );
+		if ( ! empty( $translation ) ) {
+			// Portable group identity travels instead of numeric IDs, so a group
+			// can be rebuilt on a site where every ID is different.
+			$item['translation'] = $translation;
+		}
+
 		foreach ( $this->get_meta_keys_for_type( $post->post_type ) as $key ) {
 			$value = get_post_meta( $post->ID, $key, true );
 			if ( '' === $value || null === $value ) {
@@ -323,6 +330,116 @@ class DSF_Import_Export {
 		}
 
 		return $item;
+	}
+
+	/**
+	 * Describe an object's translation membership in a portable form.
+	 *
+	 * Review facts are deliberately excluded: an approval belongs to the source
+	 * version on the site where a human gave it, and must be earned again after
+	 * an import.
+	 *
+	 * @param WP_Post $post Post being exported.
+	 * @return array<string,string>
+	 */
+	public static function export_translation_identity( $post, $relationships = null ) {
+		$relationships = self::translation_relationships( $relationships );
+		if ( ! $relationships || ! is_object( $post ) || empty( $post->post_type ) ) {
+			return array();
+		}
+
+		$member = $relationships->find_by_object(
+			'post',
+			sanitize_key( $post->post_type ),
+			absint( $post->ID )
+		);
+		if ( ! is_array( $member ) ) {
+			return array();
+		}
+
+		return array(
+			'group_uuid' => (string) $member['group_uuid'],
+			'language'   => (string) $member['language'],
+		);
+	}
+
+	/**
+	 * Rebuild one imported object's translation membership.
+	 *
+	 * Runs after every object in a payload exists, so a group's members map onto
+	 * each other rather than onto whichever ID happened to import first. A group
+	 * that already has a member for the language is left alone: an import must
+	 * never silently replace an existing translation.
+	 *
+	 * @param int   $post_id     Imported post ID.
+	 * @param array $translation Portable identity from the payload.
+	 * @return bool Whether membership was recorded.
+	 */
+	public static function restore_translation_identity( $post_id, $translation, $relationships = null ) {
+		$relationships = self::translation_relationships( $relationships );
+		if ( ! $relationships || ! is_array( $translation ) ) {
+			return false;
+		}
+
+		$settings = DSF_Multilingual_Settings::get_settings();
+		if ( empty( $settings['enabled'] ) ) {
+			return false;
+		}
+
+		$post_id  = absint( $post_id );
+		$post     = $post_id ? get_post( $post_id ) : null;
+		$language = DSF_Multilingual_Settings::normalize_locale_code( $translation['language'] ?? '' );
+		$group    = DSF_Translation_Relationships::normalize_group_uuid( $translation['group_uuid'] ?? '' );
+
+		if ( ! is_object( $post ) || '' === $language || '' === $group ) {
+			return false;
+		}
+		if ( ! in_array( $language, DSF_Multilingual_Settings::get_enabled_language_codes( $settings ), true ) ) {
+			return false;
+		}
+
+		$post_type = sanitize_key( $post->post_type );
+
+		$existing = $relationships->find_by_object( 'post', $post_type, $post_id );
+		if ( is_array( $existing ) ) {
+			$relationships->remove_member( 'post', $post_type, $post_id );
+		}
+
+		$occupied = $relationships->find_member( $group, $language );
+		if ( is_array( $occupied ) ) {
+			// The slot belongs to existing content. Re-create the import as its
+			// own single-member group rather than colliding with a translation
+			// somebody already reviewed.
+			$created = $relationships->create_group( 'post', $post_type, $post_id, $language );
+			return is_array( $created );
+		}
+
+		$added = $relationships->add_member( $group, 'post', $post_type, $post_id, $language );
+		if ( $added instanceof WP_Error || ! is_array( $added ) ) {
+			$created = $relationships->create_group( 'post', $post_type, $post_id, $language );
+			return is_array( $created );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Resolve the relationship service, or null when multilingual is unavailable.
+	 *
+	 * The parameter is the seam tests use; production callers pass nothing and
+	 * get the shared coordinator's service.
+	 *
+	 * @param mixed $relationships Optional service override.
+	 * @return object|null
+	 */
+	private static function translation_relationships( $relationships = null ) {
+		if ( is_object( $relationships ) ) {
+			return $relationships;
+		}
+		if ( ! class_exists( 'DSF_Multilingual' ) ) {
+			return null;
+		}
+		return DSF_Multilingual::get_instance()->get_relationships();
 	}
 
 	private function stream_export( $items ) {
@@ -612,9 +729,10 @@ class DSF_Import_Export {
 	 * @param string     $status       Post status for the new post.
 	 * @param bool       $import_media Whether to sideload referenced media.
 	 * @param array|null $media_source Optional url => local-path map (package import).
+	 * @param bool       $defer_publication Keep requested public objects draft for a multi-pass importer.
 	 * @return int|false New post ID, or false on failure/unsupported type.
 	 */
-	public function import_item( $item, $status, $import_media = false, $media_source = null ) {
+	public function import_item( $item, $status, $import_media = false, $media_source = null, $defer_publication = false ) {
 		if ( ! is_array( $item ) || empty( $item ) ) {
 			return false;
 		}
@@ -631,11 +749,16 @@ class DSF_Import_Export {
 		$title   = isset( $item['title'] ) ? sanitize_text_field( $item['title'] ) : '';
 		$slug    = isset( $item['slug'] ) ? sanitize_title( $item['slug'] ) : '';
 		$excerpt = isset( $item['excerpt'] ) ? wp_kses_post( $item['excerpt'] ) : '';
+		$publish_requested = in_array( $status, array( 'publish', 'future' ), true );
+		if ( $publish_requested && ! current_user_can( 'publish_pages' ) ) {
+			return false;
+		}
+		$insert_status = $publish_requested && $defer_publication ? 'draft' : $status;
 
 		$post_id = wp_insert_post(
 			array(
 				'post_type'    => $post_type,
-				'post_status'  => $status,
+				'post_status'  => $insert_status,
 				'post_title'   => $title ? $title : __( 'Imported', 'designstudio-flow' ),
 				'post_name'    => $slug,
 				'post_excerpt' => $excerpt,
@@ -677,6 +800,18 @@ class DSF_Import_Export {
 		// normal post so the front end renders its post_content, not empty blocks.
 		if ( in_array( $post_type, array( 'page', 'post' ), true ) && ! empty( $meta['_dsf_blocks'] ) ) {
 			update_post_meta( $post_id, '_dsf_enabled', true );
+		}
+
+		if ( ! empty( $item['translation'] ) ) {
+			// Membership is restored before publication is considered, so the gate
+			// evaluates the object in the language it actually belongs to.
+			self::restore_translation_identity( $post_id, $item['translation'] );
+		}
+		if ( $publish_requested && ! $defer_publication ) {
+			$published = DSF_Multilingual::get_instance()->get_publish_gate()->finalize_new_post_publication( $post_id );
+			if ( is_wp_error( $published ) ) {
+				return false;
+			}
 		}
 
 		return $post_id;

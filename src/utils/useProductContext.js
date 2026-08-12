@@ -23,12 +23,16 @@ export const PRODUCT_PLACEHOLDER = Object.freeze({
   reviewCount: 0,
 })
 
+// Used on the frontend when no product could be resolved. Every product block
+// renders its fields conditionally, so an empty product renders nothing.
+const EMPTY_PRODUCT = Object.freeze({})
+
 /**
  * Resolve the current product the product blocks should render.
  *
  * The product data is provided by the app root (a ref in the editor, the viewed
  * product on the frontend). Falls back to the localized window data (for snapshot
- * rendering) and finally to a safe placeholder so blocks never crash.
+ * rendering) and finally to a safe empty/placeholder product so blocks never crash.
  *
  * @returns {{ product: import('vue').ComputedRef<object> }}
  */
@@ -43,6 +47,13 @@ export function useProductContext() {
       const fromWindow =
         window.dsfFrontendData?.currentProduct || window.dsfEditorData?.currentProduct
       if (fromWindow && typeof fromWindow === 'object') return fromWindow
+
+      // The placeholder is editor scaffolding: it invents a name and a $49.00
+      // price. On the frontend an unresolved product means the page genuinely has
+      // none, and a visitor must never be shown a made-up price.
+      if (window.dsfFrontendData && !window.dsfEditorData) {
+        return EMPTY_PRODUCT
+      }
     }
 
     return PRODUCT_PLACEHOLDER

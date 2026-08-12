@@ -5,7 +5,7 @@
       <!-- Canvas -->
       <div 
         class="dsf-canvas"
-        :class="{ 'dsf-canvas--with-panel': selectedBlock || showThemePanel }"
+        :class="{ 'dsf-canvas--with-panel': selectedBlock || showSettingsPanel }"
       >
         <div 
           class="dsf-canvas__inner"
@@ -77,23 +77,27 @@
         @update:anchor="updateBlockAnchor"
       />
       
-      <!-- Theme Panel -->
+      <!-- Settings panel: page settings and theme in one place. -->
       <ThemePanel
-        v-if="showThemePanel"
+        v-if="showSettingsPanel"
         :settings="pageSettings"
         :default-theme="SITE_DEFAULT_THEME"
         :can-undo="themeHistory.length > 0"
         :post-type="postType"
         :layout-templates="layoutTemplates"
         :layout-create-urls="layoutCreateUrls"
-        @close="showThemePanel = false"
+        :show-page-tab="supportsPageSettings"
+        :initial-tab="settingsTab"
+        @close="showSettingsPanel = false"
+        @tab-change="onSettingsTabChange"
         @update:settings="updatePageSettings"
         @undo-theme="undoThemeChange"
         @restore-defaults="restoreSiteThemeDefaults"
-      />
-
+      >
+        <template #page>
       <PageSettingsModal
-        :visible="showPageSettings"
+        embedded
+        :visible="true"
         :title="pageTitle"
         :slug="pageSlug"
         :status="currentPostStatus"
@@ -116,9 +120,11 @@
         :site-name="wpData.siteName || ''"
         :page-url="currentViewUrl"
         :product-categories="productCategories"
-        @close="showPageSettings = false"
+        @close="showSettingsPanel = false"
         @save="updatePageDetails"
       />
+        </template>
+      </ThemePanel>
     </div>
 
     <!-- Floating action dock (replaces the old top bar) -->
@@ -132,7 +138,6 @@
       @view="openView"
       @save="handleSave"
       @set-preview-mode="setPreviewMode"
-      @open-theme="openTheme"
       @open-settings="openPageSettings"
       @save-as-template="openSaveTemplate"
       @add-block="openBlockLibrary"
@@ -321,6 +326,9 @@ const isSavedBlockEditor = wpData.postType === 'dsf_saved_block'
 const postType = wpData.postType === 'dsf_layout' ? 'dsf_layout' : 'page'
 const layoutType = wpData.layoutType === 'footer' ? 'footer' : 'header'
 const isTemplateEditor = postType === 'dsf_layout'
+// Layouts and saved blocks have no WordPress page of their own, so the settings
+// panel opens straight on Theme for them.
+const supportsPageSettings = computed(() => !isTemplateEditor && !isSavedBlockEditor)
 // A product template designs a reusable single-product page; its product blocks
 // bind to a sample product in the editor and to the viewed product on the frontend.
 // NOTE: wp_localize_script() casts top-level scalars to strings, so a PHP boolean
@@ -570,8 +578,8 @@ const previewMode = ref('desktop')
 const selectedBlock = ref(null)
 const selectedBlockId = ref(null)
 const showBlockLibrary = ref(false)
-const showThemePanel = ref(false)
-const showPageSettings = ref(false)
+const showSettingsPanel = ref(false)
+const settingsTab = ref('page')
 const showStructure = ref(false)
 const deleteConfirmVisible = ref(false)
 const showHistory = ref(false)
@@ -604,7 +612,11 @@ const helpContext = computed(() => {
   if (showBlockLibrary.value) return { title: 'Choose a block', tip: 'Browse categories or search, then select a block to add it to this page.' }
   if (showStructure.value) return { title: 'Organize your page', tip: 'Use Structure to jump to, rename, and reorder blocks.' }
   if (showHistory.value) return { title: 'Restore a version', tip: 'History lets you review and restore earlier saved versions of this page.' }
-  if (showThemePanel.value) return { title: 'Set the page theme', tip: 'Theme controls page-wide colors, typography, and layout defaults.' }
+  if (showSettingsPanel.value) {
+    return settingsTab.value === 'theme'
+      ? { title: 'Set the page theme', tip: 'Theme controls page-wide colors, typography, and layout defaults.' }
+      : { title: 'Review page settings', tip: 'Page holds the WordPress title, slug, status, SEO, and popup for this page.' }
+  }
   if (selectedBlock.value) return { title: 'Customize this block', tip: 'Use Content for copy and Style for colors, spacing, and background settings.' }
   if (!blocks.value.length) return { title: 'Start your page', tip: 'Choose Add block from the dock to add your first section.' }
   return { title: 'Build with blocks', tip: 'Select a block to customize it, or use Add block to add another section.' }
@@ -806,7 +818,7 @@ function animatePanel(selector, fromX) {
 function selectBlock(block) {
   selectedBlock.value = block
   selectedBlockId.value = block.id
-  showThemePanel.value = false
+  showSettingsPanel.value = false
   animateAfterRender(() => {
     const wrapper = document.getElementById('block-' + block.id)
     const toolbar = wrapper?.querySelector('.dsf-block-toolbar')
@@ -821,19 +833,30 @@ function selectBlock(block) {
 function openBlockSettings(block) {
   selectedBlock.value = block
   selectedBlockId.value = block.id
-  showThemePanel.value = false
+  showSettingsPanel.value = false
+}
+
+function openSettingsPanel(tab) {
+  settingsTab.value = supportsPageSettings.value && tab !== 'theme' ? 'page' : 'theme'
+  showSettingsPanel.value = true
+  mobileDockMenuOpen.value = false
 }
 
 function openPageSettings() {
-  showPageSettings.value = true
-  mobileDockMenuOpen.value = false
+  openSettingsPanel('page')
   if (onboardingStep.value === 'dock') onboardingStep.value = 'page-settings-detail'
 }
 
 function openTheme() {
-  showThemePanel.value = true
-  mobileDockMenuOpen.value = false
+  openSettingsPanel('theme')
   if (onboardingStep.value === 'theme') onboardingStep.value = 'theme-detail'
+}
+
+// The tour highlights the Theme tab at its 'theme' step, so switching to it is
+// what advances the tour — the same role the old dock button played.
+function onSettingsTabChange(tab) {
+  settingsTab.value = tab === 'theme' ? 'theme' : 'page'
+  if (tab === 'theme' && onboardingStep.value === 'theme') onboardingStep.value = 'theme-detail'
 }
 
 function openHelp() {
@@ -858,13 +881,16 @@ function advanceOnboarding() {
   const nextStep = {
     'page-settings-detail': 'theme',
     'theme-detail': 'preview',
-    preview: 'organize',
+    preview: 'save',
+    save: 'organize',
     organize: 'add',
     settings: 'background',
   }[onboardingStep.value]
   if (!nextStep) return
-  if (onboardingStep.value === 'page-settings-detail') showPageSettings.value = false
-  if (onboardingStep.value === 'theme-detail') showThemePanel.value = false
+  // Leaving page settings walks the tour onto the Theme tab, so the panel stays
+  // open until the theme step is done with it.
+  if (onboardingStep.value === 'page-settings-detail') settingsTab.value = 'theme'
+  if (onboardingStep.value === 'theme-detail') showSettingsPanel.value = false
   onboardingStep.value = nextStep
 }
 
@@ -1597,7 +1623,7 @@ function updatePageDetails(details) {
     nextSettings.seo = { ...details.seo }
   }
   pageSettings.value = nextSettings
-  showPageSettings.value = false
+  showSettingsPanel.value = false
 }
 
 function updatePageSettings(newSettings) {
@@ -1956,8 +1982,8 @@ watch(() => [pageSettings.value?.theme?.headingFont, pageSettings.value?.theme?.
   { immediate: true }
 )
 
-watch([selectedBlock, showThemePanel], ([block, themeVisible]) => {
-  if (block || themeVisible) animatePanel('#dsf-editor-app .dsf-panel', 28)
+watch([selectedBlock, showSettingsPanel], ([block, panelVisible]) => {
+  if (block || panelVisible) animatePanel('#dsf-editor-app .dsf-panel', 28)
 })
 
 watch(showBlockLibrary, (visible) => {
@@ -1972,18 +1998,6 @@ watch(showBlockLibrary, (visible) => {
         { autoAlpha: 1, x: 0, duration: 0.4, ease: 'power3.out', clearProps: 'transform,opacity,visibility' }
       )
     }
-  })
-})
-
-watch(showPageSettings, (visible) => {
-  if (!visible) return
-  animateAfterRender(() => {
-    const modal = document.querySelector('.dsf-page-settings-modal')
-    if (!modal) return
-    gsap.fromTo(modal,
-      { autoAlpha: 0, y: 18, scale: 0.975 },
-      { autoAlpha: 1, y: 0, scale: 1, duration: 0.34, ease: 'power3.out', clearProps: 'transform,opacity,visibility' }
-    )
   })
 })
 

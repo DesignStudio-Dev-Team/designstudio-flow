@@ -741,6 +741,10 @@ class DSF_Package {
 	 * @return array|WP_Error Result counts, or an error whose code drives the notice.
 	 */
 	public function import_from_zip( $zip_path, $status, $import_settings ) {
+		$publish_requested = in_array( $status, array( 'publish', 'future' ), true );
+		if ( $publish_requested && ! current_user_can( 'publish_pages' ) ) {
+			return new WP_Error( 'forbidden', __( 'You are not allowed to publish imported content.', 'designstudio-flow' ) );
+		}
 		$dir = $this->extract_package( $zip_path );
 		if ( is_wp_error( $dir ) ) {
 			return $dir;
@@ -775,13 +779,15 @@ class DSF_Package {
 		$domains  = $manifest['domains'];
 		$id_map   = array();
 		$posts    = 0;
+		$created  = array();
 		$template = $this->template_domains();
 
 		// Pass 1a — generic post domains, in dependency order.
 		foreach ( array_keys( $this->post_domains() ) as $domain ) {
 			foreach ( $this->domain_items( $domains, $domain ) as $item ) {
-				$new_id = $ie->import_item( $item, $status, true, $media_source );
+				$new_id = $ie->import_item( $item, $status, true, $media_source, true );
 				if ( $new_id ) {
+					$created[] = $new_id;
 					$this->after_post_import( $new_id, $item, $media_source, $ie );
 					if ( ! empty( $item['uid'] ) ) {
 						$id_map[ $item['uid'] ] = $new_id;
@@ -794,11 +800,12 @@ class DSF_Package {
 		// Pass 1b — theme-builder templates + resolve their assignment by slug.
 		foreach ( $template as $domain => $conf ) {
 			foreach ( $this->domain_items( $domains, $domain ) as $item ) {
-				$new_id = $ie->import_item( $item, $status, true, $media_source );
+				$new_id = $ie->import_item( $item, $status, true, $media_source, true );
 				if ( ! $new_id ) {
 					continue;
 				}
 				$this->apply_assignment( $new_id, isset( $item['assignment'] ) ? $item['assignment'] : array(), $conf );
+				$created[] = $new_id;
 				if ( ! empty( $item['uid'] ) ) {
 					$id_map[ $item['uid'] ] = $new_id;
 				}
@@ -811,6 +818,7 @@ class DSF_Package {
 		foreach ( $this->domain_items( $domains, 'forms' ) as $form ) {
 			$new_id = $this->import_form( $form, $status );
 			if ( $new_id ) {
+				$created[] = $new_id;
 				if ( ! empty( $form['uid'] ) ) {
 					$id_map[ $form['uid'] ] = $new_id;
 				}
@@ -827,6 +835,29 @@ class DSF_Package {
 			$this->import_settings( isset( $domains['settings'] ) ? $domains['settings'] : array(), $id_map );
 			$this->import_redirects( isset( $domains['redirects'] ) ? $domains['redirects'] : array() );
 			$did_settings = true;
+		}
+
+		if ( $publish_requested ) {
+			$gate = DSF_Multilingual::get_instance()->get_publish_gate();
+			foreach ( $created as $post_id ) {
+				$preflight = $gate->preflight_new_post_publication( $post_id );
+				if ( is_wp_error( $preflight ) ) {
+					$this->rrmdir( $dir );
+					return new WP_Error( 'publish_blocked', __( 'Imported content remained draft because publication checks did not pass.', 'designstudio-flow' ) );
+				}
+			}
+			$published = array();
+			foreach ( $created as $post_id ) {
+				$result = $gate->finalize_new_post_publication( $post_id );
+				if ( is_wp_error( $result ) ) {
+					foreach ( $published as $published_id ) {
+						wp_update_post( array( 'ID' => $published_id, 'post_status' => 'draft' ) );
+					}
+					$this->rrmdir( $dir );
+					return new WP_Error( 'publish_blocked', __( 'Imported content remained draft because publication checks did not pass.', 'designstudio-flow' ) );
+				}
+				$published[] = $post_id;
+			}
 		}
 
 		$this->rrmdir( $dir );
@@ -1111,11 +1142,16 @@ class DSF_Package {
 		$title    = isset( $form['title'] ) ? sanitize_text_field( $form['title'] ) : __( 'Imported Form', 'designstudio-flow' );
 		$slug     = isset( $form['slug'] ) ? sanitize_title( $form['slug'] ) : '';
 		$settings = isset( $form['settings'] ) && is_array( $form['settings'] ) ? $form['settings'] : array();
+		$publish_requested = in_array( $status, array( 'publish', 'future' ), true );
+		if ( $publish_requested && ! current_user_can( 'publish_pages' ) ) {
+			return false;
+		}
 
-		$new_id = wp_insert_post(
+		$insert_status = $publish_requested ? 'draft' : $status;
+		$new_id        = wp_insert_post(
 			array(
 				'post_type'   => 'dsf_form',
-				'post_status' => $status,
+				'post_status' => $insert_status,
 				'post_title'  => $title,
 				'post_name'   => $slug,
 			),

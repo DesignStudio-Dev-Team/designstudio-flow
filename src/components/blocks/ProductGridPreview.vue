@@ -303,19 +303,30 @@
                     </template>
                   </div>
                   <div class="dsf-product-card-preview__meta">
-                    <div v-if="settings.showPrice !== false" class="dsf-product-card-preview__price">{{ product.price || '$99.00' }}</div>
+                    <div v-if="settings.showPrice !== false && product.price" class="dsf-product-card-preview__price">{{ product.price }}</div>
                     <div v-if="product.rating > 0" class="dsf-product-card-preview__rating">
                       <Star v-for="s in 5" :key="s" :size="12" :class="s <= Math.round(product.rating) ? 'dsf-star--filled' : 'dsf-star--empty'" />
                     </div>
                   </div>
-                  <button
-                    v-if="settings.showButton !== false && product.price_num"
-                    type="button"
-                    class="dsf-product-card-preview__btn"
-                    :class="cartButtonClass(product)"
-                    :disabled="cartState[product.id] === 'loading'"
-                    @click.stop.prevent="handleAddToCart(product)"
-                  >{{ cartButtonLabel(product) }}</button>
+                  <template v-if="settings.showButton !== false">
+                    <button
+                      v-if="product.price_num"
+                      type="button"
+                      class="dsf-product-card-preview__btn"
+                      :class="cartButtonClass(product)"
+                      :disabled="cartState[product.id] === 'loading'"
+                      @click.stop.prevent="handleAddToCart(product)"
+                    >{{ cartButtonLabel(product) }}</button>
+                    <!-- Not sold online: Syndified's own CTAs replace the cart button. -->
+                    <template v-else>
+                      <a
+                        v-for="(cta, ctaIndex) in ctaButtonsFor(product)"
+                        :key="ctaIndex"
+                        :href="product.permalink || '#'"
+                        class="dsf-product-card-preview__btn dsf-product-card-preview__btn--cta"
+                      >{{ cta.label }}</a>
+                    </template>
+                  </template>
                 </div>
               </template>
 
@@ -355,7 +366,7 @@
                       </template>
                     </template>
                   </div>
-                  <div v-if="settings.showPrice !== false" class="dsf-product-card-preview__price">{{ product.price || '$99.00' }}</div>
+                  <div v-if="settings.showPrice !== false && product.price" class="dsf-product-card-preview__price">{{ product.price }}</div>
                 </div>
               </template>
 
@@ -385,19 +396,30 @@
                       </template>
                     </div>
                     <div class="dsf-product-card-preview__meta">
-                      <div v-if="settings.showPrice !== false" class="dsf-product-card-preview__price">{{ product.price || '$99.00' }}</div>
+                      <div v-if="settings.showPrice !== false && product.price" class="dsf-product-card-preview__price">{{ product.price }}</div>
                       <div v-if="product.rating > 0" class="dsf-product-card-preview__rating">
                         <Star v-for="s in 5" :key="s" :size="11" :class="s <= Math.round(product.rating) ? 'dsf-star--filled' : 'dsf-star--empty'" />
                       </div>
                     </div>
-                    <button
-                      v-if="settings.showButton !== false && product.price_num"
-                      type="button"
-                      class="dsf-product-card-preview__btn"
-                      :class="cartButtonClass(product)"
-                      :disabled="cartState[product.id] === 'loading'"
-                      @click.stop.prevent="handleAddToCart(product)"
-                    >{{ cartButtonLabel(product) }}</button>
+                    <template v-if="settings.showButton !== false">
+                      <button
+                        v-if="product.price_num"
+                        type="button"
+                        class="dsf-product-card-preview__btn"
+                        :class="cartButtonClass(product)"
+                        :disabled="cartState[product.id] === 'loading'"
+                        @click.stop.prevent="handleAddToCart(product)"
+                      >{{ cartButtonLabel(product) }}</button>
+                      <!-- Not sold online: Syndified's own CTAs replace the cart button. -->
+                      <template v-else>
+                        <a
+                          v-for="(cta, ctaIndex) in ctaButtonsFor(product)"
+                          :key="ctaIndex"
+                          :href="product.permalink || '#'"
+                          class="dsf-product-card-preview__btn dsf-product-card-preview__btn--cta"
+                        >{{ cta.label }}</a>
+                      </template>
+                    </template>
                   </div>
                 </div>
               </template>
@@ -638,7 +660,10 @@ const gridStyle = computed(() => {
 })
 
 const sourceProducts = computed(() => {
-  const items = products.value.length > 0 ? products.value : (isWooActive.value ? [] : demoProducts)
+  // The demo set carries invented prices to give the editor canvas something to
+  // lay out; it is never shown to visitors, even with WooCommerce switched off.
+  const placeholders = props.isEditor && !isWooActive.value ? demoProducts : []
+  const items = products.value.length > 0 ? products.value : placeholders
 
   if (props.settings?.source !== 'category' || selectedSourceCategoryIds.value.length === 0) {
     return items
@@ -1097,6 +1122,16 @@ function cartButtonClass(product) {
     'dsf-product-card-preview__btn--added': cartState[product.id] === 'added',
     'dsf-product-card-preview__btn--error': cartState[product.id] === 'error',
   }
+}
+
+/**
+ * Call-to-action buttons to show in place of "Add to Cart" for a product that is
+ * not sold online. The server supplies these from the Syndified plugin's own
+ * per-product CTA settings; products it does not manage simply get none, and the
+ * card falls back to its image/title links.
+ */
+function ctaButtonsFor(product) {
+  return Array.isArray(product.cta_buttons) ? product.cta_buttons : []
 }
 
 function goToPage(page) {
@@ -1844,6 +1879,17 @@ async function fetchProducts() {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* CTA shown instead of "Add to Cart" when a product is not sold online. */
+.dsf-product-card-preview__btn--cta {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.dsf-product-card-preview__btn--cta + .dsf-product-card-preview__btn--cta {
+  margin-top: 0.5rem;
 }
 
 /* ── Classic ───────────────────────────────────────────────────────────────── */
