@@ -68,6 +68,24 @@ describe('form-controls.css', () => {
     expect(css).toContain('flex-wrap: wrap !important')
   })
 
+  it('draws the AJAX spinner rather than leaving a bare box', () => {
+    // Gravity Forms appends <span class="gform-loader"> inside the clicked button
+    // and draws the ring in its own CSS; sized but undrawn it reads as a square.
+    expect(css).toContain('.gform-loader')
+    expect(css).toContain('[id^="gform_ajax_spinner_"]')
+    expect(css).toContain('border: 2px solid currentColor !important')
+    expect(css).toContain('border-top-color: transparent !important')
+    expect(css).toContain('animation: dsf-form-spin 0.6s linear infinite !important')
+    expect(css).toContain('@keyframes dsf-form-spin')
+    expect(css).toContain('@media (prefers-reduced-motion: reduce)')
+  })
+
+  it('only sizes a real spinner image, since it animates itself', () => {
+    expect(css).toContain('img:is(.gform_ajax_spinner, [id^="gform_ajax_spinner_"])')
+    // The drawn ring must not be applied to an <img>.
+    expect(css).toContain(':is(.gform-loader, [id^="gform_ajax_spinner_"]):not(img)')
+  })
+
   it('leaves native Flow form buttons to forms.css', () => {
     // Only the comment may name them; no rule may target them.
     rules.forEach((selector) => {

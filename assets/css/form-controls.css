@@ -374,6 +374,66 @@
   cursor: default !important;
 }
 
+/* ── AJAX spinner ───────────────────────────────────── */
+/* On an AJAX submit, Gravity Forms appends `<span class="gform-loader">` inside
+   the button that was clicked and leaves the ring itself to its own CSS. With
+   that CSS absent the span is a bare box — sized by us, given a solid border by
+   a reset theme's `* { border: 0 solid }` — which reads as a grey square next to
+   "Next". So we draw the ring here.
+   `currentColor` is deliberate: the spinner lives inside the button, so it
+   inherits white on the primary button and the accent on the secondary one,
+   without needing to know which button was clicked. */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  .gform_wrapper
+  :is(.gform-loader, [id^="gform_ajax_spinner_"]):not(img) {
+  box-sizing: border-box !important;
+  display: inline-block !important;
+  flex: none !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  margin: 0 0 0 0.55rem !important;
+  padding: 0 !important;
+  border: 2px solid currentColor !important;
+  border-top-color: transparent !important;
+  border-radius: 50% !important;
+  background: none !important;
+  vertical-align: middle !important;
+  opacity: 0.9 !important;
+  animation: dsf-form-spin 0.6s linear infinite !important;
+}
+
+/* Older Gravity Forms (and some add-ons) use a real spinner image instead —
+   that already animates itself, so it only needs sizing. */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  .gform_wrapper
+  img:is(.gform_ajax_spinner, [id^="gform_ajax_spinner_"]) {
+  width: 16px !important;
+  height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  margin: 0 0 0 0.55rem !important;
+  border: 0 !important;
+  vertical-align: middle !important;
+}
+
+@keyframes dsf-form-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+    .gform_wrapper
+    :is(.gform-loader, [id^="gform_ajax_spinner_"]):not(img) {
+    animation: none !important;
+  }
+}
+
 /* The footer is the only thing positioning these buttons once Gravity Forms'
    own CSS is absent, so it owns the row: Previous and Next side by side, the
    AJAX spinner after them, wrapping instead of overflowing on narrow columns. */

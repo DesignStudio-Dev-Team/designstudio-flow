@@ -435,18 +435,8 @@ function injectGravityFormOverrides() {
   margin-bottom: 0 !important;
 }
 
-[data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_ajax_spinner,
-[data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform-loader,
-[data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] [id^="gform_ajax_spinner_"] {
-  width: 16px !important;
-  height: 16px !important;
-  max-width: 16px !important;
-  max-height: 16px !important;
-  min-width: 16px !important;
-  min-height: 16px !important;
-  margin-left: .5rem !important;
-  border-width: 2px !important;
-}
+/* The AJAX spinner is drawn in assets/css/form-controls.css — sizing it here
+   without drawing the ring is what turned it into a bare square. */
 
 [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="image"]),
 [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper select,
@@ -1378,20 +1368,7 @@ onBeforeUnmount(() => {
   max-width: 48%;
 }
 
-.dsf-form-with-content__form-frontend :deep(.gform_ajax_spinner),
-.dsf-form-with-content__form-frontend :deep(.gform-loader),
-.dsf-form-with-content__form-frontend :deep([id^="gform_ajax_spinner_"]) {
-  width: 16px !important;
-  height: 16px !important;
-  max-width: 16px !important;
-  max-height: 16px !important;
-  margin-left: 0.5rem !important;
-  vertical-align: middle !important;
-}
-
-.dsf-form-with-content__form-frontend :deep(.gform-loader) {
-  border-width: 2px !important;
-}
+/* The AJAX spinner is drawn in assets/css/form-controls.css. */
 
 /* Checkbox/radio choices are styled in assets/css/form-controls.css — it has to
    outrank theme rules that restyle choice inputs site-wide, which scoped block
