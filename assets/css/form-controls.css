@@ -13,6 +13,11 @@
  * ourselves on the text element's ::before. The result is identical on every
  * theme, whether or not Gravity Forms' own CSS is enqueued.
  *
+ * The same applies to the form's buttons (see the Buttons section at the bottom).
+ * A CSS-reset theme strips `background`, `border`, and `padding` from every
+ * `button`, and with no Gravity Forms CSS to restore them, Submit/Next/Previous
+ * render as bare text.
+ *
  * Specificity note: the scope lists below start with `#dsf-frontend-app` so the
  * whole selector carries ID-level specificity. Themes reach for
  * `#dsf-frontend-app .gfield-choice-input { display: none !important }`-style
@@ -22,14 +27,25 @@
 /* ── Tokens ─────────────────────────────────────────── */
 :is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
   :is(.gform_wrapper, .dsf-form, .dsf-form-wrap) {
+  /* One accent for every control in the form, taken from the page's theme so a
+     form always matches the page it sits on. */
+  --dsf-form-accent: var(--dsf-theme-primary, var(--dsf-form-primary, #2563eb));
+
   --dsf-choice-size: 20px;
   --dsf-choice-gap: 0.625rem;
   --dsf-choice-radius: 4px;
   --dsf-choice-border: #94a3b8;
   --dsf-choice-border-width: 1.5px;
   --dsf-choice-bg: #ffffff;
-  --dsf-choice-accent: var(--dsf-theme-primary, var(--dsf-form-primary, #2563eb));
+  --dsf-choice-accent: var(--dsf-form-accent);
   --dsf-choice-disabled-bg: #f1f5f9;
+
+  --dsf-btn-accent: var(--dsf-form-accent);
+  --dsf-btn-radius: 8px;
+  --dsf-btn-min-height: 44px;
+  --dsf-btn-padding: 0.7rem 1.35rem;
+  --dsf-btn-border-width: 1.5px;
+  --dsf-btn-bg: #ffffff;
 }
 
 /* ── Choice list + row layout ───────────────────────── */
@@ -286,4 +302,88 @@
     grid-auto-flow: row !important;
     grid-auto-columns: auto !important;
   }
+}
+
+/* ── Buttons ────────────────────────────────────────── */
+/* Gravity Forms' buttons only. Native Flow forms style their own buttons
+   (.dsf-form-nav__btn in forms.css) and are deliberately left alone.
+   Every property a reset theme zeroes out is restated, because a Tailwind-style
+   preflight (`button { background: transparent; padding: 0 }` plus
+   `* { border: 0 solid }`) leaves nothing of a button behind. */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  .gform_wrapper
+  :is(.gform_button, .gform_next_button, .gform_previous_button, .gform_save_link, .gform_button_select_files) {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  max-width: 100% !important;
+  min-height: var(--dsf-btn-min-height) !important;
+  margin: 0 !important;
+  padding: var(--dsf-btn-padding) !important;
+  border: var(--dsf-btn-border-width) solid transparent !important;
+  border-radius: var(--dsf-btn-radius) !important;
+  background-color: var(--dsf-btn-accent) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  text-indent: 0 !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  /* iOS gives input[type="submit"] its own rounded chrome otherwise. */
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  transition: background-color 0.15s ease, filter 0.15s ease !important;
+}
+
+/* Secondary actions: going back, or picking a file, should not compete with the
+   action that moves the form forward. */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  .gform_wrapper
+  :is(.gform_previous_button, .gform_save_link, .gform_button_select_files) {
+  border-color: var(--dsf-btn-accent) !important;
+  background-color: var(--dsf-btn-bg) !important;
+  color: var(--dsf-btn-accent) !important;
+}
+
+/* `filter` rather than a second colour token: it darkens whatever accent the
+   page's theme supplies, with no support caveats. */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  .gform_wrapper
+  :is(.gform_button, .gform_next_button, .gform_previous_button, .gform_save_link, .gform_button_select_files):hover:not(:disabled) {
+  filter: brightness(0.92) !important;
+}
+
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  .gform_wrapper
+  :is(.gform_button, .gform_next_button, .gform_previous_button, .gform_save_link, .gform_button_select_files):focus-visible {
+  outline: 2px solid var(--dsf-btn-accent) !important;
+  outline-offset: 2px !important;
+}
+
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  .gform_wrapper
+  :is(.gform_button, .gform_next_button, .gform_previous_button):disabled {
+  opacity: 0.6 !important;
+  filter: none !important;
+  cursor: default !important;
+}
+
+/* The footer is the only thing positioning these buttons once Gravity Forms'
+   own CSS is absent, so it owns the row: Previous and Next side by side, the
+   AJAX spinner after them, wrapping instead of overflowing on narrow columns. */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  .gform_wrapper
+  :is(.gform_footer, .gform_page_footer, .gform-page-footer) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  margin: 1.25rem 0 0 !important;
+  padding: 0 !important;
 }

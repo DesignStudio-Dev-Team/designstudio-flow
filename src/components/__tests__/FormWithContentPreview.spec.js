@@ -155,11 +155,13 @@ describe('FormWithContentPreview', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     const style = document.getElementById('dsf-form-with-content-gravity-overrides')
-    // Typography for choice labels may stay; control layout and appearance may not.
+    // Typography for choice labels and buttons may stay; control layout and
+    // appearance may not — form-controls.css is the only authority for those.
     expect(style.textContent).not.toContain('.gchoice {')
     expect(style.textContent).not.toContain('.gchoice > label')
     expect(style.textContent).not.toContain('input[type="checkbox"]')
     expect(style.textContent).not.toContain('accent-color')
+    expect(style.textContent).not.toContain('.gform_previous_button {')
   })
 
   it('sets Gravity Forms legend spacing inline so theme label rules cannot win', async () => {

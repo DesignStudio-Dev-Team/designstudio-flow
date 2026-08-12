@@ -43,9 +43,36 @@ describe('form-controls.css', () => {
   })
 
   it('draws the control from theme tokens so it matches the page palette', () => {
-    expect(css).toContain('--dsf-choice-accent: var(--dsf-theme-primary')
+    expect(css).toContain('--dsf-form-accent: var(--dsf-theme-primary')
+    expect(css).toContain('--dsf-choice-accent: var(--dsf-form-accent)')
     expect(css).toContain('input[type="radio"]')
     expect(css).toContain('border-radius: 50% !important')
+  })
+
+  it('restores Gravity Forms buttons that a reset theme strips', () => {
+    // A Tailwind-style preflight zeroes background, border and padding on every
+    // <button>; with no Gravity Forms CSS loaded, each has to be restated.
+    ;['.gform_button', '.gform_next_button', '.gform_previous_button'].forEach((selector) => {
+      expect(css).toContain(selector)
+    })
+    expect(css).toContain('background-color: var(--dsf-btn-accent) !important')
+    expect(css).toContain('min-height: var(--dsf-btn-min-height) !important')
+    expect(css).toContain('padding: var(--dsf-btn-padding) !important')
+    expect(css).toContain('appearance: none !important')
+  })
+
+  it('gives Previous a secondary treatment and lays the footer out as a row', () => {
+    expect(css).toContain('background-color: var(--dsf-btn-bg) !important')
+    expect(css).toContain('color: var(--dsf-btn-accent) !important')
+    expect(css).toContain('.gform_page_footer')
+    expect(css).toContain('flex-wrap: wrap !important')
+  })
+
+  it('leaves native Flow form buttons to forms.css', () => {
+    // Only the comment may name them; no rule may target them.
+    rules.forEach((selector) => {
+      expect(selector).not.toContain('.dsf-form-nav__btn')
+    })
   })
 
   it('keeps a native control where there is no label to draw on', () => {

@@ -467,16 +467,9 @@ function injectGravityFormOverrides() {
   min-height: 110px !important;
 }
 
-[data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_button,
-[data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_next_button,
-[data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper .gform_previous_button {
-  margin: .75rem .5rem 0 0 !important;
-  padding: .75rem 1.2rem !important;
-  border: 0 !important;
-  border-radius: 6px !important;
-  cursor: pointer !important;
-  text-indent: 0 !important;
-}
+/* Buttons are styled in assets/css/form-controls.css, for the same reason the
+   choice controls are: a reset theme strips them and only ID-level specificity
+   wins the argument back. */
 
 [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .akismet-fields-container {
   display: none !important;

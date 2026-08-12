@@ -1697,7 +1697,7 @@ class DSF_Frontend {
 		$output  = '<div class="' . esc_attr( $outer_class ) . '" style="' . esc_attr( $theme_style ) . '">';
 		$output .= '<div class="' . esc_attr( $inner_class ) . '">';
 		if ( $use_loading_cover ) {
-			$output .= '<div class="dsf-landing-loader" role="status" aria-live="polite"><div class="dsf-landing-loader__content"><span class="dsf-landing-loader__mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>' . esc_html__( 'Loading DesignStudio Flow', 'designstudio-flow' ) . '</span></div></div>';
+			$output .= '<div class="dsf-landing-loader" role="status" aria-live="polite"><div class="dsf-landing-loader__content"><span class="dsf-landing-loader__mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>' . esc_html__( 'Loading page', 'designstudio-flow' ) . '</span></div></div>';
 		}
 		$output .= '<div id="dsf-frontend-app" class="dsf-wrapper" data-post-id="' . intval( $post_id ) . '">';
 		if ( ! empty( $snapshot ) ) {
