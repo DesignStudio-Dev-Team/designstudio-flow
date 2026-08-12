@@ -11,7 +11,9 @@ vi.mock('../../utils/browserNavigation', () => ({
   navigateToUrl: mocks.navigateToUrl,
 }))
 
-function mountGrid(settings = {}) {
+// The demo product set only renders in the editor, so tests that exercise the
+// filter/search/URL logic against it mount with isEditor: true.
+function mountGrid(settings = {}, isEditor = false) {
   return mount(ProductGridPreview, {
     props: {
       settings: {
@@ -25,7 +27,7 @@ function mountGrid(settings = {}) {
         filterShowBrand: true,
         ...settings,
       },
-      isEditor: false,
+      isEditor,
       blockId: 'grid-1',
     },
   })
@@ -49,7 +51,7 @@ describe('ProductGridPreview', () => {
   })
 
   it('applies search within the currently filtered result set', async () => {
-    const wrapper = mountGrid()
+    const wrapper = mountGrid({}, true)
 
     await wrapper.get('input[type="checkbox"][value="Sofas"]').setValue(true)
     await wrapper.get('.dsf-product-grid-preview__search-input').setValue('Acme')
@@ -60,10 +62,13 @@ describe('ProductGridPreview', () => {
   })
 
   it('limits tag filter options to the configured product tags', async () => {
-    const wrapper = mountGrid({
-      filterShowTags: true,
-      filterTags: ['sale'],
-    })
+    const wrapper = mountGrid(
+      {
+        filterShowTags: true,
+        filterTags: ['sale'],
+      },
+      true
+    )
 
     await nextTick()
     await wrapper.findAll('.dsf-filter-group__header').find((button) => button.text().includes('Tags')).trigger('click')
@@ -80,7 +85,21 @@ describe('ProductGridPreview', () => {
   })
 
   it('stores filters in the URL, restores them on remount, and keeps search terms out of the URL', async () => {
+    // URL persistence is deliberately frontend-only, so this runs against real
+    // fetched products rather than the editor-only demo set.
+    const catalog = [
+      { id: 1, name: 'Premium Teak Chair', price: '$349.00', price_num: 349, rating: 4.8, image: '', categories: ['Chairs'], category_ids: [22], tags: [], attributes: { brand: ['Acme'] } },
+      { id: 2, name: 'Acme Lounger', price: '$229.00', price_num: 229, rating: 4.2, image: '', categories: ['Chairs'], category_ids: [22], tags: [], attributes: { brand: ['Acme'] } },
+      { id: 3, name: 'Coastal Sofa', price: '$899.00', price_num: 899, rating: 4.5, image: '', categories: ['Sofas'], category_ids: [10], tags: [], attributes: { brand: ['Coastal Living'] } },
+    ]
+    global.fetch = vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({ success: true, data: { products: catalog } }),
+    })
+    window.dsfFrontendData = { ajaxUrl: '/ajax', nonce: 'nonce', isWooActive: true }
+
     const wrapper = mountGrid()
+    await flushPromises()
+    await nextTick()
 
     await wrapper.get('input[type="checkbox"][value="Chairs"]').setValue(true)
     await nextTick()
@@ -96,6 +115,7 @@ describe('ProductGridPreview', () => {
     wrapper.unmount()
 
     const remounted = mountGrid()
+    await flushPromises()
     await nextTick()
 
     expect(remounted.get('input[type="checkbox"][value="Chairs"]').element.checked).toBe(true)
@@ -437,5 +457,90 @@ describe('ProductGridPreview', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(mocks.navigateToUrl).toHaveBeenCalledWith('/products/configurable-sofa')
+  })
+  /*
+   * Products with no price — and products the Syndified plugin marks as not sold
+   * online — must show neither a price nor an "Add to Cart" button. The server
+   * blanks price/price_num/add_to_cart_url for these, so the card has to degrade
+   * to the Syndified CTAs rather than falling back to its demo "$99.00" price.
+   */
+  function mockProducts(products) {
+    global.fetch = vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({ success: true, data: { products } }),
+    })
+    window.dsfFrontendData = { ajaxUrl: '/ajax', nonce: 'nonce', isWooActive: true }
+  }
+
+  const notSoldOnline = {
+    id: 31,
+    name: 'Syndicated Hot Tub',
+    price: '',
+    price_num: 0,
+    rating: 0,
+    image: '',
+    permalink: '/products/syndicated-hot-tub',
+    add_to_cart_url: '',
+    product_type: 'simple',
+    stock_status: 'instock',
+    categories: ['Hot Tubs'],
+    category_ids: [9],
+    tags: [],
+    attributes: {},
+    sold_online: false,
+    cta_buttons: [{ label: 'Find a Dealer' }, { label: 'Request a Quote' }],
+  }
+
+  it('shows no price and no cart button for a product that is not sold online', async () => {
+    mockProducts([notSoldOnline])
+
+    const wrapper = mountGrid({ enableFilters: false, enableSearch: false })
+    await flushPromises()
+    await nextTick()
+
+    expect(wrapper.find('.dsf-product-card-preview__price').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('$99.00')
+    expect(wrapper.find('button.dsf-product-card-preview__btn').exists()).toBe(false)
+  })
+
+  it("renders the Syndified CTAs in place of the cart button", async () => {
+    mockProducts([notSoldOnline])
+
+    const wrapper = mountGrid({ enableFilters: false, enableSearch: false })
+    await flushPromises()
+    await nextTick()
+
+    const ctas = wrapper.findAll('.dsf-product-card-preview__btn--cta')
+    expect(ctas.map((c) => c.text())).toEqual(['Find a Dealer', 'Request a Quote'])
+    expect(ctas[0].attributes('href')).toBe('/products/syndicated-hot-tub')
+  })
+
+  it('renders no CTAs when an unpriced product has none configured', async () => {
+    mockProducts([{ ...notSoldOnline, cta_buttons: [] }])
+
+    const wrapper = mountGrid({ enableFilters: false, enableSearch: false })
+    await flushPromises()
+    await nextTick()
+
+    expect(wrapper.find('.dsf-product-card-preview__btn').exists()).toBe(false)
+    expect(wrapper.find('.dsf-product-card-preview__price').exists()).toBe(false)
+  })
+  /*
+   * demoProducts carry invented prices ($349.00 …) so the editor canvas has
+   * something to lay out. With WooCommerce switched off they used to render on
+   * the frontend too, showing visitors eight products that do not exist.
+   */
+  it('renders no demo products on the frontend when WooCommerce is inactive', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({ success: false, data: {} }),
+    })
+    window.dsfFrontendData = { ajaxUrl: '/ajax', nonce: 'nonce', isWooActive: false }
+
+    const wrapper = mountGrid({ enableFilters: false, enableSearch: false })
+    await flushPromises()
+    await nextTick()
+
+    expect(wrapper.findAll('.dsf-product-card-preview').length).toBe(0)
+    expect(wrapper.text()).not.toContain('$349.00')
+    expect(wrapper.text()).not.toContain('Premium Teak Chair')
   })
 })

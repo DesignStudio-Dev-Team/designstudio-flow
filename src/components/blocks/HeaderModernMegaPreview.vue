@@ -58,6 +58,13 @@
 
       <!-- Right-side actions -->
       <div class="dsf-mmega__actions">
+        <LanguageSwitcher
+          v-if="multilingualActive"
+          class="dsf-mmega__language"
+          :variant="settings.languageSwitcherStyle || 'dropdown'"
+          :labels="settings.languageSwitcherLabels || 'native'"
+          :is-editor="isEditor"
+        />
         <form
           v-if="settings.showSearch !== false"
           class="dsf-mmega__search"
@@ -265,6 +272,8 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { ChevronDown, ChevronRight, Menu, Search, ShoppingCart, User, X } from 'lucide-vue-next'
+import LanguageSwitcher from '../common/LanguageSwitcher.vue'
+import { useMultilingual } from '../../utils/useMultilingual'
 import InlineText from '../common/InlineText.vue'
 import { iconFor } from '../../utils/landingIcons'
 import { safePublicUrl } from '../../utils/safeUrl'
@@ -275,6 +284,8 @@ const props = defineProps({
   blockId: { type: [String, Number], default: '' },
   previewMode: { type: String, default: 'desktop' },
 })
+
+const { multilingualActive } = useMultilingual()
 
 const COLUMN_LAYOUTS = ['links', 'cards', 'icons']
 

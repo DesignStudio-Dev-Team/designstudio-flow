@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Handle form submission.
 $is_settings_submission = isset( $_POST['dsf_save_settings'] ) || isset( $_POST['dsf_undo_theme_defaults'] );
 $has_valid_nonce        = isset( $_POST['dsf_settings_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['dsf_settings_nonce'] ) ), 'dsf_save_settings' );
+$dsf_settings_errors    = array();
+$dsf_settings_warnings  = array();
 
 $dsf_capture_setting = static function ( $key, $current, $next, $reason = 'settings_save' ) {
 	if ( ! class_exists( 'DSF_History' ) ) {
@@ -25,6 +27,10 @@ $dsf_capture_setting = static function ( $key, $current, $next, $reason = 'setti
 
 if ( $is_settings_submission && ! current_user_can( 'manage_options' ) ) {
 	wp_die( esc_html__( 'You are not allowed to change DesignStudio Flow settings.', 'designstudio-flow' ) );
+}
+
+if ( $is_settings_submission && ! $has_valid_nonce ) {
+	wp_die( esc_html__( 'The settings request could not be verified. Please reload the page and try again.', 'designstudio-flow' ) );
 }
 
 if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
@@ -44,8 +50,25 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 	update_option(
 		'dsf_previous_theme_defaults',
 		array(
-			'colors'     => get_option( 'dsf_default_colors', array( 'primary' => '#2C5F5D', 'secondary' => '#1E40AF', 'text' => '#1F2937', 'background' => '#FFFFFF' ) ),
-			'typography' => get_option( 'dsf_typography', array( 'mode' => 'theme', 'heading_font' => '', 'body_font' => '', 'base' => 16, 'scale' => 1.25 ) ),
+			'colors'     => get_option(
+				'dsf_default_colors',
+				array(
+					'primary'    => '#2C5F5D',
+					'secondary'  => '#1E40AF',
+					'text'       => '#1F2937',
+					'background' => '#FFFFFF',
+				)
+			),
+			'typography' => get_option(
+				'dsf_typography',
+				array(
+					'mode'         => 'theme',
+					'heading_font' => '',
+					'body_font'    => '',
+					'base'         => 16,
+					'scale'        => 1.25,
+				)
+			),
 		)
 	);
 	$enabled_post_types = array( 'page' );
@@ -88,6 +111,28 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 		);
 		update_option( DSF_Tracking_Code::OPTION_KEY, $dsf_tracking_code );
 	}
+	$dsf_twitter_site = isset( $_POST['dsf_seo_twitter_site'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_seo_twitter_site'] ) ) : '';
+	$dsf_twitter_site = preg_replace( '/[^A-Za-z0-9_]/', '', ltrim( trim( $dsf_twitter_site ), '@' ) );
+	$dsf_twitter_site = '' !== $dsf_twitter_site ? '@' . substr( $dsf_twitter_site, 0, 15 ) : '';
+
+	$dsf_social_profiles = array();
+	foreach ( array( 'facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'tiktok' ) as $dsf_network ) {
+		$dsf_profile_url = isset( $_POST[ 'dsf_seo_social_' . $dsf_network ] ) ? esc_url_raw( trim( (string) wp_unslash( $_POST[ 'dsf_seo_social_' . $dsf_network ] ) ) ) : '';
+		if ( '' !== $dsf_profile_url && preg_match( '#^https?://#i', $dsf_profile_url ) ) {
+			$dsf_social_profiles[] = $dsf_profile_url;
+		}
+	}
+
+	$dsf_seo_defaults = array(
+		'defaultSocialImage' => isset( $_POST['dsf_seo_default_image'] ) ? esc_url_raw( trim( (string) wp_unslash( $_POST['dsf_seo_default_image'] ) ) ) : '',
+		'titleSeparator'     => $dsf_title_separator,
+		'orgName'            => isset( $_POST['dsf_seo_org_name'] ) ? sanitize_text_field( wp_unslash( $_POST['dsf_seo_org_name'] ) ) : '',
+		'orgLogo'            => isset( $_POST['dsf_seo_org_logo'] ) ? esc_url_raw( trim( (string) wp_unslash( $_POST['dsf_seo_org_logo'] ) ) ) : '',
+		'twitterSite'        => $dsf_twitter_site,
+		'socialProfiles'     => $dsf_social_profiles,
+	);
+	$dsf_capture_setting( 'dsf_seo_defaults', get_option( 'dsf_seo_defaults', array() ), $dsf_seo_defaults );
+	update_option( 'dsf_seo_defaults', $dsf_seo_defaults );
 
 	// Typography defaults.
 	$typography_mode  = ( isset( $_POST['dsf_typography_mode'] ) && 'override' === $_POST['dsf_typography_mode'] ) ? 'override' : 'theme';
@@ -152,7 +197,24 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 		}
 		$stored = get_post_meta( $id, '_dsf_layout_type', true );
 		$stored = 'footer' === $stored ? 'footer' : 'header';
-		return $stored === $type ? $id : 0;
+		if ( $stored !== $type ) {
+			return 0;
+		}
+
+		$language_settings = DSF_Multilingual_Settings::get_settings();
+		if ( ! empty( $language_settings['enabled'] ) ) {
+			$relationship = DSF_Multilingual::get_instance()->get_relationships()->find_by_object( 'post', 'dsf_layout', $id );
+			if ( $relationship instanceof WP_Error ) {
+				return 0;
+			}
+			if ( is_array( $relationship ) && $relationship['language'] !== $language_settings['main_language'] ) {
+				return 0;
+			}
+			if ( ! is_array( $relationship ) && 'complete' === $language_settings['migration_state'] ) {
+				return 0;
+			}
+		}
+		return $id;
 	};
 
 	$dsf_default_header = $dsf_validate_layout( $_POST['dsf_default_header_id'] ?? 0, 'header' );
@@ -179,6 +241,9 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 	$dsf_capture_setting( 'dsf_global_header_footer', (bool) get_option( 'dsf_global_header_footer', false ), (bool) $dsf_global_header_footer, 'global_layout' );
 	update_option( 'dsf_global_header_footer', $dsf_global_header_footer );
 
+	// Deleting the plugin preserves everything unless this is explicitly ticked.
+	update_option( 'dsf_remove_all_data_on_uninstall', isset( $_POST['dsf_remove_all_data'] ) ? 1 : 0 );
+
 	$notification_bar = DSF_Notification_Bar::sanitize_settings(
 		array(
 			'enabled'         => isset( $_POST['dsf_notification_enabled'] ),
@@ -200,13 +265,249 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 	$dsf_capture_setting( 'dsf_notification_bar', get_option( 'dsf_notification_bar', array() ), $notification_bar, 'notification_save' );
 	update_option( 'dsf_notification_bar', $notification_bar );
 
-	echo '<div class="notice notice-success is-dismissible"><p>Settings saved successfully!</p></div>';
+	// Per-language notification copy. Only the visitor-facing text is translated:
+	// the link target, schedule, colours and dismiss behaviour stay shared.
+	$dsf_notification_translations = array();
+	$dsf_submitted_notifications   = array();
+	if ( isset( $_POST['dsf_notification_translations'] ) && is_array( $_POST['dsf_notification_translations'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Every language code and field below is validated and sanitized individually.
+		$dsf_submitted_notifications = wp_unslash( $_POST['dsf_notification_translations'] );
+	}
+	foreach ( array_slice( $dsf_submitted_notifications, 0, DSF_Multilingual_Settings::MAX_LANGUAGES, true ) as $dsf_language_code => $dsf_language_copy ) {
+		$dsf_language_code = DSF_Multilingual_Settings::normalize_locale_code( $dsf_language_code );
+		if ( '' === $dsf_language_code || ! is_array( $dsf_language_copy ) ) {
+			continue;
+		}
+		$dsf_language_message  = isset( $dsf_language_copy['message'] ) ? wp_kses_post( (string) $dsf_language_copy['message'] ) : '';
+		$dsf_language_linktext = isset( $dsf_language_copy['linkText'] ) ? sanitize_text_field( (string) $dsf_language_copy['linkText'] ) : '';
+		if ( '' === trim( $dsf_language_message ) && '' === trim( $dsf_language_linktext ) ) {
+			continue;
+		}
+		$dsf_notification_translations[ $dsf_language_code ] = array(
+			'message'  => $dsf_language_message,
+			'linkText' => $dsf_language_linktext,
+		);
+	}
+	update_option( DSF_Multilingual_Adapters::NOTIFICATION_TRANSLATIONS_OPTION, $dsf_notification_translations, false );
+
+	// Languages are reconstructed only from the curated registry and known keys.
+	$dsf_current_multilingual = DSF_Multilingual_Settings::get_settings();
+	$dsf_requested_enabled    = isset( $_POST['dsf_multilingual_enabled'] );
+	$dsf_submitted_main       = isset( $_POST['dsf_multilingual_main_language'] ) ? wp_unslash( $_POST['dsf_multilingual_main_language'] ) : '';
+	$dsf_main_language        = DSF_Multilingual_Settings::normalize_locale_code( $dsf_submitted_main );
+	$dsf_language_rows        = isset( $_POST['dsf_multilingual_languages'] ) ? wp_unslash( $_POST['dsf_multilingual_languages'] ) : array();
+	$dsf_language_rows        = is_array( $dsf_language_rows ) ? $dsf_language_rows : array();
+	$dsf_max_language_rows    = count( DSF_Multilingual_Settings::get_locale_registry() );
+	$dsf_selected_languages   = array();
+	$dsf_seen_codes           = array();
+	$dsf_seen_prefixes        = array();
+	$dsf_selected_count       = 0;
+
+	if ( '' === $dsf_main_language ) {
+		$dsf_settings_errors[] = __( 'Choose a main language from the supported language list.', 'designstudio-flow' );
+	}
+
+	foreach ( array_slice( $dsf_language_rows, 0, $dsf_max_language_rows, true ) as $dsf_language_key => $dsf_language_row ) {
+		if ( ! is_array( $dsf_language_row ) || empty( $dsf_language_row['enabled'] ) ) {
+			continue;
+		}
+		++$dsf_selected_count;
+
+		$dsf_submitted_code = isset( $dsf_language_row['code'] ) ? $dsf_language_row['code'] : $dsf_language_key;
+		$dsf_language_code  = DSF_Multilingual_Settings::normalize_locale_code( $dsf_submitted_code );
+		if ( '' === $dsf_language_code || isset( $dsf_seen_codes[ $dsf_language_code ] ) ) {
+			$dsf_settings_errors[] = __( 'The enabled language list contains an invalid or duplicate language.', 'designstudio-flow' );
+			continue;
+		}
+
+		$dsf_prefix = '';
+		if ( $dsf_language_code !== $dsf_main_language ) {
+			$dsf_raw_prefix = isset( $dsf_language_row['prefix'] ) ? $dsf_language_row['prefix'] : '';
+			$dsf_prefix     = DSF_Multilingual_Settings::sanitize_prefix( $dsf_raw_prefix );
+			if ( '' === $dsf_prefix ) {
+				$dsf_settings_errors[] = sprintf(
+					/* translators: %s: curated language code. */
+					__( 'Enter a unique, non-reserved URL prefix for %s.', 'designstudio-flow' ),
+					$dsf_language_code
+				);
+				continue;
+			}
+			if ( isset( $dsf_seen_prefixes[ $dsf_prefix ] ) ) {
+				$dsf_settings_errors[] = __( 'Every secondary language must have a unique URL prefix.', 'designstudio-flow' );
+				continue;
+			}
+			$dsf_prefix_collision = DSF_Language_Routing::describe_prefix_collision( $dsf_prefix );
+			if ( '' !== $dsf_prefix_collision ) {
+				$dsf_settings_errors[] = sprintf(
+					/* translators: 1: submitted URL prefix, 2: reason the prefix cannot be used. */
+					__( 'The "%1$s" prefix cannot be used: %2$s', 'designstudio-flow' ),
+					$dsf_prefix,
+					$dsf_prefix_collision
+				);
+				continue;
+			}
+			$dsf_seen_prefixes[ $dsf_prefix ] = true;
+		}
+
+		$dsf_selected_languages[]             = array(
+			'code'   => $dsf_language_code,
+			'prefix' => $dsf_prefix,
+			'order'  => min( 999, absint( $dsf_language_row['order'] ?? 999 ) ),
+		);
+		$dsf_seen_codes[ $dsf_language_code ] = true;
+	}
+	if ( count( $dsf_language_rows ) > $dsf_max_language_rows || $dsf_selected_count > DSF_Multilingual_Settings::MAX_LANGUAGES ) {
+		$dsf_settings_errors[] = sprintf(
+			/* translators: %d: maximum enabled language count. */
+			__( 'Enable no more than %d languages.', 'designstudio-flow' ),
+			DSF_Multilingual_Settings::MAX_LANGUAGES
+		);
+	}
+
+	if ( '' !== $dsf_main_language && ! isset( $dsf_seen_codes[ $dsf_main_language ] ) ) {
+		$dsf_selected_languages[] = array(
+			'code'   => $dsf_main_language,
+			'prefix' => '',
+			'order'  => 0,
+		);
+	}
+
+	usort(
+		$dsf_selected_languages,
+		static function ( $left, $right ) {
+			$order = (int) $left['order'] <=> (int) $right['order'];
+			return 0 !== $order ? $order : strcmp( $left['code'], $right['code'] );
+		}
+	);
+	$dsf_selected_languages = array_slice( $dsf_selected_languages, 0, DSF_Multilingual_Settings::MAX_LANGUAGES );
+	$dsf_selected_languages = array_map(
+		static function ( $language ) {
+			return array(
+				'code'   => $language['code'],
+				'prefix' => $language['prefix'],
+			);
+		},
+		$dsf_selected_languages
+	);
+
+	if ( $dsf_requested_enabled && count( $dsf_selected_languages ) < 2 ) {
+		$dsf_settings_errors[] = __( 'Enable at least one secondary language before turning multilingual mode on.', 'designstudio-flow' );
+	}
+	if (
+		'' !== $dsf_main_language
+		&& $dsf_main_language !== $dsf_current_multilingual['main_language']
+		&& (
+			0 < (int) $dsf_current_multilingual['migration_version']
+			|| 'not_started' !== $dsf_current_multilingual['migration_state']
+		)
+	) {
+		$dsf_settings_errors[] = __( 'The main language cannot be changed after content assignment begins. A later migration-preview workflow will handle that safely.', 'designstudio-flow' );
+	}
+
+	$dsf_current_language_codes = DSF_Multilingual_Settings::get_enabled_language_codes( $dsf_current_multilingual );
+	$dsf_next_language_codes    = array_column( $dsf_selected_languages, 'code' );
+	foreach ( array_diff( $dsf_current_language_codes, $dsf_next_language_codes ) as $dsf_removed_language ) {
+		$dsf_has_language_members = DSF_Multilingual::get_instance()->get_relationships()->has_members_for_language( $dsf_removed_language );
+		if ( true === $dsf_has_language_members || is_wp_error( $dsf_has_language_members ) ) {
+			$dsf_settings_errors[] = sprintf(
+				/* translators: %s: curated language code. */
+				__( '%s cannot be removed while recoverable translated objects still use it. Remove those translations through the later reviewed removal workflow first.', 'designstudio-flow' ),
+				$dsf_removed_language
+			);
+		}
+	}
+
+	$dsf_conflicts = $dsf_requested_enabled ? DSF_Multilingual_Conflicts::detect_conflicts() : array();
+	if ( ! empty( $dsf_conflicts ) ) {
+		$dsf_conflict_names    = array_filter(
+			array_map(
+				static function ( $conflict ) {
+					return sanitize_text_field( $conflict['name'] ?? '' );
+				},
+				$dsf_conflicts
+			)
+		);
+		$dsf_settings_errors[] = sprintf(
+			/* translators: %s: comma-separated names of active multilingual plugins. */
+			__( 'Multilingual mode was not changed because these conflicting systems are active: %s.', 'designstudio-flow' ),
+			implode( ', ', $dsf_conflict_names )
+		);
+	}
+
+	// Never let malformed language rows trap an administrator in enabled mode.
+	// Disabling preserves the last valid configuration for later recovery.
+	if ( ! $dsf_requested_enabled && ! empty( $dsf_current_multilingual['enabled'] ) && ! empty( $dsf_settings_errors ) ) {
+		$dsf_settings_warnings  = $dsf_settings_errors;
+		$dsf_settings_errors    = array();
+		$dsf_main_language      = $dsf_current_multilingual['main_language'];
+		$dsf_selected_languages = $dsf_current_multilingual['languages'];
+	}
+
+	if ( empty( $dsf_settings_errors ) ) {
+		$dsf_next_multilingual = array_merge(
+			$dsf_current_multilingual,
+			array(
+				'enabled'                    => $dsf_requested_enabled,
+				'main_language'              => $dsf_main_language,
+				'languages'                  => $dsf_selected_languages,
+				'missing_translation_policy' => isset( $_POST['dsf_multilingual_missing_policy'] ) ? wp_unslash( $_POST['dsf_multilingual_missing_policy'] ) : 'not_found',
+				'source_change_policy'       => isset( $_POST['dsf_multilingual_source_change_policy'] ) ? wp_unslash( $_POST['dsf_multilingual_source_change_policy'] ) : 'keep_minor',
+			)
+		);
+		$dsf_next_multilingual = DSF_Multilingual_Settings::sanitize_settings( $dsf_next_multilingual );
+		update_option( DSF_Multilingual_Settings::OPTION_NAME, $dsf_next_multilingual, false );
+
+		if ( $dsf_requested_enabled && ( empty( $dsf_current_multilingual['enabled'] ) || 'complete' !== $dsf_next_multilingual['migration_state'] ) ) {
+			// Content may have been created beyond any saved phase cursor while the
+			// feature was disabled. Every disabled-to-enabled transition restarts the
+			// bounded idempotent scan; retries while continuously enabled may resume.
+			$dsf_force_rescan      = empty( $dsf_current_multilingual['enabled'] );
+			$dsf_migration_started = DSF_Multilingual::get_instance()->get_migration()->start( $dsf_force_rescan );
+			if ( is_wp_error( $dsf_migration_started ) ) {
+				update_option( DSF_Multilingual_Settings::OPTION_NAME, $dsf_current_multilingual, false );
+				$dsf_settings_errors[] = __( 'Existing-content assignment could not be scheduled, so the Languages configuration was rolled back. Try saving again.', 'designstudio-flow' );
+			}
+		} elseif ( ! $dsf_requested_enabled ) {
+			wp_clear_scheduled_hook( DSF_Multilingual_Migration::CRON_HOOK );
+		}
+	}
+
+	// Machine-translation configuration is stored separately: it is an optional
+	// convenience and must never block a language configuration from saving.
+	$dsf_translation_provider = array(
+		'provider'      => isset( $_POST['dsf_translation_provider'] ) ? wp_unslash( $_POST['dsf_translation_provider'] ) : 'none',
+		'endpoint'      => isset( $_POST['dsf_translation_endpoint'] ) ? wp_unslash( $_POST['dsf_translation_endpoint'] ) : '',
+		'api_key'       => isset( $_POST['dsf_translation_api_key'] ) ? wp_unslash( $_POST['dsf_translation_api_key'] ) : '',
+		'timeout'       => isset( $_POST['dsf_translation_timeout'] ) ? wp_unslash( $_POST['dsf_translation_timeout'] ) : 10,
+		'rate_limit'    => isset( $_POST['dsf_translation_rate_limit'] ) ? wp_unslash( $_POST['dsf_translation_rate_limit'] ) : 60,
+		'clear_api_key' => isset( $_POST['dsf_translation_clear_api_key'] ),
+	);
+	$dsf_translation_stored   = DSF_Translation_Providers::update_settings( $dsf_translation_provider );
+	if ( 'none' !== $dsf_translation_stored['provider'] ) {
+		$dsf_endpoint_valid = DSF_Translation_Providers::validate_endpoint( $dsf_translation_stored['endpoint'] );
+		if ( is_wp_error( $dsf_endpoint_valid ) ) {
+			echo '<div class="notice notice-warning"><p>' . esc_html( $dsf_endpoint_valid->get_error_message() ) . '</p></div>';
+		}
+	}
+
+	if ( empty( $dsf_settings_errors ) ) {
+		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved successfully.', 'designstudio-flow' ) . '</p></div>';
+		if ( ! empty( $dsf_settings_warnings ) ) {
+			echo '<div class="notice notice-warning"><p>' . esc_html__( 'Multilingual mode was disabled. Invalid submitted language details were ignored, and the last valid language configuration was preserved for recovery.', 'designstudio-flow' ) . '</p></div>';
+		}
+	} else {
+		echo '<div class="notice notice-warning"><p>' . esc_html__( 'Other settings were saved, but the Languages configuration was left unchanged:', 'designstudio-flow' ) . '</p><ul style="list-style:disc;margin-left:2em;">';
+		foreach ( array_unique( $dsf_settings_errors ) as $dsf_settings_error ) {
+			echo '<li>' . esc_html( $dsf_settings_error ) . '</li>';
+		}
+		echo '</ul></div>';
+	}
 }
 
 // Get current settings.
-$enabled_post_types   = get_option( 'dsf_enabled_post_types', array( 'page' ) );
-$products_enabled     = (bool) get_option( 'dsf_products_enabled', true );
-$default_colors       = get_option(
+$enabled_post_types    = get_option( 'dsf_enabled_post_types', array( 'page' ) );
+$products_enabled      = (bool) get_option( 'dsf_products_enabled', true );
+$default_colors        = get_option(
 	'dsf_default_colors',
 	array(
 		'primary'    => '#2C5F5D',
@@ -215,6 +516,37 @@ $default_colors       = get_option(
 		'background' => '#FFFFFF',
 	)
 );
+$recaptcha_enabled     = (bool) get_option( 'dsf_recaptcha_enabled', false );
+$recaptcha_site_key    = get_option( 'dsf_recaptcha_site_key', '' );
+$recaptcha_secret_key  = DSF_Crypto::decrypt( get_option( 'dsf_recaptcha_secret_key', '' ) );
+$recaptcha_threshold   = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
+$notification_bar      = DSF_Notification_Bar::get_settings();
+$seo_defaults          = class_exists( 'DSF_SEO' ) ? DSF_SEO::get_defaults() : array(
+	'defaultSocialImage' => '',
+	'titleSeparator'     => '–',
+	'orgName'            => '',
+	'orgLogo'            => '',
+	'twitterSite'        => '',
+	'socialProfiles'     => array(),
+);
+$seo_social_by_network = array();
+foreach ( (array) ( $seo_defaults['socialProfiles'] ?? array() ) as $seo_profile_url ) {
+	$seo_host = wp_parse_url( (string) $seo_profile_url, PHP_URL_HOST );
+	$seo_host = $seo_host ? strtolower( $seo_host ) : '';
+	if ( false !== strpos( $seo_host, 'facebook' ) ) {
+		$seo_social_by_network['facebook'] = $seo_profile_url;
+	} elseif ( false !== strpos( $seo_host, 'twitter' ) || false !== strpos( $seo_host, 'x.com' ) ) {
+		$seo_social_by_network['twitter'] = $seo_profile_url;
+	} elseif ( false !== strpos( $seo_host, 'instagram' ) ) {
+		$seo_social_by_network['instagram'] = $seo_profile_url;
+	} elseif ( false !== strpos( $seo_host, 'linkedin' ) ) {
+		$seo_social_by_network['linkedin'] = $seo_profile_url;
+	} elseif ( false !== strpos( $seo_host, 'youtube' ) ) {
+		$seo_social_by_network['youtube'] = $seo_profile_url;
+	} elseif ( false !== strpos( $seo_host, 'tiktok' ) ) {
+		$seo_social_by_network['tiktok'] = $seo_profile_url;
+	}
+}
 $dsf_color_picker_value = static function ( $color, $fallback ) {
 	$color = sanitize_hex_color( $color );
 	if ( $color && 4 === strlen( $color ) ) {
@@ -222,15 +554,15 @@ $dsf_color_picker_value = static function ( $color, $fallback ) {
 	}
 	return $color ?: $fallback;
 };
-$recaptcha_enabled    = (bool) get_option( 'dsf_recaptcha_enabled', false );
-$recaptcha_site_key   = get_option( 'dsf_recaptcha_site_key', '' );
-$recaptcha_secret_key = DSF_Crypto::decrypt( get_option( 'dsf_recaptcha_secret_key', '' ) );
-$recaptcha_threshold  = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
-$notification_bar     = DSF_Notification_Bar::get_settings();
-$tracking_code        = DSF_Tracking_Code::get_settings();
-$can_manage_tracking  = current_user_can( 'unfiltered_html' );
-$previous_theme_value = get_option( 'dsf_previous_theme_defaults', array() );
-$has_previous_theme   = is_array( $previous_theme_value ) && ! empty( $previous_theme_value['colors'] ) && ! empty( $previous_theme_value['typography'] );
+$recaptcha_enabled      = (bool) get_option( 'dsf_recaptcha_enabled', false );
+$recaptcha_site_key     = get_option( 'dsf_recaptcha_site_key', '' );
+$recaptcha_secret_key   = DSF_Crypto::decrypt( get_option( 'dsf_recaptcha_secret_key', '' ) );
+$recaptcha_threshold    = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
+$notification_bar       = DSF_Notification_Bar::get_settings();
+$tracking_code          = DSF_Tracking_Code::get_settings();
+$can_manage_tracking    = current_user_can( 'unfiltered_html' );
+$previous_theme_value   = get_option( 'dsf_previous_theme_defaults', array() );
+$has_previous_theme     = is_array( $previous_theme_value ) && ! empty( $previous_theme_value['colors'] ) && ! empty( $previous_theme_value['typography'] );
 
 $typography_option = get_option(
 	'dsf_typography',
@@ -356,6 +688,20 @@ $font_options = array(
 	"'Manrope', sans-serif",
 	"'Space Grotesk', sans-serif",
 );
+
+$multilingual_settings  = DSF_Multilingual_Settings::get_settings();
+$multilingual_registry  = DSF_Multilingual_Settings::get_locale_registry();
+$multilingual_languages = array();
+foreach ( $multilingual_settings['languages'] as $multilingual_order => $multilingual_language ) {
+	$multilingual_languages[ $multilingual_language['code'] ] = array(
+		'prefix' => $multilingual_language['prefix'],
+		'order'  => $multilingual_order + 1,
+	);
+}
+$multilingual_conflicts = DSF_Multilingual_Conflicts::detect_conflicts();
+$multilingual_progress  = DSF_Multilingual::get_instance()->get_migration()->get_progress();
+$translation_provider   = DSF_Translation_Providers::get_settings();
+$translation_adapters   = DSF_Translation_Providers::get_adapters();
 ?>
 
 <div class="wrap dsf-admin-settings">
@@ -382,6 +728,7 @@ $font_options = array(
 				<a href="#tracking" class="nav-tab" data-dsf-tab-link="tracking">Tracking &amp; Custom Code</a>
 				<a href="#notification" class="nav-tab" data-dsf-tab-link="notification">Notification Bar</a>
 				<a href="#recaptcha" class="nav-tab" data-dsf-tab-link="recaptcha">reCAPTCHA</a>
+				<a href="#languages" class="nav-tab" data-dsf-tab-link="languages">Languages</a>
 			</h2>
 			<style>
 				/* Show only the first tab until the switcher script runs (no FOUC). */
@@ -526,6 +873,18 @@ $font_options = array(
 							</label>
 							<p class="description">
 								When on, regular WordPress Pages and Posts are wrapped with the header/footer above (their content still shows). <strong>This replaces the theme's page layout</strong> for those pages, so theme sidebars and custom page templates won't apply. Archives, search, 404, and WooCommerce cart/checkout/account/shop pages are left to the theme.
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Deleting the plugin', 'designstudio-flow' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="dsf_remove_all_data" value="1" <?php checked( (bool) get_option( 'dsf_remove_all_data_on_uninstall', false ) ); ?>>
+								<?php esc_html_e( 'Also remove DesignStudio Flow settings and its database tables when the plugin is deleted', 'designstudio-flow' ); ?>
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'Off by default: deleting the plugin leaves every page, layout, popup, form, entry, saved block, template and translation untouched, so reinstalling restores the site as it was. Ticking this removes the plugin\'s own settings, translation relationships, routes, review history and version history — your content is still never deleted.', 'designstudio-flow' ); ?>
 							</p>
 						</td>
 					</tr>
@@ -784,6 +1143,36 @@ $font_options = array(
 							</p>
 						</td>
 					</tr>
+					<?php
+					$dsf_notification_languages = DSF_Multilingual_Settings::get_settings();
+					$dsf_notification_secondary = ! empty( $dsf_notification_languages['enabled'] )
+						? array_values( array_diff( DSF_Multilingual_Settings::get_enabled_language_codes( $dsf_notification_languages ), array( $dsf_notification_languages['main_language'] ) ) )
+						: array();
+					$dsf_notification_stored    = get_option( DSF_Multilingual_Adapters::NOTIFICATION_TRANSLATIONS_OPTION, array() );
+					$dsf_notification_stored    = is_array( $dsf_notification_stored ) ? $dsf_notification_stored : array();
+					?>
+					<?php foreach ( $dsf_notification_secondary as $dsf_notification_code ) : ?>
+						<?php
+						$dsf_notification_record = DSF_Language_Context::describe( $dsf_notification_code );
+						$dsf_notification_copy   = isset( $dsf_notification_stored[ $dsf_notification_code ] ) && is_array( $dsf_notification_stored[ $dsf_notification_code ] )
+							? $dsf_notification_stored[ $dsf_notification_code ]
+							: array();
+						$dsf_notification_field  = 'dsf-notification-' . sanitize_html_class( $dsf_notification_code );
+						?>
+						<tr>
+							<th scope="row">
+								<label for="<?php echo esc_attr( $dsf_notification_field ); ?>">
+									<?php echo esc_html( ! empty( $dsf_notification_record['native_label'] ) ? $dsf_notification_record['native_label'] : $dsf_notification_code ); ?>
+								</label>
+							</th>
+							<td>
+								<textarea id="<?php echo esc_attr( $dsf_notification_field ); ?>" class="large-text" rows="2" name="dsf_notification_translations[<?php echo esc_attr( $dsf_notification_code ); ?>][message]" placeholder="<?php esc_attr_e( 'Translated message', 'designstudio-flow' ); ?>"><?php echo esc_textarea( (string) ( $dsf_notification_copy['message'] ?? '' ) ); ?></textarea>
+								<input type="text" class="regular-text" name="dsf_notification_translations[<?php echo esc_attr( $dsf_notification_code ); ?>][linkText]" value="<?php echo esc_attr( (string) ( $dsf_notification_copy['linkText'] ?? '' ) ); ?>" placeholder="<?php esc_attr_e( 'Translated CTA label', 'designstudio-flow' ); ?>">
+								<p class="description"><?php esc_html_e( 'The link target, schedule, colours and dismiss behaviour are shared with the main language. Editing this returns the translation to Needs review.', 'designstudio-flow' ); ?></p>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+
 					<tr>
 						<th scope="row">Display</th>
 						<td>
@@ -868,10 +1257,12 @@ $font_options = array(
 					</tr>
 				</table>
 			</div>
+
+			<?php require DSF_PLUGIN_DIR . 'templates/admin-languages-settings.php'; ?>
 			
 			<script>
 			(function () {
-				var VALID = ['general', 'theme', 'tracking', 'notification', 'recaptcha'];
+				var VALID = ['general', 'theme', 'tracking', 'notification', 'recaptcha', 'languages'];
 				var links  = document.querySelectorAll('.dsf-settings-tabs [data-dsf-tab-link]');
 				var cards  = document.querySelectorAll('.dsf-card[data-dsf-tab]');
 				if (!links.length || !cards.length) return;

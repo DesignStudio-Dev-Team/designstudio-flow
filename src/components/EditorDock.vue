@@ -49,61 +49,69 @@
           v-if="!libraryMode"
           type="button"
           class="dsf-dock__btn"
-          :disabled="isLayout"
-          :aria-label="isLayout ? 'Settings unavailable' : 'Page settings'"
-          data-dsf-help="dock-page-settings"
+          aria-label="Settings"
+          data-dsf-help="dock-settings"
           @click="emit('open-settings')"
         >
           <Settings :size="19" />
-          <span class="dsf-dock__tip">{{ isLayout ? 'No settings' : 'Page settings' }}</span>
+          <span class="dsf-dock__tip">Settings</span>
         </button>
 
         <button
           v-if="!libraryMode"
           type="button"
           class="dsf-dock__btn"
-          aria-label="Theme"
-          data-dsf-help="dock-theme"
-          @click="emit('open-theme')"
+          aria-label="Structure"
+          data-dsf-help="dock-structure"
+          @click="emit('open-structure')"
         >
-          <Palette :size="19" />
-          <span class="dsf-dock__tip">Theme</span>
+          <ListTree :size="19" />
+          <span class="dsf-dock__tip">Structure</span>
         </button>
 
-        <button
-          v-if="!libraryMode"
-          type="button"
-          class="dsf-dock__btn"
-          :disabled="isLayout"
-          :aria-label="isLayout ? 'View unavailable' : 'View page'"
-          @click="emit('view')"
-        >
-          <ExternalLink :size="19" />
-          <span class="dsf-dock__tip">{{ isLayout ? 'No view' : 'View page' }}</span>
-        </button>
+        <!-- Save opens its options the same way the preview picker does. With
+             nothing else to offer it stays a plain one-click button. -->
+        <div ref="savePicker" class="dsf-dock__save-picker">
+          <button
+            type="button"
+            class="dsf-dock__btn dsf-dock__btn--primary"
+            :class="{ 'is-busy': isSaving, 'dsf-dock__btn--active': saveMenuOpen }"
+            :disabled="isSaving"
+            data-dsf-help="dock-save"
+            :aria-label="hasSaveOptions ? 'Save options' : saveLabel"
+            :aria-haspopup="hasSaveOptions ? 'menu' : undefined"
+            :aria-expanded="hasSaveOptions ? saveMenuOpen : undefined"
+            @click="onSaveClick"
+          >
+            <Save :size="19" />
+            <span class="dsf-dock__tip">{{ isSaving ? 'Saving…' : saveLabel }}</span>
+          </button>
 
-        <button
-          v-if="!isLayout && !libraryMode"
-          type="button"
-          class="dsf-dock__btn"
-          aria-label="Save as template"
-          @click="emit('save-as-template')"
-        >
-          <LayoutTemplate :size="19" />
-          <span class="dsf-dock__tip">Save as template</span>
-        </button>
-
-        <button
-          type="button"
-          class="dsf-dock__btn dsf-dock__btn--primary"
-          :class="{ 'is-busy': isSaving }"
-          :disabled="isSaving"
-          :aria-label="saveLabel"
-          @click="emit('save')"
-        >
-          <Save :size="19" />
-          <span class="dsf-dock__tip">{{ isSaving ? 'Saving…' : saveLabel }}</span>
-        </button>
+          <Transition name="dsf-preview-menu">
+            <div v-if="saveMenuOpen && hasSaveOptions" class="dsf-dock__save-menu" role="menu" aria-label="Save options">
+              <button
+                type="button"
+                class="dsf-dock__preview-option"
+                role="menuitem"
+                @click="selectSaveOption('save')"
+              >
+                <Save :size="17" />
+                <span>{{ saveLabel }}</span>
+                <small>Publish changes</small>
+              </button>
+              <button
+                type="button"
+                class="dsf-dock__preview-option"
+                role="menuitem"
+                @click="selectSaveOption('save-as-template')"
+              >
+                <LayoutTemplate :size="17" />
+                <span>Save as template</span>
+                <small>Reuse this design</small>
+              </button>
+            </div>
+          </Transition>
+        </div>
 
       </div>
 
@@ -114,10 +122,10 @@
           type="button"
           class="dsf-dock__btn"
           :class="{ 'dsf-dock__btn--active': previewMenuOpen }"
+          data-dsf-help="dock-preview"
           aria-label="Choose preview size"
           aria-haspopup="menu"
           :aria-expanded="previewMenuOpen"
-          data-dsf-help="dock-preview"
           @click="previewMenuOpen = !previewMenuOpen"
         >
           <component :is="previewIcon" :size="19" />
@@ -144,6 +152,25 @@
         </Transition>
       </div>
 
+      <span class="dsf-dock__divider" aria-hidden="true"></span>
+
+      <!-- Add block sits at the centre of the dock: the action taken most often
+           while building, and the easiest target to reach from either side.
+           Four controls and two dividers sit on each side of it. -->
+      <div class="dsf-dock__group dsf-dock__group--centre">
+        <button
+          type="button"
+          class="dsf-dock__btn dsf-dock__btn--accent"
+          :disabled="!canAddBlock"
+          aria-label="Add block"
+          data-dsf-help="dock-add-block"
+          @click="emit('add-block')"
+        >
+          <Plus :size="20" />
+          <span class="dsf-dock__tip">Add block</span>
+        </button>
+      </div>
+
       <template v-if="!libraryMode">
         <span class="dsf-dock__divider" aria-hidden="true"></span>
 
@@ -159,6 +186,8 @@
             <span class="dsf-dock__tip">Help</span>
           </button>
 
+          <EditorLanguageMenu />
+
           <button
             type="button"
             class="dsf-dock__btn"
@@ -169,28 +198,20 @@
             <History :size="19" />
             <span class="dsf-dock__tip">History</span>
           </button>
+        </div>
 
+        <span class="dsf-dock__divider" aria-hidden="true"></span>
+
+        <div class="dsf-dock__group">
           <button
             type="button"
             class="dsf-dock__btn"
-            aria-label="Structure"
-            data-dsf-help="dock-structure"
-            @click="emit('open-structure')"
+            :disabled="isLayout"
+            :aria-label="isLayout ? 'View unavailable' : 'View page'"
+            @click="emit('view')"
           >
-            <ListTree :size="19" />
-            <span class="dsf-dock__tip">Structure</span>
-          </button>
-
-          <button
-            type="button"
-            class="dsf-dock__btn dsf-dock__btn--accent"
-            :disabled="!canAddBlock"
-            aria-label="Add block"
-            data-dsf-help="dock-add-block"
-            @click="emit('add-block')"
-          >
-            <Plus :size="20" />
-            <span class="dsf-dock__tip">Add block</span>
+            <ExternalLink :size="19" />
+            <span class="dsf-dock__tip">{{ isLayout ? 'No view' : 'View page' }}</span>
           </button>
         </div>
       </template>
@@ -203,9 +224,10 @@
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { gsap } from 'gsap'
 import {
-  Monitor, Tablet, Smartphone, Palette, Settings,
+  Monitor, Tablet, Smartphone, Settings,
   ExternalLink, Save, LayoutTemplate, Plus, ListTree, History, HelpCircle, MoreHorizontal,
 } from 'lucide-vue-next'
+import EditorLanguageMenu from './EditorLanguageMenu.vue'
 
 const props = defineProps({
   isSaving: Boolean,
@@ -218,7 +240,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'view', 'save', 'set-preview-mode', 'open-theme',
+  'view', 'save', 'set-preview-mode',
   'open-settings', 'save-as-template', 'add-block', 'open-structure', 'open-history', 'open-help', 'mobile-actions-open',
 ])
 
@@ -227,6 +249,11 @@ const adminUrl = computed(() => window.dsfEditorData?.adminUrl || '')
 const isLayout = computed(() => props.postType === 'dsf_layout')
 const previewMenuOpen = ref(false)
 const previewPicker = ref(null)
+const savePicker = ref(null)
+const saveMenuOpen = ref(false)
+// Layouts and the saved-block editor have nothing to save as a template, so the
+// caret disappears and Save stays a plain button.
+const hasSaveOptions = computed(() => !props.libraryMode && props.postType !== 'dsf_layout')
 const previewOptions = [
   { value: 'desktop', label: 'Desktop', width: '1800 px', icon: Monitor },
   { value: 'tablet', label: 'Tablet', width: '768 px', icon: Tablet },
@@ -332,9 +359,25 @@ function selectPreviewMode(mode) {
   previewMenuOpen.value = false
 }
 
+function onSaveClick() {
+  if (!hasSaveOptions.value) {
+    emit('save')
+    return
+  }
+  saveMenuOpen.value = !saveMenuOpen.value
+}
+
+function selectSaveOption(action) {
+  emit(action)
+  saveMenuOpen.value = false
+}
+
 function onDocumentPointerDown(event) {
   if (previewPicker.value && !previewPicker.value.contains(event.target)) {
     previewMenuOpen.value = false
+  }
+  if (savePicker.value && !savePicker.value.contains(event.target)) {
+    saveMenuOpen.value = false
   }
   if (dockRoot.value && !dockRoot.value.contains(event.target)) {
     setMobileMenu(false)
@@ -344,6 +387,7 @@ function onDocumentPointerDown(event) {
 function onDocumentKeydown(event) {
   if (event.key === 'Escape') {
     previewMenuOpen.value = false
+    saveMenuOpen.value = false
     setMobileMenu(false)
   }
 }

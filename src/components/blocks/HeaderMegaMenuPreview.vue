@@ -49,7 +49,17 @@
         </a>
 
         <div class="dsf-header-mega__actions" :style="{ '--icon-bg': settings.iconBackground || '#2C6B34', '--icon-color': settings.iconColor || '#fff' }">
-          <a v-if="settings.showLanguage" class="dsf-header-mega__icon-btn" :href="settings.languageUrl || '#'" aria-label="Language" @click="preventInEditor">
+          <LanguageSwitcher
+            v-if="multilingualActive"
+            class="dsf-header-mega__language"
+            :variant="settings.languageSwitcherStyle || 'dropdown'"
+            :labels="settings.languageSwitcherLabels || 'native'"
+            :is-editor="isEditor"
+          />
+          <!-- Legacy single-language link, kept for sites that point at their own
+               language page. Without a real target it is not rendered at all: a
+               globe that goes to "#" reads as a broken switcher. -->
+          <a v-else-if="settings.showLanguage && settings.languageUrl" class="dsf-header-mega__icon-btn" :href="settings.languageUrl" aria-label="Language" @click="preventInEditor">
             <Globe :size="16" />
           </a>
           <a v-if="settings.showSearch !== false" class="dsf-header-mega__icon-btn" :href="settings.searchUrl || '/?s='" aria-label="Search" @click="preventInEditor">
@@ -400,6 +410,8 @@
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import { ChevronDown, ChevronRight, Globe, MapPin, Menu, Phone, Search, ShoppingCart, User, X } from 'lucide-vue-next'
 import InlineText from '../common/InlineText.vue'
+import LanguageSwitcher from '../common/LanguageSwitcher.vue'
+import { useMultilingual } from '../../utils/useMultilingual'
 
 const props = defineProps({
   settings: {
@@ -415,6 +427,8 @@ const props = defineProps({
     default: 'desktop',
   },
 })
+
+const { multilingualActive } = useMultilingual()
 
 const activeIndex = ref(null)
 const panelHover = ref(false)

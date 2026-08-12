@@ -100,13 +100,10 @@ describe('FormWithContentPreview', () => {
     const style = document.getElementById('dsf-form-with-content-gravity-overrides')
     expect(style).not.toBeNull()
     expect(wrapper.find('[data-dsf-form-with-content-form]').exists()).toBe(true)
-    expect(style.textContent).toContain('body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper.gravity-theme *')
-    expect(style.textContent).toContain('body.dsf-theme-form-repair-active [data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] legend')
+    expect(style.textContent).toContain('[data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] .gform_wrapper.gravity-theme *')
+    expect(style.textContent).toContain('[data-dsf-form-with-content-form][data-dsf-form-with-content-form][data-dsf-form-with-content-form] legend')
     expect(style.textContent).toContain('.gform_wrapper.gravity-theme legend.gfield_label')
     expect(style.textContent).toContain('margin-bottom: 0 !important')
-    expect(style.textContent).toContain('width: 20px !important')
-    expect(style.textContent).toContain('appearance: auto !important')
-    expect(style.textContent).toContain('accent-color: #aaa !important')
     expect(style.textContent).toContain('box-sizing: border-box !important')
     expect(style.textContent).toContain('text-indent: 0 !important')
     expect(style.textContent).toContain('font-size: .75rem !important')
@@ -115,14 +112,54 @@ describe('FormWithContentPreview', () => {
     expect(style.textContent).toContain('.gform_wrapper p')
     expect(style.textContent).toContain('.gform_wrapper label')
     expect(style.textContent).toContain('font-size: var(--dsf-theme-text-base, 16px) !important')
-    expect(style.textContent).toContain('gap: .5rem !important')
-    expect(style.textContent).toContain('line-height: 1.3 !important')
     expect(style.textContent).toContain('.gform_wrapper .ginput_complex .name_first')
     expect(style.textContent).toContain('.gform_wrapper .ginput_complex .address_line_1')
     expect(style.textContent).toContain('grid-column: 1 / -1 !important')
     expect(style.textContent).toContain('.akismet-fields-container')
     expect(style.textContent).toContain('.dsf-gform-required-legend--inline')
     expect(style.textContent).not.toContain('font-size: 16px !important')
+  })
+
+  it('applies the Gravity Forms overrides on every theme, not just gated ones', async () => {
+    document.getElementById('dsf-form-with-content-gravity-overrides')?.remove()
+
+    mount(FormWithContentPreview, {
+      props: {
+        isEditor: false,
+        settings: {
+          formSource: 'embed',
+          renderedEmbedHtml: '<form class="gform_wrapper gravity-theme"></form>',
+        },
+      },
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const style = document.getElementById('dsf-form-with-content-gravity-overrides')
+    expect(style.textContent).not.toContain('dsf-theme-form-repair-active')
+  })
+
+  it('leaves choice control styling to form-controls.css so the two cannot fight', async () => {
+    document.getElementById('dsf-form-with-content-gravity-overrides')?.remove()
+
+    mount(FormWithContentPreview, {
+      props: {
+        isEditor: false,
+        settings: {
+          formSource: 'embed',
+          renderedEmbedHtml: '<form class="gform_wrapper gravity-theme"></form>',
+        },
+      },
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const style = document.getElementById('dsf-form-with-content-gravity-overrides')
+    // Typography for choice labels may stay; control layout and appearance may not.
+    expect(style.textContent).not.toContain('.gchoice {')
+    expect(style.textContent).not.toContain('.gchoice > label')
+    expect(style.textContent).not.toContain('input[type="checkbox"]')
+    expect(style.textContent).not.toContain('accent-color')
   })
 
   it('sets Gravity Forms legend spacing inline so theme label rules cannot win', async () => {

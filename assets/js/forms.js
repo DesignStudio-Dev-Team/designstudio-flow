@@ -345,11 +345,23 @@
     }
   }
 
+  // Runtime messages come from the server so they match the language of the
+  // form the visitor is actually filling in. The English strings are only a
+  // fallback for an older cached payload.
+  var strings = (wpData && wpData.strings) || {}
+
+  function message(key, fallback) {
+    var value = strings[key]
+    return typeof value === 'string' && value !== '' ? value : fallback
+  }
+
   function executeRecaptcha(config) {
     if (!config) return Promise.resolve('')
 
     if (typeof window.grecaptcha === 'undefined') {
-      return Promise.reject(new Error('reCAPTCHA is not available. Please reload and try again.'))
+      return Promise.reject(
+        new Error(message('recaptchaUnavailable', 'reCAPTCHA is not available. Please reload and try again.'))
+      )
     }
 
     return new Promise((resolve, reject) => {
@@ -357,14 +369,16 @@
         window.grecaptcha
           .execute(config.siteKey, { action: config.action })
           .then((token) => resolve(token || ''))
-          .catch(() => reject(new Error('reCAPTCHA verification failed. Please try again.')))
+          .catch(() =>
+            reject(new Error(message('recaptchaFailed', 'reCAPTCHA verification failed. Please try again.')))
+          )
       })
     })
   }
 
   async function submitToServer(form) {
     if (!wpData.ajaxUrl || !wpData.nonce) {
-      throw new Error('Form submit endpoint is not configured.')
+      throw new Error(message('endpointMissing', 'Form submit endpoint is not configured.'))
     }
 
     const recaptchaConfig = getRecaptchaConfig()
@@ -387,7 +401,9 @@
 
     const json = await response.json()
     if (!json || !json.success) {
-      throw new Error((json && json.data && json.data.message) || 'Unable to submit the form.')
+      throw new Error(
+        (json && json.data && json.data.message) || message('submitFailed', 'Unable to submit the form.')
+      )
     }
 
     return json.data || {}

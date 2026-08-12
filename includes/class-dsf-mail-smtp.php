@@ -49,6 +49,9 @@ class DSF_Mail_SMTP {
 	 */
 	private static $oauth_mailers = array( 'google', 'outlook' );
 
+	/** Whether the log table's schema version was already checked this request. */
+	private $log_table_checked = false;
+
 	/**
 	 * Setting keys holding credentials that are encrypted at rest.
 	 *
@@ -106,7 +109,12 @@ class DSF_Mail_SMTP {
 		add_action( 'wp_mail_succeeded', array( $this, 'log_success' ) );
 		add_action( 'wp_mail_failed', array( $this, 'log_failure' ) );
 		add_action( self::CLEANUP_HOOK, array( $this, 'prune_log' ) );
-		$this->maybe_create_log_table();
+		// The table check is a non-autoloaded option read. Nothing on a frontend
+		// page view writes to the log, so it is deferred to admin/cron requests and
+		// re-checked lazily right before a row is actually inserted.
+		if ( DSF_Runtime::is_maintenance_request() ) {
+			$this->maybe_create_log_table();
+		}
 		$this->maybe_schedule_cleanup();
 
 		if ( is_admin() ) {
@@ -869,6 +877,12 @@ class DSF_Mail_SMTP {
 	 * Create / upgrade the log table once per schema version.
 	 */
 	private function maybe_create_log_table() {
+		// Memoized so a request that sends several emails checks the option once.
+		if ( $this->log_table_checked ) {
+			return;
+		}
+		$this->log_table_checked = true;
+
 		if ( self::LOG_DB_VERSION === get_option( self::LOG_DB_VERSION_OPT ) ) {
 			return;
 		}
@@ -938,6 +952,10 @@ class DSF_Mail_SMTP {
 		if ( empty( $settings['log_enabled'] ) ) {
 			return;
 		}
+
+		// A frontend request (a contact-form notification) skipped the constructor
+		// check, so make sure the table exists before writing to it.
+		$this->maybe_create_log_table();
 
 		$to = '';
 		if ( isset( $data['to'] ) ) {

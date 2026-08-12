@@ -14,7 +14,20 @@
           v-html="priceHtml"
         ></div>
         <div v-if="cartHtml" class="dsf-product-cart__form" v-html="cartHtml"></div>
-        <div v-else class="dsf-product-cart__placeholder">
+        <!--
+          No cart form: the product is not sold online (no price, or the Syndified
+          plugin marks it as not sellable). Show the CTAs Syndified defines for it
+          instead; the editor placeholder is never shown to visitors.
+        -->
+        <div v-else-if="ctaButtons.length" class="dsf-product-cart__ctas">
+          <a
+            v-for="(cta, index) in ctaButtons"
+            :key="index"
+            :href="product?.permalink || '#'"
+            class="dsf-product-cart__cta"
+          >{{ cta.label }}</a>
+        </div>
+        <div v-else-if="isEditor" class="dsf-product-cart__placeholder">
           <ShoppingCart :size="18" />
           <span>The add-to-cart form appears here on the live product page.</span>
         </div>
@@ -42,6 +55,10 @@ const renderMode = inject('dsfRenderMode', null)
 
 const cartHtml = computed(() => product.value?.addToCartHtml || '')
 const priceHtml = computed(() => product.value?.priceHtml || '')
+const ctaButtons = computed(() => {
+  const buttons = product.value?.ctaButtons
+  return Array.isArray(buttons) ? buttons : []
+})
 const showPrice = computed(() => props.settings?.showPrice !== false)
 const priceStyle = computed(() => ({
   color: props.settings?.priceColor || 'var(--dsf-theme-primary, inherit)',
@@ -94,6 +111,25 @@ const innerStyle = computed(() => {
 }
 .dsf-product-cart__price :deep(del) { opacity: 0.5; font-weight: 400; margin-right: 0.35rem; }
 .dsf-product-cart__form { flex: 0 1 auto; margin: 0; }
+
+/* Shown instead of the cart form when the product is not sold online. */
+.dsf-product-cart__ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dsf-product-cart__cta {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  background: var(--dsf-cart-btn-bg, var(--dsf-theme-primary, #2c5f5d));
+  color: var(--dsf-cart-btn-color, #fff);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dsf-product-cart__cta:hover { opacity: 0.92; }
 
 .dsf-product-cart__placeholder {
   display: inline-flex;

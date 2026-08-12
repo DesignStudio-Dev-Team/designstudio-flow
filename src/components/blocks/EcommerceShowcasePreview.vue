@@ -87,7 +87,9 @@
                   <span v-if="!isEditor" class="dsf-showcase-product__hover-cta" aria-hidden="true">View details →</span>
                 </div>
                 <div class="dsf-showcase-product__info">
-                  <div class="dsf-showcase-product__price" :style="priceStyle(product)">
+                  <!-- Products with no price, or that Syndified marks as not sold
+                       online, show no price at all rather than an empty slot. -->
+                  <div v-if="hasPrice(product)" class="dsf-showcase-product__price" :style="priceStyle(product)">
                     <template v-if="product.onSale">
                       <span class="dsf-showcase-product__price--regular">{{ formatPrice(product.regularPrice) }}</span>
                       <span class="dsf-showcase-product__price--sale">{{ formatPrice(product.salePrice) }}</span>
@@ -99,15 +101,28 @@
                   <h4 class="dsf-showcase-product__name">{{ product.name }}</h4>
                 </div>
               </a>
-              <a
-                v-if="settings.showAddToCart !== false"
-                :href="productActionUrl(product)"
-                class="dsf-showcase-product__cart"
-                :style="buttonStyle"
-                @click.stop="handleProductLink"
-              >
-                {{ settings.buttonText || 'Add to Cart' }}
-              </a>
+              <template v-if="settings.showAddToCart !== false">
+                <a
+                  v-if="isSoldOnline(product)"
+                  :href="productActionUrl(product)"
+                  class="dsf-showcase-product__cart"
+                  :style="buttonStyle"
+                  @click.stop="handleProductLink"
+                >
+                  {{ settings.buttonText || 'Add to Cart' }}
+                </a>
+                <!-- Not sold online: Syndified's own CTAs replace the cart button. -->
+                <template v-else>
+                  <a
+                    v-for="(cta, ctaIndex) in ctaButtonsFor(product)"
+                    :key="ctaIndex"
+                    :href="product.permalink || '#'"
+                    class="dsf-showcase-product__cart"
+                    :style="buttonStyle"
+                    @click.stop="handleProductLink"
+                  >{{ cta.label }}</a>
+                </template>
+              </template>
             </article>
           </template>
         </div>
@@ -203,7 +218,7 @@ const isSliderMode = computed(() => displayItems.value.length > itemsPerPage.val
 const totalPages = computed(() => Math.ceil(displayItems.value.length / itemsPerPage.value))
 const canScrollNext = computed(() => currentPage.value < totalPages.value)
 const canScrollPrev = computed(() => currentPage.value > 1)
-const totalProductCount = computed(() => products.value.length || DEMO_PRODUCTS.length)
+const totalProductCount = computed(() => products.value.length || (props.isEditor ? DEMO_PRODUCTS.length : 0))
 const productCountText = computed(() => {
   const template = props.settings?.countText || '{count} products total'
   return String(template).replace(/\{count\}/g, String(totalProductCount.value))
@@ -260,8 +275,14 @@ const displayProducts = computed(() => {
   if (products.value.length > 0) {
     return products.value.slice(0, props.settings?.limit || 10)
   }
-  
-  // Demo products matching the reference design
+
+  // Demo products exist to give the editor canvas something to lay out. They
+  // carry invented prices, so visitors must never see them — on the frontend an
+  // empty result stays empty.
+  if (!props.isEditor) {
+    return []
+  }
+
   return DEMO_PRODUCTS.slice(0, props.settings?.limit || 10)
 })
 
@@ -285,6 +306,24 @@ function formatPrice(value) {
 
 function productActionUrl(product) {
   return product?.addToCartUrl || product?.add_to_cart_url || product?.permalink || '#'
+}
+
+/**
+ * Whether this product may be sold online. The server decides (no price, or the
+ * Syndified plugin marking the product as not sellable) and reports it as
+ * sold_online; demo/editor products have no flag and are treated as sellable.
+ */
+function isSoldOnline(product) {
+  return product?.sold_online !== false
+}
+
+function hasPrice(product) {
+  return Boolean(formatPrice(product?.onSale ? product?.salePrice : product?.price))
+}
+
+/** CTAs Syndified defines for a product that is not sold online. */
+function ctaButtonsFor(product) {
+  return Array.isArray(product?.cta_buttons) ? product.cta_buttons : []
 }
 
 function handleProductLink(event) {

@@ -55,6 +55,22 @@ class DSF_Update_Checker {
 	}
 
 	/**
+	 * Whether this request is one where update checking can do anything.
+	 *
+	 * Covers wp-admin, cron (WordPress refreshes the plugin-update transient
+	 * there), WP-CLI, and the REST/AJAX endpoints the updater screens use. Plain
+	 * frontend page views are excluded.
+	 *
+	 * @return bool
+	 */
+	public static function is_needed() {
+		return is_admin()
+			|| ( function_exists( 'wp_doing_cron' ) && wp_doing_cron() )
+			|| ( defined( 'WP_CLI' ) && WP_CLI )
+			|| ( defined( 'REST_REQUEST' ) && REST_REQUEST );
+	}
+
+	/**
 	 * Constructor
 	 */
 	private function __construct() {
@@ -579,7 +595,12 @@ class DSF_Update_Checker {
 	}
 }
 
-// Initialize (only run if main plugin constants are defined)
-if ( defined( 'DSF_VERSION' ) && defined( 'DSF_PLUGIN_BASENAME' ) ) {
+// Initialize (only run if main plugin constants are defined).
+//
+// Every hook this class registers belongs to update/plugin-management contexts:
+// wp-admin, cron (which runs the update transient refresh), and the upgrader.
+// Constructing it on ordinary frontend requests only cost a non-autoloaded
+// get_option() for the GitHub token on every page view.
+if ( defined( 'DSF_VERSION' ) && defined( 'DSF_PLUGIN_BASENAME' ) && DSF_Update_Checker::is_needed() ) {
 	DSF_Update_Checker::get_instance();
 }

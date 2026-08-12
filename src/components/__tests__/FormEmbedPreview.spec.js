@@ -8,11 +8,9 @@ const source = readFileSync(
 )
 
 describe('FormEmbedPreview', () => {
-  it('keeps Gravity Forms choice inputs visible alongside theme pseudo controls', () => {
-    expect(source).toContain('.gchoice > input[type="checkbox"]')
-    expect(source).toContain('width: 25px !important')
-    expect(source).toContain('appearance: auto !important')
-    expect(source).toContain('accent-color: #aaa !important')
-    expect(source).toContain('flex: 0 0 25px !important')
+  it('leaves choice control styling to form-controls.css so the two cannot fight', () => {
+    expect(source).not.toContain('.gchoice > input[type="checkbox"]')
+    expect(source).not.toContain('accent-color')
+    expect(source).toContain('form-controls.css')
   })
 })

@@ -24,6 +24,13 @@
             @click.stop
           />
         </a>
+        <LanguageSwitcher
+          v-if="multilingualActive"
+          class="dsf-header-cutout__language"
+          :variant="settings.languageSwitcherStyle || 'dropdown'"
+          :labels="settings.languageSwitcherLabels || 'native'"
+          :is-editor="isEditor"
+        />
         <a
           v-if="settings.showSearch !== false"
           class="dsf-header-cutout__search-btn"
@@ -179,6 +186,8 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import { ChevronDown, Search } from 'lucide-vue-next'
+import LanguageSwitcher from '../common/LanguageSwitcher.vue'
+import { useMultilingual } from '../../utils/useMultilingual'
 import InlineText from '../common/InlineText.vue'
 
 const props = defineProps({
@@ -191,6 +200,8 @@ const props = defineProps({
     default: false,
   },
 })
+
+const { multilingualActive } = useMultilingual()
 
 const activeIndex = ref(null)
 const panelHover = ref(false)
