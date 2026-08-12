@@ -25,6 +25,14 @@ class Test_DSF_Shop_Templates extends TestCase {
 			'sanitize_hex_color',
 			array( 'return' => static function ( $v ) { return preg_match( '/^#[0-9a-f]{6}$/i', (string) $v ) ? $v : null; } )
 		);
+		// sanitize_assignment() verifies each category against get_term() whenever
+		// that function exists. Declaring it here keeps these ID-cleaning
+		// assertions independent of whichever other suite ran first.
+		WP_Mock::userFunction(
+			'get_term',
+			array( 'return' => static function ( $term_id, $taxonomy ) { return (object) array( 'term_id' => (int) $term_id, 'taxonomy' => $taxonomy ); } )
+		);
+		WP_Mock::userFunction( 'is_wp_error', array( 'return' => false ) );
 	}
 
 	public function tearDown(): void {

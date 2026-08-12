@@ -97,9 +97,15 @@ class DSF_Forms {
 
 		wp_enqueue_style( 'dashicons' );
 		wp_enqueue_style(
+			'dsf-form-controls',
+			DSF_PLUGIN_URL . 'assets/css/form-controls.css',
+			array(),
+			$this->get_asset_version( 'assets/css/form-controls.css' )
+		);
+		wp_enqueue_style(
 			'dsf-forms',
 			DSF_PLUGIN_URL . 'assets/css/forms.css',
-			array(),
+			array( 'dsf-form-controls' ),
 			$this->get_asset_version( 'assets/css/forms.css' )
 		);
 		wp_enqueue_style(
@@ -405,10 +411,19 @@ class DSF_Forms {
 	 * Register frontend form assets.
 	 */
 	public function register_frontend_assets() {
+		// Checkbox/radio controls are shared with forms embedded in Flow blocks.
+		// Registered as a dependency of forms.css so every path that enqueues form
+		// styles gets them (shortcodes, popups, non-Flow pages).
+		wp_register_style(
+			'dsf-form-controls',
+			DSF_PLUGIN_URL . 'assets/css/form-controls.css',
+			array(),
+			$this->get_asset_version( 'assets/css/form-controls.css' )
+		);
 		wp_register_style(
 			'dsf-forms',
 			DSF_PLUGIN_URL . 'assets/css/forms.css',
-			array(),
+			array( 'dsf-form-controls' ),
 			$this->get_asset_version( 'assets/css/forms.css' )
 		);
 		wp_register_script(
@@ -457,6 +472,10 @@ class DSF_Forms {
 			return '';
 		}
 
+		// A shortcode inside translated content still names the source-language
+		// form, so resolve its published sibling for this request's language.
+		$form_id = self::resolve_form_id( $form_id );
+
 		$form = get_post( $form_id );
 		if ( ! $form || 'dsf_form' !== $form->post_type ) {
 			return '';
@@ -476,6 +495,64 @@ class DSF_Forms {
 		$this->enqueue_frontend_assets();
 
 		return $this->render_form_markup( $form_id, $rows, $settings );
+	}
+
+	/**
+	 * Resolve which language a form object belongs to.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return string Empty when multilingual mode is off or the form is unassigned.
+	 */
+	public static function resolve_form_language( $form_id ) {
+		if ( ! class_exists( 'DSF_Multilingual' ) ) {
+			return '';
+		}
+		$settings = DSF_Multilingual_Settings::get_settings();
+		if ( empty( $settings['enabled'] ) ) {
+			return '';
+		}
+
+		$member = DSF_Multilingual::get_instance()->get_relationships()->find_by_object( 'post', 'dsf_form', absint( $form_id ) );
+		return is_array( $member ) ? (string) $member['language'] : '';
+	}
+
+	/**
+	 * Resolve the form to render for the current request language.
+	 *
+	 * Field names, values, recipients, and logic belong to the form itself, so
+	 * this only ever swaps one language's form object for its sibling — never
+	 * the submitted data contract.
+	 *
+	 * @param int $form_id Referenced form ID.
+	 * @return int The same-language sibling, or the original ID.
+	 */
+	public static function resolve_form_id( $form_id ) {
+		$form_id = absint( $form_id );
+		if ( ! $form_id || ! class_exists( 'DSF_Language_Context' ) || ! class_exists( 'DSF_Multilingual' ) ) {
+			return $form_id;
+		}
+
+		$context = DSF_Language_Context::get_instance();
+		if ( ! $context->is_active() ) {
+			return $form_id;
+		}
+
+		$language      = $context->get_request_language();
+		$relationships = DSF_Multilingual::get_instance()->get_relationships();
+		$member        = $relationships->find_by_object( 'post', 'dsf_form', $form_id );
+		if ( ! is_array( $member ) || $member['language'] === $language ) {
+			return $form_id;
+		}
+
+		$sibling = $relationships->find_member( $member['group_uuid'], $language );
+		if ( ! is_array( $sibling ) ) {
+			// No translated form exists. The publish gate blocks a page that
+			// requires one, so this only happens for main-language content.
+			return $form_id;
+		}
+
+		$sibling_id = absint( $sibling['object_id'] );
+		return 'publish' === get_post_status( $sibling_id ) ? $sibling_id : $form_id;
 	}
 
 	/**
@@ -507,6 +584,14 @@ class DSF_Forms {
 				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
 				'nonce'     => wp_create_nonce( 'dsf_forms_frontend_nonce' ),
 				'recaptcha' => $recaptcha,
+				// Runtime messages travel with the page so they match the language
+				// the visitor is reading, not the site default.
+				'strings'   => array(
+					'recaptchaUnavailable' => __( 'reCAPTCHA is not available. Please reload and try again.', 'designstudio-flow' ),
+					'recaptchaFailed'      => __( 'reCAPTCHA verification failed. Please try again.', 'designstudio-flow' ),
+					'endpointMissing'      => __( 'Form submit endpoint is not configured.', 'designstudio-flow' ),
+					'submitFailed'         => __( 'Unable to submit the form.', 'designstudio-flow' ),
+				),
 			)
 		);
 	}
@@ -1099,6 +1184,9 @@ class DSF_Forms {
 			'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 255 ) : '',
 			'user_id'    => get_current_user_id(),
 			'referer'    => isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '',
+			// Recorded from the form that was actually submitted, so notification
+			// and follow-up copy never depend on a later browser request.
+			'language'   => self::resolve_form_language( $form_id ),
 		);
 
 		$entry_id = wp_insert_post(

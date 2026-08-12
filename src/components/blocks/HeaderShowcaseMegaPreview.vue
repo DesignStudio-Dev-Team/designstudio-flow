@@ -26,6 +26,13 @@
           <a v-for="(item, index) in navigation.menu" :key="`menu-${index}`" :href="url(item.url)" :aria-expanded="item.hasMega ? isDesktopOpen('menu', index) : undefined" @mouseenter="openDesktop('menu', index)" @focus="openDesktop('menu', index)" @click="activateMenu($event, item, index)">{{ item.label }}<ChevronDown v-if="item.hasMega" :size="14" /></a>
           <a v-if="settings.specialButtonText" class="dsf-showcase-header__special" :href="url(settings.specialButtonUrl)" @click="guardLink">{{ settings.specialButtonText }}</a>
         </nav>
+        <LanguageSwitcher
+          v-if="multilingualActive"
+          class="dsf-showcase-header__language"
+          :variant="settings.languageSwitcherStyle || 'dropdown'"
+          :labels="settings.languageSwitcherLabels || 'native'"
+          :is-editor="isEditor"
+        />
         <div class="dsf-showcase-header__mobile-actions">
           <a v-if="settings.showMobileSearch !== false" :href="url(settings.searchUrl, '/?s=')" aria-label="Search" @click="guardLink"><Search :size="24" /></a>
           <button type="button" aria-label="Open menu" :aria-expanded="mobileOpen" @click="openMobile"><Menu :size="26" /></button>
@@ -63,10 +70,14 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, MapPin, Menu, Phone, Search, Settings, X } from 'lucide-vue-next'
+import LanguageSwitcher from '../common/LanguageSwitcher.vue'
+import { useMultilingual } from '../../utils/useMultilingual'
 import { safePublicUrl } from '../../utils/safeUrl'
 import ShowcaseMegaPanel from './ShowcaseMegaPanel.vue'
 
 const props = defineProps({ settings: { type: Object, default: () => ({}) }, isEditor: Boolean, previewMode: { type: String, default: 'desktop' } })
+
+const { multilingualActive } = useMultilingual()
 const active = ref(null), mobileOpen = ref(false), mobileView = ref('root'), mobileItem = ref(null)
 const navigation = computed(() => ({ utility: Array.isArray(props.settings.navigation?.utility) ? props.settings.navigation.utility.slice(0, 4) : [], menu: Array.isArray(props.settings.navigation?.menu) ? props.settings.navigation.menu.slice(0, 8) : [], locations: Array.isArray(props.settings.navigation?.locations) ? props.settings.navigation.locations.slice(0, 6) : [], calls: Array.isArray(props.settings.navigation?.calls) ? props.settings.navigation.calls.slice(0, 8) : [] }))
 const previewClass = computed(() => ({ 'is-tablet-preview': props.previewMode === 'tablet', 'is-mobile-preview': props.previewMode === 'mobile' }))

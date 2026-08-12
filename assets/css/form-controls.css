@@ -1,0 +1,289 @@
+/**
+ * DesignStudio Flow — Checkbox & radio controls inside Flow forms.
+ *
+ * Themes commonly restyle checkboxes/radios globally by hiding the native input
+ * and drawing a fake control with `label::before` / `label::after` (Gravity Forms
+ * markup is a favourite target: `.gfield_checkbox input { display: none }`).
+ * Those rules land inside our blocks too, and they fight whatever layout the
+ * block applies — the classic symptom is the theme's absolutely positioned fake
+ * box sitting on top of the choice text.
+ *
+ * So we stop negotiating: inside a Flow form we neutralise any inherited control
+ * art, visually hide the native input (kept focusable), and draw the control
+ * ourselves on the text element's ::before. The result is identical on every
+ * theme, whether or not Gravity Forms' own CSS is enqueued.
+ *
+ * Specificity note: the scope lists below start with `#dsf-frontend-app` so the
+ * whole selector carries ID-level specificity. Themes reach for
+ * `#dsf-frontend-app .gfield-choice-input { display: none !important }`-style
+ * overrides, and `!important` alone does not outrank an ID.
+ */
+
+/* ── Tokens ─────────────────────────────────────────── */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap) {
+  --dsf-choice-size: 20px;
+  --dsf-choice-gap: 0.625rem;
+  --dsf-choice-radius: 4px;
+  --dsf-choice-border: #94a3b8;
+  --dsf-choice-border-width: 1.5px;
+  --dsf-choice-bg: #ffffff;
+  --dsf-choice-accent: var(--dsf-theme-primary, var(--dsf-form-primary, #2563eb));
+  --dsf-choice-disabled-bg: #f1f5f9;
+}
+
+/* ── Choice list + row layout ───────────────────────── */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  :is(.gfield_checkbox, .gfield_radio, .dsf-form-options) {
+  display: grid !important;
+  gap: 0.5rem !important;
+  margin: 0.35rem 0 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+/* Rows are plain blocks: the control is absolutely positioned inside the text
+   element, so wrapped lines align past it instead of under it. `position` also
+   keeps the visually hidden input anchored to its own row. */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  :is(.gchoice, .dsf-form-option, .ginput_container_consent) {
+  position: relative !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-indent: 0 !important;
+  list-style: none !important;
+}
+
+/* ── Hide the native input (still focusable, still submitted) ── */
+/* Baseline for browsers without `:has()`: parents where Gravity Forms and Flow
+   always emit `<input>` followed by its text element. */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  :is(.gchoice, .dsf-form-option, .ginput_container_consent)
+  > input:is([type="checkbox"], [type="radio"]) {
+  position: absolute !important;
+  width: 1px !important;
+  min-width: 0 !important;
+  height: 1px !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  overflow: hidden !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  pointer-events: none !important;
+  transform: none !important;
+  /* `display` and `appearance` are forced so a theme's `display: none` cannot
+     drop the input out of the tab order. */
+  display: inline-block !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+@supports selector(:has(*)) {
+  /* Anywhere in the form — covers markup we do not enumerate above — but only
+     when a text element follows to carry the drawn control. */
+  :is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+    :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+    input:is([type="checkbox"], [type="radio"]):has(+ :is(label, span)) {
+    position: absolute !important;
+    width: 1px !important;
+    min-width: 0 !important;
+    height: 1px !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+    pointer-events: none !important;
+    transform: none !important;
+    display: inline-block !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+  }
+
+  /* No text element to draw on: keep a sane native control instead of hiding a
+     checkbox the visitor would never see. */
+  :is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+    :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+    :is(.gchoice, .dsf-form-option, .ginput_container_consent)
+    > input:is([type="checkbox"], [type="radio"]):not(:has(+ :is(label, span))) {
+    position: static !important;
+    display: inline-block !important;
+    width: var(--dsf-choice-size) !important;
+    height: var(--dsf-choice-size) !important;
+    min-width: var(--dsf-choice-size) !important;
+    min-height: var(--dsf-choice-size) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 1 !important;
+    clip-path: none !important;
+    pointer-events: auto !important;
+    appearance: auto !important;
+    -webkit-appearance: auto !important;
+    accent-color: var(--dsf-choice-accent) !important;
+    vertical-align: middle !important;
+  }
+}
+
+/* ── Text element: room for the control, no inherited offsets ── */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  input:is([type="checkbox"], [type="radio"])
+  + :is(label, span) {
+  position: relative !important;
+  display: inline-block !important;
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 0 0 calc(var(--dsf-choice-size) + var(--dsf-choice-gap)) !important;
+  text-indent: 0 !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  cursor: pointer;
+  vertical-align: top;
+}
+
+/* Whatever the theme drew with ::after (checkmarks, dots) is not ours. */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  input:is([type="checkbox"], [type="radio"])
+  + :is(label, span)::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* ── The control itself ─────────────────────────────── */
+/* Every property a theme might have set on its own fake box is restated here,
+   so nothing leaks through (`content` glyphs, `transform`, `margin`, sprites). */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  input:is([type="checkbox"], [type="radio"])
+  + :is(label, span)::before {
+  content: "" !important;
+  position: absolute !important;
+  /* Centred on the first line at any font size, so multi-line choices stay
+     aligned to their text rather than to the row. */
+  top: calc((1.4em - var(--dsf-choice-size)) / 2) !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  width: var(--dsf-choice-size) !important;
+  height: var(--dsf-choice-size) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: var(--dsf-choice-border-width) solid var(--dsf-choice-border) !important;
+  border-radius: var(--dsf-choice-radius) !important;
+  background-color: var(--dsf-choice-bg) !important;
+  background-image: none !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: 68% 68% !important;
+  box-shadow: none !important;
+  color: transparent !important;
+  font-size: inherit !important;
+  transform: none !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease !important;
+}
+
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  input[type="radio"]
+  + :is(label, span)::before {
+  border-radius: 50% !important;
+}
+
+/* Checked: accent fill + white tick (checkbox) or dot (radio). */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  input:is([type="checkbox"], [type="radio"]):checked
+  + :is(label, span)::before {
+  border-color: var(--dsf-choice-accent) !important;
+  background-color: var(--dsf-choice-accent) !important;
+}
+
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  input[type="checkbox"]:checked
+  + :is(label, span)::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 8.5l3.5 3.5 7.5-7.5'/%3E%3C/svg%3E") !important;
+}
+
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  input[type="radio"]:checked
+  + :is(label, span)::before {
+  background-image: radial-gradient(circle at center, #ffffff 0 34%, transparent 36%) !important;
+  background-size: 100% 100% !important;
+}
+
+/* Hover / focus / disabled */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  input:is([type="checkbox"], [type="radio"]):not(:checked):not(:disabled)
+  + :is(label, span):hover::before {
+  border-color: var(--dsf-choice-accent) !important;
+}
+
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  input:is([type="checkbox"], [type="radio"]):focus-visible
+  + :is(label, span)::before {
+  outline: 2px solid var(--dsf-choice-accent) !important;
+  outline-offset: 2px !important;
+}
+
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  input:is([type="checkbox"], [type="radio"]):disabled
+  + :is(label, span) {
+  cursor: default;
+  opacity: 0.65;
+}
+
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  input:is([type="checkbox"], [type="radio"]):disabled:not(:checked)
+  + :is(label, span)::before {
+  background-color: var(--dsf-choice-disabled-bg) !important;
+}
+
+/* Gravity Forms' inline "other" text input sits next to a choice — keep it from
+   inheriting the choice label's padding. */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  :is(.gchoice, .dsf-form-option)
+  input[type="text"] {
+  margin-left: calc(var(--dsf-choice-size) + var(--dsf-choice-gap)) !important;
+}
+
+/* Horizontal choice layouts stay horizontal. */
+:is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+  :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+  .gfield--choice-align-horizontal
+  :is(.gfield_checkbox, .gfield_radio) {
+  grid-auto-flow: column !important;
+  grid-auto-columns: max-content !important;
+  column-gap: 1.25rem !important;
+}
+
+@media (max-width: 700px) {
+  :is(#dsf-frontend-app, [data-dsf-form-with-content-form], .dsf-form-with-content__form-frontend, .dsf-form-embed-preview__frontend, .dsf-form-wrap)
+    :is(.gform_wrapper, .dsf-form, .dsf-form-wrap)
+    .gfield--choice-align-horizontal
+    :is(.gfield_checkbox, .gfield_radio) {
+    grid-auto-flow: row !important;
+    grid-auto-columns: auto !important;
+  }
+}

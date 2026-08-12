@@ -175,7 +175,68 @@ so always gate on your own `$type`.
 
 ---
 
-## 5. Export / import & backwards compatibility
+## 5. Declare what is translatable (PHP)
+
+On a multilingual site, Flow copies a block into another language and may
+prefill it with machine translation. It will only ever touch the fields you
+**declare**. Nothing is translated because it happens to hold a string, so a
+field you don't declare — a URL, an ID, an enum, a colour, a shortcode, a SKU,
+a form field key, an internal anchor — is preserved byte-for-byte.
+
+Most blocks need no work at all: the contract is derived from each setting's
+registered `type`. `text` and `textarea` are translated as plain text,
+`wysiwyg` and `richtext` as rich text (only their visible text nodes and their
+`alt` / `title` / `aria-label` / `placeholder` attributes travel — never the
+markup). Every other control type is non-translatable by default.
+
+Override that per setting with a `translatable` key:
+
+```php
+'settings' => array(
+    // Opt a text field out (it holds an identifier, not copy).
+    'trackingLabel' => array(
+        'type'         => 'text',
+        'label'        => 'Tracking Label',
+        'translatable' => false,
+    ),
+    // Declare the copy inside your own repeater shape.
+    'quotes'        => array(
+        'type'         => 'acme_quotes',
+        'label'        => 'Quotes',
+        'translatable' => DSF_Translation_Contract::items( array(
+            'quote'    => DSF_Translation_Contract::text(),
+            'citation' => DSF_Translation_Contract::text(),
+            'body'     => DSF_Translation_Contract::html(),
+            // 'authorUrl' and 'photoId' are absent, so they are never touched.
+        ) ),
+    ),
+),
+```
+
+Descriptor builders: `DSF_Translation_Contract::text()` (add
+`DSF_Translation_Contract::FORMAT_MULTILINE` for long copy),
+`::html()`, `::items( $fields )` for a numerically indexed repeater, and
+`::map( $fields )` for one associative structure. They nest.
+
+If you can't change a registration you don't own, use the filter:
+
+```php
+add_filter( 'dsf_block_translatable_settings', function ( $fields, $block_id ) {
+    if ( 'acme-quote' === $block_id ) {
+        $fields['footnote'] = DSF_Translation_Contract::text();
+    }
+    return $fields;
+}, 10, 2 );
+```
+
+Two rules the platform enforces regardless of what you declare: a descriptor
+may only name settings that exist in your schema, and reassembled values are
+always passed back through your `dsf_sanitize_block_settings` handler before
+they are stored. Translated text is untrusted input like any other.
+
+---
+
+## 6. Export / import & backwards compatibility
 
 Flow's export/import carries a block's `settings` automatically — as long as all
 data lives inside `settings`, your block travels between sites with no extra work,
@@ -217,6 +278,7 @@ and the media URLs inside it are sideloaded on import.
 | `dsf_block_categories` | filter | Add/reorder library tabs. |
 | `dsf_flow_block_assets` | filter | Enqueue add-on preview scripts (editor + frontend). |
 | `dsf_sanitize_block_settings` | filter | Sanitize an add-on block's settings on save. `($settings, $type)`. |
+| `dsf_block_translatable_settings` | filter | Declare which settings hold translatable copy. `($fields, $block_id, $block)`. |
 | `dsf_export_meta_keys` | filter | Extra post-meta keys to export/import. `($keys, $post_type)`. |
 | `dsf_import_item` | filter | Migrate/adjust one imported item. `($item, $format)`. |
 
@@ -226,5 +288,7 @@ and the media URLs inside it are sideloaded on import.
 | --- | --- | --- |
 | `DSF_Blocks::register_block( $schema )` | PHP | Register a block (call from `dsf_register_blocks`). |
 | `DSF_Ajax::sanitize_block_settings_by_schema( $settings, $type )` | PHP | Schema-driven settings sanitizer. |
+| `DSF_Blocks::get_translatable_settings( $block_id )` | PHP | Resolved translatable contract for a block. |
+| `DSF_Translation_Contract::text()` / `::html()` / `::items()` / `::map()` | PHP | Build a translatable descriptor. |
 | `window.dsfFlow.registerBlock( type, component )` | JS | Register a runtime preview component. |
 | `window.dsfFlow.vue` | JS | Flow's shared Vue helpers. |

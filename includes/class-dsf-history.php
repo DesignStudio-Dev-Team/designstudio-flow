@@ -29,7 +29,11 @@ class DSF_History {
 	}
 
 	private function __construct() {
-		add_action( 'init', array( $this, 'maybe_install' ), 2 );
+		// Deferred to admin/cron: the version check is a non-autoloaded option read,
+		// and history is only ever written from editor/save requests anyway.
+		if ( DSF_Runtime::is_maintenance_request() ) {
+			add_action( 'init', array( $this, 'maybe_install' ), 2 );
+		}
 	}
 
 	public static function table_name() {
@@ -461,7 +465,16 @@ class DSF_History {
 			'dsf_form'             => array( '_dsf_form_rows', '_dsf_form_settings' ),
 			'dsf_popup'            => array( '_dsf_popup_settings' ),
 		);
-		return $map[ sanitize_key( $post_type ) ] ?? array();
+
+		$keys = $map[ sanitize_key( $post_type ) ] ?? array();
+		if ( empty( $keys ) ) {
+			return $keys;
+		}
+
+		// Translation confirmation flags are part of an object's restorable
+		// state. Capturing the blocks but not these would restore content an
+		// editor then has to re-confirm before it can publish again.
+		return array_merge( $keys, array( '_dsf_translation_title_confirmed', '_dsf_translation_slug_confirmed' ) );
 	}
 
 	private function normalize_settings_payload( $source_key, $value ) {

@@ -40,43 +40,18 @@ final class DesignStudio_Flow {
 	 * Load required files
 	 */
 	private function load_dependencies() {
-		// Core classes.
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-crypto.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-multilingual-settings.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-multilingual-conflicts.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-multilingual-adapters.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-translation-relationships.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-translation-workflow.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-translation-dependencies.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-multilingual-migration.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-translation-publish-gate.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-multilingual.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-history.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-post-type.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-admin.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-editor.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-ajax.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-frontend.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-tracking-code.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-popup.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-notification-bar.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-blocks.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-product-templates.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-store-pages.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-shop-templates.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-site-pages.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-blog-templates.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-seo.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-block-presets.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-forms.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-connections.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-entries.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-import-export.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-package.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-gf-migration.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-redirects.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-mail-smtp.php';
-		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-update-checker.php';
+		// Classes load on demand through the autoloader (see DSF_Runtime). Only the
+		// two files with load-time side effects are required up front:
+		//
+		//  - DSF_Runtime itself, which registers the autoloader.
+		//  - The update checker, which self-registers at the bottom of its file and
+		//    is referenced by nothing, so nothing would ever autoload it.
+		require_once DSF_PLUGIN_DIR . 'includes/class-dsf-runtime.php';
+		DSF_Runtime::register_autoloader();
+
+		if ( DSF_Runtime::is_maintenance_request() ) {
+			require_once DSF_PLUGIN_DIR . 'includes/class-dsf-update-checker.php';
+		}
 	}
 
 	/**
@@ -92,7 +67,11 @@ final class DesignStudio_Flow {
 
 		// Load text domain.
 		add_action( 'init', array( $this, 'load_textdomain' ) );
-		add_action( 'init', array( $this, 'handle_pending_rewrite_flush' ), 99 );
+		// Both of these read non-autoloaded options that are only ever set by an
+		// admin action or activation, so they are pointless on frontend page views.
+		if ( DSF_Runtime::is_maintenance_request() ) {
+			add_action( 'init', array( $this, 'handle_pending_rewrite_flush' ), 99 );
+		}
 	}
 
 	/**
@@ -112,14 +91,25 @@ final class DesignStudio_Flow {
 		// SEO meta output for DSF-rendered URLs (defers to Yoast/Rank Math/etc).
 		DSF_SEO::get_instance();
 		DSF_Tracking_Code::get_instance();
-		$this->migrate_legacy_flow_pages();
+		// One-time content migration; its "already done" flag is a non-autoloaded
+		// option, so only look for it where the migration could actually run.
+		if ( DSF_Runtime::is_maintenance_request() ) {
+			$this->migrate_legacy_flow_pages();
+		}
 
 		// Initialize admin.
 		if ( is_admin() ) {
 			DSF_Admin::get_instance();
 			DSF_Editor::get_instance();
-			DSF_Ajax::get_instance();
+			// DSF_Ajax registers nothing but wp_ajax_* handlers, which can only fire
+			// on admin-ajax.php. Constructing it on ordinary admin screens parsed the
+			// plugin's largest file for hooks that could never run. Other classes
+			// reach its sanitizers through get_instance(), which autoloads on demand.
+			if ( wp_doing_ajax() ) {
+				DSF_Ajax::get_instance();
+			}
 			DSF_Popup::get_instance();
+			DSF_Translation_Overlay_Admin::get_instance()->register_hooks();
 		}
 
 		// Initialize frontend (always needed for rendering).
@@ -139,8 +129,13 @@ final class DesignStudio_Flow {
 			DSF_GF_Migration::get_instance();
 		}
 
-		// Initialize blocks.
-		DSF_Blocks::get_instance();
+		// Blocks are deliberately NOT instantiated here. Building the registry means
+		// materializing ~80 block schemas as nested arrays, which only the editor,
+		// the AJAX save/sanitize paths, and pages that actually render Flow blocks
+		// ever read. Every consumer goes through DSF_Blocks::get_instance(), so the
+		// registry builds on first use and costs nothing on requests that never
+		// touch a block. Add-ons hooking `dsf_register_blocks` are unaffected: the
+		// action now fires later, giving them strictly more time to register.
 	}
 
 	/**

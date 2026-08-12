@@ -14,8 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class DSF_Multilingual_Adapters {
 
 	const NOTIFICATION_TRANSLATIONS_OPTION = 'dsf_notification_bar_translations';
-	const MAX_DEPENDENCIES                = 200;
-	const MAX_DEPENDENCY_BLOCKS           = 5000;
+	const MAX_DEPENDENCIES                 = 200;
+	const MAX_DEPENDENCY_BLOCKS            = 5000;
 
 	/**
 	 * Stable, append-only synthetic slots for the curated locale registry.
@@ -353,27 +353,35 @@ class DSF_Multilingual_Adapters {
 		$dependencies = array();
 		$settings     = get_post_meta( $post_id, '_dsf_settings', true );
 		$settings     = is_array( $settings ) ? $settings : array();
-		$layout       = isset( $settings['layout'] ) && is_array( $settings['layout'] ) ? $settings['layout'] : array();
-		$header_id    = absint( $layout['headerTemplateId'] ?? 0 );
-		$footer_id    = absint( $layout['footerTemplateId'] ?? 0 );
-		$header_path  = 'settings.layout.headerTemplateId';
-		$footer_path  = 'settings.layout.footerTemplateId';
+		$post_type    = sanitize_key( $post->post_type );
 
-		// A zero explicit assignment currently resolves through the site-wide raw ID.
-		// Record that fallback so a secondary object cannot pass review while still
-		// rendering a main-language layout during the foundation-only phase.
-		if ( ! $header_id ) {
-			$header_id   = absint( get_option( 'dsf_default_header_id', 0 ) );
-			$header_path = 'defaults.headerTemplateId';
-		}
-		if ( ! $footer_id ) {
-			$footer_id   = absint( get_option( 'dsf_default_footer_id', 0 ) );
-			$footer_path = 'defaults.footerTemplateId';
+		// Only objects that render as a whole page are wrapped in a header and
+		// footer. A layout *is* the header or footer, and a saved block, form, or
+		// popup is embedded inside a page that already has its own.
+		if ( self::renders_with_layout( $post_type ) ) {
+			$layout      = isset( $settings['layout'] ) && is_array( $settings['layout'] ) ? $settings['layout'] : array();
+			$header_id   = absint( $layout['headerTemplateId'] ?? 0 );
+			$footer_id   = absint( $layout['footerTemplateId'] ?? 0 );
+			$header_path = 'settings.layout.headerTemplateId';
+			$footer_path = 'settings.layout.footerTemplateId';
+
+			// A zero explicit assignment currently resolves through the site-wide raw ID.
+			// Record that fallback so a secondary object cannot pass review while still
+			// rendering a main-language layout during the foundation-only phase.
+			if ( ! $header_id ) {
+				$header_id   = absint( get_option( 'dsf_default_header_id', 0 ) );
+				$header_path = 'defaults.headerTemplateId';
+			}
+			if ( ! $footer_id ) {
+				$footer_id   = absint( get_option( 'dsf_default_footer_id', 0 ) );
+				$footer_path = 'defaults.footerTemplateId';
+			}
+
+			self::add_dependency( $dependencies, 'post', 'dsf_layout', $header_id, 'layout_header', $header_path, $post_id );
+			self::add_dependency( $dependencies, 'post', 'dsf_layout', $footer_id, 'layout_footer', $footer_path, $post_id );
 		}
 
-		self::add_dependency( $dependencies, 'post', 'dsf_layout', $header_id, 'layout_header', $header_path );
-		self::add_dependency( $dependencies, 'post', 'dsf_layout', $footer_id, 'layout_footer', $footer_path );
-		self::add_dependency( $dependencies, 'post', 'dsf_popup', $settings['popupId'] ?? 0, 'popup', 'settings.popupId' );
+		self::add_dependency( $dependencies, 'post', 'dsf_popup', $settings['popupId'] ?? 0, 'popup', 'settings.popupId', $post_id );
 		$language     = DSF_Multilingual_Settings::normalize_locale_code( $language );
 		$notification = '' !== $language ? get_option( 'dsf_notification_bar', array() ) : array();
 		if ( is_array( $notification ) && ! empty( $notification['enabled'] ) ) {
@@ -385,7 +393,7 @@ class DSF_Multilingual_Adapters {
 			$parent      = get_post( $parent_id );
 			$parent_type = is_object( $parent ) && isset( $parent->post_type ) ? sanitize_key( $parent->post_type ) : '';
 			if ( in_array( $parent_type, self::relationship_post_types(), true ) ) {
-				self::add_dependency( $dependencies, 'post', $parent_type, $parent_id, 'parent', 'post_parent' );
+				self::add_dependency( $dependencies, 'post', $parent_type, $parent_id, 'parent', 'post_parent', $post_id );
 			}
 		}
 
@@ -398,15 +406,15 @@ class DSF_Multilingual_Adapters {
 			if ( ! is_array( $block ) ) {
 				continue;
 			}
-			self::add_dependency( $dependencies, 'post', 'dsf_saved_block', $block['savedBlockId'] ?? 0, 'saved_block', 'blocks.' . absint( $index ) . '.savedBlockId' );
+			self::add_dependency( $dependencies, 'post', 'dsf_saved_block', $block['savedBlockId'] ?? 0, 'saved_block', 'blocks.' . absint( $index ) . '.savedBlockId', $post_id );
 			$block_settings = isset( $block['settings'] ) && is_array( $block['settings'] ) ? $block['settings'] : array();
 			$block_type     = sanitize_key( $block['type'] ?? '' );
 			$form_source    = sanitize_key( $block_settings['formSource'] ?? 'dsf' );
 			if ( 'form-embed' === $block_type || ( 'form-with-content' === $block_type && 'embed' !== $form_source ) ) {
-				self::add_dependency( $dependencies, 'post', 'dsf_form', $block_settings['formId'] ?? 0, 'form', 'blocks.' . absint( $index ) . '.settings.formId' );
+				self::add_dependency( $dependencies, 'post', 'dsf_form', $block_settings['formId'] ?? 0, 'form', 'blocks.' . absint( $index ) . '.settings.formId', $post_id );
 			}
 			if ( 'dsf' === sanitize_key( $block_settings['newsletterSource'] ?? '' ) ) {
-				self::add_dependency( $dependencies, 'post', 'dsf_form', $block_settings['newsletterFormId'] ?? 0, 'form', 'blocks.' . absint( $index ) . '.settings.newsletterFormId' );
+				self::add_dependency( $dependencies, 'post', 'dsf_form', $block_settings['newsletterFormId'] ?? 0, 'form', 'blocks.' . absint( $index ) . '.settings.newsletterFormId', $post_id );
 			}
 			if ( $dependencies instanceof WP_Error ) {
 				return $dependencies;
@@ -541,13 +549,29 @@ class DSF_Multilingual_Adapters {
 		return new WP_Error( 'dsf_multilingual_fingerprint_type', __( 'Visitor-facing source data contains an unsupported value.', 'designstudio-flow' ) );
 	}
 
-	/** Add one valid explicit dependency. */
-	private static function add_dependency( &$dependencies, $kind, $subtype, $object_id, $dependency_kind, $path ) {
+	/**
+	 * Add one valid explicit dependency.
+	 *
+	 * @param array|WP_Error $dependencies    Collected dependencies, by reference.
+	 * @param string         $kind            Object kind.
+	 * @param string         $subtype         Object subtype.
+	 * @param int            $object_id       Dependency object ID.
+	 * @param string         $dependency_kind Dependency role.
+	 * @param string         $path            Source path for review messages.
+	 * @param int            $owner_id        Owning object, so it cannot depend on itself.
+	 */
+	private static function add_dependency( &$dependencies, $kind, $subtype, $object_id, $dependency_kind, $path, $owner_id = 0 ) {
 		if ( $dependencies instanceof WP_Error ) {
 			return;
 		}
 		$object_id = absint( $object_id );
 		if ( ! $object_id ) {
+			return;
+		}
+		// An object is never its own dependency. Site-wide defaults make this
+		// reachable: the layout chosen as the default header resolves that
+		// default for itself.
+		if ( 'post' === sanitize_key( $kind ) && absint( $owner_id ) === $object_id ) {
 			return;
 		}
 		if ( count( $dependencies ) >= self::MAX_DEPENDENCIES ) {
@@ -562,6 +586,25 @@ class DSF_Multilingual_Adapters {
 			'path'            => sanitize_text_field( $path ),
 			'required'        => true,
 		);
+	}
+
+	/**
+	 * Whether a post type renders inside a Flow header and footer.
+	 *
+	 * @param string $post_type Post type.
+	 * @return bool
+	 */
+	public static function renders_with_layout( $post_type ) {
+		$types = array( 'page', 'post', 'dsf_product_template', 'dsf_shop_template', 'dsf_blog_template' );
+
+		/**
+		 * Filter which post types depend on a header and footer.
+		 *
+		 * @param string[] $types     Post types.
+		 * @param string   $post_type Post type being evaluated.
+		 */
+		$types = apply_filters( 'dsf_multilingual_layout_dependent_types', $types, $post_type );
+		return is_array( $types ) && in_array( sanitize_key( $post_type ), $types, true );
 	}
 
 	/** Sanitize rich source text before it enters a fingerprint payload. */

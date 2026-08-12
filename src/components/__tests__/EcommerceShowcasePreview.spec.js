@@ -83,4 +83,52 @@ describe('EcommerceShowcasePreview', () => {
 
     expect(defaultPrevented).toBe(true)
   })
+  /*
+   * The demo fire pits carry invented prices ($3,499.00 etc). They exist to give
+   * the editor canvas something to lay out and must never reach a visitor when
+   * the block resolves no real products.
+   */
+  it('renders no demo products or prices on the frontend', () => {
+    const wrapper = mountShowcase({}, false)
+
+    expect(wrapper.findAll('.dsf-showcase-product').length).toBe(0)
+    expect(wrapper.text()).not.toContain('$3,499.00')
+    expect(wrapper.text()).not.toContain('Capri Fire Pit')
+    expect(wrapper.text()).toContain('Browse 0 products')
+  })
+
+  it('still shows the demo set in the editor', () => {
+    const wrapper = mountShowcase({}, true)
+
+    expect(wrapper.findAll('.dsf-showcase-product').length).toBeGreaterThan(0)
+    expect(wrapper.text()).toContain('$3,499.00')
+  })
+
+  it('hides the price and cart button for a product that is not sold online', () => {
+    window.dsfFrontendData = {
+      ecommerceShowcase: {},
+    }
+    const wrapper = mountShowcase({}, true)
+    wrapper.vm.products = [
+      {
+        id: 77,
+        name: 'Syndicated Spa',
+        price: '',
+        regularPrice: '',
+        salePrice: '',
+        onSale: false,
+        image: null,
+        permalink: '/products/syndicated-spa',
+        sold_online: false,
+        cta_buttons: [{ label: 'Find a Dealer' }],
+      },
+    ]
+
+    return wrapper.vm.$nextTick().then(() => {
+      expect(wrapper.find('.dsf-showcase-product__price').exists()).toBe(false)
+      const ctas = wrapper.findAll('.dsf-showcase-product__cart')
+      expect(ctas.map((c) => c.text())).toEqual(['Find a Dealer'])
+      expect(wrapper.text()).not.toContain('Buy now')
+    })
+  })
 })

@@ -29,6 +29,24 @@ class DSF_Multilingual {
 	/** @var DSF_Multilingual_Migration */
 	private $migration;
 
+	/** @var DSF_Translation_Routes */
+	private $routes;
+
+	/** @var DSF_Language_Context */
+	private $language_context;
+
+	/** @var DSF_Language_Routing */
+	private $language_routing;
+
+	/** @var DSF_Language_SEO */
+	private $language_seo;
+
+	/** @var DSF_Language_Switcher */
+	private $language_switcher;
+
+	/** @var DSF_Translation_Overlays */
+	private $overlays;
+
 	/** Return the shared coordinator. */
 	public static function get_instance() {
 		if ( null === self::$instance ) {
@@ -40,6 +58,7 @@ class DSF_Multilingual {
 	/** Install every foundation table during plugin activation. */
 	public static function install() {
 		DSF_Translation_Relationships::install();
+		DSF_Translation_Routes::install();
 		DSF_Translation_Workflow::install();
 		DSF_Translation_Dependencies::install();
 	}
@@ -52,6 +71,7 @@ class DSF_Multilingual {
 		$this->relationships = DSF_Translation_Relationships::get_instance();
 		$this->relationships->register_adapter( 'post', DSF_Multilingual_Adapters::relationship_post_types() );
 		$this->relationships->register_adapter( 'term', DSF_Multilingual_Adapters::relationship_taxonomies() );
+		$this->relationships->register_adapter( DSF_Translation_Overlays::KIND, DSF_Translation_Overlays::subtypes() );
 
 		$language_validator = array( $this, 'is_language_enabled' );
 		$this->workflow     = new DSF_Translation_Workflow(
@@ -75,14 +95,30 @@ class DSF_Multilingual {
 		$this->publish_gate->set_dependencies( $this->dependencies );
 		$this->migration = new DSF_Multilingual_Migration( $this->relationships, $this->dependencies );
 
+		$this->routes           = DSF_Translation_Routes::get_instance();
+		$this->language_context = DSF_Language_Context::get_instance();
+		$this->language_routing = DSF_Language_Routing::get_instance();
+		$this->language_seo     = DSF_Language_SEO::get_instance();
+		$this->language_switcher = DSF_Language_Switcher::get_instance();
+		$this->overlays          = DSF_Translation_Overlays::get_instance();
+
 		$this->register_hooks();
 	}
 
 	/** Register integration hooks without adding later-phase routing or UI. */
 	private function register_hooks() {
-		add_action( 'init', array( $this, 'maybe_install' ), 1 );
+		// Schema self-heal reads four non-autoloaded version options. Frontend page
+		// views can neither need nor apply an upgrade, so it is deferred to
+		// admin/cron requests (the tables themselves are built at activation).
+		if ( DSF_Runtime::is_maintenance_request() ) {
+			add_action( 'init', array( $this, 'maybe_install' ), 1 );
+		}
 		add_action( 'switch_blog', array( $this, 'handle_switched_blog' ), 10, 3 );
-		add_action( 'init', array( $this->migration, 'maybe_schedule' ), 20 );
+		// Reads the non-autoloaded migration-state option to decide whether to queue
+		// a cron batch. Only admin/cron requests can usefully act on that.
+		if ( DSF_Runtime::is_maintenance_request() ) {
+			add_action( 'init', array( $this->migration, 'maybe_schedule' ), 20 );
+		}
 		add_action( 'wp_after_insert_post', array( $this, 'ensure_post_relationship' ), 10, 4 );
 		add_action( 'created_term', array( $this, 'ensure_term_relationship' ), 10, 3 );
 		add_action( 'edited_term', array( $this, 'ensure_term_relationship' ), 10, 3 );
@@ -103,11 +139,18 @@ class DSF_Multilingual {
 
 		$this->migration->register_hooks();
 		$this->publish_gate->register_hooks();
+		$this->language_context->register_hooks();
+		$this->language_routing->register_hooks();
+		$this->language_seo->register_hooks();
+		$this->language_switcher->register_hooks();
+		$this->overlays->register_hooks();
 	}
 
 	/** Idempotently upgrade tables outside activation-only code paths. */
 	public function maybe_install() {
+		$this->ensure_settings_autoload();
 		$this->relationships->maybe_install();
+		$this->routes->maybe_install();
 		if ( version_compare( (string) get_option( 'dsf_translation_workflow_db_version', '' ), DSF_Translation_Workflow::DB_VERSION, '<' ) ) {
 			DSF_Translation_Workflow::install();
 		}
@@ -115,6 +158,22 @@ class DSF_Multilingual {
 			DSF_Translation_Dependencies::install();
 		}
 		$this->reconcile_network_activation();
+	}
+
+	/**
+	 * Keep the multilingual settings in WordPress's autoloaded option set.
+	 *
+	 * Language routing reads these settings on every frontend request, so storing
+	 * them with autoload off cost one dedicated query per page view — on every
+	 * site, whether or not multilingual is switched on. Installs created before
+	 * this ran stored the option as autoload=off, so it is corrected here (a
+	 * no-op once the flag already matches).
+	 */
+	private function ensure_settings_autoload() {
+		if ( ! function_exists( 'wp_set_option_autoload' ) ) {
+			return;
+		}
+		wp_set_option_autoload( DSF_Multilingual_Settings::OPTION_NAME, true );
 	}
 
 	/** Reconcile each multisite lazily after a network-wide reactivation. */
@@ -390,12 +449,58 @@ class DSF_Multilingual {
 		$this->handle_notification_translations_updated( $old_value, array() );
 	}
 
-	/** Every secondary post object stays private until language-aware resolvers exist. */
+	/**
+	 * A secondary object may only go public once it owns a resolvable URL.
+	 *
+	 * The main language keeps its native, unprefixed WordPress route, so it is
+	 * always valid. Every other language must have a stored row in the indexed
+	 * route map, which is also what guarantees the URL is unique in that
+	 * language.
+	 *
+	 * @param bool  $valid  Whether earlier checks passed.
+	 * @param array $member Relationship member under evaluation.
+	 * @return bool
+	 */
 	public function foundation_route_is_valid( $valid, $member ) {
 		if ( ! $valid || ! is_array( $member ) ) {
 			return false;
 		}
-		return 'post' !== ( $member['object_kind'] ?? '' );
+
+		$kind = (string) ( $member['object_kind'] ?? '' );
+		if ( ! in_array( $kind, array( 'post', 'term' ), true ) ) {
+			return true;
+		}
+
+		$settings = DSF_Multilingual_Settings::get_settings();
+		if ( ( $member['language'] ?? '' ) === $settings['main_language'] ) {
+			return true;
+		}
+
+		if ( 'post' === $kind ) {
+			$post_type = get_post_type_object( sanitize_key( (string) ( $member['object_subtype'] ?? '' ) ) );
+			if ( is_object( $post_type ) && ( empty( $post_type->public ) || empty( $post_type->publicly_queryable ) ) ) {
+				// Objects such as layouts and popups never resolve their own URL;
+				// they are reached through the page that embeds them.
+				return true;
+			}
+		}
+
+		$subtype   = sanitize_key( (string) ( $member['object_subtype'] ?? '' ) );
+		$object_id = absint( $member['object_id'] ?? 0 );
+		$route     = $this->routes->get_route( $kind, $subtype, $object_id );
+		if ( is_array( $route ) ) {
+			return true;
+		}
+
+		if ( 'post' === $kind ) {
+			// Content translated while the migration was still running has no route
+			// yet. Build it once here so the first publish attempt succeeds instead
+			// of reporting a missing URL the editor cannot fix from the UI.
+			$this->language_routing->sync_post_route( $object_id );
+			return is_array( $this->routes->get_route( $kind, $subtype, $object_id ) );
+		}
+
+		return false;
 	}
 
 	/** Keep the legacy bulk default-layout cascade away from secondary objects. */
@@ -489,6 +594,41 @@ class DSF_Multilingual {
 	/** Expose relationships for later reviewed phases and tests. */
 	public function get_relationships() {
 		return $this->relationships;
+	}
+
+	/** Expose the indexed route map. */
+	public function get_routes() {
+		return $this->routes;
+	}
+
+	/** Expose review facts and fingerprints. */
+	public function get_workflow() {
+		return $this->workflow;
+	}
+
+	/** Expose the dependency graph. */
+	public function get_dependencies() {
+		return $this->dependencies;
+	}
+
+	/** Expose the request language context. */
+	public function get_language_context() {
+		return $this->language_context;
+	}
+
+	/** Expose the routing service to switchers and SEO output. */
+	public function get_language_routing() {
+		return $this->language_routing;
+	}
+
+	/** Expose the catalog overlay service. */
+	public function get_overlays() {
+		return $this->overlays;
+	}
+
+	/** Expose the shared language switcher. */
+	public function get_language_switcher() {
+		return $this->language_switcher;
 	}
 
 	/** Resolve current raw references to portable dependency-group edges. */

@@ -6,10 +6,12 @@ if ( ! class_exists( 'WP_Error' ) ) {
 	class WP_Error {
 		private $code;
 		private $message;
+		private $data;
 
-		public function __construct( $code = '', $message = '' ) {
+		public function __construct( $code = '', $message = '', $data = null ) {
 			$this->code    = $code;
 			$this->message = $message;
+			$this->data    = $data;
 		}
 
 		public function get_error_code() {
@@ -18,6 +20,10 @@ if ( ! class_exists( 'WP_Error' ) ) {
 
 		public function get_error_message() {
 			return $this->message;
+		}
+
+		public function get_error_data() {
+			return $this->data;
 		}
 	}
 }
@@ -40,10 +46,38 @@ class Test_DSF_Multilingual_Adapters extends TestCase {
 				},
 			)
 		);
-		WP_Mock::userFunction( 'absint', array( 'return' => static function ( $value ) { return abs( (int) $value ); } ) );
-		WP_Mock::userFunction( 'sanitize_text_field', array( 'return' => static function ( $value ) { return trim( strip_tags( (string) $value ) ); } ) );
-		WP_Mock::userFunction( 'sanitize_title', array( 'return' => static function ( $value ) { return trim( preg_replace( '/[^a-z0-9]+/', '-', strtolower( (string) $value ) ), '-' ); } ) );
-		WP_Mock::userFunction( 'wp_kses_post', array( 'return' => static function ( $value ) { return preg_replace( '#<script\b[^>]*>.*?</script>#is', '', (string) $value ); } ) );
+		WP_Mock::userFunction(
+			'absint',
+			array(
+				'return' => static function ( $value ) {
+					return abs( (int) $value );
+				},
+			)
+		);
+		WP_Mock::userFunction(
+			'sanitize_text_field',
+			array(
+				'return' => static function ( $value ) {
+					return trim( strip_tags( (string) $value ) );
+				},
+			)
+		);
+		WP_Mock::userFunction(
+			'sanitize_title',
+			array(
+				'return' => static function ( $value ) {
+					return trim( preg_replace( '/[^a-z0-9]+/', '-', strtolower( (string) $value ) ), '-' );
+				},
+			)
+		);
+		WP_Mock::userFunction(
+			'wp_kses_post',
+			array(
+				'return' => static function ( $value ) {
+					return preg_replace( '#<script\b[^>]*>.*?</script>#is', '', (string) $value );
+				},
+			)
+		);
 		WP_Mock::userFunction( '__', array( 'return_arg' => 0 ) );
 	}
 
@@ -65,24 +99,116 @@ class Test_DSF_Multilingual_Adapters extends TestCase {
 		$this->assertNotContains( 'attachment', $types );
 	}
 
-	public function test_foundation_route_keeps_every_secondary_post_adapter_private() {
-		$reflection  = new ReflectionClass( DSF_Multilingual::class );
-		$coordinator = $reflection->newInstanceWithoutConstructor();
+	public function test_a_secondary_object_goes_public_only_with_a_resolvable_route() {
+		WP_Mock::userFunction( 'get_locale', array( 'return' => 'en_US' ) );
+		WP_Mock::userFunction(
+			'get_option',
+			array(
+				'return' => static function ( $key, $default = false ) {
+					if ( DSF_Multilingual_Settings::OPTION_NAME === $key ) {
+						return array(
+							'enabled'           => true,
+							'main_language'     => 'en-US',
+							'migration_state'   => 'complete',
+							'migration_version' => DSF_Multilingual_Settings::MIGRATION_VERSION,
+							'languages'         => array(
+								array(
+									'code'   => 'en-US',
+									'prefix' => '',
+								),
+								array(
+									'code'   => 'es-MX',
+									'prefix' => 'es',
+								),
+							),
+						);
+					}
+					return $default;
+				},
+			)
+		);
+		WP_Mock::userFunction(
+			'get_post_type_object',
+			array(
+				'return' => static function ( $post_type ) {
+					$is_public = in_array( $post_type, array( 'page', 'post' ), true );
+					return (object) array(
+						'public'             => $is_public,
+						'publicly_queryable' => $is_public,
+					);
+				},
+			)
+		);
 
-		foreach ( DSF_Multilingual_Adapters::relationship_post_types() as $post_type ) {
-			$this->assertFalse(
-				$coordinator->foundation_route_is_valid(
-					true,
-					array(
-						'object_kind'    => 'post',
-						'object_subtype' => $post_type,
-					)
-				)
-			);
+		$coordinator = ( new ReflectionClass( DSF_Multilingual::class ) )->newInstanceWithoutConstructor();
+		$routes      = new class() {
+			public $routed = array( 'post:page:12' => true );
+
+			public function get_route( $kind, $subtype, $id ) {
+				$key = $kind . ':' . $subtype . ':' . (int) $id;
+				return isset( $this->routed[ $key ] ) ? array( 'path' => 'acerca-de' ) : null;
+			}
+		};
+		$routing     = new class() {
+			public $synced = array();
+
+			public function sync_post_route( $post_id ) {
+				$this->synced[] = (int) $post_id;
+				return null;
+			}
+		};
+
+		foreach ( array( 'routes', 'language_routing' ) as $name ) {
+			$property = ( new ReflectionClass( DSF_Multilingual::class ) )->getProperty( $name );
+			$property->setAccessible( true );
+			$property->setValue( $coordinator, 'routes' === $name ? $routes : $routing );
 		}
 
-		$this->assertTrue( $coordinator->foundation_route_is_valid( true, array( 'object_kind' => 'term' ) ) );
+		$secondary_page = array(
+			'object_kind'    => 'post',
+			'object_subtype' => 'page',
+			'language'       => 'es-MX',
+		);
+
+		$this->assertTrue(
+			$coordinator->foundation_route_is_valid( true, array_merge( $secondary_page, array( 'object_id' => 12 ) ) ),
+			'A translated page with a stored route resolves to exactly one URL.'
+		);
+		$this->assertFalse(
+			$coordinator->foundation_route_is_valid( true, array_merge( $secondary_page, array( 'object_id' => 99 ) ) ),
+			'A translated page without a route has no public URL and must stay blocked.'
+		);
+		$this->assertTrue(
+			$coordinator->foundation_route_is_valid(
+				true,
+				array(
+					'object_kind'    => 'post',
+					'object_subtype' => 'page',
+					'object_id'      => 99,
+					'language'       => 'en-US',
+				)
+			),
+			'The main language keeps its native unprefixed URL.'
+		);
+		$this->assertTrue(
+			$coordinator->foundation_route_is_valid(
+				true,
+				array(
+					'object_kind'    => 'post',
+					'object_subtype' => 'dsf_layout',
+					'object_id'      => 40,
+					'language'       => 'es-MX',
+				)
+			),
+			'Objects without their own public URL are reached through the page that embeds them.'
+		);
+		$this->assertSame(
+			array( 99 ),
+			$routing->synced,
+			'A missing route is rebuilt once before the publish attempt is refused.'
+		);
 		$this->assertFalse( $coordinator->foundation_route_is_valid( false, array( 'object_kind' => 'term' ) ) );
+		$this->assertTrue( $coordinator->foundation_route_is_valid( true, array( 'object_kind' => 'synthetic' ) ) );
 	}
 
 	public function test_notification_slots_are_distinct_and_require_secondary_storage() {
@@ -97,8 +223,14 @@ class Test_DSF_Multilingual_Adapters extends TestCase {
 							'enabled'       => true,
 							'main_language' => 'en-US',
 							'languages'     => array(
-								array( 'code' => 'en-US', 'prefix' => '' ),
-								array( 'code' => 'es-MX', 'prefix' => 'es-mx' ),
+								array(
+									'code'   => 'en-US',
+									'prefix' => '',
+								),
+								array(
+									'code'   => 'es-MX',
+									'prefix' => 'es-mx',
+								),
 							),
 						);
 					}
@@ -113,7 +245,7 @@ class Test_DSF_Multilingual_Adapters extends TestCase {
 			)
 		);
 
-		$main_id   = DSF_Multilingual_Adapters::synthetic_notification_id( 'en-US' );
+		$main_id    = DSF_Multilingual_Adapters::synthetic_notification_id( 'en-US' );
 		$spanish_id = DSF_Multilingual_Adapters::synthetic_notification_id( 'es-MX' );
 		$this->assertSame( 1002, $main_id );
 		$this->assertSame( 1008, $spanish_id );
@@ -151,7 +283,12 @@ class Test_DSF_Multilingual_Adapters extends TestCase {
 			array(
 				'return' => static function ( $post_id, $key ) {
 					if ( '_dsf_form_rows' === $key ) {
-						return array( array( 'label' => 'Your name', 'name' => 'name' ) );
+						return array(
+							array(
+								'label' => 'Your name',
+								'name'  => 'name',
+							),
+						);
 					}
 					return array(
 						'submitLabel'         => 'Send',
@@ -195,7 +332,10 @@ class Test_DSF_Multilingual_Adapters extends TestCase {
 				'return' => static function ( $post_id, $key ) {
 					if ( '_dsf_settings' === $key ) {
 						return array(
-							'layout'  => array( 'headerTemplateId' => 4, 'footerTemplateId' => 5 ),
+							'layout'  => array(
+								'headerTemplateId' => 4,
+								'footerTemplateId' => 5,
+							),
 							'popupId' => 6,
 						);
 					}
@@ -204,11 +344,11 @@ class Test_DSF_Multilingual_Adapters extends TestCase {
 							'savedBlockId' => 7,
 							'type'         => 'form-with-content',
 							'settings'     => array(
-								'formSource'      => 'dsf',
-								'formId'          => '8',
+								'formSource'       => 'dsf',
+								'formId'           => '8',
 								'newsletterSource' => 'dsf',
 								'newsletterFormId' => 9,
-								'unrelatedId'     => 999,
+								'unrelatedId'      => 999,
 							),
 						),
 					);
@@ -314,17 +454,97 @@ class Test_DSF_Multilingual_Adapters extends TestCase {
 			)
 		);
 		$deep_result = DSF_Multilingual_Adapters::fingerprint_payload(
-			array( 'object_kind' => 'post', 'object_subtype' => 'page', 'object_id' => 70 )
+			array(
+				'object_kind'    => 'post',
+				'object_subtype' => 'page',
+				'object_id'      => 70,
+			)
 		);
 		$this->assertInstanceOf( WP_Error::class, $deep_result );
 		$this->assertSame( 'dsf_multilingual_fingerprint_depth', $deep_result->get_error_code() );
 
 		$fingerprint_meta = array_fill( 0, 5001, 'visitor-copy' );
-		$wide_result = DSF_Multilingual_Adapters::fingerprint_payload(
-			array( 'object_kind' => 'post', 'object_subtype' => 'page', 'object_id' => 70 )
+		$wide_result      = DSF_Multilingual_Adapters::fingerprint_payload(
+			array(
+				'object_kind'    => 'post',
+				'object_subtype' => 'page',
+				'object_id'      => 70,
+			)
 		);
 		$this->assertInstanceOf( WP_Error::class, $wide_result );
 		$this->assertSame( 'dsf_multilingual_fingerprint_nodes', $wide_result->get_error_code() );
+	}
+
+	public function test_a_layout_never_depends_on_itself_through_the_site_default() {
+		$layout              = new stdClass();
+		$layout->ID          = 1229;
+		$layout->post_type   = 'dsf_layout';
+		$layout->post_parent = 0;
+
+		WP_Mock::userFunction( 'get_post', array( 'return' => $layout ) );
+		WP_Mock::userFunction( 'get_post_meta', array( 'return' => array() ) );
+		// This layout is the site-wide default header, so the fallback resolves
+		// to the very object being described.
+		WP_Mock::userFunction(
+			'get_option',
+			array(
+				'return' => static function ( $key, $default = false ) {
+					unset( $default );
+					if ( 'dsf_default_header_id' === $key ) {
+						return 1229;
+					}
+					if ( 'dsf_default_footer_id' === $key ) {
+						return 1161;
+					}
+					return array();
+				},
+			)
+		);
+
+		$dependencies = DSF_Multilingual_Adapters::post_dependencies( 1229 );
+
+		$this->assertIsArray( $dependencies );
+		$this->assertSame(
+			array(),
+			$dependencies,
+			'A header or footer is not wrapped in another header or footer, and can never require itself.'
+		);
+	}
+
+	public function test_only_whole_page_objects_require_a_header_and_footer() {
+		$this->assertTrue( DSF_Multilingual_Adapters::renders_with_layout( 'page' ) );
+		$this->assertTrue( DSF_Multilingual_Adapters::renders_with_layout( 'post' ) );
+		$this->assertTrue( DSF_Multilingual_Adapters::renders_with_layout( 'dsf_shop_template' ) );
+
+		// These render inside a page that already has its own header and footer.
+		$this->assertFalse( DSF_Multilingual_Adapters::renders_with_layout( 'dsf_layout' ) );
+		$this->assertFalse( DSF_Multilingual_Adapters::renders_with_layout( 'dsf_saved_block' ) );
+		$this->assertFalse( DSF_Multilingual_Adapters::renders_with_layout( 'dsf_form' ) );
+		$this->assertFalse( DSF_Multilingual_Adapters::renders_with_layout( 'dsf_popup' ) );
+	}
+
+	public function test_a_page_that_points_at_itself_drops_the_self_reference() {
+		$page              = new stdClass();
+		$page->ID          = 55;
+		$page->post_type   = 'page';
+		$page->post_parent = 0;
+
+		WP_Mock::userFunction( 'get_post', array( 'return' => $page ) );
+		WP_Mock::userFunction(
+			'get_post_meta',
+			array(
+				'return' => static function ( $post_id, $key ) {
+					unset( $post_id );
+					if ( '_dsf_blocks' === $key ) {
+						return array( array( 'savedBlockId' => 55 ) );
+					}
+					return array( 'popupId' => 55 );
+				},
+			)
+		);
+		WP_Mock::userFunction( 'get_option', array( 'return' => 0 ) );
+
+		$this->assertSame( array(), DSF_Multilingual_Adapters::post_dependencies( 55 ) );
 	}
 
 	public function test_dependency_after_capacity_limit_blocks_instead_of_disappearing() {
@@ -333,7 +553,9 @@ class Test_DSF_Multilingual_Adapters extends TestCase {
 		$post->post_type = 'page';
 		$blocks          = array();
 		for ( $index = 1; $index <= DSF_Multilingual_Adapters::MAX_DEPENDENCIES + 1; $index++ ) {
-			$blocks[] = array( 'savedBlockId' => $index );
+			// Offset past the owner's own ID: an object is never its own dependency,
+			// so a colliding ID would be skipped and never reach the limit.
+			$blocks[] = array( 'savedBlockId' => 1000 + $index );
 		}
 		WP_Mock::userFunction( 'get_post', array( 'return' => $post ) );
 		WP_Mock::userFunction(

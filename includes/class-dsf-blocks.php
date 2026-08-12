@@ -12,6 +12,9 @@ class DSF_Blocks {
 	private static $instance = null;
 	private $blocks          = array();
 
+	/** @var bool|null Cached multilingual state used during block registration. */
+	private $multilingual_enabled = null;
+
 	public static function get_instance() {
 		if ( null === self::$instance ) {
 			self::$instance = new self();
@@ -9591,8 +9594,112 @@ class DSF_Blocks {
 
 		$block = $this->apply_zero_layout_spacing_defaults( $block );
 		$block = $this->apply_placeholder_defaults( $block );
+		$block = $this->apply_language_switcher_settings( $block );
 		$this->blocks[ $block['id'] ] = $block;
 		return true;
+	}
+
+	/**
+	 * Whether multilingual mode is on, resolved once per request.
+	 *
+	 * Block registration runs for every block on every request, so this must not
+	 * read the option repeatedly — or at all outside a WordPress runtime.
+	 *
+	 * @return bool
+	 */
+	private function multilingual_is_enabled() {
+		if ( null === $this->multilingual_enabled ) {
+			$this->multilingual_enabled = false;
+			if ( class_exists( 'DSF_Multilingual_Settings' ) && function_exists( 'get_option' ) ) {
+				$settings                   = DSF_Multilingual_Settings::get_settings();
+				$this->multilingual_enabled = ! empty( $settings['enabled'] );
+			}
+		}
+		return $this->multilingual_enabled;
+	}
+
+	/**
+	 * Template-scope headers that must offer the shared language switcher.
+	 *
+	 * @return string[]
+	 */
+	public static function language_switcher_headers() {
+		$headers = array( 'header-mega-menu', 'header-showcase-mega', 'header-cutout-mega', 'header-modern-mega' );
+
+		/**
+		 * Filters which header blocks integrate the shared language switcher.
+		 *
+		 * @param string[] $headers Block identifiers.
+		 */
+		$headers = apply_filters( 'dsf_language_switcher_headers', $headers );
+		return is_array( $headers ) ? array_values( array_filter( array_map( 'sanitize_key', $headers ) ) ) : array();
+	}
+
+	/**
+	 * The presentation controls every header shares for the switcher.
+	 *
+	 * Only presentation is configurable. There is deliberately no "hide the
+	 * switcher" control, so a multilingual site cannot end up with no way to
+	 * change language through its header.
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	public static function language_switcher_settings() {
+		return array(
+			'languageSwitcherStyle'     => array(
+				'type'         => 'select',
+				'label'        => 'Language Switcher Style',
+				'default'      => 'dropdown',
+				'options'      => array(
+					'Dropdown' => 'dropdown',
+					'Compact'  => 'compact',
+					'List'     => 'list',
+				),
+				'translatable' => false,
+			),
+			'languageSwitcherLabels'    => array(
+				'type'         => 'select',
+				'label'        => 'Language Switcher Labels',
+				'default'      => 'native',
+				'options'      => array(
+					'Native name'      => 'native',
+					'Short code'       => 'code',
+					'Name and code'    => 'both',
+				),
+				'translatable' => false,
+			),
+			'languageSwitcherPlacement' => array(
+				'type'         => 'select',
+				'label'        => 'Language Switcher Placement',
+				'default'      => 'actions',
+				'options'      => array(
+					'With header actions' => 'actions',
+					'In the utility bar'  => 'utility',
+				),
+				'translatable' => false,
+			),
+		);
+	}
+
+	/**
+	 * Merge the switcher controls into template-scope headers.
+	 *
+	 * The controls only exist while multilingual mode is on, so a single
+	 * language site never sees settings it cannot use.
+	 *
+	 * @param array $block Block registration.
+	 * @return array
+	 */
+	private function apply_language_switcher_settings( $block ) {
+		if ( ! in_array( $block['id'], self::language_switcher_headers(), true ) || ! $this->multilingual_is_enabled() ) {
+			return $block;
+		}
+
+		$block['settings'] = array_merge(
+			is_array( $block['settings'] ?? null ) ? $block['settings'] : array(),
+			self::language_switcher_settings()
+		);
+		return $block;
 	}
 
 	/**
@@ -9872,6 +9979,33 @@ class DSF_Blocks {
 	 */
 	public function get_block( $block_id ) {
 		return $this->blocks[ $block_id ] ?? null;
+	}
+
+	/**
+	 * Return the declared translatable settings of one block.
+	 *
+	 * Translatability is a property of the registration schema, never of a
+	 * stored value. A block declares it three ways, in order of precedence:
+	 *
+	 *   1. a `translatable` key on the setting definition (`false` to opt out,
+	 *      or a descriptor built with DSF_Translation_Contract::text() /
+	 *      ::html() / ::items() / ::map());
+	 *   2. the setting's registered `type`, which resolves through the shared
+	 *      contract (text/textarea/wysiwyg/richtext plus every repeater type);
+	 *   3. the `dsf_block_translatable_settings` filter, for add-ons that
+	 *      cannot change a registration they do not own.
+	 *
+	 * Any setting that is not declared is preserved untouched by translation.
+	 *
+	 * @param string $block_id Block identifier.
+	 * @return array<string,array<string,mixed>> Setting key to descriptor.
+	 */
+	public static function get_translatable_settings( $block_id ) {
+		$block = self::get_instance()->get_block( $block_id );
+		if ( ! is_array( $block ) || ! class_exists( 'DSF_Translation_Contract' ) ) {
+			return array();
+		}
+		return DSF_Translation_Contract::describe_block( $block_id, $block );
 	}
 
 	/**

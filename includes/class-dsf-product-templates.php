@@ -45,7 +45,145 @@ class DSF_Product_Templates {
 		return (bool) get_option( 'dsf_products_enabled', true );
 	}
 
+	/**
+	 * Whether the Syndified (or Watkins LDP) content-syndication plugin is active.
+	 *
+	 * Both plugins ship the same codebase under different folder names and share
+	 * the `DesignStudio\Syndified\Core\Settings` class, so the class is the stable
+	 * signal rather than a plugin path.
+	 *
+	 * @return bool
+	 */
+	public static function is_syndified_active() {
+		/**
+		 * Filter whether the Syndified content-syndication plugin is considered active.
+		 *
+		 * Lets a site that ships the same syndication plugin under a different name
+		 * (or wants to ignore it entirely) override the class-based detection.
+		 *
+		 * @param bool $active Whether the Syndified plugin was detected.
+		 */
+		return (bool) apply_filters( 'dsf_syndified_active', class_exists( '\\DesignStudio\\Syndified\\Core\\Settings' ) );
+	}
+
+	/**
+	 * Whether a product may be sold online — i.e. whether product blocks may show
+	 * a price and an add-to-cart control for it.
+	 *
+	 * Two things suppress online selling:
+	 *
+	 * 1. The product has no price at all. WooCommerce still reports such products
+	 *    as visible, so blocks would otherwise render an empty price slot (or a
+	 *    demo placeholder) next to a cart button that adds a $0 line item.
+	 * 2. Syndified marks the product as not sold online. Syndified syncs a
+	 *    `dswaves_can_purchase` meta from its console — 'Yes' when the dealer is
+	 *    allowed to sell the product online, 'No' otherwise. Anything other than
+	 *    'Yes' means "display the product, but do not sell it here".
+	 *
+	 * Products with no `dswaves_can_purchase` meta are not Syndified-managed
+	 * (dealer-created products, or a site synced before the flag existed) and are
+	 * deliberately left alone — a missing flag must not be read as "no".
+	 *
+	 * @param WC_Product $product Product object.
+	 * @return bool
+	 */
+	public static function is_sold_online( $product ) {
+		if ( ! $product || ! is_object( $product ) || ! method_exists( $product, 'get_id' ) ) {
+			return false;
+		}
+
+		$sold_online = '' !== (string) $product->get_price();
+
+		if ( $sold_online && self::is_syndified_active() ) {
+			$can_purchase = get_post_meta( $product->get_id(), 'dswaves_can_purchase', true );
+			// Only an explicitly synced flag gates the product; '' means "not managed".
+			if ( '' !== (string) $can_purchase && 'yes' !== strtolower( (string) $can_purchase ) ) {
+				$sold_online = false;
+			}
+		}
+
+		/**
+		 * Filter whether a product may be sold online.
+		 *
+		 * Lets a site suppress (or restore) the price and add-to-cart controls in
+		 * every DesignStudio Flow product block from one place.
+		 *
+		 * @param bool       $sold_online Whether price / add-to-cart may be shown.
+		 * @param WC_Product $product     Product object.
+		 */
+		return (bool) apply_filters( 'dsf_product_is_sold_online', $sold_online, $product );
+	}
+
+	/**
+	 * Back WooCommerce's own purchasability check with the same rule the blocks use.
+	 *
+	 * Runs on the frontend (including AJAX add-to-cart) only: wp-admin order and
+	 * product screens keep WooCommerce's native behavior so a shop manager can
+	 * still work with the product.
+	 *
+	 * @param bool       $purchasable Whether Woo considers the product purchasable.
+	 * @param WC_Product $product     Product object.
+	 * @return bool
+	 */
+	public function filter_is_purchasable( $purchasable, $product ) {
+		if ( ! $purchasable || ( is_admin() && ! wp_doing_ajax() ) ) {
+			return $purchasable;
+		}
+
+		return self::is_sold_online( $product );
+	}
+
+	/**
+	 * The call-to-action buttons Syndified defines for a product, used in place of
+	 * a price and add-to-cart button when the product is not sold online.
+	 *
+	 * Syndified stores `cta_buttons` as a JSON list of { label, show } entries
+	 * synced from its console; only entries the dealer left switched on are
+	 * returned. The buttons carry no URLs of their own, so callers link them to
+	 * the product page.
+	 *
+	 * @param int $product_id Product post ID.
+	 * @return array[] List of { label } arrays, capped at 4.
+	 */
+	public static function get_syndified_cta_buttons( $product_id ) {
+		if ( ! self::is_syndified_active() ) {
+			return array();
+		}
+
+		$raw = get_post_meta( absint( $product_id ), 'cta_buttons', true );
+		if ( ! is_string( $raw ) || '' === $raw ) {
+			return array();
+		}
+
+		$decoded = json_decode( $raw, true );
+		if ( ! is_array( $decoded ) ) {
+			return array();
+		}
+
+		$buttons = array();
+		foreach ( $decoded as $button ) {
+			if ( ! is_array( $button ) || empty( $button['label'] ) ) {
+				continue;
+			}
+			// Syndified writes the visibility flag as the string 'Show' / 'Hide'.
+			if ( isset( $button['show'] ) && 'show' !== strtolower( (string) $button['show'] ) ) {
+				continue;
+			}
+			$buttons[] = array( 'label' => sanitize_text_field( (string) $button['label'] ) );
+			if ( count( $buttons ) >= 4 ) {
+				break;
+			}
+		}
+
+		return $buttons;
+	}
+
 	private function __construct() {
+		// Hiding the cart button is presentation; this makes the rule real. Woo
+		// treats a non-purchasable product as un-add-to-cart-able everywhere, so a
+		// crafted ?add-to-cart= request for a product that is not sold online is
+		// rejected rather than silently adding a $0 line item.
+		add_filter( 'woocommerce_is_purchasable', array( $this, 'filter_is_purchasable' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'add_edit_link' ), 10, 2 );
 		add_filter( 'manage_' . self::POST_TYPE . '_posts_columns', array( $this, 'add_columns' ) );
 		add_action( 'manage_' . self::POST_TYPE . '_posts_custom_column', array( $this, 'render_column' ), 10, 2 );
@@ -248,13 +386,20 @@ class DSF_Product_Templates {
 			? wc_format_content( (string) $product->get_description() )
 			: wpautop( do_shortcode( (string) $product->get_description() ) );
 
+		// Products with no price, or that Syndified marks as not sold online, show
+		// neither a price nor an add-to-cart form; the Syndified CTA buttons stand
+		// in for them. Blanking the fields here covers every product block at once,
+		// because they all render these fields conditionally.
+		$sold_online = self::is_sold_online( $product );
+		$cta_buttons = $sold_online ? array() : self::get_syndified_cta_buttons( $product->get_id() );
+
 		$context = array(
 			'id'                   => $product->get_id(),
 			'name'                 => sanitize_text_field( $product->get_name() ),
 			'permalink'            => get_permalink( $product->get_id() ),
 			'sku'                  => sanitize_text_field( (string) $product->get_sku() ),
 			'type'                 => sanitize_key( $product->get_type() ),
-			'priceHtml'            => wp_kses_post( (string) $product->get_price_html() ),
+			'priceHtml'            => $sold_online ? wp_kses_post( (string) $product->get_price_html() ) : '',
 			'shortDescriptionHtml' => wp_kses_post( (string) apply_filters( 'woocommerce_short_description', $short_description ) ),
 			'descriptionHtml'      => wp_kses_post( (string) $description ),
 			'gallery'              => self::build_gallery( $product ),
@@ -263,14 +408,16 @@ class DSF_Product_Templates {
 			'stockStatus'          => sanitize_key( (string) $product->get_stock_status() ),
 			'stockQuantity'        => null === $product->get_stock_quantity() ? null : (int) $product->get_stock_quantity(),
 			'isInStock'            => (bool) $product->is_in_stock(),
-			'onSale'               => (bool) $product->is_on_sale(),
-			'isPurchasable'        => (bool) $product->is_purchasable(),
+			'onSale'               => $sold_online && (bool) $product->is_on_sale(),
+			'isPurchasable'        => $sold_online && (bool) $product->is_purchasable(),
+			'isSoldOnline'         => $sold_online,
+			'ctaButtons'           => $cta_buttons,
 			'averageRating'        => (float) $product->get_average_rating(),
 			'ratingCount'          => (int) $product->get_rating_count(),
 			'reviewCount'          => (int) $product->get_review_count(),
 			'categories'           => self::build_term_list( $product->get_id(), 'product_cat' ),
 			'tags'                 => self::build_term_list( $product->get_id(), 'product_tag' ),
-			'addToCartHtml'        => $args['add_to_cart'] ? self::build_add_to_cart_html( $product ) : '',
+			'addToCartHtml'        => ( $args['add_to_cart'] && $sold_online ) ? self::build_add_to_cart_html( $product ) : '',
 			'reviewsHtml'          => $args['reviews'] ? self::build_reviews_html( $product ) : '',
 			'relatedProducts'      => $args['related'] ? self::build_related_products( $product ) : array(),
 			'upsellProducts'       => $args['upsells'] ? self::build_upsell_products( $product ) : array(),
@@ -363,8 +510,14 @@ class DSF_Product_Templates {
 				$image_url = wc_placeholder_img_src( 'woocommerce_thumbnail' );
 			}
 
+			// Unpriced products, and products Syndified marks as not sold online,
+			// carry no price and no cart link — cards fall back to the Syndified
+			// CTA buttons (or just the product link).
+			$sold_online = self::is_sold_online( $card_product );
+
 			// A "quick add" only makes sense when adding needs no option choices.
-			$quick_add = $card_product->is_purchasable()
+			$quick_add = $sold_online
+				&& $card_product->is_purchasable()
 				&& $card_product->is_in_stock()
 				&& $card_product->is_type( 'simple' );
 
@@ -372,13 +525,15 @@ class DSF_Product_Templates {
 				'id'            => $card_product->get_id(),
 				'name'          => sanitize_text_field( $card_product->get_name() ),
 				'permalink'     => get_permalink( $card_product->get_id() ),
-				'priceHtml'     => wp_kses_post( (string) $card_product->get_price_html() ),
+				'priceHtml'     => $sold_online ? wp_kses_post( (string) $card_product->get_price_html() ) : '',
 				'image'         => esc_url_raw( (string) $image_url ),
 				'imageAlt'      => $image_id ? sanitize_text_field( (string) get_post_meta( $image_id, '_wp_attachment_image_alt', true ) ) : '',
-				'onSale'        => (bool) $card_product->is_on_sale(),
+				'onSale'        => $sold_online && (bool) $card_product->is_on_sale(),
 				'averageRating' => (float) $card_product->get_average_rating(),
 				'ratingCount'   => (int) $card_product->get_rating_count(),
 				'addToCartUrl'  => $quick_add ? esc_url_raw( (string) $card_product->add_to_cart_url() ) : '',
+				'isSoldOnline'  => $sold_online,
+				'ctaButtons'    => $sold_online ? array() : self::get_syndified_cta_buttons( $card_product->get_id() ),
 			);
 		}
 

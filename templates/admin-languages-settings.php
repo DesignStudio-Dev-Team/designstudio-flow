@@ -198,4 +198,108 @@ $multilingual_state_label  = $multilingual_state_labels[ $multilingual_settings[
 		</table>
 	</div>
 	<p class="description"><?php esc_html_e( 'Prefixes may contain lowercase letters, numbers, and internal hyphens only. WordPress, REST, feed, sitemap, and WooCommerce routes are reserved.', 'designstudio-flow' ); ?></p>
+
+	<h3><?php esc_html_e( 'Machine translation (optional)', 'designstudio-flow' ); ?></h3>
+	<p class="description">
+		<?php esc_html_e( 'Machine translation only prefills a draft. Every prefilled translation stays marked as needing review, and translating by hand always works — including while the service is unreachable.', 'designstudio-flow' ); ?>
+	</p>
+
+	<table class="form-table" role="presentation">
+		<tr>
+			<th scope="row"><label for="dsf-translation-provider"><?php esc_html_e( 'Service', 'designstudio-flow' ); ?></label></th>
+			<td>
+				<select id="dsf-translation-provider" name="dsf_translation_provider">
+					<option value="none" <?php selected( 'none', $translation_provider['provider'] ); ?>><?php esc_html_e( 'None — translate manually', 'designstudio-flow' ); ?></option>
+					<?php foreach ( $translation_adapters as $translation_id => $translation_class ) : ?>
+						<option value="<?php echo esc_attr( $translation_id ); ?>" <?php selected( $translation_id, $translation_provider['provider'] ); ?>>
+							<?php echo esc_html( ( new $translation_class() )->get_label() ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="dsf-translation-endpoint"><?php esc_html_e( 'Service URL', 'designstudio-flow' ); ?></label></th>
+			<td>
+				<input id="dsf-translation-endpoint" type="url" class="regular-text" maxlength="<?php echo esc_attr( (string) DSF_Translation_Providers::MAX_ENDPOINT_CHARS ); ?>" name="dsf_translation_endpoint" value="<?php echo esc_attr( $translation_provider['endpoint'] ); ?>" placeholder="https://translate.example.com">
+				<p class="description"><?php esc_html_e( 'Your own LibreTranslate instance, reachable over HTTPS at a public address. Private, loopback, and link-local addresses are refused.', 'designstudio-flow' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="dsf-translation-api-key"><?php esc_html_e( 'API key', 'designstudio-flow' ); ?></label></th>
+			<td>
+				<input id="dsf-translation-api-key" type="password" class="regular-text" autocomplete="new-password" name="dsf_translation_api_key" value="" placeholder="<?php echo esc_attr( '' !== $translation_provider['api_key'] ? __( 'Saved — leave blank to keep', 'designstudio-flow' ) : __( 'Optional for a self-hosted instance', 'designstudio-flow' ) ); ?>">
+				<?php if ( '' !== $translation_provider['api_key'] ) : ?>
+					<label style="display:block;margin-top:6px;">
+						<input type="checkbox" name="dsf_translation_clear_api_key" value="1">
+						<?php esc_html_e( 'Remove the stored API key', 'designstudio-flow' ); ?>
+					</label>
+				<?php endif; ?>
+				<p class="description"><?php esc_html_e( 'Stored encrypted and used server-side only. It is never sent to the browser.', 'designstudio-flow' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="dsf-translation-timeout"><?php esc_html_e( 'Limits', 'designstudio-flow' ); ?></label></th>
+			<td>
+				<label for="dsf-translation-timeout"><?php esc_html_e( 'Timeout (seconds)', 'designstudio-flow' ); ?></label>
+				<input id="dsf-translation-timeout" type="number" class="small-text" min="<?php echo esc_attr( (string) DSF_Translation_Providers::MIN_TIMEOUT ); ?>" max="<?php echo esc_attr( (string) DSF_Translation_Providers::MAX_TIMEOUT ); ?>" name="dsf_translation_timeout" value="<?php echo esc_attr( (string) $translation_provider['timeout'] ); ?>">
+				<label for="dsf-translation-rate-limit" style="margin-left:12px;"><?php esc_html_e( 'Requests per minute', 'designstudio-flow' ); ?></label>
+				<input id="dsf-translation-rate-limit" type="number" class="small-text" min="<?php echo esc_attr( (string) DSF_Translation_Providers::MIN_RATE_LIMIT ); ?>" max="<?php echo esc_attr( (string) DSF_Translation_Providers::MAX_RATE_LIMIT ); ?>" name="dsf_translation_rate_limit" value="<?php echo esc_attr( (string) $translation_provider['rate_limit'] ); ?>">
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Connection', 'designstudio-flow' ); ?></th>
+			<td>
+				<button type="button" class="button" id="dsf-test-translation-provider" data-nonce="<?php echo esc_attr( wp_create_nonce( 'dsf_save_settings' ) ); ?>">
+					<?php esc_html_e( 'Test connection', 'designstudio-flow' ); ?>
+				</button>
+				<span id="dsf-translation-test-result" style="margin-left:10px;"></span>
+				<p class="description"><?php esc_html_e( 'Checks the saved service and reads its supported languages. No site content is sent.', 'designstudio-flow' ); ?></p>
+			</td>
+		</tr>
+	</table>
 </div>
+
+<script>
+( function () {
+	var button = document.getElementById( 'dsf-test-translation-provider' );
+	var result = document.getElementById( 'dsf-translation-test-result' );
+	if ( ! button || ! result ) {
+		return;
+	}
+	button.addEventListener( 'click', function () {
+		button.disabled = true;
+		result.textContent = <?php echo wp_json_encode( __( 'Testing…', 'designstudio-flow' ) ); ?>;
+		var body = new FormData();
+		body.append( 'action', 'dsf_test_translation_provider' );
+		body.append( 'nonce', button.getAttribute( 'data-nonce' ) );
+		window.fetch( <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>, {
+			method: 'POST',
+			credentials: 'same-origin',
+			body: body
+		} ).then( function ( response ) {
+			return response.json();
+		} ).then( function ( payload ) {
+			var message = ( payload && payload.data && payload.data.message ) || <?php echo wp_json_encode( __( 'The test could not be completed.', 'designstudio-flow' ) ); ?>;
+			var unsupported = [];
+			if ( payload && payload.success && payload.data && payload.data.languages ) {
+				payload.data.languages.forEach( function ( language ) {
+					if ( ! language.supported ) {
+						unsupported.push( language.code );
+					}
+				} );
+			}
+			if ( unsupported.length ) {
+				message += ' ' + <?php echo wp_json_encode( __( 'Not supported:', 'designstudio-flow' ) ); ?> + ' ' + unsupported.join( ', ' );
+			}
+			result.textContent = message;
+			result.style.color = ( payload && payload.success ) ? '#1a7f37' : '#b32d2e';
+		} ).catch( function () {
+			result.textContent = <?php echo wp_json_encode( __( 'The test could not be completed.', 'designstudio-flow' ) ); ?>;
+			result.style.color = '#b32d2e';
+		} ).finally( function () {
+			button.disabled = false;
+		} );
+	} );
+}() );
+</script>

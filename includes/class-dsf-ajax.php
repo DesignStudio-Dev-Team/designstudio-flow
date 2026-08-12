@@ -25,6 +25,10 @@ class DSF_Ajax {
 		add_action( 'wp_ajax_dsf_history_restore', array( $this, 'history_restore' ) );
 		add_action( 'wp_ajax_dsf_history_settings_list', array( $this, 'history_settings_list' ) );
 		add_action( 'wp_ajax_dsf_history_settings_restore', array( $this, 'history_settings_restore' ) );
+		add_action( 'wp_ajax_dsf_test_translation_provider', array( $this, 'test_translation_provider' ) );
+		add_action( 'wp_ajax_dsf_clone_translation', array( $this, 'clone_translation' ) );
+		add_action( 'wp_ajax_dsf_review_translation', array( $this, 'review_translation' ) );
+		add_action( 'wp_ajax_dsf_publish_translation', array( $this, 'publish_translation' ) );
 
 		// Get products
 		add_action( 'wp_ajax_dsf_get_products', array( $this, 'get_products' ) );
@@ -752,7 +756,8 @@ class DSF_Ajax {
 	 * @param array $settings       New settings to apply.
 	 * @return int
 	 */
-	private function sync_saved_block_instances( $saved_block_id, $settings ) {
+	private function sync_saved_block_instances( $saved_block_id, $settings, $language_resolver = null ) {
+		$resolve = is_callable( $language_resolver ) ? $language_resolver : array( $this, 'object_language' );
 		$posts = get_posts(
 			array(
 				'post_type'      => array( 'page', 'dsf_layout', 'dsf_product_template', 'dsf_shop_template', 'dsf_blog_template' ),
@@ -764,10 +769,17 @@ class DSF_Ajax {
 			)
 		);
 
+		$owner_language = call_user_func( $resolve, 'post', 'dsf_saved_block', $saved_block_id );
+
 		$changes = array();
 		foreach ( $posts as $pid ) {
 			$blocks = get_post_meta( $pid, '_dsf_blocks', true );
 			if ( ! is_array( $blocks ) ) {
+				continue;
+			}
+			if ( null !== $owner_language && call_user_func( $resolve, 'post', get_post_type( $pid ), $pid ) !== $owner_language ) {
+				// Synchronization is same-language only. A Spanish page keeps its
+				// reviewed Spanish copy even when the English saved block changes.
 				continue;
 			}
 			$changed = false;
@@ -1025,6 +1037,274 @@ class DSF_Ajax {
 	 * Validate + per-type sanitize a template's blocks (drops unknown types and
 	 * client-side ids; ids are regenerated when the template is inserted).
 	 */
+	/**
+	 * Verify the configured translation service without sending any content.
+	 *
+	 * The endpoint is always read from stored settings — never from the request
+	 * — so this cannot be used to probe arbitrary hosts.
+	 */
+	public function test_translation_provider() {
+		if ( ! check_ajax_referer( 'dsf_save_settings', 'nonce', false ) || ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied', 'designstudio-flow' ) ), 403 );
+		}
+
+		$provider = DSF_Translation_Providers::get_active_provider();
+		if ( ! $provider instanceof DSF_Translation_Provider ) {
+			wp_send_json_error( array( 'message' => __( 'Select and save a translation service first.', 'designstudio-flow' ) ), 400 );
+		}
+
+		$health = $provider->check_health();
+		if ( is_wp_error( $health ) ) {
+			wp_send_json_error( array( 'message' => $health->get_error_message() ), 400 );
+		}
+
+		$enabled = array();
+		foreach ( DSF_Multilingual_Settings::get_enabled_language_codes() as $code ) {
+			$record = DSF_Multilingual_Settings::get_locale( $code );
+			$known  = is_array( $record ) && in_array( $record['provider_code'], $health['languages'], true );
+			$enabled[] = array(
+				'code'      => $code,
+				'supported' => $known,
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message'   => sprintf(
+					/* translators: %d: number of languages the service reports. */
+					__( 'Connected. The service reports %d languages.', 'designstudio-flow' ),
+					count( $health['languages'] )
+				),
+				'languages' => $enabled,
+			)
+		);
+	}
+
+	/**
+	 * Create a translated draft from a main-language object.
+	 *
+	 * Every gate the service enforces is repeated here in the transport layer:
+	 * an action-specific nonce, the broad edit capability, and object-level
+	 * permission checks inside the cloner itself.
+	 */
+	public function clone_translation() {
+		if ( ! check_ajax_referer( 'dsf_translation_actions', 'nonce', false ) || ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied', 'designstudio-flow' ) ), 403 );
+		}
+
+		$source_id = isset( $_POST['source_id'] ) ? absint( wp_unslash( $_POST['source_id'] ) ) : 0;
+		$language  = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
+		$args      = array(
+			'title'       => isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '',
+			'slug'        => isset( $_POST['slug'] ) ? sanitize_title( wp_unslash( $_POST['slug'] ) ) : '',
+			'copy_seo'    => ! isset( $_POST['copy_seo'] ) || '0' !== (string) wp_unslash( $_POST['copy_seo'] ),
+			'copy_popup'  => ! isset( $_POST['copy_popup'] ) || '0' !== (string) wp_unslash( $_POST['copy_popup'] ),
+		);
+
+		$result = DSF_Translation_Cloner::get_instance()->clone_post( $source_id, $language, $args );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 );
+		}
+
+		if ( ! empty( $_POST['prefill'] ) && class_exists( 'DSF_Translation_Machine' ) ) {
+			$result['prefill'] = $this->prefill_translation( $result );
+		}
+
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * Record a human review for one translation.
+	 */
+	public function review_translation() {
+		if ( ! check_ajax_referer( 'dsf_translation_actions', 'nonce', false ) || ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied', 'designstudio-flow' ) ), 403 );
+		}
+
+		$target_id = isset( $_POST['target_id'] ) ? absint( wp_unslash( $_POST['target_id'] ) ) : 0;
+		$kind      = isset( $_POST['object_kind'] ) ? sanitize_key( wp_unslash( $_POST['object_kind'] ) ) : 'post';
+		$subtype   = isset( $_POST['object_subtype'] ) ? sanitize_key( wp_unslash( $_POST['object_subtype'] ) ) : '';
+		$result    = DSF_Translation_Review::get_instance()->approve( $target_id, $kind, $subtype );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 );
+		}
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * Publish a reviewed translation through the central gate.
+	 */
+	public function publish_translation() {
+		if ( ! check_ajax_referer( 'dsf_translation_actions', 'nonce', false ) || ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied', 'designstudio-flow' ) ), 403 );
+		}
+
+		$target_id = isset( $_POST['target_id'] ) ? absint( wp_unslash( $_POST['target_id'] ) ) : 0;
+		$result    = DSF_Translation_Review::get_instance()->publish( $target_id );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 );
+		}
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * Machine-prefill a freshly created translation, when a service is configured.
+	 *
+	 * A provider failure is reported, never fatal: the draft already exists and
+	 * can be translated by hand.
+	 *
+	 * @param array $clone Clone result.
+	 * @return array<string,mixed>
+	 */
+	private function prefill_translation( $clone ) {
+		$coordinator = DSF_Multilingual::get_instance();
+		$member      = $coordinator->get_relationships()->find_by_object( 'post', get_post_type( $clone['post_id'] ), absint( $clone['post_id'] ) );
+		if ( ! is_array( $member ) ) {
+			return array( 'message' => __( 'The draft was created but could not be prefilled.', 'designstudio-flow' ) );
+		}
+
+		$machine = DSF_Translation_Machine::get_instance();
+		$result  = $machine->prefill( $member, DSF_Multilingual_Settings::get_settings()['main_language'], $member['language'] );
+		if ( is_wp_error( $result ) ) {
+			return array( 'message' => $result->get_error_message() );
+		}
+
+		$target_id = absint( $clone['post_id'] );
+		$this->store_prefilled_document( $target_id, $result['document'] );
+		$machine->mark_prefilled(
+			$coordinator->get_workflow(),
+			$member['group_uuid'],
+			$member['language'],
+			static function () use ( $target_id ) {
+				return current_user_can( 'edit_post', $target_id );
+			}
+		);
+
+		return array(
+			'translated' => absint( $result['translated'] ),
+			'failed'     => count( (array) $result['failed'] ),
+			'message'    => __( 'Machine translation was applied. It still needs review.', 'designstudio-flow' ),
+		);
+	}
+
+	/**
+	 * Persist an already-sanitized prefilled document.
+	 *
+	 * @param int   $target_id Translated post ID.
+	 * @param array $document  Sanitized document from the reassembler.
+	 */
+	private function store_prefilled_document( $target_id, $document ) {
+		if ( ! is_array( $document ) ) {
+			return;
+		}
+
+		$fields = array();
+		foreach ( array( 'post_title', 'post_excerpt', 'post_content' ) as $field ) {
+			if ( isset( $document[ $field ] ) && is_string( $document[ $field ] ) ) {
+				$fields[ $field ] = $document[ $field ];
+			}
+		}
+		if ( ! empty( $fields ) ) {
+			$fields['ID'] = $target_id;
+			wp_update_post( $fields );
+		}
+
+		if ( isset( $document['blocks'] ) && is_array( $document['blocks'] ) ) {
+			$blocks_key = 'dsf_template' === get_post_type( $target_id ) ? '_dsf_template_blocks' : '_dsf_blocks';
+			update_post_meta( $target_id, $blocks_key, $document['blocks'] );
+			// A stored snapshot still renders the source language.
+			delete_post_meta( $target_id, '_dsf_html_snapshot' );
+		}
+
+		if ( isset( $document['seo'] ) && is_array( $document['seo'] ) ) {
+			$settings = get_post_meta( $target_id, '_dsf_settings', true );
+			$settings = is_array( $settings ) ? $settings : array();
+			$seo      = isset( $settings['seo'] ) && is_array( $settings['seo'] ) ? $settings['seo'] : array();
+			$settings['seo'] = array_merge( $seo, $document['seo'] );
+			update_post_meta( $target_id, '_dsf_settings', $settings );
+		}
+	}
+
+	/**
+	 * Resolve the language an object belongs to.
+	 *
+	 * Returns null when multilingual mode is off or the object has no
+	 * relationship, which callers read as "no language boundary applies".
+	 *
+	 * @param string $kind      Object kind.
+	 * @param string $subtype   Object subtype.
+	 * @param int    $object_id Object ID.
+	 * @return string|null
+	 */
+	public function object_language( $kind, $subtype, $object_id ) {
+		if ( ! class_exists( 'DSF_Multilingual' ) ) {
+			return null;
+		}
+		$settings = DSF_Multilingual_Settings::get_settings();
+		if ( empty( $settings['enabled'] ) ) {
+			return null;
+		}
+
+		$member = DSF_Multilingual::get_instance()->get_relationships()->find_by_object(
+			sanitize_key( $kind ),
+			sanitize_key( (string) $subtype ),
+			absint( $object_id )
+		);
+		return is_array( $member ) ? (string) $member['language'] : null;
+	}
+
+	/**
+	 * Constrain the shared language-switcher presentation settings.
+	 *
+	 * @param array $settings Submitted block settings.
+	 * @return array
+	 */
+	private function sanitize_language_switcher_settings( $settings ) {
+		$allowed = array(
+			'languageSwitcherStyle'     => array( 'dropdown', 'compact', 'list' ),
+			'languageSwitcherLabels'    => array( 'native', 'code', 'both' ),
+			'languageSwitcherPlacement' => array( 'actions', 'utility' ),
+		);
+
+		foreach ( $allowed as $key => $values ) {
+			if ( ! array_key_exists( $key, $settings ) ) {
+				continue;
+			}
+			$value = is_scalar( $settings[ $key ] ) ? strtolower( trim( (string) $settings[ $key ] ) ) : '';
+			if ( in_array( $value, $values, true ) ) {
+				$settings[ $key ] = $value;
+			} else {
+				unset( $settings[ $key ] );
+			}
+		}
+
+		return $settings;
+	}
+
+	/**
+	 * Re-enter the block sanitizers used by the normal save path.
+	 *
+	 * Translation reassembly and imports must never write block settings that
+	 * skipped these type-specific contracts, so this is the one supported entry
+	 * point for content that was built outside the editor.
+	 *
+	 * @param array $blocks Candidate blocks.
+	 * @return array
+	 */
+	public function sanitize_blocks_for_storage( $blocks ) {
+		return $this->sanitize_known_block_settings( is_array( $blocks ) ? $blocks : array() );
+	}
+
+	/**
+	 * Re-enter the page SEO sanitizer used by the normal save path.
+	 *
+	 * @param array $seo Candidate SEO settings.
+	 * @return array
+	 */
+	public function sanitize_seo_for_storage( $seo ) {
+		return $this->sanitize_page_seo_settings( is_array( $seo ) ? $seo : array() );
+	}
+
 	private function sanitize_template_blocks( $blocks ) {
 		if ( ! is_array( $blocks ) ) {
 			return array();
@@ -1708,6 +1988,12 @@ class DSF_Ajax {
 				} else {
 					$block['anchorId'] = $anchor;
 				}
+			}
+			// The shared language-switcher controls are merged into every
+			// template-scope header, so they are sanitized before any per-type
+			// handler runs and regardless of which one matches.
+			if ( isset( $block['settings'] ) && is_array( $block['settings'] ) ) {
+				$block['settings'] = $this->sanitize_language_switcher_settings( $block['settings'] );
 			}
 			if ( in_array( $block['type'] ?? '', array( 'landing-progress-header', 'landing-dock-header', 'landing-hero', 'landing-showcase-hero', 'landing-block-explorer', 'landing-block-ready', 'steps-image', 'landing-product-story', 'landing-trust-workflow', 'landing-engagement-suite', 'landing-marketing-footer' ), true ) ) {
 				$block['settings'] = $this->sanitize_landing_block_settings( $block['type'], $block['settings'] ?? array() );
@@ -5044,9 +5330,14 @@ class DSF_Ajax {
 			// Ensure Image URL
 			$image_id  = $product->get_image_id();
 			$image_url = $image_id ? wp_get_attachment_url( $image_id ) : wc_placeholder_img_src();
-			$price     = $product->get_price();
-			$regular   = $product->get_regular_price();
-			$sale      = $product->get_sale_price();
+			// Products with no price, or that Syndified marks as not sold online,
+			// report no price and no cart URL so the grid renders neither a price
+			// nor an "Add to Cart" button for them.
+			$sold_online = DSF_Product_Templates::is_sold_online( $product );
+
+			$price     = $sold_online ? $product->get_price() : '';
+			$regular   = $sold_online ? $product->get_regular_price() : '';
+			$sale      = $sold_online ? $product->get_sale_price() : '';
 
 			$price_display   = '' !== $price ? html_entity_decode( wp_strip_all_tags( wc_price( $price ) ) ) : '';
 			$regular_display = '' !== $regular ? html_entity_decode( wp_strip_all_tags( wc_price( $regular ) ) ) : '';
@@ -5062,15 +5353,17 @@ class DSF_Ajax {
 				'price'           => $price_display,
 				'regularPrice'    => $regular_display,
 				'salePrice'       => $sale_display,
-				'price_html'      => $product->get_price_html(),
+				'price_html'      => $sold_online ? $product->get_price_html() : '',
 				'regular_price'   => $regular_display,
 				'sale_price'      => $sale_display,
 				'image'           => $image_url,
 				'permalink'       => $product->get_permalink(),
-				'add_to_cart_url' => $product->add_to_cart_url(),
+				'add_to_cart_url' => $sold_online ? $product->add_to_cart_url() : '',
 				'product_type'    => $product->get_type(),
 				'stock_status'    => $product->get_stock_status(),
-				'price_num'       => (float) $product->get_price(),
+				'price_num'       => $sold_online ? (float) $product->get_price() : 0.0,
+				'sold_online'     => $sold_online,
+				'cta_buttons'     => $sold_online ? array() : DSF_Product_Templates::get_syndified_cta_buttons( $product->get_id() ),
 				'rating'          => round( (float) $product->get_average_rating(), 1 ),
 				'categories'      => is_wp_error( $cat_terms ) ? array() : $cat_terms,
 				'category_ids'    => is_wp_error( $cat_term_ids ) ? array() : array_map( 'intval', (array) $cat_term_ids ),

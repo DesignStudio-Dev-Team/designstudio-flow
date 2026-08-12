@@ -436,10 +436,11 @@ class DSF_Multilingual_Migration {
 		$settings['migration_state']   = $migration_state;
 		$settings['migration_cursor']  = max( 0, (int) $cursor );
 		$settings['migration_version'] = max( 0, (int) $version );
+		// Autoloaded: language routing reads these settings on every frontend request.
 		update_option(
 			DSF_Multilingual_Settings::OPTION_NAME,
 			DSF_Multilingual_Settings::sanitize_settings( $settings ),
-			false
+			true
 		);
 	}
 

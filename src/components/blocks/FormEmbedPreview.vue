@@ -515,37 +515,9 @@ onBeforeUnmount(() => {
   display: none !important;
 }
 
-/* Inline checkboxes/radios with their labels. */
-.dsf-form-embed-preview__frontend :deep(.gchoice) {
-  display: flex !important;
-  align-items: center;
-  gap: 0.625rem;
-  line-height: 1.35;
-}
-
-.dsf-form-embed-preview__frontend :deep(.gchoice > label) {
-  margin: 0 !important;
-  display: inline-flex;
-  align-items: center;
-  min-width: 0;
-  line-height: 1.35 !important;
-}
-
-.dsf-form-embed-preview__frontend :deep(.gchoice > input[type="checkbox"]),
-.dsf-form-embed-preview__frontend :deep(.gchoice > input[type="radio"]) {
-  position: static !important;
-  display: inline-block !important;
-  width: 25px !important;
-  height: 25px !important;
-  min-width: 25px !important;
-  min-height: 25px !important;
-  margin: 0 !important;
-  opacity: 1 !important;
-  appearance: auto !important;
-  -webkit-appearance: auto !important;
-  accent-color: #aaa !important;
-  flex: 0 0 25px !important;
-}
+/* Checkbox/radio choices are styled in assets/css/form-controls.css — it has to
+   outrank theme rules that restyle choice inputs site-wide, which scoped block
+   CSS cannot do. Keep choice layout out of here so the two do not fight. */
 
 @container (max-width: 600px) {
   .dsf-form-embed-preview__frontend :deep(.gform_wrapper .gfield) {

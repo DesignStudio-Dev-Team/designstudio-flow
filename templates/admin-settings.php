@@ -241,6 +241,9 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 	$dsf_capture_setting( 'dsf_global_header_footer', (bool) get_option( 'dsf_global_header_footer', false ), (bool) $dsf_global_header_footer, 'global_layout' );
 	update_option( 'dsf_global_header_footer', $dsf_global_header_footer );
 
+	// Deleting the plugin preserves everything unless this is explicitly ticked.
+	update_option( 'dsf_remove_all_data_on_uninstall', isset( $_POST['dsf_remove_all_data'] ) ? 1 : 0 );
+
 	$notification_bar = DSF_Notification_Bar::sanitize_settings(
 		array(
 			'enabled'         => isset( $_POST['dsf_notification_enabled'] ),
@@ -261,6 +264,31 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 	);
 	$dsf_capture_setting( 'dsf_notification_bar', get_option( 'dsf_notification_bar', array() ), $notification_bar, 'notification_save' );
 	update_option( 'dsf_notification_bar', $notification_bar );
+
+	// Per-language notification copy. Only the visitor-facing text is translated:
+	// the link target, schedule, colours and dismiss behaviour stay shared.
+	$dsf_notification_translations = array();
+	$dsf_submitted_notifications   = array();
+	if ( isset( $_POST['dsf_notification_translations'] ) && is_array( $_POST['dsf_notification_translations'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Every language code and field below is validated and sanitized individually.
+		$dsf_submitted_notifications = wp_unslash( $_POST['dsf_notification_translations'] );
+	}
+	foreach ( array_slice( $dsf_submitted_notifications, 0, DSF_Multilingual_Settings::MAX_LANGUAGES, true ) as $dsf_language_code => $dsf_language_copy ) {
+		$dsf_language_code = DSF_Multilingual_Settings::normalize_locale_code( $dsf_language_code );
+		if ( '' === $dsf_language_code || ! is_array( $dsf_language_copy ) ) {
+			continue;
+		}
+		$dsf_language_message  = isset( $dsf_language_copy['message'] ) ? wp_kses_post( (string) $dsf_language_copy['message'] ) : '';
+		$dsf_language_linktext = isset( $dsf_language_copy['linkText'] ) ? sanitize_text_field( (string) $dsf_language_copy['linkText'] ) : '';
+		if ( '' === trim( $dsf_language_message ) && '' === trim( $dsf_language_linktext ) ) {
+			continue;
+		}
+		$dsf_notification_translations[ $dsf_language_code ] = array(
+			'message'  => $dsf_language_message,
+			'linkText' => $dsf_language_linktext,
+		);
+	}
+	update_option( DSF_Multilingual_Adapters::NOTIFICATION_TRANSLATIONS_OPTION, $dsf_notification_translations, false );
 
 	// Languages are reconstructed only from the curated registry and known keys.
 	$dsf_current_multilingual = DSF_Multilingual_Settings::get_settings();
@@ -306,6 +334,16 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 			}
 			if ( isset( $dsf_seen_prefixes[ $dsf_prefix ] ) ) {
 				$dsf_settings_errors[] = __( 'Every secondary language must have a unique URL prefix.', 'designstudio-flow' );
+				continue;
+			}
+			$dsf_prefix_collision = DSF_Language_Routing::describe_prefix_collision( $dsf_prefix );
+			if ( '' !== $dsf_prefix_collision ) {
+				$dsf_settings_errors[] = sprintf(
+					/* translators: 1: submitted URL prefix, 2: reason the prefix cannot be used. */
+					__( 'The "%1$s" prefix cannot be used: %2$s', 'designstudio-flow' ),
+					$dsf_prefix,
+					$dsf_prefix_collision
+				);
 				continue;
 			}
 			$dsf_seen_prefixes[ $dsf_prefix ] = true;
@@ -434,6 +472,24 @@ if ( isset( $_POST['dsf_undo_theme_defaults'] ) && $has_valid_nonce ) {
 		}
 	}
 
+	// Machine-translation configuration is stored separately: it is an optional
+	// convenience and must never block a language configuration from saving.
+	$dsf_translation_provider = array(
+		'provider'      => isset( $_POST['dsf_translation_provider'] ) ? wp_unslash( $_POST['dsf_translation_provider'] ) : 'none',
+		'endpoint'      => isset( $_POST['dsf_translation_endpoint'] ) ? wp_unslash( $_POST['dsf_translation_endpoint'] ) : '',
+		'api_key'       => isset( $_POST['dsf_translation_api_key'] ) ? wp_unslash( $_POST['dsf_translation_api_key'] ) : '',
+		'timeout'       => isset( $_POST['dsf_translation_timeout'] ) ? wp_unslash( $_POST['dsf_translation_timeout'] ) : 10,
+		'rate_limit'    => isset( $_POST['dsf_translation_rate_limit'] ) ? wp_unslash( $_POST['dsf_translation_rate_limit'] ) : 60,
+		'clear_api_key' => isset( $_POST['dsf_translation_clear_api_key'] ),
+	);
+	$dsf_translation_stored   = DSF_Translation_Providers::update_settings( $dsf_translation_provider );
+	if ( 'none' !== $dsf_translation_stored['provider'] ) {
+		$dsf_endpoint_valid = DSF_Translation_Providers::validate_endpoint( $dsf_translation_stored['endpoint'] );
+		if ( is_wp_error( $dsf_endpoint_valid ) ) {
+			echo '<div class="notice notice-warning"><p>' . esc_html( $dsf_endpoint_valid->get_error_message() ) . '</p></div>';
+		}
+	}
+
 	if ( empty( $dsf_settings_errors ) ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved successfully.', 'designstudio-flow' ) . '</p></div>';
 		if ( ! empty( $dsf_settings_warnings ) ) {
@@ -498,15 +554,15 @@ $dsf_color_picker_value = static function ( $color, $fallback ) {
 	}
 	return $color ?: $fallback;
 };
-$recaptcha_enabled    = (bool) get_option( 'dsf_recaptcha_enabled', false );
-$recaptcha_site_key   = get_option( 'dsf_recaptcha_site_key', '' );
-$recaptcha_secret_key = DSF_Crypto::decrypt( get_option( 'dsf_recaptcha_secret_key', '' ) );
-$recaptcha_threshold  = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
-$notification_bar     = DSF_Notification_Bar::get_settings();
-$tracking_code        = DSF_Tracking_Code::get_settings();
-$can_manage_tracking  = current_user_can( 'unfiltered_html' );
-$previous_theme_value = get_option( 'dsf_previous_theme_defaults', array() );
-$has_previous_theme   = is_array( $previous_theme_value ) && ! empty( $previous_theme_value['colors'] ) && ! empty( $previous_theme_value['typography'] );
+$recaptcha_enabled      = (bool) get_option( 'dsf_recaptcha_enabled', false );
+$recaptcha_site_key     = get_option( 'dsf_recaptcha_site_key', '' );
+$recaptcha_secret_key   = DSF_Crypto::decrypt( get_option( 'dsf_recaptcha_secret_key', '' ) );
+$recaptcha_threshold    = floatval( get_option( 'dsf_recaptcha_threshold', 0.5 ) );
+$notification_bar       = DSF_Notification_Bar::get_settings();
+$tracking_code          = DSF_Tracking_Code::get_settings();
+$can_manage_tracking    = current_user_can( 'unfiltered_html' );
+$previous_theme_value   = get_option( 'dsf_previous_theme_defaults', array() );
+$has_previous_theme     = is_array( $previous_theme_value ) && ! empty( $previous_theme_value['colors'] ) && ! empty( $previous_theme_value['typography'] );
 
 $typography_option = get_option(
 	'dsf_typography',
@@ -644,6 +700,8 @@ foreach ( $multilingual_settings['languages'] as $multilingual_order => $multili
 }
 $multilingual_conflicts = DSF_Multilingual_Conflicts::detect_conflicts();
 $multilingual_progress  = DSF_Multilingual::get_instance()->get_migration()->get_progress();
+$translation_provider   = DSF_Translation_Providers::get_settings();
+$translation_adapters   = DSF_Translation_Providers::get_adapters();
 ?>
 
 <div class="wrap dsf-admin-settings">
@@ -815,6 +873,18 @@ $multilingual_progress  = DSF_Multilingual::get_instance()->get_migration()->get
 							</label>
 							<p class="description">
 								When on, regular WordPress Pages and Posts are wrapped with the header/footer above (their content still shows). <strong>This replaces the theme's page layout</strong> for those pages, so theme sidebars and custom page templates won't apply. Archives, search, 404, and WooCommerce cart/checkout/account/shop pages are left to the theme.
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Deleting the plugin', 'designstudio-flow' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="dsf_remove_all_data" value="1" <?php checked( (bool) get_option( 'dsf_remove_all_data_on_uninstall', false ) ); ?>>
+								<?php esc_html_e( 'Also remove DesignStudio Flow settings and its database tables when the plugin is deleted', 'designstudio-flow' ); ?>
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'Off by default: deleting the plugin leaves every page, layout, popup, form, entry, saved block, template and translation untouched, so reinstalling restores the site as it was. Ticking this removes the plugin\'s own settings, translation relationships, routes, review history and version history — your content is still never deleted.', 'designstudio-flow' ); ?>
 							</p>
 						</td>
 					</tr>
@@ -1073,6 +1143,36 @@ $multilingual_progress  = DSF_Multilingual::get_instance()->get_migration()->get
 							</p>
 						</td>
 					</tr>
+					<?php
+					$dsf_notification_languages = DSF_Multilingual_Settings::get_settings();
+					$dsf_notification_secondary = ! empty( $dsf_notification_languages['enabled'] )
+						? array_values( array_diff( DSF_Multilingual_Settings::get_enabled_language_codes( $dsf_notification_languages ), array( $dsf_notification_languages['main_language'] ) ) )
+						: array();
+					$dsf_notification_stored    = get_option( DSF_Multilingual_Adapters::NOTIFICATION_TRANSLATIONS_OPTION, array() );
+					$dsf_notification_stored    = is_array( $dsf_notification_stored ) ? $dsf_notification_stored : array();
+					?>
+					<?php foreach ( $dsf_notification_secondary as $dsf_notification_code ) : ?>
+						<?php
+						$dsf_notification_record = DSF_Language_Context::describe( $dsf_notification_code );
+						$dsf_notification_copy   = isset( $dsf_notification_stored[ $dsf_notification_code ] ) && is_array( $dsf_notification_stored[ $dsf_notification_code ] )
+							? $dsf_notification_stored[ $dsf_notification_code ]
+							: array();
+						$dsf_notification_field  = 'dsf-notification-' . sanitize_html_class( $dsf_notification_code );
+						?>
+						<tr>
+							<th scope="row">
+								<label for="<?php echo esc_attr( $dsf_notification_field ); ?>">
+									<?php echo esc_html( ! empty( $dsf_notification_record['native_label'] ) ? $dsf_notification_record['native_label'] : $dsf_notification_code ); ?>
+								</label>
+							</th>
+							<td>
+								<textarea id="<?php echo esc_attr( $dsf_notification_field ); ?>" class="large-text" rows="2" name="dsf_notification_translations[<?php echo esc_attr( $dsf_notification_code ); ?>][message]" placeholder="<?php esc_attr_e( 'Translated message', 'designstudio-flow' ); ?>"><?php echo esc_textarea( (string) ( $dsf_notification_copy['message'] ?? '' ) ); ?></textarea>
+								<input type="text" class="regular-text" name="dsf_notification_translations[<?php echo esc_attr( $dsf_notification_code ); ?>][linkText]" value="<?php echo esc_attr( (string) ( $dsf_notification_copy['linkText'] ?? '' ) ); ?>" placeholder="<?php esc_attr_e( 'Translated CTA label', 'designstudio-flow' ); ?>">
+								<p class="description"><?php esc_html_e( 'The link target, schedule, colours and dismiss behaviour are shared with the main language. Editing this returns the translation to Needs review.', 'designstudio-flow' ); ?></p>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+
 					<tr>
 						<th scope="row">Display</th>
 						<td>
